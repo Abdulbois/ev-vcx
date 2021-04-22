@@ -1,17 +1,22 @@
 extern crate zeroize;
 
 use self::zeroize::Zeroize;
+use std::fmt;
 
-#[derive(Derivative)]
-#[derivative(Debug)]
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Key {
     pub verkey: String,
-    #[cfg(not(test))]
-    #[derivative(Debug = "ignore")]
     pub signkey: String,
-    #[cfg(test)]
-    pub signkey: String,
+}
+
+impl fmt::Debug for Key {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut repr = f.debug_struct("Key");
+        repr.field("verkey", &self.verkey);
+        #[cfg(test)]
+        repr.field("signkey", &self.signkey);
+        repr.finish()
+    }
 }
 
 impl Key {
