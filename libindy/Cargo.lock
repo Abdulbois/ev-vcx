@@ -934,7 +934,6 @@ dependencies = [
  "log-derive",
  "log-panics",
  "openssl",
- "quote 1.0.7",
  "rand 0.7.3",
  "regex",
  "rmp-serde",
