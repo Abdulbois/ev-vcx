@@ -323,7 +323,7 @@ pub mod test {
         pub fn update_message(&self, uid: &str) {
             self.activate();
             let agent_info = ::connection::get_completed_connection(self.connection_handle).unwrap();
-            agent_info.agent.update_message_status(uid.to_string()).unwrap();
+            agent_info.agent.update_message_status(uid.to_string(), None).unwrap();
         }
 
         pub fn teardown(&self) {
@@ -507,7 +507,7 @@ pub mod test {
         pub fn update_message_status(&self, uid: String) {
             self.activate();
             let agent_info = ::connection::get_completed_connection(self.connection_handle).unwrap();
-            agent_info.agent.update_message_status(uid).unwrap();
+            agent_info.agent.update_message_status(uid, None).unwrap();
         }
 
         pub fn delete_credential(&self) {
