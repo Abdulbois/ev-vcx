@@ -78,12 +78,12 @@ impl AgentInfo {
         vec![self.pw_vk.to_string()]
     }
 
-    pub fn update_message_status(&self, uid: String) -> VcxResult<()> {
+    pub fn update_message_status(&self, uid: String, pw_did: Option<String>) -> VcxResult<()> {
         trace!("Agent::update_message_status_as_reviewed >>> uid: {:?}", uid);
         debug!("Agent: Updating message {:?} status on reviewed", uid);
 
         let messages_to_update = vec![UIDsByConn {
-            pairwise_did: self.pw_did.clone(),
+            pairwise_did: pw_did.unwrap_or(self.pw_did.clone()),
             uids: vec![uid],
         }];
 

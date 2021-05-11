@@ -69,7 +69,7 @@ impl HolderSM {
         match self.find_message_to_handle(messages) {
             Some((uid, msg)) => {
                 let state = self.handle_message(msg.into())?;
-                agent.update_message_status(uid)?;
+                agent.update_message_status(uid, None)?;
                 Ok(state)
             }
             None => Ok(self)
