@@ -1,0 +1,44 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "@typescript-eslint"
+  ],
+  "extends": [
+    "eslint:recommended"
+  ],
+  "rules": {
+    "no-unused-vars": [
+      "warn",
+      {
+        "ignoreRestSiblings": true,
+        "argsIgnorePattern": "^action",
+        "caughtErrors": "none"
+      }
+    ],
+    "react/display-name": 0,
+    "react/prop-types": 0,
+    "react/jsx-no-duplicate-props": 0,
+    "no-prototype-builtins": 0,
+    "no-empty": 0,
+    "no-extra-semi": 0,
+    "no-case-declarations": 0,
+    "no-fallthrough": 0,
+    "no-dupe-keys": 0,
+    "no-useless-catch": 0,
+    "react/no-unescaped-entities": 0,
+    "no-useless-escape": 0,
+    "no-undef": 0
+  },
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "modules": true
+    }
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  }
+}
