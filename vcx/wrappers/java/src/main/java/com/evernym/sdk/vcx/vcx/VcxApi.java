@@ -210,6 +210,13 @@ public class VcxApi extends VcxJava.API {
         return LibVcx.api.vcx_version();
     }
 
+     /**
+      * Get the message corresponding to an error code
+      *
+      * @param error_code      code of error
+      *
+      * @throws VcxException   If an exception occurred in Libvcx library.
+      */
     public static String vcxErrorCMessage(int errorCode) {
         logger.debug("vcxErrorCMessage() called with: errorCode = [" + errorCode + "]");
         return LibVcx.api.vcx_error_c_message(errorCode);

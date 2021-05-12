@@ -421,6 +421,13 @@ public class UtilsApi extends VcxJava.API {
         LibVcx.api.vcx_set_next_agency_response(messageIndex);
     }
 
+     /**
+      * Set the pool handle before calling vcx_init_minimal.
+      *
+      * @param  handle               pool handle that libvcx should use
+      *
+      * @throws VcxException   If an exception occurred in Libvcx library.
+      */
     public static void setPoolHandle(int handle) {
         LibVcx.api.vcx_pool_set_handle(handle);
     }
