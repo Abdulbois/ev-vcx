@@ -2,7 +2,7 @@ use v3::messages::connection::invite::Invitation;
 use v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
 
 use error::prelude::*;
-use url::Url;
+use reqwest::Url;
 use messages::validation::validate_verkey;
 
 pub const CONTEXT: &str = "https://w3id.org/did/v1";

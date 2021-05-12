@@ -26,8 +26,6 @@ extern crate libc;
 extern crate rand;
 extern crate uuid;
 
-#[macro_use]
-extern crate derivative;
 extern crate core;
 
 extern crate hex;
