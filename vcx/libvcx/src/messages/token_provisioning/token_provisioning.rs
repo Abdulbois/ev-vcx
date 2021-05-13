@@ -129,18 +129,16 @@ pub fn provision(my_config: Config, sponsee_id: &str, sponsor_id: &str, com_meth
     Ok(token)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "agency", feature = "pool_tests"))]
 mod tests {
-    
-    
-    
-    
-    
-    
-    
+    use super::*;
+    use settings;
+    use utils::constants;
+    use utils::devsetup::{C_AGENCY_DID, C_AGENCY_VERKEY, C_AGENCY_ENDPOINT, cleanup_indy_env};
+    use utils::plugins::init_plugin;
+    use utils::libindy::wallet::delete_wallet;
+    use messages::agent_utils::parse_config;
 
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
     #[test]
     fn test_token_provisioning() {
         cleanup_indy_env();
