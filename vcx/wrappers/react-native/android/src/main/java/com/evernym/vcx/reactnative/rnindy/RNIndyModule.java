@@ -97,6 +97,29 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         return REACT_CLASS;
     }
 
+    /*
+     * Agent API
+     */
+    @ReactMethod
+    public void vcxUpdatePushToken(String config, Promise promise) {
+        try {
+            UtilsApi.vcxUpdateAgentInfo(config).whenComplete((result, t) -> {
+                if (t != null) {
+                    VcxException ex = (VcxException) t;
+                    ex.printStackTrace();
+                    Log.e(TAG, "vcxUpdateAgentInfo - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxUpdateAgentInfo - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
     @ReactMethod
     public void createOneTimeInfo(String agencyConfig, Promise promise) {
         Log.d(TAG, "createOneTimeInfo()");
@@ -117,6 +140,21 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         } catch (VcxException e) {
             e.printStackTrace();
             Log.e(TAG, "vcxAgentProvisionAsync - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void createOneTimeInfoWithToken(String agencyConfig, String token, Promise promise) {
+        Log.d(TAG, "createOneTimeInfoWithToken()");
+        BridgeUtils.writeCACert(this.getReactApplicationContext());
+
+        try {
+            String result = UtilsApi.vcxAgentProvisionWithToken(agencyConfig, token);
+            BridgeUtils.resolveIfValid(promise, result);
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxAgentProvisionWithToken - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
@@ -144,68 +182,182 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void createOneTimeInfoWithToken(String agencyConfig, String token, Promise promise) {
-        Log.d(TAG, "createOneTimeInfoWithToken()");
-        BridgeUtils.writeCACert(this.getReactApplicationContext());
-
+    public void downloadMessages(String messageStatus, String uid_s, String pwdids, Promise promise) {
+        Log.d(TAG, "downloadMessages()");
         try {
-            String result = UtilsApi.vcxAgentProvisionWithToken(agencyConfig, token);
-            BridgeUtils.resolveIfValid(promise, result);
+            UtilsApi.vcxGetMessages(messageStatus, uid_s, pwdids).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxGetMessages - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+        }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+
+        } catch (VcxException e) {
+              e.printStackTrace();
+              Log.e(TAG, "vcxGetMessages - Error: ", e);
+              promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void vcxGetAgentMessages(String messageStatus, String uid_s, Promise promise) {
+        Log.d(TAG, "vcxGetAgentMessages()");
+        try {
+            UtilsApi.vcxGetAgentMessages(messageStatus, uid_s).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxGetAgentMessages - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+
         } catch (VcxException e) {
             e.printStackTrace();
-            Log.e(TAG, "vcxAgentProvisionWithToken - Error: ", e);
+            Log.e(TAG, "vcxGetAgentMessages - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
 
     @ReactMethod
-    public void init(String config, Promise promise) {
-        Log.d(TAG, "init()");
-        // When we restore data, then we are not calling createOneTimeInfo
-        // and hence ca-crt is not written within app directory
-        // since the logic to write ca cert checks for file existence
-        // we won't have to pay too much cost for calling this function inside init
-        BridgeUtils.writeCACert(this.getReactApplicationContext());
+    public void updateMessages(String messageStatus, String pwdidsJson, Promise promise) {
+        Log.d(TAG, "updateMessages()");
 
         try {
-            int retCode = VcxApi.initSovToken();
-            if(retCode != 0) {
-                promise.reject("Could not init sovtoken", String.valueOf(retCode));
-            } else {
-                VcxApi.vcxInitWithConfig(config).exceptionally((t) -> {
+            UtilsApi.vcxUpdateMessages(messageStatus, pwdidsJson).whenComplete((result, t) -> {
+                if (t != null) {
                     VcxException ex = (VcxException) t;
                     ex.printStackTrace();
-                    Log.e(TAG, "vcxInitWithConfig - Error: ", ex);
+                    Log.e(TAG, "vcxUpdateMessages - Error: ", ex);
                     promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                    return -1;
-                }).thenAccept(result -> {
-                    // Need to put this logic in every accept because that is how ugly Java's
-                    // promise API is
-                    // even if exceptionally is called, then also thenAccept block will be called
-                    // we either need to switch to complete method and pass two callbacks as
-                    // parameter
-                    // till we change to that API, we have to live with this IF condition
-                    // also reason to add this if condition is because we already rejected promise
-                    // in
-                    // exceptionally block, if we call promise.resolve now, then it `thenAccept`
-                    // block
-                    // would throw an exception that would not be caught here, because this is an
-                    // async
-                    // block and above try catch would not catch this exception
-                    if (result != -1) {
-                        promise.resolve(true);
-                    }
-                });
-            }
-
-        } catch (AlreadyInitializedException e) {
-            // even if we get already initialized exception
-            // then also we will resolve promise, because we don't care if vcx is already
-            // initialized
-            promise.resolve(true);
+                } else {
+                    promise.resolve(0);
+                }
+            });
         } catch (VcxException e) {
             e.printStackTrace();
-            Log.e(TAG, "vcxInitWithConfig - Error: ", e);
+            Log.e(TAG, "vcxUpdateMessages - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void createPairwiseAgent(Promise promise) {
+        try {
+            UtilsApi.vcxCreatePairwiseAgent().exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "createPairwiseAgent - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "createPairwiseAgent - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    /*
+     * Cloud Wallet Backup API
+     */
+    @ReactMethod
+    public void restoreWallet(String config, Promise promise) {
+        try {
+            WalletApi.restoreWalletBackup(config).whenComplete((result, t) -> {
+                if (t != null) {
+                    VcxException ex = (VcxException) t;
+                    ex.printStackTrace();
+                    Log.e(TAG, "restoreWalletBackup - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "restoreWalletBackup - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void createWalletBackup(String sourceID, String backupKey, Promise promise) {
+        try {
+            WalletApi.createWalletBackup(sourceID, backupKey).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "createWalletBackup - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "createWalletBackup - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void backupWalletBackup(int walletBackupHandle, String path, Promise promise) {
+        try {
+            WalletApi.backupWalletBackup(walletBackupHandle, path).whenComplete((result, t) -> {
+                if (t != null) {
+                    VcxException ex = (VcxException) t;
+                    ex.printStackTrace();
+                    Log.e(TAG, "backupWalletBackup - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "createWalletBackup - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void updateWalletBackupStateWithMessage(int walletBackupHandle, String message, Promise promise ) {
+        try {
+            WalletApi.updateWalletBackupStateWithMessage(walletBackupHandle, message ).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "updateWalletBackupStateWithMessage - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "updateWalletBackupState - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    /*
+     * Connection API
+     */
+    @ReactMethod
+    public void deleteConnection(int connectionHandle, Promise promise) {
+        try {
+            ConnectionApi.deleteConnection(connectionHandle).whenComplete((result, t) -> {
+                if (t != null) {
+                    VcxException ex = (VcxException) t;
+                    ex.printStackTrace();
+                    Log.e(TAG, "deleteConnection - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "deleteConnection - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
@@ -253,39 +405,44 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void vcxAcceptInvitation(int connectionHandle, String connectionType, Promise promise) {
-        Log.d(TAG, "acceptInvitation()");
+    public void getSerializedConnection(int connectionHandle, Promise promise) {
+        // TODO:KS call vcx_connection_serialize and pass connectionHandle
         try {
-            ConnectionApi.vcxAcceptInvitation(connectionHandle, connectionType).exceptionally((t) -> {
+            ConnectionApi.connectionSerialize(connectionHandle).exceptionally((t) -> {
                 VcxException ex = (VcxException) t;
                 ex.printStackTrace();
-                Log.e(TAG, "vcxAcceptInvitation - Error: ", ex);
+                Log.e(TAG, "connectionSerialize - Error: ", ex);
                 promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
                 return null;
-            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
         } catch (VcxException e) {
             e.printStackTrace();
-            Log.e(TAG, "vcxAcceptInvitation - Error: ", e);
+            Log.e(TAG, "connectionSerialize - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
 
     @ReactMethod
-    public void vcxUpdatePushToken(String config, Promise promise) {
+    public void deserializeConnection(String serializedConnection, Promise promise) {
+        // TODO call vcx_connection_deserialize and pass serializedConnection
+        // it would return an error code and an integer connection handle in callback
         try {
-            UtilsApi.vcxUpdateAgentInfo(config).whenComplete((result, t) -> {
-                if (t != null) {
-                    VcxException ex = (VcxException) t;
-                    ex.printStackTrace();
-                    Log.e(TAG, "vcxUpdateAgentInfo - Error: ", ex);
-                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                } else {
-                    promise.resolve(0);
+            ConnectionApi.connectionDeserialize(serializedConnection).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "connectionDeserialize - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
                 }
             });
         } catch (VcxException e) {
             e.printStackTrace();
-            Log.e(TAG, "vcxUpdateAgentInfo - Error: ", e);
+            Log.e(TAG, "connectionDeserialize - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
@@ -378,6 +535,46 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void connectionRedirect(int redirectConnectionHandle, int connectionHandle, Promise promise) {
+        Log.d(TAG, "connectionRedirect()");
+
+        try {
+            ConnectionApi.vcxConnectionRedirect(connectionHandle, redirectConnectionHandle).whenComplete((result, t) -> {
+                if (t != null) {
+                    VcxException ex = (VcxException) t;
+                    ex.printStackTrace();
+                    Log.e(TAG, "vcxConnectionRedirect - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxConnectionRedirect - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void connectionReuse(int connectionHandle, String invite, Promise promise) {
+        Log.d(TAG, "connectionReuse() called with connectionHandle = " + connectionHandle + ", promise = " + promise);
+
+        try {
+            ConnectionApi.connectionSendReuse(connectionHandle, invite).whenComplete((result, t) -> {
+                if (t != null) {
+                    Log.e(TAG, "connectionReuse - Error: ", t);
+                    promise.reject("VcxException", t.getMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch(VcxException e) {
+            promise.reject("VcxException", e.getMessage());
+        }
+    }
+
+    @ReactMethod
     public void connectionGetState(int connectionHandle, Promise promise) {
         try {
             ConnectionApi.connectionGetState(connectionHandle).exceptionally((t) -> {
@@ -441,215 +638,83 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void generateProof(String proofRequestId, String requestedAttrs, String requestedPredicates,
-            String revocationInterval, String proofName, Promise promise) {
+    public void connectionSendAnswer(int connectionHandle, String question, String answer, Promise promise) {
+        Log.d(TAG, "connectionSendAnswer() called");
         try {
-            ProofApi.proofCreate(proofRequestId, requestedAttrs, requestedPredicates, revocationInterval, proofName).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "proofCreate - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return -1;
-            }).thenAccept(result -> {
-                if (result != -1) {
-                    BridgeUtils.resolveIfValid(promise, result);
+            ConnectionApi.connectionSendAnswer(connectionHandle, question, answer).whenComplete((result, e) -> {
+                if (e != null) {
+                    Log.e(TAG, "connectionSendAnswer", e);
+                    promise.reject("VcxException", e.getMessage());
+                } else {
+                    promise.resolve(0);
                 }
             });
         } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "connectionGetState - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+            promise.reject("VcxException", e.getMessage());
         }
     }
 
     @ReactMethod
-    public void reset(boolean reset, final Promise promise) {
-        // TODO: call vcx_reset or vcx_shutdown if later is available
-        // pass true to indicate that we delete both pool and wallet objects
-        Timer t = new Timer();
-        t.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                promise.resolve(true);
-            }
-        }, (long) (Math.random() * 1000));
-    }
-
-    @ReactMethod
-    public void backupWallet(String documentDirectory, String encryptionKey, String agencyConfig, Promise promise) {
-        // TODO: Remove this file, this is a dummy file, testing for backup the wallet
-        String fileName = "backup.txt";
-        File file = new File(documentDirectory, fileName);
-        String contentToWrite = "Dummy Content";
-        try (FileWriter fileWriter = new FileWriter(file)) {
-            fileWriter.append(contentToWrite);
-            fileWriter.flush();
-        } catch (IOException e) {
-            promise.reject(e);
-        }
-
-        // convert the file to zip
-        String inputDir = documentDirectory + "/" + fileName;
-        String zipPath = documentDirectory + "/backup.zip";
-        try (FileOutputStream dest = new FileOutputStream(zipPath);
-                ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(dest));
-                FileInputStream fi = new FileInputStream(inputDir);
-                BufferedInputStream origin = new BufferedInputStream(fi);) {
-            byte data[] = new byte[BUFFER];
-            // fileName will be the wallet filename
-            ZipEntry entry = new ZipEntry(fileName);
-            out.putNextEntry(entry);
-            int count;
-            while ((count = origin.read(data, 0, BUFFER)) != -1) {
-                out.write(data, 0, count);
-            }
-            out.closeEntry();
-            promise.resolve(zipPath);
-        } catch (IOException e) {
-            promise.reject(e);
-        }
-    }
-
-    @ReactMethod
-    public void getSerializedConnection(int connectionHandle, Promise promise) {
-        // TODO:KS call vcx_connection_serialize and pass connectionHandle
+    public void connectionSendInviteAction(int connectionHandle, String data, Promise promise) {
         try {
-            ConnectionApi.connectionSerialize(connectionHandle).exceptionally((t) -> {
+            ConnectionApi.connectionSendInviteAction(connectionHandle, message).exceptionally((t) -> {
                 VcxException ex = (VcxException) t;
                 ex.printStackTrace();
-                Log.e(TAG, "connectionSerialize - Error: ", ex);
+                Log.e(TAG, "connectionSendInviteAction - Error: ", ex);
                 promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
                 return null;
             }).thenAccept(result -> {
                 BridgeUtils.resolveIfValid(promise, result);
             });
-        } catch (VcxException e) {
+        } catch(VcxException e) {
             e.printStackTrace();
-            Log.e(TAG, "connectionSerialize - Error: ", e);
+            Log.e(TAG, "connectionSendInviteAction - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
 
-
-    private static void requestPermission(final Context context) {
-        if(ActivityCompat.shouldShowRequestPermissionRationale((Activity) context, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-            // Provide an additional rationale to the user if the permission was not granted
-            // and the user would benefit from additional context for the use of the permission.
-            // For example if the user has previously denied the permission.
-
-            new AlertDialog.Builder(context)
-                    .setMessage("permission storage")
-                    .setPositiveButton("positive button", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    ActivityCompat.requestPermissions((Activity) context,
-                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                            RNIndyStaticData.REQUEST_WRITE_EXTERNAL_STORAGE);
-                }
-            }).show();
-
-        } else {
-            // permission has not been granted yet. Request it directly.
-            ActivityCompat.requestPermissions((Activity)context,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    RNIndyStaticData.REQUEST_WRITE_EXTERNAL_STORAGE);
-        }
-    }
-
-    private static int getLogLevel(String levelName) {
-        if("Error".equalsIgnoreCase(levelName)) {
-            return 1;
-        } else if("Warning".equalsIgnoreCase(levelName) || levelName.toLowerCase().contains("warn")) {
-            return 2;
-        } else if("Info".equalsIgnoreCase(levelName)) {
-            return 3;
-        } else if("Debug".equalsIgnoreCase(levelName)) {
-            return 4;
-        } else if("Trace".equalsIgnoreCase(levelName)) {
-            return 5;
-        } else {
-            return 3;
-        }
-    }
-
     @ReactMethod
-    public void encryptVcxLog(String logFilePath, String key, Promise promise) {
-
+    public void createOutOfBandConnection(String sourceId, String goalCode, String goal, boolean handshake, String requestAttach, Promise promise) {
+        Log.d(TAG, "connectionCreateOutofband()");
         try {
-            RandomAccessFile logFile = new RandomAccessFile(logFilePath, "r");
-            byte[] fileBytes = new byte[(int)logFile.length()];
-            logFile.readFully(fileBytes);
-            logFile.close();
-
-            IndyApi.anonCrypt(key, fileBytes).exceptionally((t) -> {
-                Log.e(TAG, "anonCrypt - Error: ", t);
-                promise.reject("FutureException", "Error occurred while encrypting file: " + logFilePath + " :: " + t.getMessage());
-                return null;
-            }).thenAccept(result -> {
-                try {
-                    RandomAccessFile encLogFile = new RandomAccessFile(RNIndyStaticData.ENCRYPTED_LOG_FILE_PATH, "rw");
-                    encLogFile.write(result, 0, result.length);
-                    encLogFile.close();
-                    BridgeUtils.resolveIfValid(promise, RNIndyStaticData.ENCRYPTED_LOG_FILE_PATH);
-                } catch(IOException ex) {
-                    promise.reject("encryptVcxLog Exception", ex.getMessage());
+            ConnectionApi.vcxConnectionCreateOutofband(sourceId, goalCode, goal, handshake, requestAttach).whenComplete((result, e) -> {
+                if (e != null) {
+                    VcxException ex = (VcxException) e;
                     ex.printStackTrace();
-                }
-            });
-        } catch (VcxException | IOException e) {
-            promise.reject("encryptVcxLog - Error", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    @ReactMethod
-    public  void writeToVcxLog(String loggerName, String logLevel, String message, String logFilePath, Promise promise) {
-        VcxApi.logMessage(loggerName, getLogLevel(logLevel), message);
-        promise.resolve(0);
-    }
-
-    @ReactMethod
-    public void setVcxLogger(String logLevel, String uniqueIdentifier, int MAX_ALLOWED_FILE_BYTES, Promise promise) {
-
-        ContextWrapper cw = new ContextWrapper(reactContext);
-        RNIndyStaticData.MAX_ALLOWED_FILE_BYTES = MAX_ALLOWED_FILE_BYTES;
-        RNIndyStaticData.LOG_FILE_PATH = cw.getFilesDir().getAbsolutePath() +
-                "/connectme.rotating." + uniqueIdentifier + ".log";
-        RNIndyStaticData.ENCRYPTED_LOG_FILE_PATH = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() +
-                "/connectme.rotating." + uniqueIdentifier + ".log.enc";
-        //get the documents directory:
-        Log.d(TAG, "Setting vcx logger to: " + RNIndyStaticData.LOG_FILE_PATH);
-
-        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
-            RNIndyStaticData.initLoggerFile(cw);
-        }
-        promise.resolve(RNIndyStaticData.LOG_FILE_PATH);
-
-    }
-
-    @ReactMethod
-    public void deserializeConnection(String serializedConnection, Promise promise) {
-        // TODO call vcx_connection_deserialize and pass serializedConnection
-        // it would return an error code and an integer connection handle in callback
-        try {
-            ConnectionApi.connectionDeserialize(serializedConnection).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "connectionDeserialize - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return -1;
-            }).thenAccept(result -> {
-                if (result != -1) {
+                    Log.e(TAG, "connectionCreateOutofband - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
                     BridgeUtils.resolveIfValid(promise, result);
                 }
             });
         } catch (VcxException e) {
             e.printStackTrace();
-            Log.e(TAG, "connectionDeserialize - Error: ", e);
+            Log.e(TAG, "connectionCreateOutofband - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
 
+    @ReactMethod
+    public void getConnectionInvite(int connectionHandle, Promise promise) {
+        Log.d(TAG, "connectionInviteDetails()");
+        try {
+            ConnectionApi.connectionInviteDetails(connectionHandle, 0).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "connectionInviteDetails - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "connectionInviteDetails - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    /*
+     * Credential API
+     */
     @ReactMethod
     public void credentialCreateWithOffer(String sourceId, String credOffer, Promise promise) {
         try {
@@ -671,29 +736,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
-
-    @ReactMethod
-    public void credentialGetOffers(int connectionHandle, Promise promise) {
-        try {
-            CredentialApi.credentialGetOffers(connectionHandle).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "connectionHandle - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return -1;
-            }).thenAccept(result -> {
-                Log.e(TAG, ">>>><<<< got result back");
-                if (result != -1) {
-                    BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-        } catch(VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "connectionHandle - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
     @ReactMethod
     public void serializeClaimOffer(int credentialHandle, Promise promise) {
         // it would return error code, json string of credential inside callback
@@ -762,7 +804,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
-
     @ReactMethod
     public void updateClaimOfferState(int credentialHandle, Promise promise) {
         try {
@@ -846,58 +887,30 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void exportWallet(String exportPath, String encryptionKey, Promise promise) {
-        Log.d(TAG, "exportWallet()");
+    public void deleteCredential(int credentialHandle, Promise promise) {
         try {
-            WalletApi.exportWallet(exportPath, encryptionKey).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "exportWallet - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return -1;
-            }).thenAccept(result -> {
-                if(result != -1){
-                   BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-
-
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxAgentProvisionAsync - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void decryptWalletFile(String config, Promise promise) {
-        try {
-            WalletApi.importWallet(config).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "importWallet - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return -1;
-            }).thenAccept(result -> {
-                if (result != -1) {
-                    BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxAgentProvisionAsync - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void setWalletItem(String key, String value, Promise promise) {
-        try {
-            WalletApi.addRecordWallet("record_type", key, value).whenComplete((result, t) -> {
+            CredentialApi.deleteCredential(credentialHandle).whenComplete((result, t) -> {
                 if (t != null) {
-                    VcxException ex = (VcxException) t;
+                    Log.e(TAG, "deleteCredential: ", t);
+                    promise.reject("FutureException", t.getMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            promise.reject("VCXException", e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void credentialReject(int credentialHandle, int connectionHandle, String comment, Promise promise) {
+        Log.d(TAG, "credentialReject()");
+        try {
+            CredentialApi.credentialReject(credentialHandle, connectionHandle, comment).whenComplete((result, e) -> {
+                if (e != null) {
+                    VcxException ex = (VcxException) e;
                     ex.printStackTrace();
-                    Log.e(TAG, "addRecordWallet - Error: ", ex);
+                    Log.e(TAG, "credentialReject - Error: ", ex);
                     promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
                 } else {
                     promise.resolve(0);
@@ -905,38 +918,107 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             });
         } catch (VcxException e) {
             e.printStackTrace();
-            Log.e(TAG, "addRecordWallet - Error: ", e);
+            Log.e(TAG, "credentialReject - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
 
     @ReactMethod
-    public void getWalletItem(String key, Promise promise) {
+    public void credentialGetPresentationProposal(int credentialHandle, Promise promise) {
+        Log.d(TAG, "credentialGetPresentationProposal()");
         try {
-            WalletApi.getRecordWallet("record_type", key, "").exceptionally((t) -> {
+            CredentialApi.credentialGetPresentationProposal(credentialHandle).exceptionally((t) -> {
                 VcxException ex = (VcxException) t;
                 ex.printStackTrace();
-                Log.e(TAG, "getRecordWallet - Error: ", ex);
+                Log.e(TAG, "credentialGetPresentationProposal - Error: ", ex);
                 promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
                 return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+
         } catch (VcxException e) {
             e.printStackTrace();
-            Log.e(TAG, "getRecordWallet - Error: ", e);
+            Log.e(TAG, "credentialGetPresentationProposal - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    /*
+     * Library API
+     */
+    @ReactMethod
+    public void shutdownVcx(Boolean deleteWallet, Promise promise) {
+        Log.d(TAG, "shutdownVcx()");
+        try {
+            VcxApi.vcxShutdown(deleteWallet);
+            promise.resolve("");
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxShutdown - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
 
     @ReactMethod
-    public void deleteWalletItem(String key, Promise promise) {
+    public void init(String config, Promise promise) {
+        Log.d(TAG, "init()");
+        // When we restore data, then we are not calling createOneTimeInfo
+        // and hence ca-crt is not written within app directory
+        // since the logic to write ca cert checks for file existence
+        // we won't have to pay too much cost for calling this function inside init
+        BridgeUtils.writeCACert(this.getReactApplicationContext());
+
         try {
-            WalletApi.deleteRecordWallet("record_type", key).whenComplete((result, t) -> {
-                if (t != null) {
+            int retCode = VcxApi.initSovToken();
+            if(retCode != 0) {
+                promise.reject("Could not init sovtoken", String.valueOf(retCode));
+            } else {
+                VcxApi.vcxInitWithConfig(config).exceptionally((t) -> {
                     VcxException ex = (VcxException) t;
                     ex.printStackTrace();
-                    Log.e(TAG, "deleteRecordWallet - Error: ", ex);
+                    Log.e(TAG, "vcxInitWithConfig - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                    return -1;
+                }).thenAccept(result -> {
+                    // Need to put this logic in every accept because that is how ugly Java's
+                    // promise API is
+                    // even if exceptionally is called, then also thenAccept block will be called
+                    // we either need to switch to complete method and pass two callbacks as
+                    // parameter
+                    // till we change to that API, we have to live with this IF condition
+                    // also reason to add this if condition is because we already rejected promise
+                    // in
+                    // exceptionally block, if we call promise.resolve now, then it `thenAccept`
+                    // block
+                    // would throw an exception that would not be caught here, because this is an
+                    // async
+                    // block and above try catch would not catch this exception
+                    if (result != -1) {
+                        promise.resolve(true);
+                    }
+                });
+            }
+
+        } catch (AlreadyInitializedException e) {
+            // even if we get already initialized exception
+            // then also we will resolve promise, because we don't care if vcx is already
+            // initialized
+            promise.resolve(true);
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxInitWithConfig - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void vcxInitPool(String config, Promise promise) {
+        Log.d(TAG, "vcxInitPool() called");
+        try {
+            VcxApi.vcxInitPool(config).whenComplete((result, e) -> {
+                if (e != null) {
+                    VcxException ex = (VcxException) e;
+                    ex.printStackTrace();
+                    Log.e(TAG, "vcxInitPool - Error: ", ex);
                     promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
                 } else {
                     promise.resolve(0);
@@ -944,167 +1026,13 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             });
         } catch (VcxException e) {
             e.printStackTrace();
-            Log.e(TAG, "deleteRecordWallet - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+            Log.e(TAG, "vcxInitPool - Error: ", e);
         }
     }
 
-    @ReactMethod
-    public void updateWalletItem(String key, String value, Promise promise) {
-        try {
-            WalletApi.updateRecordWallet("record_type", key, value).whenComplete((result, t) -> {
-                if (t != null) {
-                    VcxException ex = (VcxException) t;
-                    ex.printStackTrace();
-                    Log.e(TAG, "updateRecordWallet - Error: ", ex);
-                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                } else {
-                    promise.resolve(0);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "updateRecordWallet - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void createWalletBackup(String sourceID, String backupKey, Promise promise) {
-        try {
-            WalletApi.createWalletBackup(sourceID, backupKey).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "createWalletBackup - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "createWalletBackup - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-
-    @ReactMethod
-    public void backupWalletBackup(int walletBackupHandle, String path, Promise promise) {
-        try {
-            WalletApi.backupWalletBackup(walletBackupHandle, path).whenComplete((result, t) -> {
-                if (t != null) {
-                    VcxException ex = (VcxException) t;
-                    ex.printStackTrace();
-                    Log.e(TAG, "backupWalletBackup - Error: ", ex);
-                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                } else {
-                    promise.resolve(0);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "createWalletBackup - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void updateWalletBackupState(int walletBackupHandle, Promise promise) {
-        try {
-            WalletApi.updateWalletBackupState(walletBackupHandle).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "updateWalletBackupState - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "updateWalletBackupState - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void updateWalletBackupStateWithMessage(int walletBackupHandle, String message, Promise promise ) {
-        try {
-            WalletApi.updateWalletBackupStateWithMessage(walletBackupHandle, message ).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "updateWalletBackupStateWithMessage - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "updateWalletBackupState - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void serializeBackupWallet(int walletBackupHandle, Promise promise) {
-        try {
-            WalletApi.serializeBackupWallet(walletBackupHandle).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "serializeBackupWallet - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "serializeBackupWallet - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void deserializeBackupWallet(String message, Promise promise) {
-        try {
-            WalletApi.deserializeBackupWallet(message).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "deserializeBackupWallet - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "serializeBackupWallet - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void restoreWallet(String config, Promise promise) {
-        try {
-            WalletApi.restoreWalletBackup(config).whenComplete((result, t) -> {
-                if (t != null) {
-                    VcxException ex = (VcxException) t;
-                    ex.printStackTrace();
-                    Log.e(TAG, "restoreWalletBackup - Error: ", ex);
-                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                } else {
-                    promise.resolve(0);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "restoreWalletBackup - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
+    /*
+     * Proof
+     */
     @ReactMethod
     public void proofRetrieveCredentials(int proofHandle, Promise promise) {
         try {
@@ -1166,157 +1094,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void shutdownVcx(Boolean deleteWallet, Promise promise) {
-        Log.d(TAG, "shutdownVcx()");
-        try {
-            VcxApi.vcxShutdown(deleteWallet);
-            promise.resolve("");
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxShutdown - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void getTokenInfo(int paymentHandle, Promise promise) {
-        try {
-            TokenApi.getTokenInfo(paymentHandle).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "getTokenInfo - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "getTokenInfo - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void sendTokens(int paymentHandle, String tokens, String recipient, Promise promise) {
-        try {
-            TokenApi.sendTokens(paymentHandle, tokens, recipient).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "sendTokens - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "sendTokens - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void createPaymentAddress(String seed, Promise promise) {
-        try {
-            TokenApi.createPaymentAddress(seed).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "createPaymentAddress - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "createPaymentAddress - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void deleteConnection(int connectionHandle, Promise promise) {
-        try {
-            ConnectionApi.deleteConnection(connectionHandle).whenComplete((result, t) -> {
-                if (t != null) {
-                    VcxException ex = (VcxException) t;
-                    ex.printStackTrace();
-                    Log.e(TAG, "deleteConnection - Error: ", ex);
-                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                } else {
-                    promise.resolve(0);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "deleteConnection - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void downloadMessages(String messageStatus, String uid_s, String pwdids, Promise promise) {
-      Log.d(TAG, "downloadMessages()");
-      try {
-        UtilsApi.vcxGetMessages(messageStatus, uid_s, pwdids).exceptionally((t) -> {
-            VcxException ex = (VcxException) t;
-            ex.printStackTrace();
-            Log.e(TAG, "vcxGetMessages - Error: ", ex);
-            promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-            return null;
-        }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
-
-      } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxGetMessages - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-      }
-    }
-
-    @ReactMethod
-    public void vcxGetAgentMessages(String messageStatus, String uid_s, Promise promise) {
-        Log.d(TAG, "vcxGetAgentMessages()");
-        try {
-            UtilsApi.vcxGetAgentMessages(messageStatus, uid_s).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "vcxGetAgentMessages - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
-
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxGetAgentMessages - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void updateMessages(String messageStatus, String pwdidsJson, Promise promise) {
-      Log.d(TAG, "updateMessages()");
-
-      try {
-          UtilsApi.vcxUpdateMessages(messageStatus, pwdidsJson).whenComplete((result, t) -> {
-              if (t != null) {
-                  VcxException ex = (VcxException) t;
-                  ex.printStackTrace();
-                  Log.e(TAG, "vcxUpdateMessages - Error: ", ex);
-                  promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-              } else {
-                  promise.resolve(0);
-              }
-          });
-      } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxUpdateMessages - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-      }
-    }
-
-    @ReactMethod
     public void proofCreateWithRequest(String sourceId, String proofRequest, Promise promise) {
         Log.d(TAG, "proofCreateWithRequest()");
 
@@ -1335,29 +1112,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         } catch(VcxException e) {
             e.printStackTrace();
             Log.e(TAG, "proofCreateWithRequest - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void proofGetRequests(int connectionHandle, Promise promise) {
-        Log.d(TAG, "proofGetRequests()");
-
-        try {
-            DisclosedProofApi.proofGetRequests(connectionHandle).exceptionally((t)-> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "proofGetRequests - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return -1;
-            }).thenAccept(result -> {
-                if (result != -1) {
-                    BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-        } catch(VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "proofGetRequests - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
@@ -1426,372 +1180,9 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         }
     }
 
-    @ReactMethod
-    public void connectionRedirect(int redirectConnectionHandle, int connectionHandle, Promise promise) {
-        Log.d(TAG, "connectionRedirect()");
-
-        try {
-            ConnectionApi.vcxConnectionRedirect(connectionHandle, redirectConnectionHandle).whenComplete((result, t) -> {
-                if (t != null) {
-                    VcxException ex = (VcxException) t;
-                    ex.printStackTrace();
-                    Log.e(TAG, "vcxConnectionRedirect - Error: ", ex);
-                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                } else {
-                    promise.resolve(0);
-                }
-            });
-        } catch(VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxConnectionRedirect - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void getRedirectDetails(int connectionHandle, Promise promise) {
-        Log.d(TAG, "getRedirectDetails()");
-
-        try {
-            ConnectionApi.vcxConnectionGetRedirectDetails(connectionHandle).exceptionally((e) -> {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "vcxConnectionGetRedirectDetails - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "getRedirectDetails - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void connectionReuse(int connectionHandle, String invite, Promise promise) {
-        Log.d(TAG, "connectionReuse() called with connectionHandle = " + connectionHandle + ", promise = " + promise);
-
-        try {
-            ConnectionApi.connectionSendReuse(connectionHandle, invite).whenComplete((result, t) -> {
-                if (t != null) {
-                    Log.e(TAG, "connectionReuse - Error: ", t);
-                    promise.reject("VcxException", t.getMessage());
-                } else {
-                    promise.resolve(0);
-                }
-            });
-        } catch(VcxException e) {
-            promise.reject("VcxException", e.getMessage());
-        }
-    }
-
-    @ReactMethod
-    public void createWalletKey(int lengthOfKey, Promise promise) {
-        try {
-            SecureRandom random = new SecureRandom();
-            byte bytes[] = new byte[lengthOfKey];
-            random.nextBytes(bytes);
-            promise.resolve(Base64.encodeToString(bytes, Base64.NO_WRAP));
-        } catch(Exception e) {
-            e.printStackTrace();
-            Log.e(TAG, "createWalletKey - Error: ", e);
-            promise.reject("Exception", e.getMessage());
-        }
-    }
-
-    @ReactMethod
-    public void getLedgerFees(Promise promise) {
-        Log.d(TAG, "getLedgerFees()");
-
-        try {
-            UtilsApi.getLedgerFees().exceptionally((e)-> {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "getLedgerFees - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch(VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "getLedgerFees - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void getTxnAuthorAgreement(Promise promise) {
-        try {
-            // IndyApi.getTxnAuthorAgreement(submitterDid, data).exceptionally((e) -> {
-            UtilsApi.getLedgerAuthorAgreement().exceptionally((e) -> {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "getLedgerAuthorAgreement - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "getLedgerAuthorAgreement - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void getAcceptanceMechanisms(String submitterDid, int timestamp, String version, Promise promise) {
-        Long longtimestamp= new Long(timestamp);
-        try {
-            IndyApi.getAcceptanceMechanisms(submitterDid, longtimestamp, version).exceptionally((e) -> {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "getAcceptanceMechanisms - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "getAcceptanceMechanisms - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void setActiveTxnAuthorAgreementMeta(String text, String version, String taaDigest, String mechanism, int timestamp, Promise promise) {
-         Long longtimestamp= new Long(timestamp);
-        try {
-            UtilsApi.setActiveTxnAuthorAgreementMeta(text, version, taaDigest, mechanism, longtimestamp);
-            promise.resolve("");
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "setActiveTxnAuthorAgreementMeta - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void appendTxnAuthorAgreement(String requestJson, String text, String version, String taaDigest, String mechanism, int timestamp, Promise promise) {
-        Long longtimestamp= new Long(timestamp);
-        try {
-            IndyApi.appendTxnAuthorAgreement(requestJson, text, version, taaDigest, mechanism, longtimestamp).exceptionally((e) -> {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "appendTxnAuthorAgreement - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "appendTxnAuthorAgreement - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void fetchPublicEntities(Promise promise) {
-        Log.d(TAG, "fetchPublicEntities() called");
-        try {
-            UtilsApi.vcxFetchPublicEntities().whenComplete((result, e) -> {
-                if (e != null) {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "vcxFetchPublicEntities - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                } else {
-                    promise.resolve(0);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxFetchPublicEntities - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void connectionSendAnswer(int connectionHandle, String question, String answer, Promise promise) {
-        Log.d(TAG, "connectionSendAnswer() called");
-        try {
-            ConnectionApi.connectionSendAnswer(connectionHandle, question, answer).whenComplete((result, e) -> {
-                if (e != null) {
-                    Log.e(TAG, "connectionSendAnswer", e);
-                    promise.reject("VcxException", e.getMessage());
-                } else {
-                    promise.resolve(0);
-                }
-            });
-        } catch (VcxException e) {
-            promise.reject("VcxException", e.getMessage());
-        }
-    }
-
-    @ReactMethod
-    public void connectionSendInviteAction(int connectionHandle, String data, Promise promise) {
-        try {
-            ConnectionApi.connectionSendInviteAction(connectionHandle, message).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "connectionSendInviteAction - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch(VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "connectionSendInviteAction - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void deleteCredential(int credentialHandle, Promise promise) {
-        try {
-            CredentialApi.deleteCredential(credentialHandle).whenComplete((result, t) -> {
-                if (t != null) {
-                    Log.e(TAG, "deleteCredential: ", t);
-                    promise.reject("FutureException", t.getMessage());
-                } else {
-                    promise.resolve(0);
-                }
-            });
-        } catch (VcxException e) {
-            promise.reject("VCXException", e.getMessage());
-        }
-    }
-
-    @ReactMethod
-    public void vcxInitPool(String config, Promise promise) {
-        Log.d(TAG, "vcxInitPool() called");
-        try {
-            VcxApi.vcxInitPool(config).whenComplete((result, e) -> {
-                if (e != null) {
-                    VcxException ex = (VcxException) e;
-                    ex.printStackTrace();
-                    Log.e(TAG, "vcxInitPool - Error: ", ex);
-                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                } else {
-                    promise.resolve(0);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxInitPool - Error: ", e);
-        }
-    }
-
-    @ReactMethod
-    public void credentialReject(int credentialHandle, int connectionHandle, String comment, Promise promise) {
-        Log.d(TAG, "credentialReject()");
-        try {
-            CredentialApi.credentialReject(credentialHandle, connectionHandle, comment).whenComplete((result, e) -> {
-                if (e != null) {
-                    VcxException ex = (VcxException) e;
-                    ex.printStackTrace();
-                    Log.e(TAG, "credentialReject - Error: ", ex);
-                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                } else {
-                    promise.resolve(0);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "credentialReject - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void credentialGetPresentationProposal(int credentialHandle, Promise promise) {
-        Log.d(TAG, "credentialGetPresentationProposal()");
-        try {
-            CredentialApi.credentialGetPresentationProposal(credentialHandle).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "credentialGetPresentationProposal - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
-
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "credentialGetPresentationProposal - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void createConnection(String sourceId, Promise promise) {
-        Log.d(TAG, "vcxConnectionCreate()");
-        try {
-            ConnectionApi.vcxConnectionCreate(sourceId).whenComplete((result, e) -> {
-                if (e != null) {
-                    VcxException ex = (VcxException) e;
-                    ex.printStackTrace();
-                    Log.e(TAG, "vcxConnectionCreate - Error: ", ex);
-                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                } else {
-                    BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxConnectionCreate - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void createOutOfBandConnection(String sourceId, String goalCode, String goal, boolean handshake, String requestAttach, Promise promise) {
-        Log.d(TAG, "connectionCreateOutofband()");
-        try {
-            ConnectionApi.vcxConnectionCreateOutofband(sourceId, goalCode, goal, handshake, requestAttach).whenComplete((result, e) -> {
-                if (e != null) {
-                    VcxException ex = (VcxException) e;
-                    ex.printStackTrace();
-                    Log.e(TAG, "connectionCreateOutofband - Error: ", ex);
-                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                } else {
-                    BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "connectionCreateOutofband - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void getConnectionInvite(int connectionHandle, Promise promise) {
-        Log.d(TAG, "connectionInviteDetails()");
-        try {
-            ConnectionApi.connectionInviteDetails(connectionHandle, 0).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "connectionInviteDetails - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "connectionInviteDetails - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-  /*
-   * Proof Verifier API
-   */
-
+   /*
+    * Proof Verifier API
+    */
    @ReactMethod
    public void createProofVerifier(String sourceId, String requestedAttrs, String requestedPredicates, String revocationInterval, String name, Promise promise) {
        Log.d(TAG, "verifierCreate()");
@@ -2025,20 +1416,646 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
-
+    /*
+     * Wallet API
+     */
     @ReactMethod
-    public void createPairwiseAgent(Promise promise) {
+    public void sendTokens(int paymentHandle, String tokens, String recipient, Promise promise) {
         try {
-            UtilsApi.vcxCreatePairwiseAgent().exceptionally((t) -> {
+            TokenApi.sendTokens(paymentHandle, tokens, recipient).exceptionally((t) -> {
                 VcxException ex = (VcxException) t;
                 ex.printStackTrace();
-                Log.e(TAG, "createPairwiseAgent - Error: ", ex);
+                Log.e(TAG, "sendTokens - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "sendTokens - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void exportWallet(String exportPath, String encryptionKey, Promise promise) {
+        Log.d(TAG, "exportWallet()");
+        try {
+            WalletApi.exportWallet(exportPath, encryptionKey).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "exportWallet - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                if(result != -1){
+                   BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+
+
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxAgentProvisionAsync - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void decryptWalletFile(String config, Promise promise) {
+        try {
+            WalletApi.importWallet(config).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "importWallet - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxAgentProvisionAsync - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void getTokenInfo(int paymentHandle, Promise promise) {
+        try {
+            TokenApi.getTokenInfo(paymentHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "getTokenInfo - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "getTokenInfo - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void createPaymentAddress(String seed, Promise promise) {
+        try {
+            TokenApi.createPaymentAddress(seed).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "createPaymentAddress - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "createPaymentAddress - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    /*
+     * Utils and secondary methods API
+     */
+    @ReactMethod
+    public void vcxAcceptInvitation(int connectionHandle, String connectionType, Promise promise) {
+        Log.d(TAG, "acceptInvitation()");
+        try {
+            ConnectionApi.vcxAcceptInvitation(connectionHandle, connectionType).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxAcceptInvitation - Error: ", ex);
                 promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
                 return null;
             }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
         } catch (VcxException e) {
             e.printStackTrace();
-            Log.e(TAG, "createPairwiseAgent - Error: ", e);
+            Log.e(TAG, "vcxAcceptInvitation - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void generateProof(String proofRequestId, String requestedAttrs, String requestedPredicates,
+            String revocationInterval, String proofName, Promise promise) {
+        try {
+            ProofApi.proofCreate(proofRequestId, requestedAttrs, requestedPredicates, revocationInterval, proofName).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "proofCreate - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "connectionGetState - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void reset(boolean reset, final Promise promise) {
+        // TODO: call vcx_reset or vcx_shutdown if later is available
+        // pass true to indicate that we delete both pool and wallet objects
+        Timer t = new Timer();
+        t.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                promise.resolve(true);
+            }
+        }, (long) (Math.random() * 1000));
+    }
+
+    @ReactMethod
+    public void backupWallet(String documentDirectory, String encryptionKey, String agencyConfig, Promise promise) {
+        // TODO: Remove this file, this is a dummy file, testing for backup the wallet
+        String fileName = "backup.txt";
+        File file = new File(documentDirectory, fileName);
+        String contentToWrite = "Dummy Content";
+        try (FileWriter fileWriter = new FileWriter(file)) {
+            fileWriter.append(contentToWrite);
+            fileWriter.flush();
+        } catch (IOException e) {
+            promise.reject(e);
+        }
+
+        // convert the file to zip
+        String inputDir = documentDirectory + "/" + fileName;
+        String zipPath = documentDirectory + "/backup.zip";
+        try (FileOutputStream dest = new FileOutputStream(zipPath);
+                ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(dest));
+                FileInputStream fi = new FileInputStream(inputDir);
+                BufferedInputStream origin = new BufferedInputStream(fi);) {
+            byte data[] = new byte[BUFFER];
+            // fileName will be the wallet filename
+            ZipEntry entry = new ZipEntry(fileName);
+            out.putNextEntry(entry);
+            int count;
+            while ((count = origin.read(data, 0, BUFFER)) != -1) {
+                out.write(data, 0, count);
+            }
+            out.closeEntry();
+            promise.resolve(zipPath);
+        } catch (IOException e) {
+            promise.reject(e);
+        }
+    }
+
+    private static void requestPermission(final Context context) {
+        if(ActivityCompat.shouldShowRequestPermissionRationale((Activity) context, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            // Provide an additional rationale to the user if the permission was not granted
+            // and the user would benefit from additional context for the use of the permission.
+            // For example if the user has previously denied the permission.
+
+            new AlertDialog.Builder(context)
+                    .setMessage("permission storage")
+                    .setPositiveButton("positive button", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    ActivityCompat.requestPermissions((Activity) context,
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            RNIndyStaticData.REQUEST_WRITE_EXTERNAL_STORAGE);
+                }
+            }).show();
+
+        } else {
+            // permission has not been granted yet. Request it directly.
+            ActivityCompat.requestPermissions((Activity)context,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    RNIndyStaticData.REQUEST_WRITE_EXTERNAL_STORAGE);
+        }
+    }
+
+    private static int getLogLevel(String levelName) {
+        if("Error".equalsIgnoreCase(levelName)) {
+            return 1;
+        } else if("Warning".equalsIgnoreCase(levelName) || levelName.toLowerCase().contains("warn")) {
+            return 2;
+        } else if("Info".equalsIgnoreCase(levelName)) {
+            return 3;
+        } else if("Debug".equalsIgnoreCase(levelName)) {
+            return 4;
+        } else if("Trace".equalsIgnoreCase(levelName)) {
+            return 5;
+        } else {
+            return 3;
+        }
+    }
+
+    @ReactMethod
+    public void encryptVcxLog(String logFilePath, String key, Promise promise) {
+        try {
+            RandomAccessFile logFile = new RandomAccessFile(logFilePath, "r");
+            byte[] fileBytes = new byte[(int)logFile.length()];
+            logFile.readFully(fileBytes);
+            logFile.close();
+
+            IndyApi.anonCrypt(key, fileBytes).exceptionally((t) -> {
+                Log.e(TAG, "anonCrypt - Error: ", t);
+                promise.reject("FutureException", "Error occurred while encrypting file: " + logFilePath + " :: " + t.getMessage());
+                return null;
+            }).thenAccept(result -> {
+                try {
+                    RandomAccessFile encLogFile = new RandomAccessFile(RNIndyStaticData.ENCRYPTED_LOG_FILE_PATH, "rw");
+                    encLogFile.write(result, 0, result.length);
+                    encLogFile.close();
+                    BridgeUtils.resolveIfValid(promise, RNIndyStaticData.ENCRYPTED_LOG_FILE_PATH);
+                } catch(IOException ex) {
+                    promise.reject("encryptVcxLog Exception", ex.getMessage());
+                    ex.printStackTrace();
+                }
+            });
+        } catch (VcxException | IOException e) {
+            promise.reject("encryptVcxLog - Error", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @ReactMethod
+    public  void writeToVcxLog(String loggerName, String logLevel, String message, String logFilePath, Promise promise) {
+        VcxApi.logMessage(loggerName, getLogLevel(logLevel), message);
+        promise.resolve(0);
+    }
+
+    @ReactMethod
+    public void setVcxLogger(String logLevel, String uniqueIdentifier, int MAX_ALLOWED_FILE_BYTES, Promise promise) {
+
+        ContextWrapper cw = new ContextWrapper(reactContext);
+        RNIndyStaticData.MAX_ALLOWED_FILE_BYTES = MAX_ALLOWED_FILE_BYTES;
+        RNIndyStaticData.LOG_FILE_PATH = cw.getFilesDir().getAbsolutePath() +
+                "/connectme.rotating." + uniqueIdentifier + ".log";
+        RNIndyStaticData.ENCRYPTED_LOG_FILE_PATH = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() +
+                "/connectme.rotating." + uniqueIdentifier + ".log.enc";
+        //get the documents directory:
+        Log.d(TAG, "Setting vcx logger to: " + RNIndyStaticData.LOG_FILE_PATH);
+
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            RNIndyStaticData.initLoggerFile(cw);
+        }
+        promise.resolve(RNIndyStaticData.LOG_FILE_PATH);
+
+    }
+
+    @ReactMethod
+    public void credentialGetOffers(int connectionHandle, Promise promise) {
+        try {
+            CredentialApi.credentialGetOffers(connectionHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "connectionHandle - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                Log.e(TAG, ">>>><<<< got result back");
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "connectionHandle - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void setWalletItem(String key, String value, Promise promise) {
+        try {
+            WalletApi.addRecordWallet("record_type", key, value).whenComplete((result, t) -> {
+                if (t != null) {
+                    VcxException ex = (VcxException) t;
+                    ex.printStackTrace();
+                    Log.e(TAG, "addRecordWallet - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "addRecordWallet - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void getWalletItem(String key, Promise promise) {
+        try {
+            WalletApi.getRecordWallet("record_type", key, "").exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "getRecordWallet - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "getRecordWallet - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void deleteWalletItem(String key, Promise promise) {
+        try {
+            WalletApi.deleteRecordWallet("record_type", key).whenComplete((result, t) -> {
+                if (t != null) {
+                    VcxException ex = (VcxException) t;
+                    ex.printStackTrace();
+                    Log.e(TAG, "deleteRecordWallet - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "deleteRecordWallet - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void updateWalletItem(String key, String value, Promise promise) {
+        try {
+            WalletApi.updateRecordWallet("record_type", key, value).whenComplete((result, t) -> {
+                if (t != null) {
+                    VcxException ex = (VcxException) t;
+                    ex.printStackTrace();
+                    Log.e(TAG, "updateRecordWallet - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "updateRecordWallet - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void updateWalletBackupState(int walletBackupHandle, Promise promise) {
+        try {
+            WalletApi.updateWalletBackupState(walletBackupHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "updateWalletBackupState - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "updateWalletBackupState - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void serializeBackupWallet(int walletBackupHandle, Promise promise) {
+        try {
+            WalletApi.serializeBackupWallet(walletBackupHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "serializeBackupWallet - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "serializeBackupWallet - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void deserializeBackupWallet(String message, Promise promise) {
+        try {
+            WalletApi.deserializeBackupWallet(message).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "deserializeBackupWallet - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "serializeBackupWallet - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void proofGetRequests(int connectionHandle, Promise promise) {
+        Log.d(TAG, "proofGetRequests()");
+
+        try {
+            DisclosedProofApi.proofGetRequests(connectionHandle).exceptionally((t)-> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "proofGetRequests - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "proofGetRequests - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void getRedirectDetails(int connectionHandle, Promise promise) {
+        Log.d(TAG, "getRedirectDetails()");
+
+        try {
+            ConnectionApi.vcxConnectionGetRedirectDetails(connectionHandle).exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxConnectionGetRedirectDetails - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "getRedirectDetails - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void createWalletKey(int lengthOfKey, Promise promise) {
+        try {
+            SecureRandom random = new SecureRandom();
+            byte bytes[] = new byte[lengthOfKey];
+            random.nextBytes(bytes);
+            promise.resolve(Base64.encodeToString(bytes, Base64.NO_WRAP));
+        } catch(Exception e) {
+            e.printStackTrace();
+            Log.e(TAG, "createWalletKey - Error: ", e);
+            promise.reject("Exception", e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void getLedgerFees(Promise promise) {
+        Log.d(TAG, "getLedgerFees()");
+
+        try {
+            UtilsApi.getLedgerFees().exceptionally((e)-> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "getLedgerFees - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "getLedgerFees - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void getTxnAuthorAgreement(Promise promise) {
+        try {
+            // IndyApi.getTxnAuthorAgreement(submitterDid, data).exceptionally((e) -> {
+            UtilsApi.getLedgerAuthorAgreement().exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "getLedgerAuthorAgreement - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "getLedgerAuthorAgreement - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void getAcceptanceMechanisms(String submitterDid, int timestamp, String version, Promise promise) {
+        Long longtimestamp= new Long(timestamp);
+        try {
+            IndyApi.getAcceptanceMechanisms(submitterDid, longtimestamp, version).exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "getAcceptanceMechanisms - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "getAcceptanceMechanisms - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void setActiveTxnAuthorAgreementMeta(String text, String version, String taaDigest, String mechanism, int timestamp, Promise promise) {
+         Long longtimestamp= new Long(timestamp);
+        try {
+            UtilsApi.setActiveTxnAuthorAgreementMeta(text, version, taaDigest, mechanism, longtimestamp);
+            promise.resolve("");
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "setActiveTxnAuthorAgreementMeta - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void appendTxnAuthorAgreement(String requestJson, String text, String version, String taaDigest, String mechanism, int timestamp, Promise promise) {
+        Long longtimestamp= new Long(timestamp);
+        try {
+            IndyApi.appendTxnAuthorAgreement(requestJson, text, version, taaDigest, mechanism, longtimestamp).exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "appendTxnAuthorAgreement - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "appendTxnAuthorAgreement - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void fetchPublicEntities(Promise promise) {
+        Log.d(TAG, "fetchPublicEntities() called");
+        try {
+            UtilsApi.vcxFetchPublicEntities().whenComplete((result, e) -> {
+                if (e != null) {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxFetchPublicEntities - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxFetchPublicEntities - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void createConnection(String sourceId, Promise promise) {
+        Log.d(TAG, "vcxConnectionCreate()");
+        try {
+            ConnectionApi.vcxConnectionCreate(sourceId).whenComplete((result, e) -> {
+                if (e != null) {
+                    VcxException ex = (VcxException) e;
+                    ex.printStackTrace();
+                    Log.e(TAG, "vcxConnectionCreate - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxConnectionCreate - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
