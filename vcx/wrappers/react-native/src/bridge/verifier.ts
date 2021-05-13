@@ -126,7 +126,7 @@ export class Verifier {
   }
 
   public static async serialize({ handle }: IVerifierSerializeData): Promise<string> {
-    return await RNIndy.proofSerialize(
+    return await RNIndy.proofVerifierSerialize(
       handle,
     )
   }

@@ -159,24 +159,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void getGenesisPathWithConfig(String poolConfig, String fileName, Promise promise) {
-        Log.d(TAG, "getGenesisPathWithConfig()");
-        ContextWrapper cw = new ContextWrapper(reactContext);
-        File genFile = new File(cw.getFilesDir().toString() + "/genesis_" + fileName + ".txn");
-        if (genFile.exists()) {
-            genFile.delete();
-        }
-
-        try (FileOutputStream fos = new FileOutputStream(genFile)) {
-            fos.write(poolConfig.getBytes());
-            promise.resolve(genFile.getAbsolutePath());
-        } catch (IOException e) {
-            promise.reject("IOException", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    @ReactMethod
     public void init(String config, Promise promise) {
         Log.d(TAG, "init()");
         // When we restore data, then we are not calling createOneTimeInfo
@@ -396,44 +378,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void toBase64FromUtf8(String data, String base64EncodingOption, Promise promise) {
-        try {
-            int base64EncodeOption = base64EncodingOption.equalsIgnoreCase("NO_WRAP") ? Base64.NO_WRAP : Base64.URL_SAFE;
-            promise.resolve(Base64.encodeToString(data.getBytes(), base64EncodeOption));
-        } catch(Exception e) {
-            e.printStackTrace();
-            promise.reject(e);
-        }
-    }
-
-    @ReactMethod
-    public void toUtf8FromBase64(String data, String base64EncodingOption, Promise promise) {
-        try {
-            int base64EncodeOption = base64EncodingOption.equalsIgnoreCase("NO_WRAP") ? Base64.NO_WRAP : Base64.URL_SAFE;
-            String decodedUtf8 = new String(Base64.decode(data, base64EncodeOption));
-            promise.resolve(decodedUtf8);
-        } catch(Exception e) {
-            e.printStackTrace();
-            promise.reject(e);
-        }
-    }
-
-    @ReactMethod
-    public void generateThumbprint(String data, String base64EncodingOption, Promise promise) {
-        try {
-            MessageDigest hash = MessageDigest.getInstance("SHA-256");
-            hash.update(data.getBytes(StandardCharsets.UTF_8));
-            int base64EncodeOption = base64EncodingOption.equalsIgnoreCase("NO_WRAP") ? Base64.NO_WRAP : Base64.URL_SAFE;
-            byte[] digest = hash.digest();
-            String base64EncodedThumbprint = Base64.encodeToString(digest, base64EncodeOption);
-            promise.resolve(base64EncodedThumbprint);
-        } catch (Exception e) {
-            e.printStackTrace();
-            promise.reject(e);
-        }
-    }
-
-    @ReactMethod
     public void connectionGetState(int connectionHandle, Promise promise) {
         try {
             ConnectionApi.connectionGetState(connectionHandle).exceptionally((t) -> {
@@ -516,60 +460,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             Log.e(TAG, "connectionGetState - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
-    }
-
-    @ReactMethod
-    public void getColor(String imagePath, final Promise promise) {
-        Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
-        Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
-            @Override
-            public void onGenerated(Palette palette) {
-                try {
-                    Palette.Swatch swatch = palette.getVibrantSwatch();
-                    if (swatch == null) {
-                        swatch = palette.getDarkVibrantSwatch();
-                    }
-                    if (swatch == null) {
-                        swatch = palette.getLightVibrantSwatch();
-                    }
-                    if (swatch == null) {
-                        swatch = palette.getMutedSwatch();
-                    }
-                    if (swatch == null) {
-                        swatch = palette.getDarkMutedSwatch();
-                    }
-                    if (swatch == null) {
-                        swatch = palette.getLightMutedSwatch();
-                    }
-                    if (swatch == null) {
-                        swatch = palette.getDominantSwatch();
-                    }
-                    if (swatch == null) {
-                        List<Palette.Swatch> swatchList = palette.getSwatches();
-                        for (Palette.Swatch swatchItem : swatchList) {
-                            if (swatchItem != null) {
-                                swatch = swatchItem;
-                                break;
-                            }
-                        }
-                    }
-
-                    int rgb = swatch.getRgb();
-                    int r = Color.red(rgb);
-                    int g = Color.green(rgb);
-                    int b = Color.blue(rgb);
-                    WritableArray colors = Arguments.createArray();
-                    colors.pushString(String.valueOf(r));
-                    colors.pushString(String.valueOf(g));
-                    colors.pushString(String.valueOf(b));
-                    // add a value for alpha factor
-                    colors.pushString("1");
-                    promise.resolve(colors);
-                } catch (Exception e) {
-                    promise.reject("No color", e);
-                }
-            }
-        });
     }
 
     @ReactMethod
@@ -1001,34 +891,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void copyToPath(String uri, String zipPath, Promise promise) {
-
-        InputStream input = null;
-        BufferedOutputStream output = null;
-        try {
-
-            input = reactContext.getContentResolver().openInputStream(Uri.parse(uri));
-            output = new BufferedOutputStream(new FileOutputStream(zipPath));
-
-            {
-                byte data[] = new byte[BUFFER];
-                int count;
-                while ((count = input.read(data, 0, BUFFER)) != -1) {
-                    output.write(data, 0, count);
-                }
-                input.close();
-                output.close();
-                promise.resolve(zipPath);
-            }
-        }
-
-        catch (IOException e) {
-            promise.reject("copyToPathException", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    @ReactMethod
     public void setWalletItem(String key, String value, Promise promise) {
         try {
             WalletApi.addRecordWallet("record_type", key, value).whenComplete((result, t) -> {
@@ -1241,11 +1103,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             Log.e(TAG, "restoreWalletBackup - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
-    }
-
-    @ReactMethod
-    public void exitAppAndroid() {
-        android.os.Process.killProcess(android.os.Process.myPid());
     }
 
     @ReactMethod
@@ -1665,17 +1522,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         }
     }
 
-    @Override
-    public @Nullable
-    Map<String, Object> getConstants() {
-    HashMap<String, Object> constants = new HashMap<String, Object>();
-      ActivityManager actManager = (ActivityManager) reactContext.getSystemService(Context.ACTIVITY_SERVICE);
-      MemoryInfo memInfo = new ActivityManager.MemoryInfo();
-      actManager.getMemoryInfo(memInfo);
-      constants.put("totalMemory", memInfo.totalMem);
-      return constants;
-    }
-
     @ReactMethod
     public void getTxnAuthorAgreement(Promise promise) {
         try {
@@ -1941,29 +1787,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
-
-  @ReactMethod
-  public void getRequestRedirectionUrl(String url, Promise promise) {
-    try {
-      URL urlObj = new URL(url);
-
-      HttpURLConnection con = (HttpURLConnection) urlObj.openConnection();
-      con.setRequestMethod("GET");
-      con.setInstanceFollowRedirects(false);
-
-      int responseCode = con.getResponseCode();
-
-      if (responseCode == 302) {
-        String location = con.getHeaderField("location");
-        promise.resolve(location);
-      }
-      promise.reject("Failed to fetch URL", "Failed to fetch URL");
-    } catch (Exception e) {
-      e.printStackTrace();
-      Log.e(TAG, "getRequestRedirectionUrl - Error: ", e);
-      promise.reject(e.toString(), "");
-    }
-  }
 
   /*
    * Proof Verifier API

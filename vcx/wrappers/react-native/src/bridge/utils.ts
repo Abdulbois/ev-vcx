@@ -122,53 +122,11 @@ export class Utils {
     )
   }
 
-  public static async toBase64FromUtf8({
-    data,
-    base64EncodingOption,
-  }: IToBase64FromUtf8Data): Promise<string> {
-    return await RNIndy.toBase64FromUtf8(
-      data,
-      base64EncodingOption,
-    )
-  }
-
-  public static async toUtf8FromBase64({
-    data,
-    base64EncodingOption,
-  }: IToUtf8FromBase64Data): Promise<string> {
-    return await RNIndy.toUtf8FromBase64(
-      data,
-      base64EncodingOption,
-    )
-  }
-
-  public static async generateThumbprint({
-    data,
-    base64EncodingOption,
-  }: IGenerateThumbprintData): Promise<string> {
-    return await RNIndy.generateThumbprint(
-      data,
-      base64EncodingOption,
-    )
-  }
-
-  public static async getColor({
-    imagePath,
-  }: IGetColorData): Promise<Array<string>> {
-    return await RNIndy.getColor(
-      imagePath,
-    )
-  }
-
   public static async getRequestRedirectionUrl({
     url,
   }: IGetRequestRedirectionUrlData): Promise<string> {
     return await RNIndy.getRequestRedirectionUrl(
       url,
     )
-  }
-
-  public static exitAppAndroid(): void {
-    return RNIndy.exitAppAndroid()
   }
 }
