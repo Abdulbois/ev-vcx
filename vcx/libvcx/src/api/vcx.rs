@@ -288,7 +288,7 @@ pub extern fn vcx_init_pool(command_handle: CommandHandle,
         match init_pool() {
             Ok(()) => {
                 trace!("vcx_init_pool_cb(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
                 cb(command_handle, error::SUCCESS.code_num);
             }
             Err(e) => {
@@ -446,7 +446,7 @@ pub extern fn vcx_get_ledger_author_agreement(command_handle: CommandHandle,
         match ledger::libindy_get_txn_author_agreement() {
             Ok(x) => {
                 trace!("vcx_ledger_get_fees_cb(command_handle: {}, rc: {}, author_agreement: {})",
-                       command_handle, error::SUCCESS.message, x);
+                       command_handle, error::SUCCESS.as_str(), x);
 
                 let msg = CStringUtils::string_to_cstring(x);
                 cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());

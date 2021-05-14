@@ -89,7 +89,7 @@ pub extern fn vcx_wallet_create_payment_address(command_handle: CommandHandle,
         match create_address(seed) {
             Ok(x) => {
                 trace!("vcx_wallet_create_payment_address_cb(command_handle: {}, rc: {}, address: {})",
-                       command_handle, error::SUCCESS.message, secret!(x));
+                       command_handle, error::SUCCESS.as_str(), secret!(x));
 
                 let msg = CStringUtils::string_to_cstring(x);
                 cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
@@ -140,7 +140,7 @@ pub extern fn vcx_wallet_sign_with_address(command_handle: CommandHandle,
         match sign_with_address(&payment_address, message_raw.as_slice()) {
             Ok(signature) => {
                 trace!("vcx_wallet_sign_with_address_cb(command_handle: {}, rc: {}, signature: {:?})",
-                       command_handle, error::SUCCESS.message, signature);
+                       command_handle, error::SUCCESS.as_str(), signature);
 
                 let (signature_raw, signature_len) = ::utils::cstring::vec_to_pointer(&signature);
 
@@ -196,7 +196,7 @@ pub extern fn vcx_wallet_verify_with_address(command_handle: CommandHandle,
         match verify_with_address(&payment_address, message_raw.as_slice(), signature_raw.as_slice()) {
             Ok(valid) => {
                 trace!("vcx_wallet_verify_with_address_cb(command_handle: {}, rc: {}, valid: {})",
-                       command_handle, error::SUCCESS.message, valid);
+                       command_handle, error::SUCCESS.as_str(), valid);
 
                 cb(command_handle, error::SUCCESS.code_num, valid);
             }
@@ -263,7 +263,7 @@ pub extern fn vcx_wallet_add_record(command_handle: CommandHandle,
         match wallet::add_record(&type_, &id, &value, Some(&tags_json)) {
             Ok(()) => {
                 trace!("vcx_wallet_add_record(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
 
                 cb(command_handle, error::SUCCESS.code_num);
             }
@@ -318,7 +318,7 @@ pub extern fn vcx_wallet_update_record_value(command_handle: CommandHandle,
         match wallet::update_record_value(&type_, &id, &value) {
             Ok(()) => {
                 trace!("vcx_wallet_update_record_value(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
 
                 cb(command_handle, error::SUCCESS.code_num);
             }
@@ -496,7 +496,7 @@ pub extern fn vcx_wallet_get_record(command_handle: CommandHandle,
         match wallet::get_record(&type_, &id, &options_json) {
             Ok(x) => {
                 trace!("vcx_wallet_get_record(command_handle: {}, rc: {}, record_json: {})",
-                       command_handle, error::SUCCESS.message, secret!(x));
+                       command_handle, error::SUCCESS.as_str(), secret!(x));
 
                 let msg = CStringUtils::string_to_cstring(x);
 
@@ -551,7 +551,7 @@ pub extern fn vcx_wallet_delete_record(command_handle: CommandHandle,
         match wallet::delete_record(&type_, &id) {
             Ok(()) => {
                 trace!("vcx_wallet_delete_record(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
 
                 cb(command_handle, error::SUCCESS.code_num);
             }
@@ -609,7 +609,7 @@ pub extern fn vcx_wallet_send_tokens(command_handle: CommandHandle,
         match pay_a_payee(tokens, &recipient) {
             Ok((_payment, msg)) => {
                 trace!("vcx_wallet_send_tokens_cb(command_handle: {}, rc: {}, receipt: {})",
-                       command_handle, error::SUCCESS.message, secret!(msg));
+                       command_handle, error::SUCCESS.as_str(), secret!(msg));
                 let msg = CStringUtils::string_to_cstring(msg);
                 cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
             }
@@ -742,7 +742,7 @@ pub extern fn vcx_wallet_close_search(command_handle: CommandHandle,
 
     spawn(move || {
         trace!("vcx_wallet_close_search(command_handle: {}, rc: {})",
-               command_handle, error::SUCCESS.message);
+               command_handle, error::SUCCESS.as_str());
         cb(command_handle, error::SUCCESS.code_num);
         Ok(())
     });
@@ -829,7 +829,7 @@ pub extern fn vcx_wallet_import(command_handle: CommandHandle,
     thread::spawn(move || {
         match import(&config) {
             Ok(()) => {
-                trace!("vcx_wallet_import(command_handle: {}, rc: {})", command_handle, error::SUCCESS.message);
+                trace!("vcx_wallet_import(command_handle: {}, rc: {})", command_handle, error::SUCCESS.as_str());
                 cb(command_handle, error::SUCCESS.code_num);
             }
             Err(e) => {

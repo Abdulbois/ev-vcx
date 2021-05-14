@@ -7,6 +7,9 @@ use std::fmt;
 macro_rules! impl_error {
     ($f:ident, $($name:ident: $code:expr => $msg:expr),* $(,)?) => {
         // generate static items for converting enum variants to u32s
+        // NOTE: `message` is a null-terminated &'static str, so all accesses must be through
+        // `Error::as_str` to get a plain &'static str (this avoids allocation, and based on
+        // Godbolt's output, LLVM is smart enough to optimize out the decrement as well)
         $(pub static $name: Error = Error { code_num: $code, message: concat!($msg, "\0") });+;
         // resolve u32s to null-terminated strings
         fn $f(n: u32) -> &'static str {
@@ -14,15 +17,18 @@ macro_rules! impl_error {
             // initialization and lookup overhead; a `match` statement like this will
             // compile down into a highly efficient jump table and avoids allocation
             match n {
-                $($code => $name.message),+,
-                _ => UNKNOWN_ERROR.message,
+                $($code => $name.as_str_with_nul()),+,
+                _ => UNKNOWN_ERROR.as_str_with_nul(),
             }
         }
     }
 }
 
-// to add a new error, just add a line at the end with the following syntax:
+// to add a new error, just add a line at the end of `impl_error!` with the following syntax:
+// ```
 // STATIC_NAME: code_num => message,
+// ```
+//
 impl_error! {
     internal_error_c_message,
     SUCCESS: 0 => "Success",
@@ -131,13 +137,13 @@ pub fn error_message(code_num: u32) -> &'static str {
 #[derive(Clone, Copy)]
 pub struct Error {
     pub code_num: u32,
-    pub message: &'static str,
+    message: &'static str,
 }
 
 
 pub fn error_c_message(code_num: u32) -> &'static CStr {
     let msg = internal_error_c_message(code_num);
-    // SAFETY: the macro guarantees that the string literals have a null terminator;
+    // SAFETY: the macro guarantees that the string literals have a null terminator
     unsafe { CStr::from_bytes_with_nul_unchecked(msg.as_bytes()) }
 }
 
@@ -145,6 +151,10 @@ impl Error {
     /// Returns the associated error message _without_ the null terminator
     pub fn as_str(&self) -> &'static str {
         &self.message[..self.message.len() - 1]
+    }
+    /// Returns the associated error message _with_ the null terminator
+    pub fn as_str_with_nul(&self) -> &'static str {
+        self.message
     }
 }
 
