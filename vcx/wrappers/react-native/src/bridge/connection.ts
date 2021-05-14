@@ -101,6 +101,31 @@ interface IConnectionGetData {
   handle: number,
 }
 
+interface IConnectionAcceptConnectionInvite {
+  invitationId: string,
+  invite: string,
+  options: string,
+}
+
+interface IConnectionRelease {
+  handle: number,
+}
+
+interface IConnectionSendPing {
+  handle: number,
+  comment: string,
+}
+
+interface IConnectionSendDiscoveryFeatures {
+  handle: number,
+  comment: string,
+  query: string,
+}
+
+interface IConnectionGetProblemReport {
+  handle: number,
+}
+
 export class Connection {
   public static async createConnectionInvitation(): Promise<number> {
     return await RNIndy.createConnection(
@@ -307,5 +332,50 @@ export class Connection {
     return await RNIndy.deserializeConnection(
       serialized,
     )
+  }
+
+  public static async acceptInvite({
+    invitationId,
+    invite,
+    options,
+  }: IConnectionAcceptConnectionInvite): Promise<number> {
+    return await RNIndy.vcxConnectionAcceptConnectionInvite(
+      invitationId,
+      invite,
+      options
+    )
+  }
+
+  public static async release({
+    handle,
+  }: IConnectionRelease): Promise<number> {
+    return await RNIndy.connectionRelease(handle)
+  }
+
+  public static async sendPing({
+    handle,
+    comment,
+  }: IConnectionSendPing): Promise<void> {
+    return await RNIndy.connectionSendPing(handle, comment)
+  }
+
+  public static async sendDiscoveryFeatures({
+    handle,
+    comment,
+    query,
+  }: IConnectionSendDiscoveryFeatures): Promise<void> {
+    return await RNIndy.connectionSendDiscoveryFeatures(handle, comment, query)
+  }
+
+  public static async getTheirDid({ handle }: IConnectionGetData): Promise<string> {
+    return await RNIndy.connectionGetTheirDid(handle)
+  }
+
+  public static async info({ handle }: IConnectionGetData): Promise<string> {
+    return await RNIndy.connectionInfo(handle)
+  }
+
+  public static async getProblemReport({ handle }: IConnectionGetProblemReport): Promise<string> {
+    return await RNIndy.connectionGetProblemReport(handle)
   }
 }

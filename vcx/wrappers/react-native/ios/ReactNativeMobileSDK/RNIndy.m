@@ -1754,5 +1754,169 @@ RCT_EXPORT_METHOD(createPairwiseAgent: (RCTPromiseResolveBlock) resolve
   }];
 }
 
+RCT_EXPORT_METHOD(acceptConnectionWithInvite:(NSString *)invitationId
+                             inviteDetails:(NSString *)inviteDetails
+                             connectionType:(NSString *)connectionType
+                             (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] acceptConnectionWithInvite:invitationId
+                                            inviteDetails:inviteDetails
+                                            connectionType:connectionType
+                                            completion:^(NSError *error, NSInteger connectionHandle, NSString *serializedConnection)
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(connectionRelease:(NSInteger) connectionHandle
+                             (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] connectionRelease:connectionHandle
+                                            completion:^(NSError *error))completion
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(connectionSendPing:(VcxHandle)connectionHandle
+                             comment:(NSString *)comment
+                             (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] connectionSendPing:connectionHandle
+                            comment:comment
+                            completion:^(NSError *error, NSInteger connectionHandle))completion
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(connectionSendDiscoveryFeatures:(VcxHandle)connectionHandle
+                             comment:(NSString *)comment
+                             query:(NSString *)query
+                             (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] connectionSendDiscoveryFeatures:connectionHandle
+                            comment:comment
+                            query:query
+                            completion:^(NSError *error, NSInteger connectionHandle))completion
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(connectionGetPwDid:(VcxHandle)connectionHandle
+                             (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] connectionGetPwDid:connectionHandle
+                            completion:^(NSError *error, NSInteger connectionHandle))completion
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(connectionGetTheirDid:(VcxHandle)connectionHandle
+                             (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] connectionGetTheirDid:connectionHandle
+                            completion:^(NSError *error, NSInteger connectionHandle))completion
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(connectionInfo:(VcxHandle)connectionHandle
+                             (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] connectionInfo:connectionHandle
+                            completion:^(NSError *error, NSInteger connectionHandle))completion
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(connectionSendInviteAction:(VcxHandle)connectionHandle
+                             data:(NSString *)data
+                             (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] connectionSendInviteAction:connectionHandle
+                            data:data
+                            completion:^(NSError *error, NSString *message))completion
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(connectionGetProblemReport:(VcxHandle)connectionHandle
+                             (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] connectionGetProblemReport:connectionHandle
+                            completion:^(NSError *error, NSString *message))completion
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
 
 @end

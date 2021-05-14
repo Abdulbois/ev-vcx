@@ -713,6 +713,191 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod
+    public void vcxConnectionAcceptConnectionInvite(String invitationId,
+                                                    String inviteDetails,
+                                                    String connectionOptions,
+                                                    Promise promise) {
+        try {
+            ConnectionApi.vcxConnectionAcceptConnectionInvite(
+                    String invitationId,
+                    String inviteDetails,
+                    String connectionOptions).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxConnectionAcceptConnectionInvite - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                Log.e(TAG, ">>>><<<< got result back");
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxConnectionAcceptConnectionInvite - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void connectionRelease(int connectionHandle, Promise promise) {
+        try {
+            ConnectionApi.connectionRelease(connectionHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxConnectionRelease - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                Log.e(TAG, ">>>><<<< got result back");
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxConnectionRelease - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void connectionSendPing(int connectionHandle, String comment, Promise promise) {
+        try {
+            ConnectionApi.connectionSendPing(connectionHandle, comment).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxConnectionSendPing - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                Log.e(TAG, ">>>><<<< got result back");
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxConnectionSendPing - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void connectionSendDiscoveryFeatures(int connectionHandle, String query, String comment, Promise promise) {
+        try {
+            ConnectionApi.connectionSendDiscoveryFeatures(connectionHandle, query, comment).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxConnectionSendDiscoveryFeatures - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                Log.e(TAG, ">>>><<<< got result back");
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxConnectionSendDiscoveryFeatures - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void connectionGetPwDid(int connectionHandle, Promise promise) {
+        try {
+            ConnectionApi.connectionGetPwDid(connectionHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxConnectionGetPwDid - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                Log.e(TAG, ">>>><<<< got result back");
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxConnectionGetPwDid - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void connectionGetTheirPwDid(int connectionHandle, Promise promise) {
+        try {
+            ConnectionApi.connectionGetTheirPwDid(connectionHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxConnectionGetTheirPwDid - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                Log.e(TAG, ">>>><<<< got result back");
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxConnectionGetTheirPwDid - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+
+        }
+    }
+
+    @ReactMethod
+    public void connectionInfo(int connectionHandle, Promise promise) {
+        try {
+            ConnectionApi.connectionInfo(connectionHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxConnectionInfo - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                Log.e(TAG, ">>>><<<< got result back");
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxConnectionInfo - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+
+        }
+    }
+
+    @ReactMethod
+    public void connectionGetProblemReport(int connectionHandle, Promise promise) {
+        try {
+            ConnectionApi.connectionGetProblemReport(connectionHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxConnectionGetProblemReport - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                Log.e(TAG, ">>>><<<< got result back");
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxConnectionGetProblemReport - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+
+        }
+    }
+
     /*
      * Credential API
      */
