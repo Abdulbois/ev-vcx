@@ -2469,6 +2469,31 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
     }
 }
 
+- (int) proofVerifierProofRelease:(NSInteger) connectionHandle {
+  return vcx_proof_release(connectionHandle);
+}
+
+
+- (void) proofVerifierProofAccepted:(NSInteger) proofHandle
+                  responseData:(NSString)responseData
+                    completion:(void (^)(NSError *error))completion {
+    vcx_error_t ret;
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char *response_data_ctype = [responseData cStringUsingEncoding:NSUTF8StringEncoding];
+
+    ret = vcx_proof_accepted(handle, proofHandle, response_data_ctype, VcxWrapperCommonNumberStringCallback);
+
+    if ( ret != 0 )
+    {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error, 0, nil);
+        });
+    }
+}
+
 
 - (void)connectionSendDiscoveryFeatures:(VcxHandle)connectionHandle
                    comment:(NSString *)comment

@@ -45,6 +45,28 @@ interface IVerifierDeserializeData {
   serialized: string,
 }
 
+interface IVerifierRequestPresentation {
+  handle: number,
+  connectionHandle: number,
+  requestedAttrs: string,
+  requestedPredicates: string,
+  revocationInterval: string,
+  name: string,
+}
+
+interface IVerifierGetProofProposal {
+  handle: number,
+}
+
+interface IVerifierProofAccepted {
+  handle: number,
+  data: string,
+}
+
+interface IVerifierProofRelease {
+  handle: number,
+}
+
 export class Verifier {
   public static async create({
     requestedAttrs,
@@ -135,5 +157,45 @@ export class Verifier {
     return await RNIndy.proofVerifierDeserialize(
       serialized,
     )
+  }
+
+  public static async requestPresentation({
+    handle,
+    connectionHandle,
+    requestedAttrs,
+    requestedPredicates,
+    revocationInterval,
+    name,
+  }: IVerifierRequestPresentation): Promise<void> {
+    return await RNIndy.proofVerifierRequestPresentation(
+      handle,
+      connectionHandle,
+      requestedAttrs,
+      requestedPredicates,
+      revocationInterval,
+      name
+    )
+  }
+
+  public static async getProofProposal({
+    handle
+  }: IVerifierGetProofProposal): Promise<string> {
+    return await RNIndy.proofVerifierGetProofProposal(handle)
+  }
+
+  public static async proofAccepted({
+    handle,
+    data,
+  }: IVerifierProofAccepted): Promise<number> {
+    return await RNIndy.proofVerifierProofAccepted(
+      handle,
+      data
+    )
+  }
+
+  public static async release({
+    handle
+  }: IVerifierProofRelease): Promise<void> {
+    return await RNIndy.proofVerifierProofRelease(handle)
   }
 }
