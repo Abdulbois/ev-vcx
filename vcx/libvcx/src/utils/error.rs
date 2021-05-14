@@ -24,11 +24,12 @@ macro_rules! impl_error {
     }
 }
 
-// to add a new error, just add a line at the end of `impl_error!` with the following syntax:
+// STEPS FOR DEFINING NEW ERRORS
+// 1. add a line at the end of `impl_error!` with the following syntax:
 // ```
 // STATIC_NAME: code_num => message,
 // ```
-//
+// 2. add a test to ensure your error can be retrieved
 impl_error! {
     internal_error_c_message,
     SUCCESS: 0 => "Success",
@@ -128,6 +129,7 @@ impl_error! {
     MESSAGE_IS_OUT_OF_THREAD: 1109 => "The format of DIDDoc is invalid",
 }
 
+/// Returns the corresponding message for the provided error code _without_ a null terminator
 pub fn error_message(code_num: u32) -> &'static str {
     let msg = internal_error_c_message(code_num);
     &msg[..msg.len() - 1]
@@ -141,6 +143,7 @@ pub struct Error {
 }
 
 
+/// Returns the corresponding message for the provided error code _with_ a null terminator
 pub fn error_c_message(code_num: u32) -> &'static CStr {
     let msg = internal_error_c_message(code_num);
     // SAFETY: the macro guarantees that the string literals have a null terminator
@@ -160,8 +163,7 @@ impl Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let msg = error_message(self.code_num);
-        write!(f, "{}: (Error Num:{})", msg, self.code_num)
+        write!(f, "{}: (Error Num:{})", self.as_str(), self.code_num)
     }
 }
 
