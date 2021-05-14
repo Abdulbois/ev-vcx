@@ -37,6 +37,7 @@ import com.evernym.sdk.vcx.token.TokenApi;
 import com.evernym.sdk.vcx.utils.UtilsApi;
 import com.evernym.sdk.vcx.vcx.AlreadyInitializedException;
 import com.evernym.sdk.vcx.vcx.VcxApi;
+import com.evernym.sdk.vcx.issuer.IssuerApi;
 import com.evernym.sdk.vcx.indy.IndyApi;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
@@ -1180,12 +1181,119 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod
+    public void proofGetState(int proofHandle, Promise promise) {
+       Log.d(TAG, "proofGetState()");
+         try {
+            DisclosedProofApi.proofGetState(proofHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "proofGetState - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "proofGetState - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void proofUpdateState(int proofHandle, Promise promise) {
+       Log.d(TAG, "proofUpdateState()");
+         try {
+            DisclosedProofApi.proofUpdateState(proofHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "proofUpdateState - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "proofUpdateState - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void proofUpdateStateWithMessage(int proofHandle, String message, Promise promise) {
+       Log.d(TAG, "proofUpdateStateWithMessage()");
+         try {
+            DisclosedProofApi.proofUpdateStateWithMessage(proofHandle, message).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "proofUpdateStateWithMessage - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "proofUpdateStateWithMessage - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void proofGetProblemReport(int proofHandle, Promise promise) {
+        Log.d(TAG, "proofGetProblemReport()");
+        try {
+            DisclosedProofApi.proofGetProblemReport(proofHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "proofGetProblemReport - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch(VcxException e) {
+          e.printStackTrace();
+          Log.e(TAG, "proofGetProblemReport - Error: ", e);
+          promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+       }
+    }
+
+    @ReactMethod
+    public void proofDeclineRequest(int proofHandle, int connectionHandle, String reason, String proposal, Promise promise) {
+        Log.d(TAG, "proofDeclineRequest()");
+        try {
+            ProofApi.proofDeclineRequest(proofHandle, connectionHandle, reason, proposal).whenComplete((result, t) -> {
+                if (t != null) {
+                    Log.e(TAG, "proofDeclineRequest - Error: ", t);
+                    promise.reject("VcxException", t.getMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "proofDeclineRequest - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
    /*
     * Proof Verifier API
     */
    @ReactMethod
    public void createProofVerifier(String sourceId, String requestedAttrs, String requestedPredicates, String revocationInterval, String name, Promise promise) {
-       Log.d(TAG, "verifierCreate()");
+       Log.d(TAG, "createProofVerifier()");
        try {
            ProofApi.proofCreate(sourceId, requestedAttrs, requestedPredicates, revocationInterval, name).exceptionally((t) -> {
                VcxException ex = (VcxException) t;
@@ -1522,214 +1630,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         }
     }
 
-    /*
-     * Utils and secondary methods API
-     */
-    @ReactMethod
-    public void vcxAcceptInvitation(int connectionHandle, String connectionType, Promise promise) {
-        Log.d(TAG, "acceptInvitation()");
-        try {
-            ConnectionApi.vcxAcceptInvitation(connectionHandle, connectionType).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "vcxAcceptInvitation - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxAcceptInvitation - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void generateProof(String proofRequestId, String requestedAttrs, String requestedPredicates,
-            String revocationInterval, String proofName, Promise promise) {
-        try {
-            ProofApi.proofCreate(proofRequestId, requestedAttrs, requestedPredicates, revocationInterval, proofName).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "proofCreate - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return -1;
-            }).thenAccept(result -> {
-                if (result != -1) {
-                    BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "connectionGetState - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void reset(boolean reset, final Promise promise) {
-        // TODO: call vcx_reset or vcx_shutdown if later is available
-        // pass true to indicate that we delete both pool and wallet objects
-        Timer t = new Timer();
-        t.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                promise.resolve(true);
-            }
-        }, (long) (Math.random() * 1000));
-    }
-
-    @ReactMethod
-    public void backupWallet(String documentDirectory, String encryptionKey, String agencyConfig, Promise promise) {
-        // TODO: Remove this file, this is a dummy file, testing for backup the wallet
-        String fileName = "backup.txt";
-        File file = new File(documentDirectory, fileName);
-        String contentToWrite = "Dummy Content";
-        try (FileWriter fileWriter = new FileWriter(file)) {
-            fileWriter.append(contentToWrite);
-            fileWriter.flush();
-        } catch (IOException e) {
-            promise.reject(e);
-        }
-
-        // convert the file to zip
-        String inputDir = documentDirectory + "/" + fileName;
-        String zipPath = documentDirectory + "/backup.zip";
-        try (FileOutputStream dest = new FileOutputStream(zipPath);
-                ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(dest));
-                FileInputStream fi = new FileInputStream(inputDir);
-                BufferedInputStream origin = new BufferedInputStream(fi);) {
-            byte data[] = new byte[BUFFER];
-            // fileName will be the wallet filename
-            ZipEntry entry = new ZipEntry(fileName);
-            out.putNextEntry(entry);
-            int count;
-            while ((count = origin.read(data, 0, BUFFER)) != -1) {
-                out.write(data, 0, count);
-            }
-            out.closeEntry();
-            promise.resolve(zipPath);
-        } catch (IOException e) {
-            promise.reject(e);
-        }
-    }
-
-    private static void requestPermission(final Context context) {
-        if(ActivityCompat.shouldShowRequestPermissionRationale((Activity) context, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-            // Provide an additional rationale to the user if the permission was not granted
-            // and the user would benefit from additional context for the use of the permission.
-            // For example if the user has previously denied the permission.
-
-            new AlertDialog.Builder(context)
-                    .setMessage("permission storage")
-                    .setPositiveButton("positive button", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    ActivityCompat.requestPermissions((Activity) context,
-                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                            RNIndyStaticData.REQUEST_WRITE_EXTERNAL_STORAGE);
-                }
-            }).show();
-
-        } else {
-            // permission has not been granted yet. Request it directly.
-            ActivityCompat.requestPermissions((Activity)context,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    RNIndyStaticData.REQUEST_WRITE_EXTERNAL_STORAGE);
-        }
-    }
-
-    private static int getLogLevel(String levelName) {
-        if("Error".equalsIgnoreCase(levelName)) {
-            return 1;
-        } else if("Warning".equalsIgnoreCase(levelName) || levelName.toLowerCase().contains("warn")) {
-            return 2;
-        } else if("Info".equalsIgnoreCase(levelName)) {
-            return 3;
-        } else if("Debug".equalsIgnoreCase(levelName)) {
-            return 4;
-        } else if("Trace".equalsIgnoreCase(levelName)) {
-            return 5;
-        } else {
-            return 3;
-        }
-    }
-
-    @ReactMethod
-    public void encryptVcxLog(String logFilePath, String key, Promise promise) {
-        try {
-            RandomAccessFile logFile = new RandomAccessFile(logFilePath, "r");
-            byte[] fileBytes = new byte[(int)logFile.length()];
-            logFile.readFully(fileBytes);
-            logFile.close();
-
-            IndyApi.anonCrypt(key, fileBytes).exceptionally((t) -> {
-                Log.e(TAG, "anonCrypt - Error: ", t);
-                promise.reject("FutureException", "Error occurred while encrypting file: " + logFilePath + " :: " + t.getMessage());
-                return null;
-            }).thenAccept(result -> {
-                try {
-                    RandomAccessFile encLogFile = new RandomAccessFile(RNIndyStaticData.ENCRYPTED_LOG_FILE_PATH, "rw");
-                    encLogFile.write(result, 0, result.length);
-                    encLogFile.close();
-                    BridgeUtils.resolveIfValid(promise, RNIndyStaticData.ENCRYPTED_LOG_FILE_PATH);
-                } catch(IOException ex) {
-                    promise.reject("encryptVcxLog Exception", ex.getMessage());
-                    ex.printStackTrace();
-                }
-            });
-        } catch (VcxException | IOException e) {
-            promise.reject("encryptVcxLog - Error", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    @ReactMethod
-    public  void writeToVcxLog(String loggerName, String logLevel, String message, String logFilePath, Promise promise) {
-        VcxApi.logMessage(loggerName, getLogLevel(logLevel), message);
-        promise.resolve(0);
-    }
-
-    @ReactMethod
-    public void setVcxLogger(String logLevel, String uniqueIdentifier, int MAX_ALLOWED_FILE_BYTES, Promise promise) {
-
-        ContextWrapper cw = new ContextWrapper(reactContext);
-        RNIndyStaticData.MAX_ALLOWED_FILE_BYTES = MAX_ALLOWED_FILE_BYTES;
-        RNIndyStaticData.LOG_FILE_PATH = cw.getFilesDir().getAbsolutePath() +
-                "/connectme.rotating." + uniqueIdentifier + ".log";
-        RNIndyStaticData.ENCRYPTED_LOG_FILE_PATH = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() +
-                "/connectme.rotating." + uniqueIdentifier + ".log.enc";
-        //get the documents directory:
-        Log.d(TAG, "Setting vcx logger to: " + RNIndyStaticData.LOG_FILE_PATH);
-
-        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
-            RNIndyStaticData.initLoggerFile(cw);
-        }
-        promise.resolve(RNIndyStaticData.LOG_FILE_PATH);
-
-    }
-
-    @ReactMethod
-    public void credentialGetOffers(int connectionHandle, Promise promise) {
-        try {
-            CredentialApi.credentialGetOffers(connectionHandle).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "connectionHandle - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return -1;
-            }).thenAccept(result -> {
-                Log.e(TAG, ">>>><<<< got result back");
-                if (result != -1) {
-                    BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-        } catch(VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "connectionHandle - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
     @ReactMethod
     public void setWalletItem(String key, String value, Promise promise) {
         try {
@@ -1862,6 +1762,201 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         } catch (VcxException e) {
             e.printStackTrace();
             Log.e(TAG, "serializeBackupWallet - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    /*
+     * Utils and secondary methods API
+     */
+    @ReactMethod
+    public void vcxAcceptInvitation(int connectionHandle, String connectionType, Promise promise) {
+        Log.d(TAG, "acceptInvitation()");
+        try {
+            ConnectionApi.vcxAcceptInvitation(connectionHandle, connectionType).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxAcceptInvitation - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxAcceptInvitation - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void generateProof(String proofRequestId, String requestedAttrs, String requestedPredicates,
+            String revocationInterval, String proofName, Promise promise) {
+        try {
+            ProofApi.proofCreate(proofRequestId, requestedAttrs, requestedPredicates, revocationInterval, proofName).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "proofCreate - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "connectionGetState - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void backupWallet(String documentDirectory, String encryptionKey, String agencyConfig, Promise promise) {
+        // TODO: Remove this file, this is a dummy file, testing for backup the wallet
+        String fileName = "backup.txt";
+        File file = new File(documentDirectory, fileName);
+        String contentToWrite = "Dummy Content";
+        try (FileWriter fileWriter = new FileWriter(file)) {
+            fileWriter.append(contentToWrite);
+            fileWriter.flush();
+        } catch (IOException e) {
+            promise.reject(e);
+        }
+
+        // convert the file to zip
+        String inputDir = documentDirectory + "/" + fileName;
+        String zipPath = documentDirectory + "/backup.zip";
+        try (FileOutputStream dest = new FileOutputStream(zipPath);
+                ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(dest));
+                FileInputStream fi = new FileInputStream(inputDir);
+                BufferedInputStream origin = new BufferedInputStream(fi);) {
+            byte data[] = new byte[BUFFER];
+            // fileName will be the wallet filename
+            ZipEntry entry = new ZipEntry(fileName);
+            out.putNextEntry(entry);
+            int count;
+            while ((count = origin.read(data, 0, BUFFER)) != -1) {
+                out.write(data, 0, count);
+            }
+            out.closeEntry();
+            promise.resolve(zipPath);
+        } catch (IOException e) {
+            promise.reject(e);
+        }
+    }
+
+    private static void requestPermission(final Context context) {
+        if(ActivityCompat.shouldShowRequestPermissionRationale((Activity) context, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            // Provide an additional rationale to the user if the permission was not granted
+            // and the user would benefit from additional context for the use of the permission.
+            // For example if the user has previously denied the permission.
+
+            new AlertDialog.Builder(context)
+                    .setMessage("permission storage")
+                    .setPositiveButton("positive button", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    ActivityCompat.requestPermissions((Activity) context,
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            RNIndyStaticData.REQUEST_WRITE_EXTERNAL_STORAGE);
+                }
+            }).show();
+
+        } else {
+            // permission has not been granted yet. Request it directly.
+            ActivityCompat.requestPermissions((Activity)context,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    RNIndyStaticData.REQUEST_WRITE_EXTERNAL_STORAGE);
+        }
+    }
+
+    private static int getLogLevel(String levelName) {
+        if("Error".equalsIgnoreCase(levelName)) {
+            return 1;
+        } else if("Warning".equalsIgnoreCase(levelName) || levelName.toLowerCase().contains("warn")) {
+            return 2;
+        } else if("Info".equalsIgnoreCase(levelName)) {
+            return 3;
+        } else if("Debug".equalsIgnoreCase(levelName)) {
+            return 4;
+        } else if("Trace".equalsIgnoreCase(levelName)) {
+            return 5;
+        } else {
+            return 3;
+        }
+    }
+
+    @ReactMethod
+    public void encryptVcxLog(String logFilePath, String key, Promise promise) {
+        try {
+            RandomAccessFile logFile = new RandomAccessFile(logFilePath, "r");
+            byte[] fileBytes = new byte[(int)logFile.length()];
+            logFile.readFully(fileBytes);
+            logFile.close();
+
+            IndyApi.anonCrypt(key, fileBytes).exceptionally((t) -> {
+                Log.e(TAG, "anonCrypt - Error: ", t);
+                promise.reject("FutureException", "Error occurred while encrypting file: " + logFilePath + " :: " + t.getMessage());
+                return null;
+            }).thenAccept(result -> {
+                try {
+                    RandomAccessFile encLogFile = new RandomAccessFile(RNIndyStaticData.ENCRYPTED_LOG_FILE_PATH, "rw");
+                    encLogFile.write(result, 0, result.length);
+                    encLogFile.close();
+                    BridgeUtils.resolveIfValid(promise, RNIndyStaticData.ENCRYPTED_LOG_FILE_PATH);
+                } catch(IOException ex) {
+                    promise.reject("encryptVcxLog Exception", ex.getMessage());
+                    ex.printStackTrace();
+                }
+            });
+        } catch (VcxException | IOException e) {
+            promise.reject("encryptVcxLog - Error", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @ReactMethod
+    public  void encryptVcxLog(String loggerName, String logLevel, String message, String logFilePath, Promise promise) {
+        VcxApi.logMessage(loggerName, getLogLevel(logLevel), message);
+        promise.resolve(0);
+    }
+
+    @ReactMethod
+    public void setVcxLogger(String logLevel, String uniqueIdentifier, int MAX_ALLOWED_FILE_BYTES, Promise promise) {
+
+        ContextWrapper cw = new ContextWrapper(reactContext);
+        RNIndyStaticData.MAX_ALLOWED_FILE_BYTES = MAX_ALLOWED_FILE_BYTES;
+        RNIndyStaticData.LOG_FILE_PATH = cw.getFilesDir().getAbsolutePath() +
+                "/connectme.rotating." + uniqueIdentifier + ".log";
+        RNIndyStaticData.ENCRYPTED_LOG_FILE_PATH = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() +
+                "/connectme.rotating." + uniqueIdentifier + ".log.enc";
+        //get the documents directory:
+        Log.d(TAG, "Setting vcx logger to: " + RNIndyStaticData.LOG_FILE_PATH);
+
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            RNIndyStaticData.initLoggerFile(cw);
+        }
+        promise.resolve(RNIndyStaticData.LOG_FILE_PATH);
+
+    }
+
+    @ReactMethod
+    public void credentialGetOffers(int connectionHandle, Promise promise) {
+        try {
+            CredentialApi.credentialGetOffers(connectionHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "connectionHandle - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                Log.e(TAG, ">>>><<<< got result back");
+                if (result != -1) {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "connectionHandle - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
@@ -2056,113 +2151,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         } catch (VcxException e) {
             e.printStackTrace();
             Log.e(TAG, "vcxConnectionCreate - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void proofGetState(int proofHandle, Promise promise) {
-       Log.d(TAG, "proofGetState()");
-         try {
-            DisclosedProofApi.proofGetState(proofHandle).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "proofGetState - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return -1;
-            }).thenAccept(result -> {
-                if (result != -1) {
-                    BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-        } catch(VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "proofGetState - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void proofUpdateState(int proofHandle, Promise promise) {
-       Log.d(TAG, "proofUpdateState()");
-         try {
-            DisclosedProofApi.proofUpdateState(proofHandle).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "proofUpdateState - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return -1;
-            }).thenAccept(result -> {
-                if (result != -1) {
-                    BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-        } catch(VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "proofUpdateState - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void proofUpdateStateWithMessage(int proofHandle, String message, Promise promise) {
-       Log.d(TAG, "proofUpdateStateWithMessage()");
-         try {
-            DisclosedProofApi.proofUpdateStateWithMessage(proofHandle, message).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "proofUpdateStateWithMessage - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return -1;
-            }).thenAccept(result -> {
-                if (result != -1) {
-                    BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-        } catch(VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "proofUpdateStateWithMessage - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-      @ReactMethod
-      public void proofGetProblemReport(int proofHandle, Promise promise) {
-         Log.d(TAG, "proofGetProblemReport()");
-           try {
-              DisclosedProofApi.proofGetProblemReport(proofHandle).exceptionally((t) -> {
-                  VcxException ex = (VcxException) t;
-                  ex.printStackTrace();
-                  Log.e(TAG, "proofGetProblemReport - Error: ", ex);
-                  promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                  return -1;
-              }).thenAccept(result -> {
-                  if (result != -1) {
-                      BridgeUtils.resolveIfValid(promise, result);
-                  }
-              });
-          } catch(VcxException e) {
-              e.printStackTrace();
-              Log.e(TAG, "proofGetProblemReport - Error: ", e);
-              promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-          }
-      }
-
-    @ReactMethod
-    public void proofDeclineRequest(int proofHandle, int connectionHandle, String reason, String proposal, Promise promise) {
-        Log.d(TAG, "proofDeclineRequest()");
-        try {
-            ProofApi.proofDeclineRequest(proofHandle, connectionHandle, reason, proposal).whenComplete((result, t) -> {
-                if (t != null) {
-                    Log.e(TAG, "proofDeclineRequest - Error: ", t);
-                    promise.reject("VcxException", t.getMessage());
-                } else {
-                    promise.resolve(0);
-                }
-            });
-        } catch(VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "proofDeclineRequest - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
