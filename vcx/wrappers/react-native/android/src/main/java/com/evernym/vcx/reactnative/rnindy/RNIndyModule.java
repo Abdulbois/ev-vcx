@@ -2455,4 +2455,70 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
+
+    @ReactMethod
+    public void addTxnAuthorAgreement(String submitterDid,
+                                      String text,
+                                      String version,
+                                      Promise promise
+    ) {
+        try {
+            IndyApi.addTxnAuthorAgreement(submitterDid, text, version).exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "addTxnAuthorAgreement - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "addTxnAuthorAgreement - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void addAcceptanceMechanisms(String submitterDid,
+                                        String aml,
+                                        String version,
+                                        String amlContext,
+                                        Promise promise
+    ) {
+        try {
+            IndyApi.addAcceptanceMechanisms(submitterDid, aml, version, amlContext).exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "addAcceptanceMechanisms - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "addAcceptanceMechanisms - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void anonDecrypt(int walletHandle, String recipientVk, byte[] encryptedMsg, Promise promise) {
+        try {
+            IndyApi.anonDecrypt(walletHandle, recipientVk, encryptedMsg).exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "anonDecrypt - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "anonDecrypt - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
 }

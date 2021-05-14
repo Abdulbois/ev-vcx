@@ -53,6 +53,30 @@ interface IGetRequestRedirectionUrlData {
   url: string,
 }
 
+interface IAddTxnAuthorAgreement {
+  submitterDid: string,
+  text: string,
+  version: string,
+}
+
+interface IAddAcceptanceMechanisms {
+  submitterDid: string,
+  aml: string,
+  version: string,
+  amlContext: string,
+}
+
+interface IAnonDecrypt {
+  handle: number,
+  recipientVk: string,
+  encryptedMsg: string,
+}
+
+interface ISignDataResult {
+  data: string,
+  signature: string,
+}
+
 export class Utils {
   public static async getLedgerFees(): Promise<string> {
     return await RNIndy.getLedgerFees()
@@ -129,4 +153,43 @@ export class Utils {
       url,
     )
   }
+
+  public static async addTxnAuthorAgreement({
+    submitterDid,
+    text,
+    version,
+  }: IAddTxnAuthorAgreement): Promise<string> {
+    return await RNIndy.addTxnAuthorAgreement(
+      submitterDid,
+      text,
+      version,
+    )
+  }
+
+  public static async addAcceptanceMechanisms({
+    submitterDid,
+    aml,
+    version,
+    amlContext,
+  }: IAddAcceptanceMechanisms): Promise<string> {
+    return await RNIndy.addAcceptanceMechanisms(
+      submitterDid,
+      aml,
+      version,
+      amlContext
+    )
+  }
+
+  public static async anonDecrypt({
+    handle,
+    recipientVk,
+    encryptedMsg,
+  }: IAnonDecrypt): Promise<ISignDataResult> {
+    return await RNIndy.anonDecrypt(
+      handle,
+      recipientVk,
+      encryptedMsg,
+    )
+  }
+
 }

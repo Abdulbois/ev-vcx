@@ -2038,4 +2038,73 @@ RCT_EXPORT_METHOD(credentialGetProblemReport:(NSInteger) credentialHandle
   }];
 }
 
+RCT_EXPORT_METHOD(addTxnAuthorAgreement:(NSString *)submitterDid
+                                   text:(NSString *)text
+                                version:(NSString *)version
+                                (RCTPromiseResolveBlock) resolve
+                               rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] addTxnAuthorAgreement:submitterDid
+                                                     text:text
+                                                  version:version
+                                               completion:^(NSError *error)
+
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(addAcceptanceMechanisms:(NSString *)submitterDid
+                                      aml:(NSString *)aml
+                                  version:(NSString *)version
+                               amlContext:(NSString *)amlContext
+                               (RCTPromiseResolveBlock) resolve
+                                 rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] addAcceptanceMechanisms:submitterDid
+                                                   aml:aml
+                                               version:version
+                                            amlContext:amlContext
+                                            completion:^(NSError *error)
+
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(anonDecrypt:(VcxHandle)walletHandle
+                  recipientVk:(NSString *)recipientVk
+                 encryptedMsg:(NSData *)encryptedMsg
+                 (RCTPromiseResolveBlock) resolve
+                     rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] anonDecrypt:walletHandle
+                               recipientVk:recipientVk
+                              encryptedMsg:encryptedMsg
+                                amlContext:amlContext
+                                completion:^(NSError *error)
+
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
 @end
