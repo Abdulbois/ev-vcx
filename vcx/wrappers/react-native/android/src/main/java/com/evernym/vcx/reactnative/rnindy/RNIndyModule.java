@@ -1128,6 +1128,122 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod
+    public void credentialCreateWithMsgid(String sourceId,
+                                          int connectionHandle,
+                                          String msgId,
+                                          Promise promise
+    ) {
+        Log.d(TAG, "credentialCreateWithMsgid()");
+        try {
+            CredentialApi.credentialCreateWithMsgid(credentialHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "credentialCreateWithMsgid - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "credentialCreateWithMsgid - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void credentialGetRequestMsg(int credentialHandle,
+                                        String myPwDid,
+                                        String theirPwDid,
+                                        int paymentHandle,
+                                        Promise promise
+    ) {
+        Log.d(TAG, "credentialGetRequestMsg()");
+        try {
+            CredentialApi.credentialGetRequestMsg(
+                    credentialHandle,
+                    myPwDid,
+                    theirPwDid,
+                    paymentHandle).exceptionally((t) ->
+            {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "credentialGetRequestMsg - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "credentialGetRequestMsg - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void credentialRelease(int credentialHandle, Promise promise) {
+        Log.d(TAG, "credentialRelease()");
+        try {
+            CredentialApi.credentialRelease(credentialHandle).exceptionally((t) ->
+            {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "credentialRelease - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "credentialRelease - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void acceptCredentialOffer(String sourceId,
+                                      String credentialOffer,
+                                      int connectionHandle,
+                                      Promise promise
+    ) {
+        Log.d(TAG, "acceptCredentialOffer()");
+        try {
+            CredentialApi.acceptCredentialOffer(sourceId, credentialOffer, credentialHandle).exceptionally((t) ->
+            {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "acceptCredentialOffer - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "acceptCredentialOffer - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void credentialGetProblemReport(int credentialHandle, Promise promise) {
+        Log.d(TAG, "credentialGetProblemReport()");
+        try {
+            CredentialApi.credentialGetProblemReport(credentialHandle).exceptionally((t) ->
+            {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "credentialGetProblemReport - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "credentialGetProblemReport - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
     /*
      * Library API
      */

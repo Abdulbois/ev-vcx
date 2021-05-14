@@ -1755,15 +1755,15 @@ RCT_EXPORT_METHOD(createPairwiseAgent: (RCTPromiseResolveBlock) resolve
 }
 
 RCT_EXPORT_METHOD(acceptConnectionWithInvite:(NSString *)invitationId
-                             inviteDetails:(NSString *)inviteDetails
-                             connectionType:(NSString *)connectionType
-                             (RCTPromiseResolveBlock) resolve
-                             rejecter: (RCTPromiseRejectBlock) reject)
+                               inviteDetails:(NSString *)inviteDetails
+                              connectionType:(NSString *)connectionType
+                              (RCTPromiseResolveBlock) resolve
+                                    rejecter:(RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] acceptConnectionWithInvite:invitationId
                                             inviteDetails:inviteDetails
-                                            connectionType:connectionType
-                                            completion:^(NSError *error, NSInteger connectionHandle, NSString *serializedConnection)
+                                           connectionType:connectionType
+                                               completion:^(NSError *error, NSInteger connectionHandle, NSString *serializedConnection)
   {
     if (error != nil && error.code != 0)
     {
@@ -1780,7 +1780,7 @@ RCT_EXPORT_METHOD(connectionRelease:(NSInteger) connectionHandle
                              rejecter: (RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] connectionRelease:connectionHandle
-                                            completion:^(NSError *error))completion
+
   {
     if (error != nil && error.code != 0)
     {
@@ -1799,7 +1799,7 @@ RCT_EXPORT_METHOD(connectionSendPing:(VcxHandle)connectionHandle
 {
   [[[ConnectMeVcx alloc] init] connectionSendPing:connectionHandle
                             comment:comment
-                            completion:^(NSError *error, NSInteger connectionHandle))completion
+                            completion:^(NSError *error, NSInteger connectionHandle)
   {
     if (error != nil && error.code != 0)
     {
@@ -1820,7 +1820,7 @@ RCT_EXPORT_METHOD(connectionSendDiscoveryFeatures:(VcxHandle)connectionHandle
   [[[ConnectMeVcx alloc] init] connectionSendDiscoveryFeatures:connectionHandle
                             comment:comment
                             query:query
-                            completion:^(NSError *error, NSInteger connectionHandle))completion
+                            completion:^(NSError *error, NSInteger connectionHandle)
   {
     if (error != nil && error.code != 0)
     {
@@ -1837,7 +1837,7 @@ RCT_EXPORT_METHOD(connectionGetPwDid:(VcxHandle)connectionHandle
                              rejecter: (RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] connectionGetPwDid:connectionHandle
-                            completion:^(NSError *error, NSInteger connectionHandle))completion
+                            completion:^(NSError *error, NSInteger connectionHandle)
   {
     if (error != nil && error.code != 0)
     {
@@ -1854,7 +1854,7 @@ RCT_EXPORT_METHOD(connectionGetTheirDid:(VcxHandle)connectionHandle
                              rejecter: (RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] connectionGetTheirDid:connectionHandle
-                            completion:^(NSError *error, NSInteger connectionHandle))completion
+                            completion:^(NSError *error, NSInteger connectionHandle)
   {
     if (error != nil && error.code != 0)
     {
@@ -1871,7 +1871,7 @@ RCT_EXPORT_METHOD(connectionInfo:(VcxHandle)connectionHandle
                              rejecter: (RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] connectionInfo:connectionHandle
-                            completion:^(NSError *error, NSInteger connectionHandle))completion
+                            completion:^(NSError *error, NSInteger connectionHandle)
   {
     if (error != nil && error.code != 0)
     {
@@ -1890,7 +1890,7 @@ RCT_EXPORT_METHOD(connectionSendInviteAction:(VcxHandle)connectionHandle
 {
   [[[ConnectMeVcx alloc] init] connectionSendInviteAction:connectionHandle
                             data:data
-                            completion:^(NSError *error, NSString *message))completion
+                            completion:^(NSError *error, NSString *message)
   {
     if (error != nil && error.code != 0)
     {
@@ -1907,7 +1907,126 @@ RCT_EXPORT_METHOD(connectionGetProblemReport:(VcxHandle)connectionHandle
                              rejecter: (RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] connectionGetProblemReport:connectionHandle
-                            completion:^(NSError *error, NSString *message))completion
+                                               completion:^(NSError *error, NSString *message)
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(credentialCreateWithMsgid:(NSString *)sourceId
+                             credentialHandle:(VcxHandle)credentialHandle
+                             msgId:(NSString *)msgId
+                             (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] credentialCreateWithMsgid:sourceId
+                                        credentialHandle:credentialHandle
+                                                   msgId:msgId
+                                              completion:^(NSError *error, NSInteger credentialHandle, NSString *credentialOffer)
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(credentialGetRequestMsg:(VcxHandle)credentialHandle
+                                  myPwDid:(NSString *)myPwDid
+                               theirPwDid:(NSString *)theirPwDid
+                            paymentHandle:(vcx_payment_handle_t)paymentHandle
+                            (RCTPromiseResolveBlock) resolve
+                                 rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] credentialCreateWithMsgid:credentialHandle
+                                                 myPwDid:myPwDid
+                                              theirPwDid:theirPwDid
+                                           paymentHandle:paymentHandle
+                                              completion:^(NSError *error)
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(credentialRelease:(VcxHandle)credentialHandle
+                           (RCTPromiseResolveBlock) resolve
+                           rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] credentialRelease:credentialHandle
+
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(credentialGetOffers:(VcxHandle)credentialHandle
+                           (RCTPromiseResolveBlock) resolve
+                             rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] credentialGetOffers:credentialHandle
+                                        completion:^(NSError *error, NSString *offers)
+
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(credentialAcceptCredentialOffer:(NSString *)sourceId
+                                            offer:(NSString *)credentialOffer
+                                 connectionHandle:(VcxHandle)connectionHandle
+                                 (RCTPromiseResolveBlock) resolve
+                                         rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] credentialAcceptCredentialOffer:sourceId
+                                                        offer:credentialOffer
+                                             connectionHandle:connectionHandle
+                                                   completion:^(NSError *error, NSInteger credentialHandle, NSString *credentialSerialized)
+
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+    } else {
+      resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(credentialGetProblemReport:(NSInteger) credentialHandle
+                                    (RCTPromiseResolveBlock) resolve
+                                    rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] credentialGetProblemReport:credentialHandle
+                                                   completion:^(NSError *error, NSString *message)
+
   {
     if (error != nil && error.code != 0)
     {

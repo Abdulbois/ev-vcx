@@ -980,7 +980,7 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
    const char * credential_offer=[credentialOffer cStringUsingEncoding:NSUTF8StringEncoding];
    const char * source_id = [sourceId cStringUsingEncoding:NSUTF8StringEncoding];
-   ret = vcx_credential_accept_credential_offer(handle, source_id,credential_offer, connectionHandle, VcxWrapperCommonNumberStringCallback);
+   ret = vcx_credential_accept_credential_offer(handle, source_id, credential_offer, connectionHandle, VcxWrapperCommonNumberStringCallback);
 
    if( ret != 0 )
    {
@@ -1086,12 +1086,12 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
     }
 }
 
-- (void)credentialGetOffers:(VcxHandle)connectionHandle
-                   completion:(void (^)(NSError *error, NSString *offers))completion{
+- (void)credentialGetOffers:(VcxHandle)credentialHandle
+                 completion:(void (^)(NSError *error, NSString *offers))completion {
    vcx_error_t ret;
    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
 
-    ret = vcx_credential_get_offers(handle,connectionHandle, VcxWrapperCommonStringCallback);
+    ret = vcx_credential_get_offers(handle, credentialHandle, VcxWrapperCommonStringCallback);
 
    if( ret != 0 )
    {
@@ -2512,7 +2512,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 }
 
 - (void)connectionGetTheirDid:(VcxHandle)connectionHandle
-            withCompletion:(void (^)(NSError *error, NSInteger connectionHandle))completion
+               withCompletion:(void (^)(NSError *error, NSInteger connectionHandle))completion
 {
     vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
     vcx_error_t ret = vcx_connection_get_their_pw_did(handle, connectionHandle, VcxWrapperCommonCallback);
@@ -2528,10 +2528,38 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 }
 
 - (void)connectionInfo:(VcxHandle)connectionHandle
-            withCompletion:(void (^)(NSError *error, NSInteger connectionHandle))completion
+        withCompletion:(void (^)(NSError *error, NSInteger connectionHandle))completion
 {
     vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
     vcx_error_t ret = vcx_connection_info(handle, connectionHandle, VcxWrapperCommonCallback);
+
+    if (ret != 0) {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error, nil, 0);
+        });
+    }
+}
+
+- (void)credentialGetRequestMsg:(VcxHandle)credentialHandle
+                        myPwDid:(NSString *)myPwDid
+                     theirPwDid:(NSString *)theirPwDid
+                  paymentHandle:(vcx_payment_handle_t)paymentHandle
+                 withCompletion:(void (^)(NSError *error))completion
+{
+    vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char * my_pw_did = [sourceId cStringUsingEncoding:NSUTF8StringEncoding];
+    const char * their_pw_did= [msgId cStringUsingEncoding:NSUTF8StringEncoding];
+
+    vcx_error_t ret = vcx_credential_get_request_msg(
+                                                     handle,
+                                                     credentialHandle,
+                                                     my_pw_did, their_pw_did,
+                                                     paymentHandle,
+                                                     VcxWrapperCommonCallback
+                                                    );
 
     if (ret != 0) {
         [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];

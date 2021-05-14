@@ -60,6 +60,31 @@ interface ICredentialDeserializeData {
   serialized: string,
 }
 
+interface ICredentialCreateWithMsgid {
+  handle: number,
+  msgId: string,
+}
+
+interface ICredentialGetRequestMsg {
+  handle: number,
+  myPwDid: string,
+  theirPwDid: string,
+  paymentHandle: number,
+}
+
+interface ICredentialRelease {
+  handle: number,
+}
+
+interface ICredentialAcceptCredentialOffer {
+  offer: string,
+  handle: number,
+}
+
+interface ICredentialGetProblemReport {
+  handle: number,
+}
+
 export class Credential {
   public static async createWithOffer({
     offer,
@@ -164,5 +189,42 @@ export class Credential {
     return await RNIndy.deserializeClaimOffer(
       serialized,
     )
+  }
+
+  public static async createWithMsgid({
+    handle,
+    msgId,
+  }: ICredentialCreateWithMsgid): Promise<number> {
+    return await RNIndy.credentialCreateWithMsgid(
+      uuidv4(),
+      handle,
+      msgId,
+    )
+  }
+
+  public static async getRequestMsg({
+    handle,
+    myPwDid,
+    theirPwDid,
+    paymentHandle,
+  }: ICredentialGetRequestMsg): Promise<string> {
+    return await RNIndy.credentialGetRequestMsg(
+      handle,
+      myPwDid,
+      theirPwDid,
+      paymentHandle
+    )
+  }
+
+  public static async release({ handle }: ICredentialRelease): Promise<void> {
+    return await RNIndy.credentialRelease(handle)
+  }
+
+  public static async accept({ offer, handle }: ICredentialAcceptCredentialOffer): Promise<void> {
+    return await RNIndy.acceptCredentialOffer(uuidv4(), offer, handle)
+  }
+
+  public static async getProblemReport({ handle }: ICredentialGetProblemReport): Promise<string> {
+    return await RNIndy.credentialGetProblemReport(handle)
   }
 }
