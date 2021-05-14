@@ -2604,4 +2604,82 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
+
+    @ReactMethod
+    public void createOneTimeInfoSync(String config, Promise promise) {
+        try {
+            UtilsApi.vcxProvisionAgent(config).exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "createOneTimeInfoSync - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "createOneTimeInfoSync - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void vcxGetRequestPrice(String actionJson, String requesterInfoJson, Promise promise) {
+        try {
+            UtilsApi.vcxGetRequestPrice(actionJson, requesterInfoJson).exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxGetRequestPrice - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxGetRequestPrice - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void vcxEndorseTransaction(String transactionJson, Promise promise) {
+        try {
+            UtilsApi.vcxEndorseTransaction(requesterInfoJson).exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxEndorseTransaction - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxEndorseTransaction - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+
+        }
+    }
+
+    @ReactMethod
+    public void vcxHealthCheck(Promise promise) {
+        try {
+            UtilsApi.vcxHealthCheck().exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxHealthCheck - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxHealthCheck - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+
+        }
+    }
 }

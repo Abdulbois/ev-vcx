@@ -640,6 +640,15 @@ RCT_EXPORT_METHOD(getProvisionToken: (NSString *)config
   }];
 }
 
+RCT_EXPORT_METHOD(createOneTimeInfoSync:(NSString *)config
+                                        resolver: (RCTPromiseResolveBlock) resolve
+                                        rejecter: (RCTPromiseRejectBlock) reject)
+{
+  resolve([NSString stringWithUTF8String:[[[ConnectMeVcx alloc] init] agentProvision:config
+  ]]);
+}
+
+
 RCT_EXPORT_METHOD(createOneTimeInfoWithToken: (NSString *)config
                                         token: (NSString *)token
                                         resolver: (RCTPromiseResolveBlock) resolve
@@ -1222,6 +1231,39 @@ RCT_EXPORT_METHOD(vcxGetAgentMessages: (NSString *) messageStatus
                           rejecter: (RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] downloadAgentMessages: messageStatus uid_s:uid_s completion:^(NSError *error, NSString *messages) {
+    if (error != nil && error.code !=0) {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occured while getting vcx agent messages", error);
+    } else{
+      resolve(messages);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(vcxGetRequestPrice:(NSString *)config
+                   requesterInfoJson:(NSString *)requesterInfoJson
+                            resolver:(RCTPromiseResolveBlock) resolve
+                            rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] vcxGetRequestPrice:config
+                                   requesterInfoJson:requesterInfoJson
+                                          completion:^(NSError *error) {
+    if (error != nil && error.code !=0) {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occured while getting vcx agent messages", error);
+    } else{
+      resolve(messages);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(vcxEndorseTransaction:(NSString *)config
+                   requesterInfoJson:(NSString *)requesterInfoJson
+                            resolver:(RCTPromiseResolveBlock) resolve
+                            rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] vcxEndorseTransaction:requesterInfoJson
+                                          completion:^(NSError *error) {
     if (error != nil && error.code !=0) {
       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
       reject(indyErrorCode, @"Error occured while getting vcx agent messages", error);
@@ -2241,6 +2283,21 @@ RCT_EXPORT_METHOD(anonDecrypt:(VcxHandle)walletHandle
       reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
     } else {
       resolve(agentInfo);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(healthCheck:(RCTPromiseResolveBlock) resolve
+                     rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] healthCheck:^(NSError *error)
+  {
+    if (error != nil && error.code != 0) {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while rejecting proof", error);
+    }
+    else {
+      resolve(@{});
     }
   }];
 }

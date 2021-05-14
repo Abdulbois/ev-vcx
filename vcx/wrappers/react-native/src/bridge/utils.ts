@@ -77,6 +77,19 @@ interface ISignDataResult {
   signature: string,
 }
 
+interface ICreateOneTimeInfo {
+  config: string,
+}
+
+interface IVcxGetRequestPrice {
+  config: string,
+  requesterInfoJson: string
+}
+
+interface IVcxEndorseTransaction {
+  requesterInfoJson: string
+}
+
 export class Utils {
   public static async getLedgerFees(): Promise<string> {
     return await RNIndy.getLedgerFees()
@@ -192,4 +205,19 @@ export class Utils {
     )
   }
 
+  public static async createOneTimeInfoSync({ config }: ICreateOneTimeInfo): Promise<string> {
+    return await RNIndy.createOneTimeInfoSync(config)
+  }
+
+  public static async vcxGetRequestPrice({ config, requesterInfoJson }: IVcxGetRequestPrice): Promise<number> {
+    return await RNIndy.vcxGetRequestPrice(config, requesterInfoJson)
+  }
+
+  public static async vcxEndorseTransaction({ requesterInfoJson }: IVcxEndorseTransaction): Promise<void> {
+    return await RNIndy.vcxEndorseTransaction(requesterInfoJson)
+  }
+
+  public static async healthCheck(): Promise<void> {
+    return await RNIndy.healthCheck()
+  }
 }

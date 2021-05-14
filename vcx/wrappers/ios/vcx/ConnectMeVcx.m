@@ -376,6 +376,13 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
 
 }
 
+- (const char *)agentProvision:(NSString *)config
+{
+    const char *config_char = [config cStringUsingEncoding:NSUTF8StringEncoding];
+
+    return vcx_provision_agent(config_char, token_char);
+}
+
 - (const char *)agentProvisionWithToken:(NSString *)config
                           token:(NSString *)token
 {
@@ -383,6 +390,27 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
     const char *token_char = [token cStringUsingEncoding:NSUTF8StringEncoding];
 
     return vcx_provision_agent_with_token(config_char, token_char);
+}
+
+- (const char *)vcxGetRequestPrice:(NSString *)config
+                 requesterInfoJson:(NSString *)requesterInfoJson
+                        completion:(void (^)(NSError *error))completion
+{
+    vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion] ;
+
+    const char *config_char = [config cStringUsingEncoding:NSUTF8StringEncoding];
+    const char *requester_info_json_char = [requesterInfoJson cStringUsingEncoding:NSUTF8StringEncoding];
+
+    return vcx_get_request_price(handle, config_char, requester_info_json_char);
+}
+
+- (const char *)vcxEndorseTransaction:(NSString *)requesterInfoJson
+                        completion:(void (^)(NSError *error))completion
+{
+    vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion] ;
+    const char *requester_info_json_char = [requesterInfoJson cStringUsingEncoding:NSUTF8StringEncoding];
+
+    return vcx_endorse_transaction(handle, requester_info_json_char);
 }
 
 - (void)getProvisionToken:(NSString *)config
