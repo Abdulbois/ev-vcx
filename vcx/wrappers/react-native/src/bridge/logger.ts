@@ -24,6 +24,10 @@ interface IWriteToVcxLogData {
   logFilePath: string,
 }
 
+interface IVcxSetLogMaxLevel {
+  maxLvl: number
+}
+
 export class Logger {
   public static async setLogger({
     logLevel,
@@ -67,5 +71,9 @@ export class Logger {
       message,
       logFilePath,
     )
+  }
+
+  public static async vcxSetLogMaxLevel({ maxLvl }: IVcxSetLogMaxLevel): Promise<void> {
+    return await RNIndy.vcxSetLogMaxLevel(maxLvl)
   }
 }

@@ -338,6 +338,44 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
 
 }
 
+- (void)initWithConfigPath:(NSString *)configPath
+                completion:(void (^)(NSError *error))completion
+{
+    const char * config_path_char = [configPath cStringUsingEncoding:NSUTF8StringEncoding];
+    vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion] ;
+    vcx_error_t ret = vcx_init(handle, config_path_char, VcxWrapperCommonCallback);
+    if( ret != 0 )
+    {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSLog(@"ERROR: initWithConfig: calling completion");
+            completion(error);
+        });
+    }
+
+}
+
+
+- (void)vcxSetLogMaxLevel:(NSInteger *)maxLvl
+                completion:(void (^)(NSError *error))completion
+{
+    vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion] ;
+    vcx_error_t ret = vcx_set_log_max_lvl(handle, maxLvl, VcxWrapperCommonCallback);
+    if( ret != 0 )
+    {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSLog(@"ERROR: initWithConfig: calling completion");
+            completion(error);
+        });
+    }
+
+}
+
 - (void)initPool:(NSString *)poolConfig
             completion:(void (^)(NSError *error))completion
 {

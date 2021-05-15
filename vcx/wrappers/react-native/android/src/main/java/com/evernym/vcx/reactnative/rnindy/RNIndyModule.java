@@ -1261,6 +1261,19 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void initWithConfigPath(String configPath, Promise promise) {
+        Log.d(TAG, "initWithConfigPath()");
+        try {
+            VcxApi.vcxInit(configPath);
+            promise.resolve("");
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "initWithConfigPath - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
     public void init(String config, Promise promise) {
         Log.d(TAG, "init()");
         // When we restore data, then we are not calling createOneTimeInfo
@@ -2678,6 +2691,26 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         } catch (VcxException e) {
             e.printStackTrace();
             Log.e(TAG, "vcxHealthCheck - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+
+        }
+    }
+
+    @ReactMethod
+    public void vcxSetLogMaxLevel(int maxLvl, Promise promise) {
+        try {
+            VcxApi.vcxSetLogMaxLevel().exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxSetLogMaxLevel - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxSetLogMaxLevel - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
 
         }

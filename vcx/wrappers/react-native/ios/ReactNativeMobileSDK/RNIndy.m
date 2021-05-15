@@ -2302,4 +2302,39 @@ RCT_EXPORT_METHOD(healthCheck:(RCTPromiseResolveBlock) resolve
   }];
 }
 
+RCT_EXPORT_METHOD(initWithConfigPath:(NSString *)configPath
+                            (RCTPromiseResolveBlock) resolve
+                            rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] vcx_init:configPath
+                             completion:^(NSError *error)
+  {
+    if (error != nil && error.code != 0) {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while rejecting proof", error);
+    }
+    else {
+      resolve(@{});
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(vcxSetLogMaxLevel:(NSInteger *)maxLvl
+                            (RCTPromiseResolveBlock) resolve
+                            rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] vcxSetLogMaxLevel:maxLvl
+                                      completion:^(NSError *error)
+  {
+    if (error != nil && error.code != 0) {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while rejecting proof", error);
+    }
+    else {
+      resolve(@{});
+    }
+  }];
+}
+
+
 @end

@@ -14,6 +14,10 @@ interface IShutdownData {
   deleteWallet?: boolean,
 }
 
+interface IInitWithConfigPath {
+  configPath: string
+}
+
 export class Library {
   public static async init({
     config,
@@ -37,5 +41,9 @@ export class Library {
     return await RNIndy.shutdownVcx(
       deleteWallet,
     )
+  }
+
+  public static async initWithConfigPath({ configPath }: IInitWithConfigPath): Promise<number> {
+    return await RNIndy.initWithConfigPath(configPath)
   }
 }
