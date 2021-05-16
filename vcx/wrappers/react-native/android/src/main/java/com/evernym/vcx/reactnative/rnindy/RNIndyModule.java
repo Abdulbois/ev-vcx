@@ -2163,6 +2163,42 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod
+    public void signWithAddress(String address, byte[] message, Promise promise) {
+        Log.d(TAG, "signWithAddress()");
+        try {
+            WalletApi.signWithAddress(address, message).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "signWithAddress - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "signWithAddress - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void verifyWithAddress(String address, byte[] message, byte[] signature, Promise promise) {
+        Log.d(TAG, "signWithAddress()");
+        try {
+            WalletApi.verifyWithAddress(address, message, signature).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "signWithAddress - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "signWithAddress - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
     /*
      * Utils and secondary methods API
      */

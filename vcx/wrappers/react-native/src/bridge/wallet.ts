@@ -52,6 +52,22 @@ interface IWalletCreatePaymentAddressData {
   seed: string,
 }
 
+interface ISignDataResult {
+  data: string,
+  signature: string,
+}
+
+interface ISignWithAddress {
+  address: string,
+  message: ISignDataResult,
+}
+
+interface IVerifyWithAddress {
+  address: string,
+  message: ISignDataResult,
+  signature: ISignDataResult,
+}
+
 export class Wallet {
   public static async creatKey({
     lengthOfKey,
@@ -150,6 +166,28 @@ export class Wallet {
   }: IWalletCreatePaymentAddressData): Promise<string> {
     return await RNIndy.createPaymentAddress(
       seed,
+    )
+  }
+
+  public static async sign({
+    address,
+    message,
+  }: ISignWithAddress): Promise<string> {
+    return await RNIndy.signWithAddress(
+      address,
+      message
+    )
+  }
+
+  public static async verity({
+    address,
+    message,
+    signature,
+  }: IVerifyWithAddress): Promise<string> {
+    return await RNIndy.verifyWithAddress(
+      address,
+      message,
+      signature
     )
   }
 }

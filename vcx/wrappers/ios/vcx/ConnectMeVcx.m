@@ -2728,13 +2728,66 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 {
     vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
     const char * recipient_vk_ctype = [recipientVk cStringUsingEncoding:NSUTF8StringEncoding];
-    uint8_t * encrypted_msg_u8 = (uint8_t *) [dataRaw bytes];
+    uint8_t * encrypted_msg_u8 = (uint8_t *) [encryptedMsg bytes];
 
     vcx_error_t ret = indy_crypto_anon_decrypt(
                                                handle,
                                                walletHandle,
                                                recipient_vk_ctype,
                                                encrypted_msg_u8,
+                                               VcxWrapperCommonCallback
+                                              );
+
+    if (ret != 0) {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error, nil, 0);
+        });
+    }
+}
+
+- (void)signWithAddress:(NSString *)address
+                message:(NSData *)message
+         withCompletion:(void (^)(NSError *error))completion
+{
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char * address_ctype = [address cStringUsingEncoding:NSUTF8StringEncoding];
+    uint8_t * message_u8 = (uint8_t *) [message bytes];
+
+    vcx_error_t ret = vcx_wallet_sign_with_address(
+                                               handle,
+                                               address_ctype,
+                                               message_u8
+                                               VcxWrapperCommonCallback
+                                              );
+
+    if (ret != 0) {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error, nil, 0);
+        });
+    }
+}
+
+- (void)verifyWithAddress:(NSString *)address
+                  message:(NSData *)message
+                signature:(NSData *)signature
+           withCompletion:(void (^)(NSError *error))completion
+{
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char * address_ctype = [address cStringUsingEncoding:NSUTF8StringEncoding];
+    uint8_t * message_u8 = (uint8_t *) [message bytes];
+    uint8_t * signature_u8 = (uint8_t *) [signature bytes];
+
+    vcx_error_t ret = vcx_wallet_sign_with_address(
+                                               handle,
+                                               address_ctype,
+                                               message_u8,
+                                               signature_u8,
                                                VcxWrapperCommonCallback
                                               );
 
