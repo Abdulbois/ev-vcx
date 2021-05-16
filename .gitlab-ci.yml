@@ -667,6 +667,33 @@ package-node-wrapper-from-latest:
       - /^docker-.*/
 
 
+.package-rn-wrapper:
+  extends: .tags_micro
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - output/*
+  script:
+    - vcx/wrappers/node/ci/package.sh
+package-rn-wrapper-from-branch:
+  extends: .package-rn-wrapper
+  stage: package
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
+  dependencies:
+    - build-libvcx-ubuntu18-from-branch
+  only:
+    refs:
+      - /^docker-.*/
+package-rn-wrapper-from-latest:
+  extends: .package-rn-wrapper
+  stage: package
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
+  dependencies:
+    - build-libvcx-ubuntu18-from-latest
+  except:
+    refs:
+      - /^docker-.*/
+
 ## - Jobs : Publish - ##
 publish-android:
   stage: publish
