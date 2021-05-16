@@ -86,6 +86,25 @@ interface ICredentialGetProblemReport {
 }
 
 export class Credential {
+  /**
+   * Create a Credential object that requests and receives a credential for an institution
+   *
+   * @param  sourceId         Institution's personal identification for the credential, should be unique.
+   * @param  credentialOffer  Received Credential Offer message.
+   *                          The format of Credential Offer depends on communication method:
+   *                          <pre>
+   *                          {@code
+   *                              proprietary:
+     *                                      "[{"msg_type": "CREDENTIAL_OFFER","version": "0.1","to_did": "...","from_did":"...","credential": {"account_num": ["...."],"name_on_account": ["Alice"]},"schema_seq_no": 48,"issuer_did": "...","credential_name": "Account Certificate","credential_id": "3675417066","msg_ref_id": "ymy5nth"}]"
+   *                              aries:
+   *                                      "{"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/offer-credential", "@id":"<uuid-of-offer-message>", "comment":"somecomment", "credential_preview":<json-ldobject>, "offers~attach":[{"@id":"libindy-cred-offer-0", "mime-type":"application/json", "data":{"base64":"<bytesforbase64>"}}]}"
+   *                          }
+   *                          </pre>
+   *
+   * @return                      handle that should be used to perform actions with the Credential object.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async createWithOffer({
     offer,
   }: ICreateWithOfferData): Promise<number> {
@@ -95,24 +114,68 @@ export class Credential {
     )
   }
 
+  /**
+   * Queries agency for Credential Offer messages from the given connection.
+   *
+   * @param  connectionHandle     handle pointing to Connection object to query for credential offers.
+   *
+   * @return                      List of received Credential Offers as JSON string.
+   *                              "[[{"msg_type": "CREDENTIAL_OFFER","version": "0.1","to_did": "...","from_did":"...","credential": {"account_num": ["...."],"name_on_account": ["Alice"]},"schema_seq_no": 48,"issuer_did": "...","credential_name": "Account Certificate","credential_id": "3675417066","msg_ref_id": "ymy5nth"}]]"
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async getOffers({ connectionHandle }: IGetOffersData): Promise<string> {
     return await RNIndy.credentialGetOffers(
       connectionHandle,
     )
   }
 
+  /**
+   * Get the current state of the Credential object
+   * Credential states:
+   *     2 - Credential Request Sent
+   *     3 - Credential Offer Received
+   *     4 - Credential Accepted
+   *
+   * @param  credentialHandle     handle pointing to a Credential object.
+   *
+   * @return                      the most current state of the Credential object.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async getState({ handle }: ICredentialUpdateStateData): Promise<number> {
     return await RNIndy.getClaimOfferState(
       handle,
     )
   }
 
+  /**
+   * Query the agency for the received messages.
+   * Checks for any messages changing state in the Credential object and updates the state attribute.
+   * If it detects a credential it will store the credential in the wallet.
+   *
+   * @param  credentialHandle     handle pointing to a Credential object.
+   *
+   * @return                      the most current state of the Credential object.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async updateState({ handle }: ICredentialGetStateData): Promise<number> {
     return await RNIndy.updateClaimOfferState(
       handle,
     )
   }
 
+  /**
+   * Update the state of the Credential object based on the given message.
+   *
+   * @param  credentialHandle     handle pointing to a Credential object.
+   * @param  message              message to process for any Credential state transitions.
+   *
+   * @return                      the most current state of the Credential object.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async updateStateWithMessage({
     handle,
     message,
@@ -123,6 +186,17 @@ export class Credential {
     )
   }
 
+  /**
+   * Approves the Credential Offer and submits a Credential Request.
+   *
+   * @param  credentialHandle     handle pointing to a Credential object.
+   * @param  connectionHandle     handle pointing to a Connection object.
+   * @param  paymentHandle        deprecated parameter (use 0).
+   *
+   * @return                      void
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async sendRequest({
     handle,
     connectionHandle,
@@ -135,6 +209,21 @@ export class Credential {
     )
   }
 
+  /**
+   * Send a Credential rejection to the connection.
+   * It can be called once Credential Offer or Credential messages are received.
+   *
+   * Note that this function can be used for `aries` communication protocol.
+   * In other cases it returns ActionNotSupported error.
+   *
+   * @param  credentialHandle     handle pointing to a Credential object.
+   * @param  connectionHandle     handle pointing to a Connection identifying pairwise connection..
+   * @param  comment              (Optional) human-friendly message to insert into Reject message.
+   *
+   * @return                      void
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async reject({
     handle,
     connectionHandle,
@@ -147,6 +236,15 @@ export class Credential {
     )
   }
 
+  /**
+   * Delete a Credential associated with the state object from the Wallet and release handle of the state object.
+   *
+   * @param  credentialHandle     handle pointing to credential state object to delete.
+   *
+   * @return                      void
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async delete({
     handle,
   }: ICredentialDeleteData): Promise<void> {
@@ -155,6 +253,15 @@ export class Credential {
     )
   }
 
+  /**
+   * Retrieve information about a stored credential in user's wallet, including credential id and the credential itself.
+   *
+   * @param  credentialHandle     handle pointing to a Credential object.
+   *
+   * @return                      Credential message as JSON string.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async getCredentialMessage({
     handle,
   }: ICredentialGetCredentialMessageData): Promise<string> {
@@ -163,6 +270,22 @@ export class Credential {
     )
   }
 
+  /**
+   * Build Presentation Proposal message for revealing Credential data.
+   *
+   * Presentation Proposal is an optional message that can be sent by the Prover to the Verifier to
+   * initiate a Presentation Proof process.
+   *
+   * Presentation Proposal Format: https://github.com/hyperledger/aries-rfcs/tree/master/features/0037-present-proof#propose-presentation
+   *
+   * EXPERIMENTAL
+   *
+   * @param  credentialHandle     handle pointing to Credential to use for Presentation Proposal message building
+   *
+   * @return                      Presentation Proposal message as JSON string.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async getPresentationProposalMessage({
     handle,
   }: ICredentialGetPresentationProposalData): Promise<string> {
@@ -171,6 +294,15 @@ export class Credential {
     )
   }
 
+  /**
+   * Get Problem Report message for object in Failed or Rejected state.
+   *
+   * @param  credentialHandle handle pointing to Credential state object.
+   *
+   * @return                  Problem Report as JSON string or null
+   *
+   * @throws VcxException     If an exception occurred in Libvcx library.
+   */
   public static async getProblemReportMessage({
     handle,
   }: ICredentialGetData): Promise<string> {
@@ -179,18 +311,49 @@ export class Credential {
     )
   }
 
+  /**
+   * Get JSON string representation of Credential object.
+   *
+   * @param  credentialHandle     handle pointing to a Credential object.
+   *
+   * @return                      Credential object as JSON string.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async serialize({ handle }: ICredentialSerializeData): Promise<string> {
     return await RNIndy.serializeClaimOffer(
       handle,
     )
   }
 
+  /**
+   * Takes a json string representing a Credential object and recreates an object matching the JSON.
+   *
+   * @param  serializedCredential JSON string representing a Credential object.
+   *
+   * @return                      handle that should be used to perform actions with the Credential object.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async deserialize({ serialized }: ICredentialDeserializeData): Promise<number> {
     return await RNIndy.deserializeClaimOffer(
       serialized,
     )
   }
 
+  /**
+   * Create a Credential object based off of a known message id (containing Credential Offer) for a given connection.
+   *
+   * @param  sourceId             Institution's personal identification for the credential, should be unique.
+   * @param  handle     handle pointing to a Connection object to query for credential offer message.
+   * @param  msgId                id of the message on Agency that contains the credential offer.
+   *
+   * @return                      GetCredentialCreateMsgidResult object that contains
+   *                               - handle that should be used to perform actions with the Credential object.
+   *                               - Credential Offer message as JSON string
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async createWithMsgid({
     handle,
     msgId,
@@ -202,6 +365,18 @@ export class Credential {
     )
   }
 
+  /**
+   * Approves the Credential Offer and gets the Credential Request message that can be sent to the specified connection
+   *
+   * @param  credentialHandle     handle pointing to a Credential object.
+   * @param  myPwDid              pairwise DID used for Connection.
+   * @param  theirPwDid           pairwise DID of the remote side used for Connection.
+   * @param  paymentHandle        deprecated parameter (use 0).
+   *
+   * @return                      Credential Request message as JSON string.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async getRequestMsg({
     handle,
     myPwDid,
@@ -216,14 +391,58 @@ export class Credential {
     )
   }
 
+  /**
+   * Releases the Credential object by de-allocating memory
+   *
+   * @param  credentialHandle     handle pointing to a Credential object.
+   *
+   * @return                      void
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async release({ handle }: ICredentialRelease): Promise<void> {
     return await RNIndy.credentialRelease(handle)
   }
 
+  /**
+   * Accept credential for the given offer.
+   *
+   * This function performs the following actions:
+   *  1. Creates Credential state object that requests and receives a credential for an institution (credentialCreateWithOffer).
+   *  2. Prepares Credential Request and send it to the issuer (credentialSendRequest).
+   *
+   * @param  sourceId         Institution's personal identification for the credential, should be unique.
+   * @param  credentialOffer  Received Credential Offer message.
+   *                          <pre>
+   *                          {@code
+   *                              proprietary:
+     *                                      "[{"msg_type": "CREDENTIAL_OFFER","version": "0.1","to_did": "...","from_did":"...","credential": {"account_num": ["...."],"name_on_account": ["Alice"]},"schema_seq_no": 48,"issuer_did": "...","credential_name": "Account Certificate","credential_id": "3675417066","msg_ref_id": "ymy5nth"}]"
+   *                              aries:
+   *                                      "{"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/offer-credential", "@id":"<uuid-of-offer-message>", "comment":"somecomment", "credential_preview":<json-ldobject>, "offers~attach":[{"@id":"libindy-cred-offer-0", "mime-type":"application/json", "data":{"base64":"<bytesforbase64>"}}]}"
+   *                          }
+   *                          </pre>
+   *
+   * @param  connectionHandle     handle pointing to Connection object to send Credential Request.
+   *
+   * @return                      CredentialAcceptOfferResult object containing:
+   *                                  - handle that should be used to perform actions with the Credential object.
+   *                                  - Credential object as JSON string.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async accept({ offer, handle }: ICredentialAcceptCredentialOffer): Promise<void> {
     return await RNIndy.acceptCredentialOffer(uuidv4(), offer, handle)
   }
 
+  /**
+   * Get Problem Report message for object in Failed or Rejected state.
+   *
+   * @param  credentialHandle handle pointing to Credential state object.
+   *
+   * @return                  Problem Report as JSON string or null
+   *
+   * @throws VcxException     If an exception occurred in Libvcx library.
+   */
   public static async getProblemReport({ handle }: ICredentialGetProblemReport): Promise<string> {
     return await RNIndy.credentialGetProblemReport(handle)
   }
