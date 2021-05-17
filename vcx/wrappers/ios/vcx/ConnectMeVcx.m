@@ -448,7 +448,7 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
     vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion] ;
     const char *requester_info_json_char = [requesterInfoJson cStringUsingEncoding:NSUTF8StringEncoding];
 
-    return vcx_endorse_transaction(handle, requester_info_json_char);
+    return vcx_endorse_transaction(handle, requester_info_json_char, VcxWrapperCommonStringCallback);
 }
 
 - (void)getProvisionToken:(NSString *)config
@@ -2518,7 +2518,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 }
 
 - (void) proofVerifierGetProofMessage:(NSInteger) proofHandle
-                                 completion:(void (^)(NSError *error, NSInteger proofState, NSString* message))completion {
+                           completion:(void (^)(NSError *error, NSInteger proofState, NSString* message))completion {
     vcx_error_t ret;
     vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
 
@@ -2535,7 +2535,8 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
     }
 }
 
-- (int) proofVerifierProofRelease:(NSInteger) connectionHandle {
+- (int) proofVerifierProofRelease:(NSInteger) connectionHandle
+                       completion:(void (^)(NSError *error))completion {
     vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
 
   return vcx_proof_release(handle, connectionHandle);
@@ -2687,7 +2688,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 
         NSError *error = [NSError errorFromVcxError:ret];
         dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error, nil, 0);
+            completion(error);
         });
     }
 }
@@ -2718,7 +2719,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 
         NSError *error = [NSError errorFromVcxError:ret];
         dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error, nil, 0);
+            completion(error);
         });
     }
 }
@@ -2745,7 +2746,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 
         NSError *error = [NSError errorFromVcxError:ret];
         dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error, nil, 0);
+            completion(error);
         });
     }
 }
@@ -2761,7 +2762,8 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
     vcx_error_t ret = vcx_wallet_sign_with_address(
                                                handle,
                                                address_ctype,
-                                               message_u8
+                                               message_u8,
+                                               sizeof(message_u8)/sizeof(uint8_t),
                                                VcxWrapperCommonCallback
                                               );
 
@@ -2770,7 +2772,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 
         NSError *error = [NSError errorFromVcxError:ret];
         dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error, nil, 0);
+            completion(error);
         });
     }
 }
@@ -2785,7 +2787,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
     uint8_t * message_u8 = (uint8_t *) [message bytes];
     uint8_t * signature_u8 = (uint8_t *) [signature bytes];
 
-    vcx_error_t ret = vcx_wallet_sign_with_address(
+    vcx_error_t ret = vcx_wallet_verify_with_address(
                                                handle,
                                                address_ctype,
                                                message_u8,
@@ -2798,7 +2800,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 
         NSError *error = [NSError errorFromVcxError:ret];
         dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error, nil, 0);
+            completion(error);
         });
     }
 }
