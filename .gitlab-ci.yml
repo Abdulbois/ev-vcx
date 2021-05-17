@@ -746,9 +746,20 @@ publish-mobile-sdk:
   stage: publish
   image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
   extends: .tags_micro
-  only:
-    refs:
-      - master@dev/vcx/indy-sdk
-      - stable@dev/vcx/indy-sdk
+  rules:
+    - if: $CI_COMMIT_REF_SLUG == "stable" && $CI_PROJECT_PATH == "dev/vcx/indy-sdk"
+      variables:
+        msdkPackageVer: ${msdkVersion}
+    - if: $CI_COMMIT_REF_SLUG == "master" && $CI_PROJECT_PATH == "dev/vcx/indy-sdk"
+      variables:
+        msdkPackageVer: ${msdkVersion}-${CI_PIPELINE_ID}
   script:
     - vcx/ci/scripts/githubArtifacts.py ${msdkVersion} vcx/wrappers/java/artifacts/aar/*.aar IOSBuilds/libvcx{partial,all}/vcx.libvcx*.zip
+    - >
+      find ./vcx/wrappers/java/artifacts/aar/ -name "*.aar" -exec
+      curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
+           "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
+    - >
+      find ./IOSBuilds/libvcx{partial,all}/ -name "vcx.libvcx*.zip" -exec
+      curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
+           "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
