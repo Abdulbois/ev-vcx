@@ -582,7 +582,7 @@ pub fn encode_attributes(attributes: &str) -> VcxResult<String> {
                 let attrib_value: &str = match array_type.get(0).and_then(serde_json::Value::as_str) {
                     Some(x) => x,
                     None => {
-                        warn!("Cannot encode attribute: {}", error::INVALID_ATTRIBUTES_STRUCTURE.message);
+                        warn!("Cannot encode attribute: {}", error::INVALID_ATTRIBUTES_STRUCTURE.as_str());
                         return Err(VcxError::from_msg(VcxErrorKind::InvalidAttributesStructure, "Attribute value not found"));
                     }
                 };
@@ -821,8 +821,8 @@ pub fn revoke_credential(handle: u32) -> VcxResult<()> {
 pub fn convert_to_map(s: &str) -> VcxResult<serde_json::Map<String, serde_json::Value>> {
     serde_json::from_str(s)
         .map_err(|_| {
-            warn!("{}", error::INVALID_ATTRIBUTES_STRUCTURE.message);
-            VcxError::from_msg(VcxErrorKind::InvalidAttributesStructure, error::INVALID_ATTRIBUTES_STRUCTURE.message)
+            warn!("{}", error::INVALID_ATTRIBUTES_STRUCTURE.as_str());
+            VcxError::from_msg(VcxErrorKind::InvalidAttributesStructure, error::INVALID_ATTRIBUTES_STRUCTURE.as_str())
         })
 }
 

@@ -83,7 +83,7 @@ pub extern fn vcx_credentialdef_create(command_handle: CommandHandle,
                                                                                   revocation_details) {
             Ok(x) => {
                 trace!("vcx_credential_def_create_cb(command_handle: {}, rc: {}, credentialdef_handle: {})",
-                       command_handle, error::SUCCESS.message, x);
+                       command_handle, error::SUCCESS.as_str(), x);
                 (error::SUCCESS.code_num, x)
             }
             Err(x) => {
@@ -161,7 +161,7 @@ pub extern fn vcx_credentialdef_create_with_id(command_handle: CommandHandle,
                                                                                revocation_config ) {
             Ok(x) => {
                 trace!("vcx_credentialdef_create_with_id_cb(command_handle: {}, rc: {}, credentialdef_handle: {})",
-                       command_handle, error::SUCCESS.message, x);
+                       command_handle, error::SUCCESS.as_str(), x);
                 (error::SUCCESS.code_num, x)
             }
             Err(x) => {
@@ -264,7 +264,7 @@ pub extern fn vcx_credentialdef_prepare_for_endorser(command_handle: CommandHand
                                                                  endorser) {
             Ok((handle, cred_def_req, rev_reg_def_req, rev_reg_entry_req)) => {
                 trace!(target: "vcx", "vcx_credentialdef_prepare_for_endorser(command_handle: {}, rc: {}, handle: {}, cred_def_req: {}, rev_reg_def_req: {:?}, rev_reg_entry_req: {:?})",
-                       command_handle, error::SUCCESS.message, handle, secret!(cred_def_req), secret!(rev_reg_def_req), secret!(rev_reg_entry_req));
+                       command_handle, error::SUCCESS.as_str(), handle, secret!(cred_def_req), secret!(rev_reg_def_req), secret!(rev_reg_entry_req));
                 let cred_def_req = CStringUtils::string_to_cstring(cred_def_req);
                 let rev_reg_def_req = rev_reg_def_req.map(CStringUtils::string_to_cstring);
                 let rev_reg_entry_req = rev_reg_entry_req.map(CStringUtils::string_to_cstring);
@@ -312,7 +312,7 @@ pub extern fn vcx_credentialdef_serialize(command_handle: CommandHandle,
         match credential_def::to_string(credentialdef_handle) {
             Ok(x) => {
                 trace!("vcx_credentialdef_serialize_cb(command_handle: {}, credentialdef_handle: {}, rc: {}, state: {})",
-                       command_handle, credentialdef_handle, error::SUCCESS.message, secret!(x));
+                       command_handle, credentialdef_handle, error::SUCCESS.as_str(), secret!(x));
                 let msg = CStringUtils::string_to_cstring(x);
                 cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
             },
@@ -356,7 +356,7 @@ pub extern fn vcx_credentialdef_deserialize(command_handle: CommandHandle,
         let (rc, handle) = match credential_def::from_string(&credentialdef_data) {
             Ok(x) => {
                 trace!("vcx_credentialdef_deserialize_cb(command_handle: {}, rc: {}, handle: {}),",
-                       command_handle, error::SUCCESS.message, x);
+                       command_handle, error::SUCCESS.as_str(), x);
                 (error::SUCCESS.code_num, x)
             },
             Err(e) => {
@@ -396,7 +396,7 @@ pub extern fn vcx_credentialdef_get_cred_def_id(command_handle: CommandHandle,
         match credential_def::get_cred_def_id(cred_def_handle) {
             Ok(x) => {
                 trace!("vcx_credentialdef_get_cred_def_id(command_handle: {}, cred_def_handle: {}, rc: {}, cred_def_id: {})",
-                       command_handle, cred_def_handle, error::SUCCESS.message,  secret!(x));
+                       command_handle, cred_def_handle, error::SUCCESS.as_str(),  secret!(x));
                 let msg = CStringUtils::string_to_cstring(x);
                 cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
             },
@@ -445,7 +445,7 @@ pub extern fn vcx_credentialdef_get_payment_txn(command_handle: CommandHandle,
                 match serde_json::to_string(&x) {
                     Ok(x) => {
                         trace!("vcx_credentialdef_get_payment_txn_cb(command_handle: {}, rc: {}, : {})",
-                               command_handle, error::SUCCESS.message, secret!(x));
+                               command_handle, error::SUCCESS.as_str(), secret!(x));
 
                         let msg = CStringUtils::string_to_cstring(x);
                         cb(command_handle, 0, msg.as_ptr());
@@ -486,7 +486,7 @@ pub extern fn vcx_credentialdef_release(credentialdef_handle: u32) -> u32 {
         match credential_def::release(credentialdef_handle) {
             Ok(()) => {
                 trace!("vcx_credentialdef_release(credentialdef_handle: {}, rc: {})",
-                       credentialdef_handle, error::SUCCESS.message);
+                       credentialdef_handle, error::SUCCESS.as_str());
             }
             Err(e) => {
                 warn!("vcx_credentialdef_release(credentialdef_handle: {}), rc: {})",
@@ -527,7 +527,7 @@ pub extern fn vcx_credentialdef_update_state(command_handle: CommandHandle,
         match credential_def::update_state(credentialdef_handle) {
             Ok(state) => {
                 trace!("vcx_credentialdef_update_state(command_handle: {}, rc: {}, state: {})",
-                       command_handle, error::SUCCESS.message, state);
+                       command_handle, error::SUCCESS.as_str(), state);
                 cb(command_handle, error::SUCCESS.code_num, state);
             }
             Err(x) => {
@@ -572,7 +572,7 @@ pub extern fn vcx_credentialdef_get_state(command_handle: CommandHandle,
         match credential_def::get_state(credentialdef_handle) {
             Ok(state) => {
                 trace!("vcx_credentialdef_get_state(command_handle: {}, rc: {}, state: {})",
-                       command_handle, error::SUCCESS.message, state);
+                       command_handle, error::SUCCESS.as_str(), state);
                 cb(command_handle, error::SUCCESS.code_num, state);
             }
             Err(x) => {
