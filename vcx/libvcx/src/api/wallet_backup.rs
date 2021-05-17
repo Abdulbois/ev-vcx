@@ -41,7 +41,7 @@ pub extern fn vcx_wallet_backup_create(command_handle: CommandHandle,
         match create_wallet_backup(&source_id, &wallet_encryption_key) {
             Ok(handle) => {
                 trace!("vcx_wallet_backup_create(command_handle: {}, rc: {}, handle: {}) source_id: {}",
-                       command_handle, error::SUCCESS.message, handle, source_id);
+                       command_handle, error::SUCCESS.as_str(), handle, source_id);
                 cb(command_handle, error::SUCCESS.code_num, handle);
             }
             Err(x) => {
@@ -135,7 +135,7 @@ pub extern fn vcx_wallet_backup_update_state(command_handle: CommandHandle,
         match update_state(wallet_backup_handle, None) {
             Ok(x) => {
                 trace!("vcx_wallet_backup_update_state(command_handle: {}, rc: {}, wallet_backup_handle: {}, state: {})",
-                       command_handle, error::SUCCESS.message, wallet_backup_handle, get_state(wallet_backup_handle));
+                       command_handle, error::SUCCESS.as_str(), wallet_backup_handle, get_state(wallet_backup_handle));
                 cb(command_handle, error::SUCCESS.code_num, x);
             }
             Err(x) => {
@@ -186,7 +186,7 @@ pub extern fn vcx_wallet_backup_update_state_with_message(command_handle: Comman
         match update_state(wallet_backup_handle, Some(message)) {
             Ok(x) => {
                 trace!("vcx_wallet_backup_update_state_with_message(command_handle: {}, rc: {}, wallet_backup_handle: {}, state: {})",
-                       command_handle, error::SUCCESS.message, wallet_backup_handle, get_state(wallet_backup_handle));
+                       command_handle, error::SUCCESS.as_str(), wallet_backup_handle, get_state(wallet_backup_handle));
                 cb(command_handle, error::SUCCESS.code_num, x);
             }
             Err(x) => {
@@ -228,7 +228,7 @@ pub extern fn vcx_wallet_backup_serialize(command_handle: CommandHandle,
         match to_string(wallet_backup_handle) {
             Ok(x) => {
                 trace!("vcx_wallet_backup_serialize_cb(command_handle: {}, rc: {}, data: {})",
-                       command_handle, error::SUCCESS.message, secret!(x));
+                       command_handle, error::SUCCESS.as_str(), secret!(x));
                 let msg = CStringUtils::string_to_cstring(x);
                 cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
             }
@@ -273,7 +273,7 @@ pub extern fn vcx_wallet_backup_deserialize(command_handle: CommandHandle,
         match from_string(&wallet_backup_str) {
             Ok(x) => {
                 trace!("vcx_wallet_backup_deserialize_cb(command_handle: {}, rc: {}, wallet_backup_handle: {})",
-                       command_handle, error::SUCCESS.message, x);
+                       command_handle, error::SUCCESS.as_str(), x);
 
                 cb(command_handle, 0, x);
             }
@@ -313,7 +313,7 @@ pub extern fn vcx_wallet_backup_restore(command_handle: u32,
     spawn(move || {
         match restore_wallet(&config) {
             Ok(_) => {
-                trace!("vcx_wallet_backup_recovery(command_handle: {}, rc: {})", command_handle, error::SUCCESS.message);
+                trace!("vcx_wallet_backup_recovery(command_handle: {}, rc: {})", command_handle, error::SUCCESS.as_str());
                 cb(command_handle, error::SUCCESS.code_num);
             }
             Err(e) => {

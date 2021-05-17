@@ -295,7 +295,7 @@ impl Proof {
         let valid = Proof::validate_indy_proof(&proof_json, &proof_req_json).map_err(|err| {
             error!("Error: {}, Proof {} wasn't valid", err, self.source_id);
             self.proof_state = ProofStateType::ProofInvalid;
-            err.map(VcxErrorKind::InvalidProof, error::INVALID_PROOF.message)
+            err.map(VcxErrorKind::InvalidProof, error::INVALID_PROOF.as_str())
         })?;
 
         if !valid {

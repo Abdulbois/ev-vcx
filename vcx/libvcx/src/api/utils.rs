@@ -141,7 +141,7 @@ pub extern fn vcx_agent_provision_async(command_handle: CommandHandle,
             }
             Ok(s) => {
                 trace!("vcx_agent_provision_async_cb(command_handle: {}, rc: {}, config: {})",
-                       command_handle, error::SUCCESS.message, secret!(s));
+                       command_handle, error::SUCCESS.as_str(), secret!(s));
                 let msg = CStringUtils::string_to_cstring(s);
                 cb(command_handle, 0, msg.as_ptr());
             }
@@ -228,7 +228,7 @@ pub extern fn vcx_get_provision_token(command_handle: CommandHandle,
         match messages::token_provisioning::token_provisioning::provision(vcx_config, &sponsee_id, &sponsor_id, com_method) {
             Ok(token) => {
                 trace!("vcx_get_provision_token_cb(command_handle: {}, rc: {}, token: {})",
-                       command_handle, error::SUCCESS.message, secret!(token));
+                       command_handle, error::SUCCESS.as_str(), secret!(token));
                 let token_ = CStringUtils::string_to_cstring(token);
                 cb(command_handle, 0, token_.as_ptr());
             }
@@ -285,7 +285,7 @@ pub extern fn vcx_agent_update_info(command_handle: CommandHandle,
         match messages::agent_utils::update_agent_info(com_method) {
             Ok(()) => {
                 trace!("vcx_agent_update_info_cb(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
                 cb(command_handle, error::SUCCESS.code_num);
             }
             Err(e) => {
@@ -325,7 +325,7 @@ pub extern fn vcx_ledger_get_fees(command_handle: CommandHandle,
         match ::utils::libindy::payments::get_ledger_fees() {
             Ok(x) => {
                 trace!("vcx_ledger_get_fees_cb(command_handle: {}, rc: {}, fees: {})",
-                       command_handle, error::SUCCESS.message, x);
+                       command_handle, error::SUCCESS.as_str(), x);
 
                 let msg = CStringUtils::string_to_cstring(x);
                 cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
@@ -414,7 +414,7 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
                 match serde_json::to_string(&x) {
                     Ok(x) => {
                         trace!("vcx_download_agent_messages(command_handle: {}, rc: {}, messages: {})",
-                               command_handle, error::SUCCESS.message, secret!(x));
+                               command_handle, error::SUCCESS.as_str(), secret!(x));
 
                         let msg = CStringUtils::string_to_cstring(x);
                         cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
@@ -519,7 +519,7 @@ pub extern fn vcx_messages_download(command_handle: CommandHandle,
                 match serde_json::to_string(&x) {
                     Ok(x) => {
                         trace!("vcx_messages_download_cb(command_handle: {}, rc: {}, messages: {})",
-                               command_handle, error::SUCCESS.message, secret!(x));
+                               command_handle, error::SUCCESS.as_str(), secret!(x));
 
                         let msg = CStringUtils::string_to_cstring(x);
                         cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
@@ -578,7 +578,7 @@ pub extern fn vcx_download_message(command_handle: CommandHandle,
         match ::messages::get_message::download_message(uid) {
             Ok(message) => {
                 trace!("vcx_download_message_cb(command_handle: {}, rc: {}, message: {:?})",
-                       command_handle, error::SUCCESS.message, secret!(message));
+                       command_handle, error::SUCCESS.as_str(), secret!(message));
 
                 let message_json = json!(message).to_string();
                 let msg = CStringUtils::string_to_cstring(message_json);
@@ -637,7 +637,7 @@ pub extern fn vcx_messages_update_status(command_handle: CommandHandle,
         match ::messages::update_message::update_agency_messages(&message_status, &msg_json) {
             Ok(()) => {
                 trace!("vcx_messages_set_status_cb(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
 
                 cb(command_handle, error::SUCCESS.code_num);
             }
@@ -707,7 +707,7 @@ pub extern fn vcx_get_request_price(command_handle: CommandHandle,
         match payments::get_request_price(action_json, requester_info_json) {
             Ok(x) => {
                 trace!(target: "vcx", "vcx_get_request_price(command_handle: {}, rc: {}, handle: {})",
-                       command_handle, error::SUCCESS.message, x);
+                       command_handle, error::SUCCESS.as_str(), x);
                 cb(command_handle, error::SUCCESS.code_num, x);
             }
             Err(x) => {
@@ -748,7 +748,7 @@ pub extern fn vcx_endorse_transaction(command_handle: CommandHandle,
         match ::utils::libindy::ledger::endorse_transaction(&transaction) {
             Ok(()) => {
                 trace!("vcx_endorse_transaction(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
 
                 cb(command_handle, error::SUCCESS.code_num);
             }
@@ -797,7 +797,7 @@ pub extern fn vcx_fetch_public_entities(command_handle: CommandHandle,
         match ::utils::libindy::anoncreds::fetch_public_entities() {
             Ok(()) => {
                 trace!("vcx_fetch_public_entities_cb(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
 
                 cb(command_handle, error::SUCCESS.code_num);
             }
@@ -837,7 +837,7 @@ pub extern fn vcx_health_check(command_handle: CommandHandle,
         match ::utils::health_check::health_check() {
             Ok(()) => {
                 trace!("vcx_health_check_cb(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
 
                 cb(command_handle, error::SUCCESS.code_num);
             }
@@ -887,7 +887,7 @@ pub extern fn vcx_create_pairwise_agent(command_handle: CommandHandle,
         match AgentInfo::create_agent() {
             Ok(agent_info) => {
                 trace!("vcx_create_pairwise_agent_cb(command_handle: {}, rc: {}, message: {:?})",
-                       command_handle, error::SUCCESS.message, secret!(agent_info));
+                       command_handle, error::SUCCESS.as_str(), secret!(agent_info));
 
                 let agent_info_json = json!(agent_info).to_string();
                 let result = CStringUtils::string_to_cstring(agent_info_json);
