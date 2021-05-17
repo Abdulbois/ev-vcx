@@ -796,12 +796,13 @@ vcx_error_t vcx_wallet_sign_with_address(vcx_command_handle_t command_handle,
 // #Returns
 // valid: true - if signature is valid, false - otherwise
 vcx_error_t vcx_wallet_verify_with_address(vcx_command_handle_t command_handle,
-                                                   const char *payment_address,
-                                                   const unsigned short *message_raw,
-                                                   vcx_u32_t message_len,
-                                                   const unsigned short *signature_raw,
-                                                   vcx_u32_t signature_len,
-                                                   void (*cb)(vcx_command_handle_t, vcx_error_t, vcx_bool_t))
+                                           const char *payment_address,
+                                           const unsigned short *message_raw,
+                                           vcx_u32_t message_len,
+                                           const unsigned short *signature_raw,
+                                           vcx_u32_t signature_len,
+                                           void (*cb)(vcx_command_handle_t, vcx_error_t, vcx_bool_t)
+                                          );
 /** For testing purposes only */
 void vcx_set_next_agency_response(int);
 #ifdef __cplusplus
