@@ -405,16 +405,6 @@ export class Verifier {
     return await RNIndy.proofVerifierGetProofProposal(handle)
   }
 
-  public static async proofAccepted({
-    handle,
-    data,
-  }: IVerifierProofAccepted): Promise<number> {
-    return await RNIndy.proofVerifierProofAccepted(
-      handle,
-      data
-    )
-  }
-
   /**
    * Releases the Proof object by de-allocating memory
    *

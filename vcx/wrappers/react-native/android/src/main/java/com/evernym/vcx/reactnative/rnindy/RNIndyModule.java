@@ -1888,23 +1888,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void proofVerifierProofAccepted(int proofHandle, String responseData, Promise promise) {
-        try {
-            ProofApi.proofAccepted(proofHandle, responseData).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "proofVerifierProofAccepted - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "proofVerifierProofAccepted - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
     public void proofVerifierProofRelease(int proofHandle, Promise promise) {
         try {
             ProofApi.proofRelease(proofHandle).exceptionally((t) -> {

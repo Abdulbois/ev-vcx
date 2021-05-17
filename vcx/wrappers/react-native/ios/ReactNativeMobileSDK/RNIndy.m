@@ -1868,26 +1868,6 @@ RCT_EXPORT_METHOD(proofVerifierGetProofProposal:(NSInteger) proofHandle
   }];
 }
 
-RCT_EXPORT_METHOD(proofVerifierProofAccepted:(NSInteger) proofHandle
-                           responseData:(NSString)responseData
-                               resolver:(RCTPromiseResolveBlock) resolve
-                               rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] proofVerifierProofAccepted:proofHandle
-                                        responseData:responseData
-                                          completion:^(NSError *error)
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while getting proof request message", error);
-    } else {
-      resolve(message);
-    }
-  }];
-}
-
-
 RCT_EXPORT_METHOD(proofVerifierProofRelease:(NSInteger) proofHandle
 {
   [[[ConnectMeVcx alloc] init] proofVerifierProofRelease:proofHandle
