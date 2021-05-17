@@ -347,7 +347,7 @@ vcx_error_t vcx_proof_serialize(vcx_command_handle_t command_handle, vcx_proof_h
 vcx_error_t vcx_proof_deserialize(vcx_command_handle_t command_handle, const char *serialized_proof, void (*cb)(vcx_command_handle_t xcommand_handle, vcx_error_t err, vcx_proof_handle_t proof_handle));
 
 /** Releases the proof from memory. */
-vcx_error_t vcx_proof_release(vcx_proof_handle_t proof_handle);
+vcx_error_t vcx_proof_release(vcx_command_handle_t command_handle, vcx_proof_handle_t proof_handle);
 
 /** Get Problem Report message for Proof object in Failed or Rejected state. */
 vcx_error_t vcx_proof_get_problem_report(vcx_command_handle_t command_handle, vcx_proof_handle_t proof_handle, void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));

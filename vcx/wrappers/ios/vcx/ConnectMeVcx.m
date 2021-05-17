@@ -2791,7 +2791,9 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
                                                handle,
                                                address_ctype,
                                                message_u8,
+                                               sizeof(message_u8)/sizeof(uint8_t),
                                                signature_u8,
+                                               sizeof(signature_u8)/sizeof(uint8_t),
                                                VcxWrapperCommonCallback
                                               );
 
