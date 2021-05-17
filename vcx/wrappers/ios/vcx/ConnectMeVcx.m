@@ -418,7 +418,7 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
 {
     const char *config_char = [config cStringUsingEncoding:NSUTF8StringEncoding];
 
-    return vcx_provision_agent(config_char, token_char);
+    return vcx_provision_agent(config_char);
 }
 
 - (const char *)agentProvisionWithToken:(NSString *)config
@@ -2536,12 +2536,14 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 }
 
 - (int) proofVerifierProofRelease:(NSInteger) connectionHandle {
-  return vcx_proof_release(connectionHandle);
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+
+  return vcx_proof_release(handle, connectionHandle);
 }
 
 
 - (void) proofVerifierProofAccepted:(NSInteger) proofHandle
-                  responseData:(NSString)responseData
+                  responseData:(NSString *)responseData
                     completion:(void (^)(NSError *error))completion {
     vcx_error_t ret;
     vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
@@ -2555,7 +2557,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 
         NSError *error = [NSError errorFromVcxError:ret];
         dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error, 0, nil);
+            completion(error);
         });
     }
 }
@@ -2564,7 +2566,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 - (void)connectionSendDiscoveryFeatures:(VcxHandle)connectionHandle
                    comment:(NSString *)comment
                    query:(NSString *)query
-            withCompletion:(void (^)(NSError *error, NSInteger connectionHandle))completion
+            withCompletion:(void (^)(NSError *error))completion
 {
     vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
     const char *comment_ctype = [comment cStringUsingEncoding:NSUTF8StringEncoding];
@@ -2587,7 +2589,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 }
 
 - (void)connectionGetPwDid:(VcxHandle)connectionHandle
-            withCompletion:(void (^)(NSError *error, NSInteger connectionHandle))completion
+            withCompletion:(void (^)(NSError *error))completion
 {
     vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
     vcx_error_t ret = vcx_connection_get_pw_did(handle, connectionHandle, VcxWrapperCommonCallback);
@@ -2597,13 +2599,13 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 
         NSError *error = [NSError errorFromVcxError:ret];
         dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error, nil, 0);
+            completion(error);
         });
     }
 }
 
 - (void)connectionGetTheirDid:(VcxHandle)connectionHandle
-               withCompletion:(void (^)(NSError *error, NSInteger connectionHandle))completion
+               withCompletion:(void (^)(NSError *error))completion
 {
     vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
     vcx_error_t ret = vcx_connection_get_their_pw_did(handle, connectionHandle, VcxWrapperCommonCallback);
@@ -2613,13 +2615,13 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 
         NSError *error = [NSError errorFromVcxError:ret];
         dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error, nil, 0);
+            completion(error);
         });
     }
 }
 
 - (void)connectionInfo:(VcxHandle)connectionHandle
-        withCompletion:(void (^)(NSError *error, NSInteger connectionHandle))completion
+        withCompletion:(void (^)(NSError *error))completion
 {
     vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
     vcx_error_t ret = vcx_connection_info(handle, connectionHandle, VcxWrapperCommonCallback);
@@ -2629,7 +2631,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 
         NSError *error = [NSError errorFromVcxError:ret];
         dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error, nil, 0);
+            completion(error);
         });
     }
 }
@@ -2657,7 +2659,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 
         NSError *error = [NSError errorFromVcxError:ret];
         dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error, nil, 0);
+            completion(error);
         });
     }
 }

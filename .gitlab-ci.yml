@@ -674,7 +674,7 @@ package-node-wrapper-from-latest:
     paths:
       - output/*
   script:
-    - vcx/wrappers/node/ci/package.sh
+    - vcx/wrappers/react-native/ci/package.sh
 package-rn-wrapper-from-branch:
   extends: .package-rn-wrapper
   stage: package
