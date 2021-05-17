@@ -329,7 +329,7 @@ vcx_error_t vcx_get_proof_msg(vcx_command_handle_t command_handle, vcx_proof_han
 vcx_error_t vcx_proof_get_request_attach(vcx_command_handle_t command_handle, vcx_proof_handle_t proof_handle, void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
 /** Set proof offer as accepted. */
-vcx_error_t vcx_proof_accepted(vcx_proof_handle_t proof_handle, response_data, void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+vcx_error_t vcx_proof_accepted(vcx_proof_handle_t proof_handle, const char * response_data, void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
 /** Populates status with the current state of this proof request. */
 vcx_error_t vcx_proof_update_state(vcx_command_handle_t command_handle, vcx_proof_handle_t proof_handle, void (*cb)(vcx_command_handle_t xcommand_handle, vcx_error_t err, vcx_state_t state));
