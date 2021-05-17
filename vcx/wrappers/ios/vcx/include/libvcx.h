@@ -719,15 +719,15 @@ vcx_error_t vcx_connection_send_discovery_features(vcx_u32_t command_handle,
                                                    vcx_connection_handle_t connection_handle,
                                                    const char* query,
                                                    const char* comment,
-                                                   void (*cb)(vcx_command_handle_t, vcx_error_t);
-                                                   )
+                                                   void (*cb)(vcx_command_handle_t, vcx_error_t)
+                                                   );
 
 vcx_error_t indy_build_txn_author_agreement_request(vcx_u32_t handle,
                                                     const char* submitter_did,
                                                     const char* text_ctype,
                                                     const char* version_ctype,
-                                                    void (*cb)(vcx_command_handle_t, vcx_error_t);
-                                                   )
+                                                    void (*cb)(vcx_command_handle_t, vcx_error_t)
+                                                   );
 
 vcx_error_t vcx_set_log_max_lvl(vcx_u32_t max_lvl);
 
@@ -745,9 +745,9 @@ vcx_error_t vcx_get_request_price(vcx_u32_t handle, const char* config_char, con
 /// #Returns
 /// Error code as a u32
 vcx_error_t vcx_endorse_transaction(vcx_u32_t command_handle,
-                                    const char* transaction
-                                    void (*cb)(vcx_command_handle_t, vcx_error_t);
-                                   )
+                                    const char* transaction,
+                                    void (*cb)(vcx_command_handle_t, vcx_error_t)
+                                   );
 /** For testing purposes only */
 void vcx_set_next_agency_response(int);
 #ifdef __cplusplus
