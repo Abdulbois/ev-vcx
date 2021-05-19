@@ -152,17 +152,18 @@ impl Connection {
         }
 
         let messages = self.get_messages()?;
+        let pw_did = self.agent_info().pw_did.clone();
 
         if let Some((uid, message)) = self.connection_sm.find_message_to_handle(messages) {
             self.handle_message(message.into())?;
-            self.agent_info().update_message_status(uid)?;
+            self.agent_info().update_message_status(uid, Some(pw_did))?;
         } else {
             if let Some(prev_agent_info) = self.connection_sm.prev_agent_info().cloned() {
                 let messages = prev_agent_info.get_messages()?;
 
                 if let Some((uid, message)) = self.connection_sm.find_message_to_handle(messages) {
                     self.handle_message(message.into())?;
-                    prev_agent_info.update_message_status(uid)?;
+                    prev_agent_info.update_message_status(uid, Some(pw_did))?;
                 }
             }
         };
@@ -177,7 +178,7 @@ impl Connection {
         trace!("Connection::update_message_status >>> uid: {:?}", uid);
         debug!("Connection {}: Updating message status as reviewed", self.source_id());
 
-        self.connection_sm.agent_info().update_message_status(uid)
+        self.connection_sm.agent_info().update_message_status(uid, None)
     }
 
     pub fn update_state_with_message(&mut self, message: &str) -> VcxResult<u32> {

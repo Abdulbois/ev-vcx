@@ -1,15 +1,14 @@
-extern crate url;
 extern crate serde_json;
 
 use std::collections::HashMap;
 use std::sync::RwLock;
 use utils::{get_temp_dir_path, error};
 use std::path::Path;
-use url::Url;
 use messages::validation;
 use serde_json::Value;
 use strum::IntoEnumIterator;
 use std::borrow::Borrow;
+use reqwest::Url;
 
 use error::prelude::*;
 use utils::file::read_file;

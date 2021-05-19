@@ -102,7 +102,7 @@ impl Prover {
         let messages = agent_info.get_messages()?;
         if let Some((uid, message)) = self.prover_sm.find_message_to_handle(messages) {
             self.handle_message(message.into())?;
-            agent_info.update_message_status(uid)?;
+            agent_info.update_message_status(uid, None)?;
         };
 
         Ok(())

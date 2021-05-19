@@ -64,7 +64,7 @@ pub extern fn vcx_schema_create(command_handle: CommandHandle,
                                                 schema_data) {
             Ok(x) => {
                 trace!(target: "vcx", "vcx_schema_create_cb(command_handle: {}, rc: {}, handle: {}) source_id: {}",
-                       command_handle, error::SUCCESS.message, x, source_id);
+                       command_handle, error::SUCCESS.as_str(), x, source_id);
                 cb(command_handle, error::SUCCESS.code_num, x);
             }
             Err(x) => {
@@ -138,7 +138,7 @@ pub extern fn vcx_schema_prepare_for_endorser(command_handle: CommandHandle,
                                                   endorser) {
             Ok((handle, transaction)) => {
                 trace!(target: "vcx", "vcx_schema_prepare_for_endorser(command_handle: {}, rc: {}, handle: {}, transaction: {}) source_id: {}",
-                       command_handle, error::SUCCESS.message, handle,  secret!(transaction), source_id);
+                       command_handle, error::SUCCESS.as_str(), handle,  secret!(transaction), source_id);
                 let transaction = CStringUtils::string_to_cstring(transaction);
                 cb(command_handle, error::SUCCESS.code_num, handle, transaction.as_ptr());
             }
@@ -181,7 +181,7 @@ pub extern fn vcx_schema_serialize(command_handle: CommandHandle,
         match schema::to_string(schema_handle) {
             Ok(x) => {
                 trace!("vcx_schema_serialize_cb(command_handle: {}, schema_handle: {}, rc: {}, state: {})",
-                       command_handle, schema_handle, error::SUCCESS.message, secret!(x));
+                       command_handle, schema_handle, error::SUCCESS.as_str(), secret!(x));
                 let msg = CStringUtils::string_to_cstring(x);
                 cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
             }
@@ -225,7 +225,7 @@ pub extern fn vcx_schema_deserialize(command_handle: CommandHandle,
         match schema::from_string(&schema_data) {
             Ok(x) => {
                 trace!("vcx_schema_deserialize_cb(command_handle: {}, rc: {}, handle: {})",
-                       command_handle, error::SUCCESS.message, x);
+                       command_handle, error::SUCCESS.as_str(), x);
                 cb(command_handle, error::SUCCESS.code_num, x);
             }
             Err(x) => {
@@ -256,7 +256,7 @@ pub extern fn vcx_schema_release(schema_handle: u32) -> u32 {
         match schema::release(schema_handle) {
             Ok(()) => {
                 trace!("vcx_schema_release(schema_handle: {}, rc: {})",
-                       schema_handle, error::SUCCESS.message);
+                       schema_handle, error::SUCCESS.as_str());
             }
             Err(e) => {
                 warn!("vcx_schema_release(schema_handle: {}), rc: {})",
@@ -291,7 +291,7 @@ pub extern fn vcx_schema_get_schema_id(command_handle: CommandHandle,
         match schema::get_schema_id(schema_handle) {
             Ok(x) => {
                 trace!("vcx_schema_get_schema_id(command_handle: {}, schema_handle: {}, rc: {}, schema_seq_no: {})",
-                       command_handle, schema_handle, error::SUCCESS.message, secret!(x));
+                       command_handle, schema_handle, error::SUCCESS.as_str(), secret!(x));
                 let msg = CStringUtils::string_to_cstring(x);
                 cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
             }
@@ -344,7 +344,7 @@ pub extern fn vcx_schema_get_attributes(command_handle: CommandHandle,
                 let data: serde_json::Value = serde_json::from_str(&data).unwrap();
                 let data = data["data"].clone();
                 trace!("vcx_schema_get_attributes_cb(command_handle: {}, rc: {}, handle: {}, attrs: {})",
-                       command_handle, error::SUCCESS.message, handle, secret!(data));
+                       command_handle, error::SUCCESS.as_str(), handle, secret!(data));
                 let msg = CStringUtils::string_to_cstring(data.to_string());
                 cb(command_handle, error::SUCCESS.code_num, handle, msg.as_ptr());
             }
@@ -395,7 +395,7 @@ pub extern fn vcx_schema_get_payment_txn(command_handle: CommandHandle,
                 match serde_json::to_string(&x) {
                     Ok(x) => {
                         trace!("vcx_schema_get_payment_txn_cb(command_handle: {}, rc: {}, : {})",
-                               command_handle, error::SUCCESS.message, secret!(x));
+                               command_handle, error::SUCCESS.as_str(), secret!(x));
 
                         let msg = CStringUtils::string_to_cstring(x);
                         cb(command_handle, 0, msg.as_ptr());
@@ -450,7 +450,7 @@ pub extern fn vcx_schema_update_state(command_handle: CommandHandle,
         match schema::update_state(schema_handle) {
             Ok(state) => {
                 trace!("vcx_schema_update_state(command_handle: {}, rc: {}, state: {})",
-                       command_handle, error::SUCCESS.message, state);
+                       command_handle, error::SUCCESS.as_str(), state);
                 cb(command_handle, error::SUCCESS.code_num, state);
             }
             Err(x) => {
@@ -495,7 +495,7 @@ pub extern fn vcx_schema_get_state(command_handle: CommandHandle,
         match schema::get_state(schema_handle) {
             Ok(state) => {
                 trace!("vcx_schema_get_state(command_handle: {}, rc: {}, state: {})",
-                       command_handle, error::SUCCESS.message, state);
+                       command_handle, error::SUCCESS.as_str(), state);
                 cb(command_handle, error::SUCCESS.code_num, state);
             }
             Err(x) => {

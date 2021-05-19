@@ -172,7 +172,7 @@ pub fn provisioning_v0_7_pack_for_agency(message: &A2AMessage, from_vk: &str) ->
     Ok(forward)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "agency", feature = "pool_tests"))]
 mod tests {
     use super::*;
     use settings;
@@ -225,8 +225,6 @@ mod tests {
     }
 
     #[ignore]
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
     #[test]
     fn test_agent_provisioning_0_7() {
         cleanup_indy_env();
@@ -239,8 +237,6 @@ mod tests {
     }
 
     #[ignore]
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
     #[test]
     fn test_agent_provisioning_0_7_fails_with_expired_time() {
         cleanup_indy_env();
@@ -254,8 +250,6 @@ mod tests {
     }
 
     #[ignore]
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
     #[test]
     fn test_agent_provisioning_0_7_fails_with_invalid_sig() {
         cleanup_indy_env();

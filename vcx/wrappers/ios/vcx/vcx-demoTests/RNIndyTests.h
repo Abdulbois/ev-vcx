@@ -24,7 +24,7 @@
 //+(void)startFreshAndExportWallet3:(RNIndy*)indy
 //        completion:(void (^)(BOOL success))successful;
 
-+(void)startFreshAndGeneratePassphrase:(RNIndy*)indy
-    completion:(void (^)(BOOL success))successful;
+//+(void)startFreshAndGeneratePassphrase:(RNIndy*)indy
+//    completion:(void (^)(BOOL success))successful;
 
 @end
