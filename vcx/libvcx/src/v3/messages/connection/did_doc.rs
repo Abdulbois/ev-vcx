@@ -339,8 +339,8 @@ impl Service {
         if decoded[0] == 0xED {
             // for ed25519, multicodec should be 1 byte long. Dropping this should yield the raw key bytes
             let result = std::str::from_utf8(&decoded[1..])
-                .map_err(|_| VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
-                                                "Invalid Service Key: unable to extract key bytes."))?.to_string();
+                .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
+                                                format!("Invalid Service Key: unable to extract key bytes. Error details: {:?}", err)))?.to_string();
             Ok(result)
         } else {
             return Err(VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
