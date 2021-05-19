@@ -301,7 +301,7 @@ impl Service {
         Service::default()
     }
 
-    pub fn set_id(mut self, id: String)-> Self {if(invitation)
+    pub fn set_id(mut self, id: String)-> Self {
         self.id = id;
         self
     }
@@ -327,7 +327,7 @@ impl Service {
     }
 
     // extract key from did:key as per method spec: https://w3c-ccg.github.io/did-method-key/
-    fn extract_key_from_key_reference(mut self, key: &str) -> VcxResult<&str> {
+    fn extract_key_from_key_reference(key: &str) -> VcxResult<String> {
         let mut split = key.split(&['#', ':'][..]);
         let identifier = split.nth(2)
             .ok_or_else(|| VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
@@ -340,18 +340,18 @@ impl Service {
             // for ed25519, multicodec should be 1 byte long. Dropping this should yield the raw key bytes
             let result = std::str::from_utf8(&decoded[1..])
                 .map_err(|_| VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
-                                                ("Invalid Service Key: unable to extract key bytes.")))?.to_string();
-            Ok(&result)
+                                                "Invalid Service Key: unable to extract key bytes."))?.to_string();
+            Ok(result)
         } else {
             return Err(VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
                                           format!("Invalid Service Key: Multicodec identifier is either not supported or not recognized. Expected: 0xED, Found: {}.`", decoded[0])));
         }
     }
 
-    pub fn transform_key_references_to_keys(mut self, keys: &mut Vec<String>) -> VcxResult<()> {
+    pub fn transform_key_references_to_keys(keys: &mut Vec<String>) -> VcxResult<()> {
         for key in keys.iter_mut() {
             if key.contains("did:key"){
-                *key = self.extract_key_from_key_reference(key)?.to_string()
+                *key = Service::extract_key_from_key_reference(key)?.to_string()
             }
         }
         Ok(())

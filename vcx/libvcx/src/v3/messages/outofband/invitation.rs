@@ -129,9 +129,9 @@ impl Invitation {
     // ensure service keys are naked keys
     pub fn normalize_service_keys(&mut self) -> VcxResult<()> {
         for service in self.service.iter_mut() {
-            service.transform_key_references_to_keys(&mut service.recipient_keys);
+            Service::transform_key_references_to_keys(&mut service.recipient_keys)?;
             if !service.routing_keys.is_empty(){
-                service.transform_key_references_to_keys(&mut service.routing_keys)?
+                Service::transform_key_references_to_keys(&mut service.routing_keys)?
             }
         }
 

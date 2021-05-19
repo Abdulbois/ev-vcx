@@ -15,7 +15,6 @@ use v3::messages::invite_action::invite::InviteActionData;
 use v3::messages::invite_action::invite::{Invite as InviteForAction};
 use connection::ConnectionOptions;
 use v3::messages::connection::problem_report::ProblemReport;
-use rust_base58::FromBase58;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connection {
@@ -69,7 +68,7 @@ impl Connection {
         invitation.validate()?;
 
         // normalize service keys in case invitation is using did:key format
-        invitation.normalize_service_keys();
+        invitation.normalize_service_keys()?;
 
         let mut connection = Connection {
             connection_sm: DidExchangeSM::new(Actor::Invitee, source_id, None),
