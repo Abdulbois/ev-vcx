@@ -63,10 +63,6 @@ interface IVerifierProofAccepted {
   data: string,
 }
 
-interface IVerifierProofRelease {
-  handle: number,
-}
-
 export class Verifier {
   /**
    * Create a new Proof object that requests a proof for an enterprise
@@ -403,20 +399,5 @@ export class Verifier {
     handle
   }: IVerifierGetProofProposal): Promise<string> {
     return await RNIndy.proofVerifierGetProofProposal(handle)
-  }
-
-  /**
-   * Releases the Proof object by de-allocating memory
-   *
-   * @param  proofHandle          handle pointing to a Proof object.
-   *
-   * @return                      void
-   *
-   * @throws VcxException         If an exception occurred in Libvcx library.
-   */
-  public static async release({
-    handle
-  }: IVerifierProofRelease): Promise<void> {
-    return await RNIndy.proofVerifierProofRelease(handle)
   }
 }

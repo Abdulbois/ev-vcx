@@ -12,7 +12,7 @@ import com.facebook.react.bridge.JavaScriptModule;
 
 import com.evernym.vcx.reactnative.rnindy.RNIndyModule;
 
-public class EvernymSdkPackage implements ReactPackage {
+public class EvernymVCXPackage implements ReactPackage {
     @Override
     public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
         return Arrays.<NativeModule>asList(new NativeModule[]{

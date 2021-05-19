@@ -60,20 +60,11 @@ interface ICredentialDeserializeData {
   serialized: string,
 }
 
-interface ICredentialCreateWithMsgid {
-  handle: number,
-  msgId: string,
-}
-
 interface ICredentialGetRequestMsg {
   handle: number,
   myPwDid: string,
   theirPwDid: string,
   paymentHandle: number,
-}
-
-interface ICredentialRelease {
-  handle: number,
 }
 
 interface ICredentialAcceptCredentialOffer {
@@ -342,30 +333,6 @@ export class Credential {
   }
 
   /**
-   * Create a Credential object based off of a known message id (containing Credential Offer) for a given connection.
-   *
-   * @param  sourceId             Institution's personal identification for the credential, should be unique.
-   * @param  handle     handle pointing to a Connection object to query for credential offer message.
-   * @param  msgId                id of the message on Agency that contains the credential offer.
-   *
-   * @return                      GetCredentialCreateMsgidResult object that contains
-   *                               - handle that should be used to perform actions with the Credential object.
-   *                               - Credential Offer message as JSON string
-   *
-   * @throws VcxException         If an exception occurred in Libvcx library.
-   */
-  public static async createWithMsgid({
-    handle,
-    msgId,
-  }: ICredentialCreateWithMsgid): Promise<number> {
-    return await RNIndy.credentialCreateWithMsgid(
-      uuidv4(),
-      handle,
-      msgId,
-    )
-  }
-
-  /**
    * Approves the Credential Offer and gets the Credential Request message that can be sent to the specified connection
    *
    * @param  credentialHandle     handle pointing to a Credential object.
@@ -389,49 +356,6 @@ export class Credential {
       theirPwDid,
       paymentHandle
     )
-  }
-
-  /**
-   * Releases the Credential object by de-allocating memory
-   *
-   * @param  credentialHandle     handle pointing to a Credential object.
-   *
-   * @return                      void
-   *
-   * @throws VcxException         If an exception occurred in Libvcx library.
-   */
-  public static async release({ handle }: ICredentialRelease): Promise<void> {
-    return await RNIndy.credentialRelease(handle)
-  }
-
-  /**
-   * Accept credential for the given offer.
-   *
-   * This function performs the following actions:
-   *  1. Creates Credential state object that requests and receives a credential for an institution (credentialCreateWithOffer).
-   *  2. Prepares Credential Request and send it to the issuer (credentialSendRequest).
-   *
-   * @param  sourceId         Institution's personal identification for the credential, should be unique.
-   * @param  credentialOffer  Received Credential Offer message.
-   *                          <pre>
-   *                          {@code
-   *                              proprietary:
-     *                                      "[{"msg_type": "CREDENTIAL_OFFER","version": "0.1","to_did": "...","from_did":"...","credential": {"account_num": ["...."],"name_on_account": ["Alice"]},"schema_seq_no": 48,"issuer_did": "...","credential_name": "Account Certificate","credential_id": "3675417066","msg_ref_id": "ymy5nth"}]"
-   *                              aries:
-   *                                      "{"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/offer-credential", "@id":"<uuid-of-offer-message>", "comment":"somecomment", "credential_preview":<json-ldobject>, "offers~attach":[{"@id":"libindy-cred-offer-0", "mime-type":"application/json", "data":{"base64":"<bytesforbase64>"}}]}"
-   *                          }
-   *                          </pre>
-   *
-   * @param  connectionHandle     handle pointing to Connection object to send Credential Request.
-   *
-   * @return                      CredentialAcceptOfferResult object containing:
-   *                                  - handle that should be used to perform actions with the Credential object.
-   *                                  - Credential object as JSON string.
-   *
-   * @throws VcxException         If an exception occurred in Libvcx library.
-   */
-  public static async accept({ offer, handle }: ICredentialAcceptCredentialOffer): Promise<void> {
-    return await RNIndy.acceptCredentialOffer(uuidv4(), offer, handle)
   }
 
   /**

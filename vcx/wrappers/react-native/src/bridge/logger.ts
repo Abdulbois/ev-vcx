@@ -72,8 +72,4 @@ export class Logger {
       logFilePath,
     )
   }
-
-  public static async vcxSetLogMaxLevel({ maxLvl }: IVcxSetLogMaxLevel): Promise<void> {
-    return await RNIndy.vcxSetLogMaxLevel(maxLvl)
-  }
 }

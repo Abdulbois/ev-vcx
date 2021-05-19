@@ -339,17 +339,6 @@ export class Utils {
   }
 
   /**
-   * Provision an agent in the agency, populate configuration and wallet for this agent.
-   *
-   * @param  config         Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
-   *
-   * @return                populated config that can be used for library initialization.
-   */
-  public static async createOneTimeInfoSync({ config }: ICreateOneTimeInfo): Promise<string> {
-    return await RNIndy.createOneTimeInfoSync(config)
-  }
-
-  /**
    * Gets minimal request price for performing an action in case the requester can perform this action.
    *
    * @param  actionJson       definition of action to get price

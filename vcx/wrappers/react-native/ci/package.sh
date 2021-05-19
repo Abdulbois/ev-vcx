@@ -1,7 +1,9 @@
 export PATH=${PATH}:$(pwd)/vcx/ci/scripts
+
 OUTPUTDIR=output
 DIR=vcx/wrappers/react-native
 CURDIR=$(pwd)
+
 cd $DIR
 npm i
 npm run compile

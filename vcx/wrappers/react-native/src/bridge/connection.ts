@@ -51,6 +51,7 @@ interface IConnectionDeserializeData {
 interface IConnectionSendMessageData {
   handle: number,
   message: string,
+  options: string,
 }
 
 interface IConnectionSignData {
@@ -105,10 +106,6 @@ interface IConnectionAcceptConnectionInvite {
   invitationId: string,
   invite: string,
   options: string,
-}
-
-interface IConnectionRelease {
-  handle: number,
 }
 
 interface IConnectionSendPing {
@@ -362,10 +359,11 @@ export class Connection {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async sendMessage({ handle, message }: IConnectionSendMessageData): Promise<string> {
+  public static async sendMessage({ handle, message, options }: IConnectionSendMessageData): Promise<string> {
     return await RNIndy.connectionSendMessage(
       handle,
       message,
+      options,
     )
   }
 
@@ -710,72 +708,57 @@ export class Connection {
     )
   }
 
-  /**
-   * Accept connection for the given invitation.
-   *
-   * This function performs the following actions:
-   *  1. Creates Connection state object from the given invitation (vcxCreateConnectionWithInvite)
-   *  2. Replies to the inviting side (vcxConnectionConnect)
-   *
-   * @param  invitationId  institution's personal identification for the connection.
-   *                       It'll be used as a connection response label.
-   * @param  inviteDetails A string representing a json object which is provided by an entity that wishes to make a connection.
-   *                       The format depends on used communication protocol:
-   *                          proprietary:
-   *                              "{"targetName": "", "statusMsg": "message created", "connReqId": "mugIkrWeMr", "statusCode": "MS-101", "threadId": null, "senderAgencyDetail": {"endpoint": "http://localhost:8080", "verKey": "key", "DID": "did"}, "senderDetail": {"agentKeyDlgProof": {"agentDID": "8f6gqnT13GGMNPWDa2TRQ7", "agentDelegatedKey": "5B3pGBYjDeZYSNk9CXvgoeAAACe2BeujaAkipEC7Yyd1", "signature": "TgGSvZ6+/SynT3VxAZDOMWNbHpdsSl8zlOfPlcfm87CjPTmC/7Cyteep7U3m9Gw6ilu8SOOW59YR1rft+D8ZDg=="}, "publicDID": "7YLxxEfHRiZkCMVNii1RCy", "name": "Faber", "logoUrl": "http://robohash.org/234", "verKey": "CoYZMV6GrWqoG9ybfH3npwH3FnWPcHmpWYUF8n172FUx", "DID": "Ney2FxHT4rdEyy6EDCCtxZ"}}"
-   *                          aries:
-   *                              "{"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/invitation","label":"Alice","recipientKeys":["8HH5gYEeNc3z7PYXmd54d4x6qAfCNrqQqEB3nS7Zfu7K"],"serviceEndpoint":"https://example.com/endpoint","routingKeys":["8HH5gYEeNc3z7PYXmd54d4x6qAfCNrqQqEB3nS7Zfu7K"]}"
-   * @param  connectionOptions: details about establishing connection
-   *     {
-   *         "connection_type": Option<"string"> - one of "SMS", "QR",
-   *         "phone": "string": Option<"string"> - phone number in case "connection_type" is set into "SMS",
-   *         "update_agent_info": Option<bool> - whether agent information needs to be updated.
-   *                                             default value for `update_agent_info`=true
-   *                                             if agent info does not need to be updated, set `update_agent_info`=false
-   *         "use_public_did": Option<bool> - whether to use public DID for an establishing connection
-   *                                          default value for `use_public_did`=false
-   *         "pairwise_agent_info": Optional<JSON object> - pairwise agent to use instead of creating a new one.
-   *                                                        Can be received by calling `vcx_create_pairwise_agent` function.
-   *                                                         {
-   *                                                             "pw_did": string,
-   *                                                             "pw_vk": string,
-   *                                                             "agent_did": string,
-   *                                                             "agent_vk": string,
-   *                                                         }
-   *     }
-   *
-   * @return               AcceptConnectionResult object containing:
-   *                          - handle that should be used to perform actions with the Connection object.
-   *                          - Connection object as JSON string
-   *
-   * @throws VcxException  If an exception occurred in Libvcx library.
-   */
-  public static async acceptInvite({
-    invitationId,
-    invite,
-    options,
-  }: IConnectionAcceptConnectionInvite): Promise<number> {
-    return await RNIndy.vcxConnectionAcceptConnectionInvite(
-      invitationId,
-      invite,
-      options
-    )
-  }
-
-  /**
-   * Releases the Connection object by de-allocating memory.
-   *
-   * @param  connectionHandle handle pointing to a Connection object.
-   *
-   * @return                  void
-   *
-   * @throws VcxException     If an exception occurred in Libvcx library.
-   */
-  public static async release({
-    handle,
-  }: IConnectionRelease): Promise<number> {
-    return await RNIndy.connectionRelease(handle)
-  }
+  // /**
+  //  * Accept connection for the given invitation.
+  //  *
+  //  * This function performs the following actions:
+  //  *  1. Creates Connection state object from the given invitation (vcxCreateConnectionWithInvite)
+  //  *  2. Replies to the inviting side (vcxConnectionConnect)
+  //  *
+  //  * @param  invitationId  institution's personal identification for the connection.
+  //  *                       It'll be used as a connection response label.
+  //  * @param  inviteDetails A string representing a json object which is provided by an entity that wishes to make a connection.
+  //  *                       The format depends on used communication protocol:
+  //  *                          proprietary:
+  //  *                              "{"targetName": "", "statusMsg": "message created", "connReqId": "mugIkrWeMr", "statusCode": "MS-101", "threadId": null, "senderAgencyDetail": {"endpoint": "http://localhost:8080", "verKey": "key", "DID": "did"}, "senderDetail": {"agentKeyDlgProof": {"agentDID": "8f6gqnT13GGMNPWDa2TRQ7", "agentDelegatedKey": "5B3pGBYjDeZYSNk9CXvgoeAAACe2BeujaAkipEC7Yyd1", "signature": "TgGSvZ6+/SynT3VxAZDOMWNbHpdsSl8zlOfPlcfm87CjPTmC/7Cyteep7U3m9Gw6ilu8SOOW59YR1rft+D8ZDg=="}, "publicDID": "7YLxxEfHRiZkCMVNii1RCy", "name": "Faber", "logoUrl": "http://robohash.org/234", "verKey": "CoYZMV6GrWqoG9ybfH3npwH3FnWPcHmpWYUF8n172FUx", "DID": "Ney2FxHT4rdEyy6EDCCtxZ"}}"
+  //  *                          aries:
+  //  *                              "{"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/invitation","label":"Alice","recipientKeys":["8HH5gYEeNc3z7PYXmd54d4x6qAfCNrqQqEB3nS7Zfu7K"],"serviceEndpoint":"https://example.com/endpoint","routingKeys":["8HH5gYEeNc3z7PYXmd54d4x6qAfCNrqQqEB3nS7Zfu7K"]}"
+  //  * @param  connectionOptions: details about establishing connection
+  //  *     {
+  //  *         "connection_type": Option<"string"> - one of "SMS", "QR",
+  //  *         "phone": "string": Option<"string"> - phone number in case "connection_type" is set into "SMS",
+  //  *         "update_agent_info": Option<bool> - whether agent information needs to be updated.
+  //  *                                             default value for `update_agent_info`=true
+  //  *                                             if agent info does not need to be updated, set `update_agent_info`=false
+  //  *         "use_public_did": Option<bool> - whether to use public DID for an establishing connection
+  //  *                                          default value for `use_public_did`=false
+  //  *         "pairwise_agent_info": Optional<JSON object> - pairwise agent to use instead of creating a new one.
+  //  *                                                        Can be received by calling `vcx_create_pairwise_agent` function.
+  //  *                                                         {
+  //  *                                                             "pw_did": string,
+  //  *                                                             "pw_vk": string,
+  //  *                                                             "agent_did": string,
+  //  *                                                             "agent_vk": string,
+  //  *                                                         }
+  //  *     }
+  //  *
+  //  * @return               AcceptConnectionResult object containing:
+  //  *                          - handle that should be used to perform actions with the Connection object.
+  //  *                          - Connection object as JSON string
+  //  *
+  //  * @throws VcxException  If an exception occurred in Libvcx library.
+  //  */
+  // public static async acceptInvite({
+  //   invitationId,
+  //   invite,
+  //   options,
+  // }: IConnectionAcceptConnectionInvite): Promise<number> {
+  //   return await RNIndy.vcxConnectionAcceptConnectionInvite(
+  //     invitationId,
+  //     invite,
+  //     options
+  //   )
+  // }
 
   /**
    * Send trust ping message to the specified connection to prove that two agents have a functional pairwise channel.
