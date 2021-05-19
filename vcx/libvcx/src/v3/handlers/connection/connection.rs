@@ -15,6 +15,7 @@ use v3::messages::invite_action::invite::InviteActionData;
 use v3::messages::invite_action::invite::{Invite as InviteForAction};
 use connection::ConnectionOptions;
 use v3::messages::connection::problem_report::ProblemReport;
+use rust_base58::FromBase58;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connection {
@@ -61,11 +62,14 @@ impl Connection {
         Ok(connection)
     }
 
-    pub fn create_with_outofband_invite(source_id: &str, invitation: OutofbandInvitation) -> VcxResult<Connection> {
+    pub fn create_with_outofband_invite(source_id: &str, mut invitation: OutofbandInvitation) -> VcxResult<Connection> {
         trace!("Connection::create_with_outofband_invite >>> source_id: {}, invitation: {:?}", source_id, secret!(invitation));
         debug!("Connection {}: Creating Connection state object with out-of-band invite", source_id);
 
         invitation.validate()?;
+
+        // normalize service keys in case invitation is using did:key format
+        invitation.normalize_service_keys();
 
         let mut connection = Connection {
             connection_sm: DidExchangeSM::new(Actor::Invitee, source_id, None),
