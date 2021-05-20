@@ -1,5 +1,3 @@
-export PATH=${PATH}:$(pwd)/vcx/ci/scripts
-
 OUTPUTDIR=output
 DIR=vcx/wrappers/react-native
 CURDIR=$(pwd)
@@ -9,12 +7,7 @@ npm i
 npm run build
 npm pack
 
-rename \s/rn-vcx-wrapper-/rn-vcx-wrapper_/ *.tgz
-rename \s/\\.tgz\$/_amd64\\.tgz/ *.tgz
-
-find . -type f -name 'rn-vcx-wrapper*.tgz' -exec create_npm_deb.py {} \;
+rename \s/react-native-vcx-wrapper-/react-native-vcx-wrapper_/ *.tgz
 
 cd $CURDIR
-cp $DIR/rn-vcx*.tgz $OUTPUTDIR
-cp $DIR/rn-vcx-wrapper_*.deb $OUTPUTDIR
-
+cp $DIR/react-native-vcx-wrapper*.tgz $OUTPUTDIR

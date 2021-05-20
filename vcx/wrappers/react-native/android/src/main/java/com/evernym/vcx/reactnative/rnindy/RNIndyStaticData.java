@@ -2,16 +2,9 @@ package com.evernym.vcx.reactnative.rnindy;
 
 import android.content.Context;
 
-import com.facebook.react.bridge.Arguments;
-
-import org.json.JSONObject;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
 
 public class RNIndyStaticData {
     public static final int REQUEST_WRITE_EXTERNAL_STORAGE = 501;

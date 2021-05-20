@@ -1,7 +1,6 @@
 package com.evernym.vcx.reactnative;
 
 import android.content.Context;
-import android.os.Environment;
 import android.util.Log;
 
 import com.facebook.react.bridge.Promise;
@@ -14,10 +13,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import android.content.ContextWrapper;
-
-/**
- * Created by abdussami on 23/05/18.
- */
 
 public class BridgeUtils {
     private static  String TAG ="BRIDGEUTILS::";
