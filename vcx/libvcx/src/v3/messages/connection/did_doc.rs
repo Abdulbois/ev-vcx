@@ -328,6 +328,7 @@ impl Service {
 
     // extract key from did:key as per method spec: https://w3c-ccg.github.io/did-method-key/
     fn extract_key_from_key_reference(key: &str) -> VcxResult<String> {
+        debug!("Extracting public key from key reference: {}", key);
         let mut split = key.split(&['#', ':'][..]);
         let identifier = split.nth(2)
             .ok_or_else(|| VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
@@ -340,7 +341,7 @@ impl Service {
             // for ed25519, multicodec should be 1 byte long. Dropping this should yield the raw key bytes
             let result = std::str::from_utf8(&decoded[1..])
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
-                                                format!("Invalid Service Key: unable to extract key bytes. Error details: {:?}", err)))?.to_string();
+                                                format!("Invalid Service Key: unable to extract key bytes from {:?}. Error details: {:?}", decoded, err)))?.to_string();
             Ok(result)
         } else {
             return Err(VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
