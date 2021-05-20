@@ -343,13 +343,12 @@ impl Service {
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
                                                 format!("Invalid Service Key: unable to extract key bytes from {:?}. Error details: {:?}", decoded, err)))?.to_string();
             Ok(result)
-        } else {
-            return Err(VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
-                                          format!("Invalid Service Key: Multicodec identifier is either not supported or not recognized. Expected: 0xED, Found: {}.`", decoded[0])));
         }
+        return Err(VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
+                                      format!("Invalid Service Key: Multicodec identifier is either not supported or not recognized. Expected: 0xED, Found: {}.`", decoded[0])));
     }
 
-    pub fn transform_key_references_to_keys(keys: &mut Vec<String>) -> VcxResult<()> {
+    pub fn transform_key_references_to_keys(keys: &mut [String]) -> VcxResult<()> {
         for key in keys.iter_mut() {
             if key.contains("did:key"){
                 *key = Service::extract_key_from_key_reference(key)?.to_string()
