@@ -102,12 +102,6 @@ interface IConnectionGetData {
   handle: number,
 }
 
-interface IConnectionAcceptConnectionInvite {
-  invitationId: string,
-  invite: string,
-  options: string,
-}
-
 interface IConnectionSendPing {
   handle: number,
   comment: string,
@@ -119,15 +113,9 @@ interface IConnectionSendDiscoveryFeatures {
   query: string,
 }
 
-interface IConnectionGetProblemReport {
-  handle: number,
-}
-
 export class Connection {
   /**
    * Create a Connection object that provides a pairwise connection for an institution's user.
-   *
-   * @param  sourceId     user personal identification for the connection, should be unique.
    *
    * @return              handle that should be used to perform actions with the Connection object.
    *
@@ -147,7 +135,6 @@ export class Connection {
    *        You can use simple messages like Question but it cannot be used
    *        for Credential Issuance and Credential Presentation.
    *
-   * @param  sourceId     user personal identification for the connection, should be unique.
    * @param  goalCode     a self-attested code the receiver may want to display to
    *                      the user or use in automatically deciding what to do with the out-of-band message.
    * @param  goal         a self-attested string that the receiver may want to display to the user about
@@ -179,8 +166,6 @@ export class Connection {
   /**
    * Create a Connection object from the given Invitation that provides a pairwise connection.
    *
-   * @param  invitationId  institution's personal identification for the connection.
-   *                       It'll be used as a connection response label.
    * @param  invitation A string representing a json object which is provided by an entity that wishes to make a connection.
    *                       The format depends on used communication protocol:
    *                          proprietary:
@@ -213,7 +198,6 @@ export class Connection {
    * WARN: The user has to analyze the value of "request~attach" field yourself and
    *       create/handle the correspondent state object or send a reply once the connection is established.
    *
-   * @param  sourceId  user personal identification for the connection, should be unique.
    * @param  invitation    A JSON string representing Out-of-Band Invitation provided by an entity that wishes interaction.
    *                  {
    *                      "@type": "https://didcomm.org/out-of-band/%VER/invitation",
@@ -636,6 +620,34 @@ export class Connection {
     )
   }
 
+  /**
+   * Get the information about the established Connection.
+   * <p>
+   * Note: This method can be used for `aries` communication method only.
+   * For other communication method it returns ActionNotSupported error.
+   *
+   * @param  connectionHandle     handle pointing to a Connection object.
+   *
+   * @return                      Connection Information as JSON string.
+   *                              {
+   *                                  "current": {
+   *                                      "did": string, - DID of current connection side
+   *                                      "recipientKeys": array[string], - Recipient keys
+   *                                      "routingKeys": array[string], - Routing keys
+   *                                      "serviceEndpoint": string, - Endpoint
+   *                                      "protocols": array[string], - The set of protocol supported by current side.
+   *                                  },
+   *                                  "remote: Optional({ - details about remote connection side
+   *                                      "did": string - DID of remote side
+   *                                      "recipientKeys": array[string] - Recipient keys of remote side
+   *                                      "routingKeys": array[string] - Routing keys of remote side
+   *                                      "serviceEndpoint": string - Endpoint of remote side
+   *                                      "protocols": array[string] - The set of protocol supported by side. Is filled after DiscoveryFeatures process was completed.
+   *                                  })
+   *                              }
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
   public static async getInfo({
     handle,
   }: IConnectionGetData): Promise<string> {
@@ -708,58 +720,6 @@ export class Connection {
     )
   }
 
-  // /**
-  //  * Accept connection for the given invitation.
-  //  *
-  //  * This function performs the following actions:
-  //  *  1. Creates Connection state object from the given invitation (vcxCreateConnectionWithInvite)
-  //  *  2. Replies to the inviting side (vcxConnectionConnect)
-  //  *
-  //  * @param  invitationId  institution's personal identification for the connection.
-  //  *                       It'll be used as a connection response label.
-  //  * @param  inviteDetails A string representing a json object which is provided by an entity that wishes to make a connection.
-  //  *                       The format depends on used communication protocol:
-  //  *                          proprietary:
-  //  *                              "{"targetName": "", "statusMsg": "message created", "connReqId": "mugIkrWeMr", "statusCode": "MS-101", "threadId": null, "senderAgencyDetail": {"endpoint": "http://localhost:8080", "verKey": "key", "DID": "did"}, "senderDetail": {"agentKeyDlgProof": {"agentDID": "8f6gqnT13GGMNPWDa2TRQ7", "agentDelegatedKey": "5B3pGBYjDeZYSNk9CXvgoeAAACe2BeujaAkipEC7Yyd1", "signature": "TgGSvZ6+/SynT3VxAZDOMWNbHpdsSl8zlOfPlcfm87CjPTmC/7Cyteep7U3m9Gw6ilu8SOOW59YR1rft+D8ZDg=="}, "publicDID": "7YLxxEfHRiZkCMVNii1RCy", "name": "Faber", "logoUrl": "http://robohash.org/234", "verKey": "CoYZMV6GrWqoG9ybfH3npwH3FnWPcHmpWYUF8n172FUx", "DID": "Ney2FxHT4rdEyy6EDCCtxZ"}}"
-  //  *                          aries:
-  //  *                              "{"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/invitation","label":"Alice","recipientKeys":["8HH5gYEeNc3z7PYXmd54d4x6qAfCNrqQqEB3nS7Zfu7K"],"serviceEndpoint":"https://example.com/endpoint","routingKeys":["8HH5gYEeNc3z7PYXmd54d4x6qAfCNrqQqEB3nS7Zfu7K"]}"
-  //  * @param  connectionOptions: details about establishing connection
-  //  *     {
-  //  *         "connection_type": Option<"string"> - one of "SMS", "QR",
-  //  *         "phone": "string": Option<"string"> - phone number in case "connection_type" is set into "SMS",
-  //  *         "update_agent_info": Option<bool> - whether agent information needs to be updated.
-  //  *                                             default value for `update_agent_info`=true
-  //  *                                             if agent info does not need to be updated, set `update_agent_info`=false
-  //  *         "use_public_did": Option<bool> - whether to use public DID for an establishing connection
-  //  *                                          default value for `use_public_did`=false
-  //  *         "pairwise_agent_info": Optional<JSON object> - pairwise agent to use instead of creating a new one.
-  //  *                                                        Can be received by calling `vcx_create_pairwise_agent` function.
-  //  *                                                         {
-  //  *                                                             "pw_did": string,
-  //  *                                                             "pw_vk": string,
-  //  *                                                             "agent_did": string,
-  //  *                                                             "agent_vk": string,
-  //  *                                                         }
-  //  *     }
-  //  *
-  //  * @return               AcceptConnectionResult object containing:
-  //  *                          - handle that should be used to perform actions with the Connection object.
-  //  *                          - Connection object as JSON string
-  //  *
-  //  * @throws VcxException  If an exception occurred in Libvcx library.
-  //  */
-  // public static async acceptInvite({
-  //   invitationId,
-  //   invite,
-  //   options,
-  // }: IConnectionAcceptConnectionInvite): Promise<number> {
-  //   return await RNIndy.vcxConnectionAcceptConnectionInvite(
-  //     invitationId,
-  //     invite,
-  //     options
-  //   )
-  // }
-
   /**
    * Send trust ping message to the specified connection to prove that two agents have a functional pairwise channel.
    * <p>
@@ -804,50 +764,5 @@ export class Connection {
 
   public static async getTheirDid({ handle }: IConnectionGetData): Promise<string> {
     return await RNIndy.connectionGetTheirDid(handle)
-  }
-
-  /**
-   * Get the information about the established Connection.
-   * <p>
-   * Note: This method can be used for `aries` communication method only.
-   * For other communication method it returns ActionNotSupported error.
-   *
-   * @param  connectionHandle     handle pointing to a Connection object.
-   *
-   * @return                      Connection Information as JSON string.
-   *                              {
-   *                                  "current": {
-   *                                      "did": string, - DID of current connection side
-   *                                      "recipientKeys": array[string], - Recipient keys
-   *                                      "routingKeys": array[string], - Routing keys
-   *                                      "serviceEndpoint": string, - Endpoint
-   *                                      "protocols": array[string], - The set of protocol supported by current side.
-   *                                  },
-   *                                  "remote: Optional({ - details about remote connection side
-   *                                      "did": string - DID of remote side
-   *                                      "recipientKeys": array[string] - Recipient keys of remote side
-   *                                      "routingKeys": array[string] - Routing keys of remote side
-   *                                      "serviceEndpoint": string - Endpoint of remote side
-   *                                      "protocols": array[string] - The set of protocol supported by side. Is filled after DiscoveryFeatures process was completed.
-   *                                  })
-   *                              }
-   *
-   * @throws VcxException         If an exception occurred in Libvcx library.
-   */
-  public static async info({ handle }: IConnectionGetData): Promise<string> {
-    return await RNIndy.connectionInfo(handle)
-  }
-
-  /**
-   * Get Problem Report message for object in Failed or Rejected state.
-   *
-   * @param  connectionHandle handle pointing to Connection state object.
-   *
-   * @return                  Problem Report as JSON string or null
-   *
-   * @throws VcxException     If an exception occurred in Libvcx library.
-   */
-  public static async getProblemReport({ handle }: IConnectionGetProblemReport): Promise<string> {
-    return await RNIndy.connectionGetProblemReport(handle)
   }
 }

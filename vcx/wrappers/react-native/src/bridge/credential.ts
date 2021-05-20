@@ -48,10 +48,6 @@ interface ICredentialGetPresentationProposalData {
   handle: number,
 }
 
-interface ICredentialGetData {
-  handle: number,
-}
-
 interface ICredentialSerializeData {
   handle: number,
 }
@@ -67,11 +63,6 @@ interface ICredentialGetRequestMsg {
   paymentHandle: number,
 }
 
-interface ICredentialAcceptCredentialOffer {
-  offer: string,
-  handle: number,
-}
-
 interface ICredentialGetProblemReport {
   handle: number,
 }
@@ -80,8 +71,7 @@ export class Credential {
   /**
    * Create a Credential object that requests and receives a credential for an institution
    *
-   * @param  sourceId         Institution's personal identification for the credential, should be unique.
-   * @param  credentialOffer  Received Credential Offer message.
+   * @param  offer            Received Credential Offer message.
    *                          The format of Credential Offer depends on communication method:
    *                          <pre>
    *                          {@code
@@ -128,7 +118,7 @@ export class Credential {
    *     3 - Credential Offer Received
    *     4 - Credential Accepted
    *
-   * @param  credentialHandle     handle pointing to a Credential object.
+   * @param  handle               handle pointing to a Credential object.
    *
    * @return                      the most current state of the Credential object.
    *
@@ -145,7 +135,7 @@ export class Credential {
    * Checks for any messages changing state in the Credential object and updates the state attribute.
    * If it detects a credential it will store the credential in the wallet.
    *
-   * @param  credentialHandle     handle pointing to a Credential object.
+   * @param  handle               handle pointing to a Credential object.
    *
    * @return                      the most current state of the Credential object.
    *
@@ -160,7 +150,7 @@ export class Credential {
   /**
    * Update the state of the Credential object based on the given message.
    *
-   * @param  credentialHandle     handle pointing to a Credential object.
+   * @param  handle               handle pointing to a Credential object.
    * @param  message              message to process for any Credential state transitions.
    *
    * @return                      the most current state of the Credential object.
@@ -180,7 +170,7 @@ export class Credential {
   /**
    * Approves the Credential Offer and submits a Credential Request.
    *
-   * @param  credentialHandle     handle pointing to a Credential object.
+   * @param  handle               handle pointing to a Credential object.
    * @param  connectionHandle     handle pointing to a Connection object.
    * @param  paymentHandle        deprecated parameter (use 0).
    *
@@ -207,7 +197,7 @@ export class Credential {
    * Note that this function can be used for `aries` communication protocol.
    * In other cases it returns ActionNotSupported error.
    *
-   * @param  credentialHandle     handle pointing to a Credential object.
+   * @param  handle               handle pointing to a Credential object.
    * @param  connectionHandle     handle pointing to a Connection identifying pairwise connection..
    * @param  comment              (Optional) human-friendly message to insert into Reject message.
    *
@@ -230,7 +220,7 @@ export class Credential {
   /**
    * Delete a Credential associated with the state object from the Wallet and release handle of the state object.
    *
-   * @param  credentialHandle     handle pointing to credential state object to delete.
+   * @param  handle               handle pointing to credential state object to delete.
    *
    * @return                      void
    *
@@ -245,9 +235,35 @@ export class Credential {
   }
 
   /**
+   * Approves the Credential Offer and gets the Credential Request message that can be sent to the specified connection
+   *
+   * @param  handle               handle pointing to a Credential object.
+   * @param  myPwDid              pairwise DID used for Connection.
+   * @param  theirPwDid           pairwise DID of the remote side used for Connection.
+   * @param  paymentHandle        deprecated parameter (use 0).
+   *
+   * @return                      Credential Request message as JSON string.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
+  public static async getRequestMessage({
+    handle,
+    myPwDid,
+    theirPwDid,
+    paymentHandle,
+  }: ICredentialGetRequestMsg): Promise<string> {
+    return await RNIndy.credentialGetRequestMsg(
+      handle,
+      myPwDid,
+      theirPwDid,
+      paymentHandle
+    )
+  }
+
+  /**
    * Retrieve information about a stored credential in user's wallet, including credential id and the credential itself.
    *
-   * @param  credentialHandle     handle pointing to a Credential object.
+   * @param  handle               handle pointing to a Credential object.
    *
    * @return                      Credential message as JSON string.
    *
@@ -265,13 +281,13 @@ export class Credential {
    * Build Presentation Proposal message for revealing Credential data.
    *
    * Presentation Proposal is an optional message that can be sent by the Prover to the Verifier to
-   * initiate a Presentation Proof process.
+   * initiate a Presentation DisclosedProof process.
    *
    * Presentation Proposal Format: https://github.com/hyperledger/aries-rfcs/tree/master/features/0037-present-proof#propose-presentation
    *
    * EXPERIMENTAL
    *
-   * @param  credentialHandle     handle pointing to Credential to use for Presentation Proposal message building
+   * @param  handle               handle pointing to Credential to use for Presentation Proposal message building
    *
    * @return                      Presentation Proposal message as JSON string.
    *
@@ -288,7 +304,7 @@ export class Credential {
   /**
    * Get Problem Report message for object in Failed or Rejected state.
    *
-   * @param  credentialHandle handle pointing to Credential state object.
+   * @param  handle           handle pointing to Credential state object.
    *
    * @return                  Problem Report as JSON string or null
    *
@@ -296,7 +312,7 @@ export class Credential {
    */
   public static async getProblemReportMessage({
     handle,
-  }: ICredentialGetData): Promise<string> {
+  }: ICredentialGetProblemReport): Promise<string> {
     return await RNIndy.connectionGetProblemReport(
       handle,
     )
@@ -305,7 +321,7 @@ export class Credential {
   /**
    * Get JSON string representation of Credential object.
    *
-   * @param  credentialHandle     handle pointing to a Credential object.
+   * @param  handle               handle pointing to a Credential object.
    *
    * @return                      Credential object as JSON string.
    *
@@ -320,7 +336,7 @@ export class Credential {
   /**
    * Takes a json string representing a Credential object and recreates an object matching the JSON.
    *
-   * @param  serializedCredential JSON string representing a Credential object.
+   * @param  serialized           JSON string representing a Credential object.
    *
    * @return                      handle that should be used to perform actions with the Credential object.
    *
@@ -330,44 +346,5 @@ export class Credential {
     return await RNIndy.deserializeClaimOffer(
       serialized,
     )
-  }
-
-  /**
-   * Approves the Credential Offer and gets the Credential Request message that can be sent to the specified connection
-   *
-   * @param  credentialHandle     handle pointing to a Credential object.
-   * @param  myPwDid              pairwise DID used for Connection.
-   * @param  theirPwDid           pairwise DID of the remote side used for Connection.
-   * @param  paymentHandle        deprecated parameter (use 0).
-   *
-   * @return                      Credential Request message as JSON string.
-   *
-   * @throws VcxException         If an exception occurred in Libvcx library.
-   */
-  public static async getRequestMsg({
-    handle,
-    myPwDid,
-    theirPwDid,
-    paymentHandle,
-  }: ICredentialGetRequestMsg): Promise<string> {
-    return await RNIndy.credentialGetRequestMsg(
-      handle,
-      myPwDid,
-      theirPwDid,
-      paymentHandle
-    )
-  }
-
-  /**
-   * Get Problem Report message for object in Failed or Rejected state.
-   *
-   * @param  credentialHandle handle pointing to Credential state object.
-   *
-   * @return                  Problem Report as JSON string or null
-   *
-   * @throws VcxException     If an exception occurred in Libvcx library.
-   */
-  public static async getProblemReport({ handle }: ICredentialGetProblemReport): Promise<string> {
-    return await RNIndy.credentialGetProblemReport(handle)
   }
 }

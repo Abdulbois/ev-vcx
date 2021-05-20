@@ -60,7 +60,7 @@ export class Agent {
    **/
   public static async getProvisionToken({
     agencyConfig,
-  }: IProvisionData): Promise<string> {
+  }: IGetProvisionTokenData): Promise<string> {
     return await RNIndy.getProvisionToken(
       agencyConfig,
     )
@@ -77,7 +77,7 @@ export class Agent {
    */
   public static async provision({
     agencyConfig,
-  }: IProvisionWithTokenData): Promise<string> {
+  }: IProvisionData): Promise<string> {
     return await RNIndy.createOneTimeInfo(
       agencyConfig,
     )

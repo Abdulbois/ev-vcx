@@ -25,30 +25,6 @@ interface IAppendTxnAuthorAgreementData {
   timestamp: number,
 }
 
-interface IGetGenesisPathData {
-  poolConfig: string,
-  fileName: string,
-}
-
-interface IToBase64FromUtf8Data {
-  data: string,
-  base64EncodingOption: string,
-}
-
-interface IToUtf8FromBase64Data {
-  data: string,
-  base64EncodingOption: string,
-}
-
-interface IGenerateThumbprintData {
-  data: string,
-  base64EncodingOption: string,
-}
-
-interface IGetColorData {
-  imagePath: string,
-}
-
 interface IGetRequestRedirectionUrlData {
   url: string,
 }
@@ -75,10 +51,6 @@ interface IAnonDecrypt {
 interface ISignDataResult {
   data: string,
   signature: string,
-}
-
-interface ICreateOneTimeInfo {
-  config: string,
 }
 
 interface IVcxGetRequestPrice {
@@ -149,8 +121,8 @@ export class Utils {
    * @param  text                 Optional(string) text of transaction agreement
    * @param  version              Optional(string) version of transaction agreement
    * @param  hash                 Optional(string) hash on text and version. This parameter is required if text and version parameters are ommited.
-   * @param  accMechType          mechanism how user has accepted the TAA
-   * @param  timeOfAcceptance     UTC timestamp when user has accepted the TAA
+   * @param  mechanism          mechanism how user has accepted the TAA
+   * @param  timestamp     UTC timestamp when user has accepted the TAA
    *
    * @throws VcxException   If an exception occurred in Libvcx library.
    */
@@ -218,7 +190,7 @@ export class Utils {
    *        correspondent to received credentials from the connected Ledger.
    *
    * This helper function can be used, for instance as a background task, to refresh library cache.
-   * This allows us to reduce the time taken for Proof generation by using already cached entities instead of queering the Ledger.
+   * This allows us to reduce the time taken for DisclosedProof generation by using already cached entities instead of queering the Ledger.
    *
    * NOTE: Library must be already initialized (wallet and pool must be opened).
    *
@@ -228,16 +200,6 @@ export class Utils {
    */
   public static async fetchPublicEntities(): Promise<void> {
     return await RNIndy.fetchPublicEntities()
-  }
-
-  public static async getGenesisPathWithConfig({
-    poolConfig,
-    fileName,
-  }: IGetGenesisPathData): Promise<string> {
-    return await RNIndy.getGenesisPathWithConfig(
-      poolConfig,
-      fileName,
-    )
   }
 
   public static async getRequestRedirectionUrl({

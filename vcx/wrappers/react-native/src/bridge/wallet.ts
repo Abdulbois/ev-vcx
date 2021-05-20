@@ -11,11 +11,6 @@ interface IWalletExportData {
   encryptionKey: string,
 }
 
-interface IWalletCopyToPathData {
-  uri: string,
-  zipPath: string,
-}
-
 interface IWalletImportData {
   config: string,
 }
@@ -69,21 +64,20 @@ interface IVerifyWithAddress {
 }
 
 export class Wallet {
+  /**
+   * Generate key of the specific length
+   *
+   * @param  lengthOfKey      Length of the key to generate
+   *
+   * @return                  Key as a string
+   *
+   * @throws VcxException     Thrown if an error occurs when calling the underlying SDK.
+   */
   public static async creatKey({
     lengthOfKey,
   }: IWalletKeyData): Promise<string> {
     return await RNIndy.createWalletKey(
       lengthOfKey,
-    )
-  }
-
-  public static async copyToPath({
-    uri,
-    zipPath,
-  }: IWalletCopyToPathData): Promise<number> {
-    return await RNIndy.copyToPath(
-      uri,
-      zipPath,
     )
   }
 

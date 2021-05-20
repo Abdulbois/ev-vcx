@@ -343,6 +343,27 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
      * Connection API
      */
     @ReactMethod
+    public void createConnection(String sourceId, Promise promise) {
+        Log.d(TAG, "vcxConnectionCreate()");
+        try {
+            ConnectionApi.vcxConnectionCreate(sourceId).whenComplete((result, e) -> {
+                if (e != null) {
+                    VcxException ex = (VcxException) e;
+                    ex.printStackTrace();
+                    Log.e(TAG, "vcxConnectionCreate - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "vcxConnectionCreate - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
     public void deleteConnection(int connectionHandle, Promise promise) {
         try {
             ConnectionApi.deleteConnection(connectionHandle).whenComplete((result, t) -> {
@@ -735,34 +756,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         }
     }
 
-//     @ReactMethod
-//     public void vcxConnectionAcceptConnectionInvite(String invitationId,
-//                                                     String inviteDetails,
-//                                                     String connectionOptions,
-//                                                     Promise promise) {
-//         try {
-//             ConnectionApi.vcxConnectionAcceptConnectionInvite(
-//                     String invitationId,
-//                     String inviteDetails,
-//                     String connectionOptions).exceptionally((t) -> {
-//                 VcxException ex = (VcxException) t;
-//                 ex.printStackTrace();
-//                 Log.e(TAG, "vcxConnectionAcceptConnectionInvite - Error: ", ex);
-//                 promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-//                 return -1;
-//             }).thenAccept(result -> {
-//                 Log.e(TAG, ">>>><<<< got result back");
-//                 if (result != -1) {
-//                     BridgeUtils.resolveIfValid(promise, result);
-//                 }
-//             });
-//         } catch(VcxException e) {
-//             e.printStackTrace();
-//             Log.e(TAG, "vcxConnectionAcceptConnectionInvite - Error: ", e);
-//             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-//         }
-//     }
-
     @ReactMethod
     public void connectionSendPing(int connectionHandle, String comment, Promise promise) {
         try {
@@ -874,6 +867,27 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             Log.e(TAG, "vcxConnectionGetProblemReport - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
 
+        }
+    }
+
+    @ReactMethod
+    public void getRedirectDetails(int connectionHandle, Promise promise) {
+        Log.d(TAG, "getRedirectDetails()");
+
+        try {
+            ConnectionApi.vcxConnectionGetRedirectDetails(connectionHandle).exceptionally((e) -> {
+                VcxException ex = (VcxException) e;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxConnectionGetRedirectDetails - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "getRedirectDetails - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
 
@@ -1154,6 +1168,26 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod
+    public void credentialGetOffers(int connectionHandle, Promise promise) {
+        try {
+            CredentialApi.credentialGetOffers(connectionHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "connectionHandle - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                Log.e(TAG, ">>>><<<< got result back");
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "connectionHandle - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
     /*
      * Library API
      */
@@ -1256,7 +1290,7 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     /*
-     * Proof
+     * DisclosedProof
      */
     @ReactMethod
     public void proofRetrieveCredentials(int proofHandle, Promise promise) {
@@ -1506,6 +1540,27 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         } catch(VcxException e) {
             e.printStackTrace();
             Log.e(TAG, "proofDeclineRequest - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void proofGetRequests(int connectionHandle, Promise promise) {
+        Log.d(TAG, "proofGetRequests()");
+
+        try {
+            DisclosedProofApi.proofGetRequests(connectionHandle).exceptionally((t)-> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "proofGetRequests - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "proofGetRequests - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
@@ -2076,106 +2131,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     /*
      * Utils and secondary methods API
      */
-    @ReactMethod
-    public void vcxAcceptInvitation(int connectionHandle, String connectionType, Promise promise) {
-        Log.d(TAG, "acceptInvitation()");
-        try {
-            ConnectionApi.vcxAcceptInvitation(connectionHandle, connectionType).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "vcxAcceptInvitation - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxAcceptInvitation - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void generateProof(String proofRequestId, String requestedAttrs, String requestedPredicates,
-            String revocationInterval, String proofName, Promise promise) {
-        try {
-            ProofApi.proofCreate(proofRequestId, requestedAttrs, requestedPredicates, revocationInterval, proofName).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "proofCreate - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return -1;
-            }).thenAccept(result -> {
-                if (result != -1) {
-                    BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "connectionGetState - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void backupWallet(String documentDirectory, String encryptionKey, String agencyConfig, Promise promise) {
-        // TODO: Remove this file, this is a dummy file, testing for backup the wallet
-        String fileName = "backup.txt";
-        File file = new File(documentDirectory, fileName);
-        String contentToWrite = "Dummy Content";
-        try (FileWriter fileWriter = new FileWriter(file)) {
-            fileWriter.append(contentToWrite);
-            fileWriter.flush();
-        } catch (IOException e) {
-            promise.reject(e);
-        }
-
-        // convert the file to zip
-        String inputDir = documentDirectory + "/" + fileName;
-        String zipPath = documentDirectory + "/backup.zip";
-        try (FileOutputStream dest = new FileOutputStream(zipPath);
-                ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(dest));
-                FileInputStream fi = new FileInputStream(inputDir);
-                BufferedInputStream origin = new BufferedInputStream(fi);) {
-            byte data[] = new byte[BUFFER];
-            // fileName will be the wallet filename
-            ZipEntry entry = new ZipEntry(fileName);
-            out.putNextEntry(entry);
-            int count;
-            while ((count = origin.read(data, 0, BUFFER)) != -1) {
-                out.write(data, 0, count);
-            }
-            out.closeEntry();
-            promise.resolve(zipPath);
-        } catch (IOException e) {
-            promise.reject(e);
-        }
-    }
-
-    private static void requestPermission(final Context context) {
-        if(ActivityCompat.shouldShowRequestPermissionRationale((Activity) context, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-            // Provide an additional rationale to the user if the permission was not granted
-            // and the user would benefit from additional context for the use of the permission.
-            // For example if the user has previously denied the permission.
-
-            new AlertDialog.Builder(context)
-                    .setMessage("permission storage")
-                    .setPositiveButton("positive button", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    ActivityCompat.requestPermissions((Activity) context,
-                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                            RNIndyStaticData.REQUEST_WRITE_EXTERNAL_STORAGE);
-                }
-            }).show();
-
-        } else {
-            // permission has not been granted yet. Request it directly.
-            ActivityCompat.requestPermissions((Activity)context,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    RNIndyStaticData.REQUEST_WRITE_EXTERNAL_STORAGE);
-        }
-    }
-
     private static int getLogLevel(String levelName) {
         if("Error".equalsIgnoreCase(levelName)) {
             return 1;
@@ -2222,7 +2177,7 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public  void encryptVcxLog(String loggerName, String logLevel, String message, String logFilePath, Promise promise) {
+    public  void writeToVcxLog(String loggerName, String logLevel, String message, String logFilePath, Promise promise) {
         VcxApi.logMessage(loggerName, getLogLevel(logLevel), message);
         promise.resolve(0);
     }
@@ -2244,74 +2199,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         }
         promise.resolve(RNIndyStaticData.LOG_FILE_PATH);
 
-    }
-
-    @ReactMethod
-    public  void writeToVcxLog(String loggerName, String logLevel, String message, String logFilePath, Promise promise) {
-        VcxApi.logMessage(loggerName, getLogLevel(logLevel), message);
-        promise.resolve(0);
-    }
-
-    @ReactMethod
-    public void credentialGetOffers(int connectionHandle, Promise promise) {
-        try {
-            CredentialApi.credentialGetOffers(connectionHandle).exceptionally((t) -> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "connectionHandle - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                Log.e(TAG, ">>>><<<< got result back");
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch(VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "connectionHandle - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void proofGetRequests(int connectionHandle, Promise promise) {
-        Log.d(TAG, "proofGetRequests()");
-
-        try {
-            DisclosedProofApi.proofGetRequests(connectionHandle).exceptionally((t)-> {
-                VcxException ex = (VcxException) t;
-                ex.printStackTrace();
-                Log.e(TAG, "proofGetRequests - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch(VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "proofGetRequests - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void getRedirectDetails(int connectionHandle, Promise promise) {
-        Log.d(TAG, "getRedirectDetails()");
-
-        try {
-            ConnectionApi.vcxConnectionGetRedirectDetails(connectionHandle).exceptionally((e) -> {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "vcxConnectionGetRedirectDetails - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "getRedirectDetails - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
     }
 
     @ReactMethod
@@ -2439,27 +2326,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         } catch (VcxException e) {
             e.printStackTrace();
             Log.e(TAG, "vcxFetchPublicEntities - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void createConnection(String sourceId, Promise promise) {
-        Log.d(TAG, "vcxConnectionCreate()");
-        try {
-            ConnectionApi.vcxConnectionCreate(sourceId).whenComplete((result, e) -> {
-                if (e != null) {
-                    VcxException ex = (VcxException) e;
-                    ex.printStackTrace();
-                    Log.e(TAG, "vcxConnectionCreate - Error: ", ex);
-                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                } else {
-                    BridgeUtils.resolveIfValid(promise, result);
-                }
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "vcxConnectionCreate - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }

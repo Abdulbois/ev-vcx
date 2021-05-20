@@ -58,16 +58,10 @@ interface IVerifierGetProofProposal {
   handle: number,
 }
 
-interface IVerifierProofAccepted {
-  handle: number,
-  data: string,
-}
-
 export class Verifier {
   /**
-   * Create a new Proof object that requests a proof for an enterprise
+   * Create a new DisclosedProof object that requests a proof for an enterprise
    *
-   * @param  sourceId             Enterprise's personal identification for the proof, should be unique.
    * @param  requestedAttrs       Describes the list of requested attribute
    *     [{
    *         "name": Optional(string), // attribute name, (case insensitive and ignore spaces)
@@ -102,7 +96,7 @@ export class Verifier {
    * @param  revocationInterval  Optional timestamps to request revocation proof
    * @param  name                label for proof request.
    *
-   * @return                      handle that should be used to perform actions with the Proof object.
+   * @return                      handle that should be used to perform actions with the DisclosedProof object.
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
@@ -122,9 +116,8 @@ export class Verifier {
   }
 
   /**
-   * Create a new Proof object based on the given Presentation Proposal message
+   * Create a new DisclosedProof object based on the given Presentation Proposal message
    *
-   * @param  sourceId             Enterprise's personal identification for the proof, should be unique.
    * @param  presentationProposal Message sent by the Prover to the verifier to initiate a proof presentation process:
    *         {
    *             "@type": "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/present-proof/1.0/propose-presentation",
@@ -155,7 +148,7 @@ export class Verifier {
    *
    * @param  name                 label for proof request.
    *
-   * @return                      handle that should be used to perform actions with the Proof object.
+   * @return                      handle that should be used to perform actions with the DisclosedProof object.
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
@@ -171,16 +164,16 @@ export class Verifier {
   }
 
   /**
-   * Get the current state of the Proof object
-   * Proof states:
+   * Get the current state of the DisclosedProof object
+   * DisclosedProof states:
    *     1 - Initialized
-   *     2 - Proof Request Sent
-   *     3 - Proof Received
-   *     4 - Proof Accepted
+   *     2 - DisclosedProof Request Sent
+   *     3 - DisclosedProof Received
+   *     4 - DisclosedProof Accepted
    *
-   * @param  proofHandle          handle pointing to a Proof object.
+   * @param  handle               handle pointing to a DisclosedProof object.
    *
-   * @return                      the most current state of the Proof object.
+   * @return                      the most current state of the DisclosedProof object.
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
@@ -192,11 +185,11 @@ export class Verifier {
 
   /**
    * Query the agency for the received messages.
-   * Checks for any messages changing state in the Proof object and updates the state attribute.
+   * Checks for any messages changing state in the DisclosedProof object and updates the state attribute.
    *
-   * @param  proofHandle          handle pointing to a Proof object.
+   * @param  handle               handle pointing to a DisclosedProof object.
    *
-   * @return                      the most current state of the Proof object.
+   * @return                      the most current state of the DisclosedProof object.
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
@@ -207,12 +200,12 @@ export class Verifier {
   }
 
   /**
-   * Update the state of the Proof object based on the given message.
+   * Update the state of the DisclosedProof object based on the given message.
    *
-   * @param  proofHandle          handle pointing to a Proof object.
-   * @param  message              message to process for any Proof state transitions.
+   * @param  handle               handle pointing to a DisclosedProof object.
+   * @param  message              message to process for any DisclosedProof state transitions.
    *
-   * @return                      the most current state of the Proof object.
+   * @return                      the most current state of the DisclosedProof object.
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
@@ -227,9 +220,9 @@ export class Verifier {
   }
 
   /**
-   * Sends a Proof Request message to pairwise connection.
+   * Sends a DisclosedProof Request message to pairwise connection.
    *
-   * @param  proofHandle          handle pointing to a Proof object.
+   * @param  handle               handle pointing to a DisclosedProof object.
    * @param  connectionHandle     handle pointing to a Connection object to use for sending message.
    *
    * @return                      void
@@ -244,9 +237,9 @@ export class Verifier {
   }
 
   /**
-   * Get Proof Request message that can be sent to the pairwise connection.
+   * Get DisclosedProof Request message that can be sent to the pairwise connection.
    *
-   * @param  proofHandle          handle pointing to a Proof object.
+   * @param  handle               handle pointing to a DisclosedProof object.
    *
    * @return                      Proof Request message as JSON string.
    *
@@ -261,9 +254,9 @@ export class Verifier {
   }
 
   /**
-   * Get Proof message that can be sent to the specified connection.
+   * Get DisclosedProof message that can be sent to the specified connection.
    *
-   * @param  proofHandle          handle pointing to a Proof object.
+   * @param  handle               handle pointing to a DisclosedProof object.
    *
    * @return                      Proof message as JSON string.
    *
@@ -280,7 +273,7 @@ export class Verifier {
   /**
    * Get Problem Report message for object in Failed or Rejected state.
    *
-   * @param  proofHandle      handle pointing to Proof state object.
+   * @param  handle           handle pointing to DisclosedProof state object.
    *
    * @return                  Problem Report as JSON string or null
    *
@@ -295,9 +288,9 @@ export class Verifier {
   }
 
   /**
-   * Get JSON string representation of Proof object.
+   * Get JSON string representation of DisclosedProof object.
    *
-   * @param  proofHandle          handle pointing to a Proof object.
+   * @param  proofHandle          handle pointing to a DisclosedProof object.
    *
    * @return                      Proof object as JSON string.
    *
@@ -310,11 +303,11 @@ export class Verifier {
   }
 
   /**
-   * Takes a json string representing a Proof object and recreates an object matching the JSON.
+   * Takes a json string representing a DisclosedProof object and recreates an object matching the JSON.
    *
-   * @param  serializedProof      JSON string representing a Proof object.
+   * @param  serializedProof      JSON string representing a DisclosedProof object.
    *
-   * @return                      handle that should be used to perform actions with the Proof object.
+   * @return                      handle that should be used to perform actions with the DisclosedProof object.
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
@@ -325,10 +318,10 @@ export class Verifier {
   }
 
   /**
-   * Sends a new Proof Request message to pairwise connection.
+   * Sends a new DisclosedProof Request message to pairwise connection.
    * Used after receiving a proposal, to negotiate.
    *
-   * @param  proofHandle          handle pointing to a Proof object.
+   * @param  handle               handle pointing to a DisclosedProof object.
    * @param  connectionHandle     handle pointing to a Connection object to use for sending message.
    * @param  requestedAttrs       Describes the list of requested attribute
    *     [{
@@ -389,13 +382,13 @@ export class Verifier {
   /**
    * Get Proof proposal received.
    *
-   * @param  proofHandle          handle pointing to a Proof object.
+   * @param  handle               handle pointing to a DisclosedProof object.
    *
    * @return                      Proof proposal as JSON string.
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async getProofProposal({
+  public static async getProofProposalMessage({
     handle
   }: IVerifierGetProofProposal): Promise<string> {
     return await RNIndy.proofVerifierGetProofProposal(handle)

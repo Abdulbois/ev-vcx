@@ -24,7 +24,7 @@ export class Library {
    * An example file is at libvcx/sample_config/config.json
    * The list of available options see here: https://github.com/hyperledger/indy-sdk/blob/master/docs/configuration.md
    *
-   * @param  configJson       config as JSON string to use for library initialization
+   * @param  config           config as JSON string to use for library initialization
    *
    * @return                  void
    *
@@ -49,7 +49,7 @@ export class Library {
    *
    * EXPERIMENTAL
    *
-   * @param  poolConfig       the configuration JSON containing pool related settings:
+   * @param  config           the configuration JSON containing pool related settings:
    *                          {
    *                              genesis_path: string - path to pool ledger genesis transactions,
    *                              pool_name: Optional[string] - name of the pool ledger configuration will be created.
@@ -103,7 +103,7 @@ export class Library {
    * An example file is at libvcx/sample_config/config.json
    * The list of available options see here: https://github.com/hyperledger/indy-sdk/blob/master/docs/configuration.md
    *
-   * @param  configJson       config as JSON string to use for library initialization
+   * @param  configPath       config as JSON string to use for library initialization
    *
    * @return                  void
    *

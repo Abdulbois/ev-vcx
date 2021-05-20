@@ -72,6 +72,9 @@ repositories {
     // ref: https://www.baeldung.com/maven-local-repository
     mavenLocal()
     maven {
+        url 'https://evernym.mycloudrepo.io/public/repositories/libvcx-android'
+    }
+    maven {
         // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
         url "$rootDir/../node_modules/react-native/android"
     }
@@ -89,7 +92,7 @@ dependencies {
     implementation "androidx.palette:palette:1.0.0"
     implementation 'net.sourceforge.streamsupport:android-retrofuture:1.6.2'
     implementation 'net.java.dev.jna:jna:4.5.0@aar'
-    implementation 'com.evernym:vcx:0.11.2-d04baab@aar'
+    implementation 'com.evernym:vcx:0.11.2-a84ed7c@aar' // FIXME: Find a way NOT TO FIX VCX version here. `+` or `0.11.2+@aar` returns not a desired one.
     implementation('com.github.bright:slf4android:0.1.6') {
         transitive = true
     }

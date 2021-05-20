@@ -6,7 +6,7 @@ CURDIR=$(pwd)
 
 cd $DIR
 npm i
-npm run compile
+npm run build
 npm pack
 
 rename \s/rn-vcx-wrapper-/rn-vcx-wrapper_/ *.tgz

@@ -1621,7 +1621,7 @@ RCT_EXPORT_METHOD(getConnectionInvite:(NSInteger)connection_handle
 }
 
   /*
-   * Proof Verifier API
+   * DisclosedProof Verifier API
    */
 RCT_EXPORT_METHOD(createProofVerifier:(NSString *) sourceId
                   requestedAttributes:(NSString *)requestedAttributes
