@@ -41,17 +41,4 @@ public class LogFileObserver extends FileObserver {
             this.startWatching();
         }
     }
-
-    // public void stopLogcat() {
-    //     this.process.destroy();
-    // }
-
-    // public void startLogcat(String filename) {
-    //     try {
-    //         String cmd = "logcat -f "+filename;
-    //         this.process = Runtime.getRuntime().exec(cmd);
-    //     } catch (IOException e) {
-    //         e.printStackTrace();
-    //     }
-    // }
 }

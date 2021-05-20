@@ -20,7 +20,6 @@ public class RNIndyStaticData {
     public static int MAX_ALLOWED_FILE_BYTES = 10000000;
     public static LogFileObserver logFileObserver = null;
 
-
     public static void initLoggerFile(final Context context) {
         // create the log file if it does not exist
         try {

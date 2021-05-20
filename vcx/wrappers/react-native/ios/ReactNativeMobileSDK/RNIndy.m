@@ -629,7 +629,6 @@ RCT_EXPORT_METHOD(getProvisionToken: (NSString *)config
 {
   [[[ConnectMeVcx alloc] init] getProvisionToken:config
                                 completion:^(NSError *error, NSString *token) {
-    NSLog(@"CONFIG OBJECT", config);
     if (error != nil && error.code != 0)
     {
       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
@@ -654,8 +653,17 @@ RCT_EXPORT_METHOD(createOneTimeInfoWithToken: (NSString *)config
                                         resolver: (RCTPromiseResolveBlock) resolve
                                         rejecter: (RCTPromiseRejectBlock) reject)
 {
-  resolve([NSString stringWithUTF8String:[[[ConnectMeVcx alloc] init] agentProvisionWithToken:config
-                                        token: token]]);
+  [[[ConnectMeVcx alloc] init] agentProvisionWithToken:config
+                                                 token:token
+                                            completion:^(NSError *error, NSString *config) {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while provision with token token", error);
+    } else {
+      resolve(config);
+    }
+  }];
 }
 
 RCT_EXPORT_METHOD(createConnectionWithInvite: (NSString *)invitationId
@@ -896,7 +904,7 @@ RCT_EXPORT_METHOD(updateWalletItem: (NSString *) key
 
 RCT_EXPORT_METHOD(createWalletBackup: (NSString *) sourceID
                              withKey: (NSString *) backupKey
-                          resolver: (RCTPromiseResolveBlock) resolve
+                          resolver: (RCTbackupWalletBackupPromiseResolveBlock) resolve
                           rejecter: (RCTPromiseRejectBlock) reject)
 {
 
