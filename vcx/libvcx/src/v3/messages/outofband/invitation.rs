@@ -129,9 +129,9 @@ impl Invitation {
     // ensure service keys are naked keys
     pub fn normalize_service_keys(&mut self) -> VcxResult<()> {
         for service in self.service.iter_mut() {
-            Service::transform_key_references_to_keys(&mut service.recipient_keys)?;
+            Service::transform_did_keys_to_naked_keys(&mut service.recipient_keys)?;
             if !service.routing_keys.is_empty(){
-                Service::transform_key_references_to_keys(&mut service.routing_keys)?
+                Service::transform_did_keys_to_naked_keys(&mut service.routing_keys)?
             }
         }
 
@@ -266,5 +266,10 @@ pub mod tests {
         }).to_string();
 
         let _: Invitation = serde_json::from_str(&invite).unwrap();
+    }
+
+    #[test]
+    pub fn test_normalize_service_keys_works() {
+        assert_eq!(_service(), _service_did_formatted().normalize_service_keys())
     }
 }
