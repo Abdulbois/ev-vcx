@@ -421,7 +421,7 @@ pub mod tests {
         String::from("3LYuxJBJkngDbvJj4zjx13DBUdZ2P96eNybwd2n9L9AU")
     }
 
-    pub fn _did_key_1() -> String { String::from("did:key:z2DaR6DBCHc1bopEZ3D33P4arAm8vBeKvd1MrKw6Z7XQHSH")}
+    pub fn _did_key_1() -> String { String::from("did:key:z2Dfi5HdkgAk7Afquv9NLeZVAWFxiWUvPGFFwnZ3w5wjGei")}
 
     pub fn _did_key_2() -> String { String::from("did:key:z2Dh54TGydgWjp4fF5kXcQvAkxk1GW7WKbS8nrBEJaGSHuo")}
 
@@ -707,12 +707,13 @@ pub mod tests {
 
     #[test]
     fn test_transform_did_key_to_did_works() {
-        assert_eq!(_key_1(), Service::transform_did_keys_to_naked_keys(&mut [_did_key_1()]))
+        Service::transform_did_keys_to_naked_keys(&mut *_recipient_did_keys()).unwrap();
+        assert_eq!(_key_1(), _recipient_did_keys()[0])
     }
 
     #[test]
     fn test_extract_key_from_did_key_works() {
-        assert_eq!(_key_1(), Service::extract_key_from_did_key(&_did_key_1()))
+        assert_eq!(_key_1(), Service::extract_key_from_did_key(&_did_key_1()).unwrap())
     }
 
 }

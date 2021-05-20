@@ -175,6 +175,23 @@ pub mod tests {
         }
     }
 
+    pub fn _invitation_did_formatted() -> Invitation {
+        let mut attachment = Attachments::new();
+        attachment.add_base64_encoded_json_attachment(AttachmentId::OutofbandRequest, _attachment()).unwrap();
+
+        Invitation {
+            id: MessageId::id(),
+            label: Some(_label()),
+            goal_code: Some(_goal_code()),
+            goal: Some(_goal()),
+            handshake_protocols: vec![_handshake_protocol()],
+            request_attach: attachment,
+            service: vec![_service_did_formatted()],
+            profile_url: None,
+            public_did: None
+        }
+    }
+
     pub fn _invitation_no_handshake() -> Invitation {
         let mut attachment = Attachments::new();
         attachment.add_base64_encoded_json_attachment(AttachmentId::OutofbandRequest, _attachment()).unwrap();
@@ -270,6 +287,8 @@ pub mod tests {
 
     #[test]
     pub fn test_normalize_service_keys_works() {
-        assert_eq!(_service(), _service_did_formatted().normalize_service_keys())
+        let mut invitation = _invitation_did_formatted();
+        invitation.normalize_service_keys().unwrap();
+        assert_eq!(_service(), invitation.service[0])
     }
 }
