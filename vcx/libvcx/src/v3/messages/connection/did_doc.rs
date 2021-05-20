@@ -4,7 +4,7 @@ use v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
 use error::prelude::*;
 use reqwest::Url;
 use messages::validation::validate_verkey;
-use rust_base58::FromBase58;
+use rust_base58::{FromBase58, ToBase58};
 
 pub const CONTEXT: &str = "https://w3id.org/did/v1";
 pub const KEY_TYPE: &str = "Ed25519VerificationKey2018";
@@ -339,12 +339,10 @@ impl Service {
         // Only ed25519 public keys are currently supported
         if decoded[0] == 0xED {
             // for ed25519, multicodec should be 1 byte long. Dropping this should yield the raw key bytes
-            std::str::from_utf8(&decoded[1..])
-                .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
-                                                format!("Invalid Service Key: unable to extract key bytes from {:?}. Error details: {:?}", decoded, err)))?;
+            return Ok(decoded[1..].to_base58());
         }
-        return Err(VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
-                                      format!("Invalid Service Key: Multicodec identifier is either not supported or not recognized. Expected: 0xED, Found: {}.`", decoded[0])));
+        Err(VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
+                                      format!("Invalid Service Key: Multicodec identifier is either not supported or not recognized. Expected: 0xED, Found: {}.`", decoded[0])))
     }
 
     pub fn transform_key_references_to_keys(keys: &mut [String]) -> VcxResult<()> {
