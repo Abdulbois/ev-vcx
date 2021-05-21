@@ -473,6 +473,7 @@ impl Credential {
         let credential = prover_get_credential(&cred_id)?;
 
         let presentation_proposal = PresentationProposal::default()
+            .set_comment(self.credential_name.clone().unwrap_or(String::from("Credential")))
             .set_presentation_preview(PresentationPreview::for_credential(&credential));
 
         trace!("Credential::get_presentation_proposal_msg <<< presentation_proposal: {:?}", presentation_proposal);

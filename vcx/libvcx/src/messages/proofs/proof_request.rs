@@ -108,6 +108,7 @@ pub struct ProofRequestMessage {
     from_timestamp: Option<u64>,
     to_timestamp: Option<u64>,
     pub thread_id: Option<String>,
+    pub comment: Option<String>,
     #[serde(rename = "~service")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub service: Option<Service>,
@@ -145,6 +146,7 @@ impl ProofRequestMessage {
             from_timestamp: None,
             to_timestamp: None,
             thread_id: None,
+            comment: None,
             service: None,
         }
     }
@@ -302,6 +304,11 @@ impl ProofRequestMessage {
 
     pub fn set_service(&mut self, service: Option<Service>) -> VcxResult<&mut Self> {
         self.service = service;
+        Ok(self)
+    }
+
+    pub fn set_comment(&mut self, comment: Option<String>) -> VcxResult<&mut Self> {
+        self.comment = comment;
         Ok(self)
     }
 
