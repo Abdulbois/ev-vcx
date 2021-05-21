@@ -19,7 +19,6 @@ use utils::error;
 use utils::libindy::signus::create_and_store_my_did;
 use utils::libindy::crypto;
 use utils::json::mapped_key_rewrite;
-use utils::json::KeyMatch;
 
 use v3::handlers::connection::connection::Connection as ConnectionV3;
 use v3::handlers::connection::states::ActorDidExchangeState;
@@ -804,7 +803,7 @@ pub fn create_connection_with_invite(source_id: &str, details: &str) -> VcxResul
         Ok(x) => x,
         Err(_) => {
             // Try converting to abbreviated
-            let details = unabbrv_event_detail(details)?;
+            let details = unabbrv_event_detail(details);
             serde_json::from_value(details)
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidInviteDetail,
                                                   format!("Cannot parse ConnectionInvitationDetails from `invite_details` JSON string. Err: {:?}", err)))?
@@ -1214,7 +1213,7 @@ pub fn get_invite_details(handle: u32, abbreviated: bool) -> VcxResult<String> {
                     true => {
                         let details = serde_json::to_value(&connection.get_invite_detail())
                             .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize InviteDetail. Err: {}", err)))?;
-                        let abbr = abbrv_event_detail(details)?;
+                        let abbr = abbrv_event_detail(details);
                         serde_json::to_string(&abbr)
                             .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize abbreviated InviteDetail. Err: {}", err)))
                     }
@@ -1259,83 +1258,56 @@ pub fn set_redirect_details(handle: u32, redirect_detail: &RedirectDetail) -> Vc
     }).map_err(handle_err)
 }
 
+fn abbrv_event_detail(val: Value) -> Value {
+    mapped_key_rewrite(val, |key: &str, _parent: Option<&str>| {
+        let new_key = match key {
+            "statusCode" => "sc",
+            "connReqId" => "id",
+            "senderDetail" => "s",
+            "name" => "n",
+            "agentKeyDlgProof" => "dp",
+            "agentDID" => "d",
+            "agentDelegatedKey" => "k",
+            "signature" => "s",
+            "DID" => "d",
+            "logoUrl" => "l",
+            "verKey" => "v",
+            "senderAgencyDetail" => "sa",
+            "endpoint" => "e",
+            "targetName" => "t",
+            "statusMsg" => "sm",
+            _ => return None,
+        };
 
-//**********
-// Code to convert InviteDetails to Abbreviated String
-//**********
-
-impl KeyMatch for (String, Option<String>) {
-    fn matches(&self, key: &String, context: &Vec<String>) -> bool {
-        if key.eq(&self.0) {
-            match context.last() {
-                Some(parent) => {
-                    if let Some(ref expected_parent) = self.1 {
-                        return parent.eq(expected_parent);
-                    }
-                }
-                None => {
-                    return self.1.is_none();
-                }
-            }
-        }
-        false
-    }
+        Some(new_key.to_string())
+    })
 }
 
+fn unabbrv_event_detail(val: Value) -> Value {
+    mapped_key_rewrite(val, |key: &str, parent: Option<&str>| {
+        let new_key = match (key, parent) {
+            ("sc", None) => "statusCode",
+            ("id", None) => "connReqId",
+            ("s", None) => "senderDetail",
+            ("n", Some("senderDetail")) => "name",
+            ("dp", Some("senderDetail")) => "agentKeyDlgProof",
+            ("d", Some("agentKeyDlgProof")) => "agentDID",
+            ("k", Some("agentKeyDlgProof")) => "agentDelegatedKey",
+            ("s", Some("agentKeyDlgProof")) => "signature",
+            ("d", Some("senderDetail")) => "DID",
+            ("l", Some("senderDetail")) => "logoUrl",
+            ("v", Some("senderDetail")) => "verKey",
+            ("sa", None) => "senderAgencyDetail",
+            ("d", Some("senderAgencyDetail")) => "DID",
+            ("v", Some("senderAgencyDetail")) => "verKey",
+            ("e", Some("senderAgencyDetail")) => "endpoint",
+            ("t", None) => "targetName",
+            ("sm", None) => "statusMsg",
+            _ => return None,
+        };
 
-lazy_static! {
-    static ref ABBREVIATIONS: Vec<(String, String)> = {
-        vec![
-        ("statusCode".to_string(),          "sc".to_string()),
-        ("connReqId".to_string(),           "id".to_string()),
-        ("senderDetail".to_string(),        "s".to_string()),
-        ("name".to_string(),                "n".to_string()),
-        ("agentKeyDlgProof".to_string(),    "dp".to_string()),
-        ("agentDID".to_string(),            "d".to_string()),
-        ("agentDelegatedKey".to_string(),   "k".to_string()),
-        ("signature".to_string(),           "s".to_string()),
-        ("DID".to_string(), "d".to_string()),
-        ("logoUrl".to_string(), "l".to_string()),
-        ("verKey".to_string(), "v".to_string()),
-        ("senderAgencyDetail".to_string(), "sa".to_string()),
-        ("endpoint".to_string(), "e".to_string()),
-        ("targetName".to_string(), "t".to_string()),
-        ("statusMsg".to_string(), "sm".to_string()),
-        ]
-    };
-}
-
-lazy_static! {
-    static ref UNABBREVIATIONS: Vec<((String, Option<String>), String)> = {
-        vec![
-        (("sc".to_string(), None),                                  "statusCode".to_string()),
-        (("id".to_string(), None),                                  "connReqId".to_string()),
-        (("s".to_string(), None),                                   "senderDetail".to_string()),
-        (("n".to_string(), Some("senderDetail".to_string())),       "name".to_string()),
-        (("dp".to_string(), Some("senderDetail".to_string())),      "agentKeyDlgProof".to_string()),
-        (("d".to_string(), Some("agentKeyDlgProof".to_string())),   "agentDID".to_string()),
-        (("k".to_string(), Some("agentKeyDlgProof".to_string())),   "agentDelegatedKey".to_string()),
-        (("s".to_string(), Some("agentKeyDlgProof".to_string())),   "signature".to_string()),
-        (("d".to_string(), Some("senderDetail".to_string())),       "DID".to_string()),
-        (("l".to_string(), Some("senderDetail".to_string())),       "logoUrl".to_string()),
-        (("v".to_string(), Some("senderDetail".to_string())),       "verKey".to_string()),
-        (("sa".to_string(), None),                                  "senderAgencyDetail".to_string()),
-        (("d".to_string(), Some("senderAgencyDetail".to_string())), "DID".to_string()),
-        (("v".to_string(), Some("senderAgencyDetail".to_string())), "verKey".to_string()),
-        (("e".to_string(), Some("senderAgencyDetail".to_string())), "endpoint".to_string()),
-        (("t".to_string(), None),                                   "targetName".to_string()),
-        (("sm".to_string(), None),                                  "statusMsg".to_string()),
-        ]
-    };
-}
-
-fn abbrv_event_detail(val: Value) -> VcxResult<Value> {
-    mapped_key_rewrite(val, &ABBREVIATIONS)
-}
-
-fn unabbrv_event_detail(val: Value) -> VcxResult<Value> {
-    mapped_key_rewrite(val, &UNABBREVIATIONS)
-        .map_err(|err| err.extend("Cannot unabbreviate event detail"))
+        Some(new_key.to_string())
+    })
 }
 
 impl Into<(Connection, ActorDidExchangeState)> for ConnectionV3 {
@@ -1892,9 +1864,9 @@ pub mod tests {
           "t": "there",
           "sm":"message sent"
         });
-        let processed = abbrv_event_detail(un_abbr.clone()).unwrap();
+        let processed = abbrv_event_detail(un_abbr.clone());
         assert_eq!(processed, abbr);
-        let unprocessed = unabbrv_event_detail(processed).unwrap();
+        let unprocessed = unabbrv_event_detail(processed);
         assert_eq!(unprocessed, un_abbr);
     }
 

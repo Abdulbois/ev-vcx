@@ -417,9 +417,7 @@ pub const C_AGENCY_VERKEY: &'static str = "Bk9wFrud3rz8v3nAFKGib6sQs8zHWzZxfst7W
 // pub const C_AGENCY_DID: &'static str = "TGLBMTcW9fHdkSqown9jD8";
 // pub const C_AGENCY_VERKEY: &'static str = "FKGV9jKvorzKPtPJPNLZkYPkLhiS1VbxdvBgd1RjcQHR";
 
-lazy_static! {
-    static ref TEST_LOGGING_INIT: Once = Once::new();
-}
+static TEST_LOGGING_INIT: Once = Once::new();
 
 fn init_test_logging() {
     TEST_LOGGING_INIT.call_once(|| {
