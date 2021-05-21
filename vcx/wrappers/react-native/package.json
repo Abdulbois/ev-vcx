@@ -26,8 +26,7 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\""
   },
   "peerDependencies": {
-    "react-native": "0.61.4",
-    "uuid": "^8.3.2"
+    "react-native": "0.61.4"
   },
   "devDependencies": {
     "@types/react-native": "^0.64.5",

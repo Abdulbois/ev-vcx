@@ -12,7 +12,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import androidx.core.app.ActivityCompat;
-import androidx.palette.graphics.Palette;
 import android.util.Base64;
 import android.util.Log;
 import android.app.ActivityManager;

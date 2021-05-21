@@ -1,9 +1,9 @@
 import { NativeModules } from 'react-native'
-import { v4 as uuidv4 } from 'uuid'
 
 const { RNIndy } = NativeModules
 
 interface ICreateWithOfferData {
+  sourceID: string
   offer: string
 }
 
@@ -64,6 +64,8 @@ export class Credential {
   /**
    * Create a Credential object that requests and receives a credential for an institution
    *
+   * @param sourceID          unique identification for object
+   *
    * @param  offer            Received Credential Offer message.
    *                          The format of Credential Offer depends on communication method:
    *                          <pre>
@@ -79,8 +81,8 @@ export class Credential {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async createWithOffer({ offer }: ICreateWithOfferData): Promise<number> {
-    return await RNIndy.credentialCreateWithOffer(uuidv4(), offer)
+  public static async createWithOffer({ sourceID, offer }: ICreateWithOfferData): Promise<number> {
+    return await RNIndy.credentialCreateWithOffer(sourceID, offer)
   }
 
   /**

@@ -1,9 +1,9 @@
 import { NativeModules } from 'react-native'
-import { v4 as uuidv4 } from 'uuid'
 
 const { RNIndy } = NativeModules
 
 interface IVerifierCreateData {
+  sourceID: string
   requestedAttrs: string
   requestedPredicates: string
   revocationInterval: string
@@ -11,6 +11,7 @@ interface IVerifierCreateData {
 }
 
 interface IVerifierCreateWithProposalData {
+  sourceID: string
   presentationProposal: string
   name: string
 }
@@ -57,6 +58,8 @@ export class Verifier {
   /**
    * Create a new DisclosedProof object that requests a proof for an enterprise
    *
+   * @param sourceID              unique identification for object
+   *
    * @param  requestedAttrs       Describes the list of requested attribute
    *     [{
    *         "name": Optional(string), // attribute name, (case insensitive and ignore spaces)
@@ -96,16 +99,19 @@ export class Verifier {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async create({
+    sourceID,
     requestedAttrs,
     requestedPredicates,
     revocationInterval,
     name,
   }: IVerifierCreateData): Promise<number> {
-    return await RNIndy.createProofVerifier(uuidv4(), requestedAttrs, requestedPredicates, revocationInterval, name)
+    return await RNIndy.createProofVerifier(sourceID, requestedAttrs, requestedPredicates, revocationInterval, name)
   }
 
   /**
    * Create a new DisclosedProof object based on the given Presentation Proposal message
+   *
+   * @param sourceID              unique identification for object
    *
    * @param  presentationProposal Message sent by the Prover to the verifier to initiate a proof presentation process:
    *         {
@@ -142,10 +148,11 @@ export class Verifier {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async createWithProposal({
+    sourceID,
     presentationProposal,
     name,
   }: IVerifierCreateWithProposalData): Promise<number> {
-    return await RNIndy.createProofVerifierWithProposal(uuidv4(), presentationProposal, name)
+    return await RNIndy.createProofVerifierWithProposal(sourceID, presentationProposal, name)
   }
 
   /**

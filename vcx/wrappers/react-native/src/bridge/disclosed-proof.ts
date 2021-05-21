@@ -1,9 +1,9 @@
 import { NativeModules } from 'react-native'
-import { v4 as uuidv4 } from 'uuid'
 
 const { RNIndy } = NativeModules
 
 interface IProofCreateWithRequestData {
+  sourceID: string
   proofRequest: string
 }
 
@@ -67,6 +67,8 @@ export class DisclosedProof {
   /**
    * Create a DisclosedProof object for fulfilling a corresponding proof request.
    *
+   * @param sourceID          unique identification for object
+   *
    * @param  proofRequest     received DisclosedProof Request message. The format of DisclosedProof Request depends on communication method:
    *                          <pre>
    *                          {@code
@@ -81,8 +83,8 @@ export class DisclosedProof {
    *
    * @throws VcxException     If an exception occurred in Libvcx library.
    */
-  public static async createWithRequest({ proofRequest }: IProofCreateWithRequestData): Promise<number> {
-    return await RNIndy.proofCreateWithRequest(uuidv4(), proofRequest)
+  public static async createWithRequest({ sourceID, proofRequest }: IProofCreateWithRequestData): Promise<number> {
+    return await RNIndy.proofCreateWithRequest(sourceID, proofRequest)
   }
 
   /**

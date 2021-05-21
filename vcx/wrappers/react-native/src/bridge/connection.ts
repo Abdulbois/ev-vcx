@@ -1,9 +1,13 @@
 import { NativeModules } from 'react-native'
-import { v4 as uuidv4 } from 'uuid'
 
 const { RNIndy } = NativeModules
 
-interface IConnectionCreateData {
+interface IConnectionCreateInvitationData {
+  sourceID: string
+}
+
+interface IConnectionCreateOutofbandInvitationData {
+  sourceID: string
   goal?: string | null
   goalCode?: string | null
   handshake: boolean
@@ -11,10 +15,12 @@ interface IConnectionCreateData {
 }
 
 interface IConnectionCreateWithInvitationData {
+  sourceID: string
   invitation: string
 }
 
 interface IConnectionCreateWithOutofbandInvitationData {
+  sourceID: string
   invitation: string
 }
 
@@ -111,12 +117,14 @@ export class Connection {
   /**
    * Create a Connection object that provides a pairwise connection for an institution's user.
    *
+   * @param sourceID      unique identification for object
+   *
    * @return              handle that should be used to perform actions with the Connection object.
    *
    * @throws VcxException If an exception occurred in Libvcx library.
    */
-  public static async createConnectionInvitation(): Promise<number> {
-    return await RNIndy.createConnection(uuidv4())
+  public static async createConnectionInvitation({ sourceID }: IConnectionCreateInvitationData): Promise<number> {
+    return await RNIndy.createConnection(sourceID)
   }
 
   /**
@@ -126,6 +134,8 @@ export class Connection {
    * WARN: `requestAttach` field is not fully supported in the current library state.
    *        You can use simple messages like Question but it cannot be used
    *        for Credential Issuance and Credential Presentation.
+   *
+   * @param sourceID      unique identification for object
    *
    * @param  goalCode     a self-attested code the receiver may want to display to
    *                      the user or use in automatically deciding what to do with the out-of-band message.
@@ -141,18 +151,21 @@ export class Connection {
    * @throws VcxException If an exception occurred in Libvcx library.
    */
   public static async createOutOfBandConnectionInvitation({
+    sourceID,
     goal,
     goalCode,
     handshake,
     attachment,
-  }: IConnectionCreateData): Promise<number> {
-    return await RNIndy.createOutOfBandConnection(uuidv4(), goalCode, goal, handshake, attachment)
+  }: IConnectionCreateOutofbandInvitationData): Promise<number> {
+    return await RNIndy.createOutOfBandConnection(sourceID, goalCode, goal, handshake, attachment)
   }
 
   /**
    * Create a Connection object from the given Invitation that provides a pairwise connection.
    *
-   * @param  invitation A string representing a json object which is provided by an entity that wishes to make a connection.
+   * @param sourceID      unique identification for object
+   *
+   * @param  invitation   A string representing a json object which is provided by an entity that wishes to make a connection.
    *                       The format depends on used communication protocol:
    *                          proprietary:
    *                              "{"targetName": "", "statusMsg": "message created", "connReqId": "mugIkrWeMr", "statusCode": "MS-101", "threadId": null, "senderAgencyDetail": {"endpoint": "http://localhost:8080", "verKey": "key", "DID": "did"}, "senderDetail": {"agentKeyDlgProof": {"agentDID": "8f6gqnT13GGMNPWDa2TRQ7", "agentDelegatedKey": "5B3pGBYjDeZYSNk9CXvgoeAAACe2BeujaAkipEC7Yyd1", "signature": "TgGSvZ6+/SynT3VxAZDOMWNbHpdsSl8zlOfPlcfm87CjPTmC/7Cyteep7U3m9Gw6ilu8SOOW59YR1rft+D8ZDg=="}, "publicDID": "7YLxxEfHRiZkCMVNii1RCy", "name": "Faber", "logoUrl": "http://robohash.org/234", "verKey": "CoYZMV6GrWqoG9ybfH3npwH3FnWPcHmpWYUF8n172FUx", "DID": "Ney2FxHT4rdEyy6EDCCtxZ"}}"
@@ -163,8 +176,8 @@ export class Connection {
    *
    * @throws VcxException  If an exception occurred in Libvcx library.
    */
-  public static async createWithInvitation({ invitation }: IConnectionCreateWithInvitationData): Promise<number> {
-    return await RNIndy.createConnectionWithInvite(uuidv4(), invitation)
+  public static async createWithInvitation({ sourceID, invitation }: IConnectionCreateWithInvitationData): Promise<number> {
+    return await RNIndy.createConnectionWithInvite(sourceID, invitation)
   }
 
   /**
@@ -180,6 +193,8 @@ export class Connection {
    *
    * WARN: The user has to analyze the value of "request~attach" field yourself and
    *       create/handle the correspondent state object or send a reply once the connection is established.
+   *
+   * @param sourceID       unique identification for object
    *
    * @param  invitation    A JSON string representing Out-of-Band Invitation provided by an entity that wishes interaction.
    *                  {
@@ -220,9 +235,10 @@ export class Connection {
    * @throws VcxException  If an exception occurred in Libvcx library.
    */
   public static async createWithOutofbandInvitation({
+    sourceID,
     invitation,
   }: IConnectionCreateWithOutofbandInvitationData): Promise<number> {
-    return await RNIndy.createConnectionWithOutofbandInvite(uuidv4(), invitation)
+    return await RNIndy.createConnectionWithOutofbandInvite(sourceID, invitation)
   }
 
   /**

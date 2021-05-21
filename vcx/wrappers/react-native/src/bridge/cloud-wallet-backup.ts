@@ -1,9 +1,9 @@
 import { NativeModules } from 'react-native'
-import { v4 as uuidv4 } from 'uuid'
 
 const { RNIndy } = NativeModules
 
 interface IWalletCreateBackupData {
+  sourceID: string
   backupKey: string
 }
 
@@ -37,15 +37,15 @@ export class CloudWalletBackup {
   /**
    * Create a Wallet Backup object that provides a Cloud wallet backup and provision's backup protocol with Agent
    *
-   * @param sourceID        institution's personal identification for the user
+   * @param sourceID        unique identification for object
    * @param backupKey       String representing the User's Key for securing (encrypting) the exported Wallet.
    *
    * @return                handle that should be used to perform actions with the WalletBackup object.
    *
    * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
    */
-  public static async create({ backupKey }: IWalletCreateBackupData): Promise<number> {
-    return await RNIndy.createWalletBackup(uuidv4(), backupKey)
+  public static async create({ sourceID, backupKey }: IWalletCreateBackupData): Promise<number> {
+    return await RNIndy.createWalletBackup(sourceID, backupKey)
   }
 
   /**
