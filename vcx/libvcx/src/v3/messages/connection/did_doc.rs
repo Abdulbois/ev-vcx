@@ -707,8 +707,9 @@ pub mod tests {
 
     #[test]
     fn test_transform_did_key_to_did_works() {
-        Service::transform_did_keys_to_naked_keys(&mut *_recipient_did_keys()).unwrap();
-        assert_eq!(_key_1(), _recipient_did_keys()[0])
+        let mut test_keys = _recipient_did_keys();
+        Service::transform_did_keys_to_naked_keys(&mut test_keys).unwrap();
+        assert_eq!(_key_1(), test_keys[0])
     }
 
     #[test]
