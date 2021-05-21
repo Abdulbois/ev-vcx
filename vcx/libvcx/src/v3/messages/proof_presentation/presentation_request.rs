@@ -33,6 +33,11 @@ impl PresentationRequest {
         self
     }
 
+    pub fn set_opt_comment(mut self, comment: Option<String>) -> Self {
+        self.comment = comment;
+        self
+    }
+
     pub fn set_comment(mut self, comment: String) -> Self {
         self.comment = Some(comment);
         self
@@ -74,6 +79,7 @@ impl TryInto<PresentationRequest> for ProofRequestMessage {
         let presentation_request = PresentationRequest::create()
             .set_id(self.thread_id.unwrap_or_default())
             .set_request_presentations_attach(&self.proof_request_data)?
+            .set_opt_comment(self.comment.clone())
             .set_service(self.service);
 
         Ok(presentation_request)
@@ -94,6 +100,7 @@ impl TryInto<ProofRequestMessage> for PresentationRequest {
             .type_version("1.0")?
             .proof_data_version("0.1")?
             .set_thread_id(thid)?
+            .set_comment(self.comment.clone())?
             .set_service(self.service)?
             .clone();
 
