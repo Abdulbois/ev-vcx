@@ -4,67 +4,60 @@ import { v4 as uuidv4 } from 'uuid'
 const { RNIndy } = NativeModules
 
 interface ICreateWithOfferData {
-  offer: string,
+  offer: string
 }
 
 interface IGetOffersData {
-  connectionHandle: number,
+  connectionHandle: number
 }
 
 interface ICredentialGetStateData {
-  handle: number,
+  handle: number
 }
 
 interface ICredentialUpdateStateData {
-  handle: number,
+  handle: number
 }
 
 interface ICredentialUpdateStateWithMessageData {
-  handle: number,
-  message: string,
+  handle: number
+  message: string
 }
 
 interface ICredentialSendRequestData {
-  handle: number,
-  connectionHandle: number,
-  paymentHandle?: number,
+  handle: number
+  connectionHandle: number
+  paymentHandle?: number
 }
 
 interface ICredentialGetCredentialMessageData {
-  handle: number,
+  handle: number
 }
 
 interface ICredentialRejectData {
-  handle: number,
-  connectionHandle: number,
-  comment?: string | undefined | number,
+  handle: number
+  connectionHandle: number
+  comment?: string | undefined | number
 }
 
 interface ICredentialDeleteData {
-  handle: number,
+  handle: number
 }
 
 interface ICredentialGetPresentationProposalData {
-  handle: number,
+  handle: number
 }
 
 interface ICredentialSerializeData {
-  handle: number,
+  handle: number
 }
 
 interface ICredentialDeserializeData {
-  serialized: string,
-}
-
-interface ICredentialGetRequestMsg {
-  handle: number,
-  myPwDid: string,
-  theirPwDid: string,
-  paymentHandle: number,
+  serialized: string
 }
 
 interface ICredentialGetProblemReport {
-  handle: number,
+  handle: number
 }
 
 export class Credential {
@@ -76,7 +69,7 @@ export class Credential {
    *                          <pre>
    *                          {@code
    *                              proprietary:
-     *                                      "[{"msg_type": "CREDENTIAL_OFFER","version": "0.1","to_did": "...","from_did":"...","credential": {"account_num": ["...."],"name_on_account": ["Alice"]},"schema_seq_no": 48,"issuer_did": "...","credential_name": "Account Certificate","credential_id": "3675417066","msg_ref_id": "ymy5nth"}]"
+   *                                      "[{"msg_type": "CREDENTIAL_OFFER","version": "0.1","to_did": "...","from_did":"...","credential": {"account_num": ["...."],"name_on_account": ["Alice"]},"schema_seq_no": 48,"issuer_did": "...","credential_name": "Account Certificate","credential_id": "3675417066","msg_ref_id": "ymy5nth"}]"
    *                              aries:
    *                                      "{"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/offer-credential", "@id":"<uuid-of-offer-message>", "comment":"somecomment", "credential_preview":<json-ldobject>, "offers~attach":[{"@id":"libindy-cred-offer-0", "mime-type":"application/json", "data":{"base64":"<bytesforbase64>"}}]}"
    *                          }
@@ -86,13 +79,8 @@ export class Credential {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async createWithOffer({
-    offer,
-  }: ICreateWithOfferData): Promise<number> {
-    return await RNIndy.credentialCreateWithOffer(
-      uuidv4(),
-      offer,
-    )
+  public static async createWithOffer({ offer }: ICreateWithOfferData): Promise<number> {
+    return await RNIndy.credentialCreateWithOffer(uuidv4(), offer)
   }
 
   /**
@@ -106,9 +94,7 @@ export class Credential {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async getOffers({ connectionHandle }: IGetOffersData): Promise<string> {
-    return await RNIndy.credentialGetOffers(
-      connectionHandle,
-    )
+    return await RNIndy.credentialGetOffers(connectionHandle)
   }
 
   /**
@@ -125,9 +111,7 @@ export class Credential {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async getState({ handle }: ICredentialUpdateStateData): Promise<number> {
-    return await RNIndy.getClaimOfferState(
-      handle,
-    )
+    return await RNIndy.getClaimOfferState(handle)
   }
 
   /**
@@ -142,9 +126,7 @@ export class Credential {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async updateState({ handle }: ICredentialGetStateData): Promise<number> {
-    return await RNIndy.updateClaimOfferState(
-      handle,
-    )
+    return await RNIndy.updateClaimOfferState(handle)
   }
 
   /**
@@ -161,10 +143,7 @@ export class Credential {
     handle,
     message,
   }: ICredentialUpdateStateWithMessageData): Promise<number> {
-    return await RNIndy.updateClaimOfferStateWithMessage(
-      handle,
-      message,
-    )
+    return await RNIndy.updateClaimOfferStateWithMessage(handle, message)
   }
 
   /**
@@ -183,11 +162,7 @@ export class Credential {
     connectionHandle,
     paymentHandle,
   }: ICredentialSendRequestData): Promise<void> {
-    return await RNIndy.sendClaimRequest(
-      handle,
-      connectionHandle,
-      paymentHandle,
-    )
+    return await RNIndy.sendClaimRequest(handle, connectionHandle, paymentHandle)
   }
 
   /**
@@ -205,16 +180,8 @@ export class Credential {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async reject({
-    handle,
-    connectionHandle,
-    comment,
-  }: ICredentialRejectData): Promise<void> {
-    return await RNIndy.credentialReject(
-      handle,
-      connectionHandle,
-      comment,
-    )
+  public static async reject({ handle, connectionHandle, comment }: ICredentialRejectData): Promise<void> {
+    return await RNIndy.credentialReject(handle, connectionHandle, comment)
   }
 
   /**
@@ -226,38 +193,8 @@ export class Credential {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async delete({
-    handle,
-  }: ICredentialDeleteData): Promise<void> {
-    return await RNIndy.deleteCredential(
-      handle,
-    )
-  }
-
-  /**
-   * Approves the Credential Offer and gets the Credential Request message that can be sent to the specified connection
-   *
-   * @param  handle               handle pointing to a Credential object.
-   * @param  myPwDid              pairwise DID used for Connection.
-   * @param  theirPwDid           pairwise DID of the remote side used for Connection.
-   * @param  paymentHandle        deprecated parameter (use 0).
-   *
-   * @return                      Credential Request message as JSON string.
-   *
-   * @throws VcxException         If an exception occurred in Libvcx library.
-   */
-  public static async getRequestMessage({
-    handle,
-    myPwDid,
-    theirPwDid,
-    paymentHandle,
-  }: ICredentialGetRequestMsg): Promise<string> {
-    return await RNIndy.credentialGetRequestMsg(
-      handle,
-      myPwDid,
-      theirPwDid,
-      paymentHandle
-    )
+  public static async delete({ handle }: ICredentialDeleteData): Promise<void> {
+    return await RNIndy.deleteCredential(handle)
   }
 
   /**
@@ -269,12 +206,8 @@ export class Credential {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async getCredentialMessage({
-    handle,
-  }: ICredentialGetCredentialMessageData): Promise<string> {
-    return await RNIndy.getClaimVcx(
-      handle,
-    )
+  public static async getCredentialMessage({ handle }: ICredentialGetCredentialMessageData): Promise<string> {
+    return await RNIndy.getClaimVcx(handle)
   }
 
   /**
@@ -296,9 +229,7 @@ export class Credential {
   public static async getPresentationProposalMessage({
     handle,
   }: ICredentialGetPresentationProposalData): Promise<string> {
-    return await RNIndy.credentialGetPresentationProposal(
-      handle,
-    )
+    return await RNIndy.credentialGetPresentationProposal(handle)
   }
 
   /**
@@ -310,12 +241,8 @@ export class Credential {
    *
    * @throws VcxException     If an exception occurred in Libvcx library.
    */
-  public static async getProblemReportMessage({
-    handle,
-  }: ICredentialGetProblemReport): Promise<string> {
-    return await RNIndy.connectionGetProblemReport(
-      handle,
-    )
+  public static async getProblemReportMessage({ handle }: ICredentialGetProblemReport): Promise<string> {
+    return await RNIndy.connectionGetProblemReport(handle)
   }
 
   /**
@@ -328,9 +255,7 @@ export class Credential {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async serialize({ handle }: ICredentialSerializeData): Promise<string> {
-    return await RNIndy.serializeClaimOffer(
-      handle,
-    )
+    return await RNIndy.serializeClaimOffer(handle)
   }
 
   /**
@@ -343,8 +268,6 @@ export class Credential {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async deserialize({ serialized }: ICredentialDeserializeData): Promise<number> {
-    return await RNIndy.deserializeClaimOffer(
-      serialized,
-    )
+    return await RNIndy.deserializeClaimOffer(serialized)
   }
 }

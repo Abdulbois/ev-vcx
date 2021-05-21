@@ -3,63 +3,30 @@ import { NativeModules } from 'react-native'
 const { RNIndy } = NativeModules
 
 interface ISetActiveTxnAuthorAgreementMetaData {
-  text: string,
-  version: string,
-  taaDigest: string,
-  mechanism: string,
-  timestamp: number,
+  text: string
+  version: string
+  taaDigest: string
+  mechanism: string
+  timestamp: number
 }
 
 interface IGetAcceptanceMechanismsData {
-  submitterDid: string,
-  timestamp: number,
-  version: string,
+  submitterDid: string
+  timestamp: number
+  version: string
 }
 
 interface IAppendTxnAuthorAgreementData {
-  requestJson: string,
-  text: string,
-  version: string,
-  taaDigest: string,
-  mechanism: string,
-  timestamp: number,
+  requestJson: string
+  text: string
+  version: string
+  taaDigest: string
+  mechanism: string
+  timestamp: number
 }
 
 interface IGetRequestRedirectionUrlData {
-  url: string,
-}
-
-interface IAddTxnAuthorAgreement {
-  submitterDid: string,
-  text: string,
-  version: string,
-}
-
-interface IAddAcceptanceMechanisms {
-  submitterDid: string,
-  aml: string,
-  version: string,
-  amlContext: string,
-}
-
-interface IAnonDecrypt {
-  handle: number,
-  recipientVk: string,
-  encryptedMsg: string,
-}
-
-interface ISignDataResult {
-  data: string,
-  signature: string,
-}
-
-interface IVcxGetRequestPrice {
-  config: string,
-  requesterInfoJson: string
-}
-
-interface IVcxEndorseTransaction {
-  requesterInfoJson: string
+  url: string
 }
 
 export class Utils {
@@ -106,11 +73,7 @@ export class Utils {
     timestamp,
     version,
   }: IGetAcceptanceMechanismsData): Promise<string> {
-    return await RNIndy.getAcceptanceMechanisms(
-      submitterDid,
-      timestamp,
-      version,
-    )
+    return await RNIndy.getAcceptanceMechanisms(submitterDid, timestamp, version)
   }
 
   /**
@@ -133,13 +96,7 @@ export class Utils {
     mechanism,
     timestamp,
   }: ISetActiveTxnAuthorAgreementMetaData): Promise<string> {
-    return await RNIndy.setActiveTxnAuthorAgreementMeta(
-      text,
-      version,
-      taaDigest,
-      mechanism,
-      timestamp
-    )
+    return await RNIndy.setActiveTxnAuthorAgreementMeta(text, version, taaDigest, mechanism, timestamp)
   }
 
   /**
@@ -172,14 +129,7 @@ export class Utils {
     mechanism,
     timestamp,
   }: IAppendTxnAuthorAgreementData): Promise<string> {
-    return await RNIndy.appendTxnAuthorAgreement(
-      requestJson,
-      text,
-      version,
-      taaDigest,
-      mechanism,
-      timestamp
-    )
+    return await RNIndy.appendTxnAuthorAgreement(requestJson, text, version, taaDigest, mechanism, timestamp)
   }
 
   /**
@@ -202,141 +152,8 @@ export class Utils {
     return await RNIndy.fetchPublicEntities()
   }
 
-  public static async getRequestRedirectionUrl({
-    url,
-  }: IGetRequestRedirectionUrlData): Promise<string> {
-    return await RNIndy.getRequestRedirectionUrl(
-      url,
-    )
-  }
-
-  /**
-   * Builds a TXN_AUTHR_AGRMT request. Request to add a new version of Transaction Author Agreement to the ledger.
-   *
-   * EXPERIMENTAL
-   *
-   * @param submitterDid DID of the request sender.
-   * @param text -  a content of the TTA.
-   * @param version -  a version of the TTA (unique UTF-8 string).
-   *
-   * @return A future resolving to a request result as json.
-   * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
-   */
-  public static async addTxnAuthorAgreement({
-    submitterDid,
-    text,
-    version,
-  }: IAddTxnAuthorAgreement): Promise<string> {
-    return await RNIndy.addTxnAuthorAgreement(
-      submitterDid,
-      text,
-      version,
-    )
-  }
-
-  /**
-   * Builds a SET_TXN_AUTHR_AGRMT_AML request. Request to add a new list of acceptance mechanisms for transaction author agreement.
-   * Acceptance Mechanism is a description of the ways how the user may accept a transaction author agreement.
-   *
-   * EXPERIMENTAL
-   *
-   * @param submitterDid DID of the request sender.
-   * @param aml - a set of new acceptance mechanisms:
-   * <pre>
-   * {@code
-   * {
-   *     "<acceptance mechanism label 1>": { acceptance mechanism description 1},
-   *     "<acceptance mechanism label 2>": { acceptance mechanism description 2},
-   *     ...
-   * }
-   * }
-   * </pre>
-   *
-   * @param version - a version of new acceptance mechanisms. (Note: unique on the Ledger).
-   * @param amlContext - (Optional) common context information about acceptance mechanisms (may be a URL to external resource).
-   *
-   * @return A future resolving to a request result as json.
-   * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
-   */
-  public static async addAcceptanceMechanisms({
-    submitterDid,
-    aml,
-    version,
-    amlContext,
-  }: IAddAcceptanceMechanisms): Promise<string> {
-    return await RNIndy.addAcceptanceMechanisms(
-      submitterDid,
-      aml,
-      version,
-      amlContext
-    )
-  }
-
-  /**
-   * Decrypts a message by anonymous-encryption scheme.
-   *
-   * Sealed boxes are designed to anonymously send messages to a Recipient given its public key.
-   * Only the Recipient can decrypt these messages, using its private key.
-   * While the Recipient can verify the integrity of the message, it cannot verify the identity of the Sender.
-   *
-   * Note to use DID keys with this function you can call indy_key_for_did to get key id (verkey)
-   * for specific DID.
-   *
-   * @param walletHandle       The walletHandle.
-   * @param recipientVk  Id (verkey) of my key. The key must be created by calling createKey or createAndStoreMyDid
-   * @param encryptedMsg encrypted message
-   * @return A future that resolves to a decrypted message as an array of bytes.
-   * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
-   */
-  public static async anonDecrypt({
-    handle,
-    recipientVk,
-    encryptedMsg,
-  }: IAnonDecrypt): Promise<ISignDataResult> {
-    return await RNIndy.anonDecrypt(
-      handle,
-      recipientVk,
-      encryptedMsg,
-    )
-  }
-
-  /**
-   * Gets minimal request price for performing an action in case the requester can perform this action.
-   *
-   * @param  actionJson       definition of action to get price
-   *                          {
-   *                              "auth_type": ledger transaction alias or associated value,
-   *                              "auth_action": type of an action.,
-   *                              "field": transaction field,
-   *                              "old_value": (Optional) old value of a field, which can be changed to a new_value (mandatory for EDIT action),
-   *                              "new_value": (Optional) new value that can be used to fill the field,
-   *                          }
-   * @param  requesterInfoJson  (Optional) request definition ( otherwise context info will be used).
-   *                          {
-   *                              "role": string - role of a user which can sign transaction.
-   *                              "count": string - count of users.
-   *                              "is_owner": bool - if user is an owner of transaction.
-   *                          }
-   *
-   * @return                 price must be paid to perform the requested action
-   *
-   * @throws VcxException   If an exception occurred in Libvcx library.
-   */
-  public static async vcxGetRequestPrice({ config, requesterInfoJson }: IVcxGetRequestPrice): Promise<number> {
-    return await RNIndy.vcxGetRequestPrice(config, requesterInfoJson)
-  }
-
-  /**
-   * Endorse transaction to the ledger preserving an original author
-   *
-   * @param  transactionJson  transaction to endorse
-   *
-   * @return                  void
-   *
-   * @throws VcxException   If an exception occurred in Libvcx library.
-   */
-  public static async vcxEndorseTransaction({ requesterInfoJson }: IVcxEndorseTransaction): Promise<void> {
-    return await RNIndy.vcxEndorseTransaction(requesterInfoJson)
+  public static async getRequestRedirectionUrl({ url }: IGetRequestRedirectionUrlData): Promise<string> {
+    return await RNIndy.getRequestRedirectionUrl(url)
   }
 
   /**

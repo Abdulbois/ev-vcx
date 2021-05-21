@@ -26,7 +26,6 @@
 
 #import "vcx/vcx.h"
 #import <CommonCrypto/CommonHMAC.h>
-#import "URLSessionWithoutRedirection.h"
 
 @implementation RNIndy
 
@@ -446,12 +445,8 @@ RCT_EXPORT_METHOD(connectionSendMessage: (NSInteger) connectionHandle
   }];
 }
 
-NSString* makeUrlSafe(NSString* base64Encoded) {
+NSString* makeStringUrlSafe(NSString* base64Encoded) {
   return [[base64Encoded stringByReplacingOccurrencesOfString:@"/" withString:@"_"] stringByReplacingOccurrencesOfString:@"+" withString:@"-"];
-}
-
-NSString* makeUrlSafeToNoWrap(NSString* base64Encoded) {
-  return [[base64Encoded stringByReplacingOccurrencesOfString:@"_" withString:@"/"] stringByReplacingOccurrencesOfString:@"-" withString:@"+"];
 }
 
 RCT_EXPORT_METHOD(connectionSignData: (NSInteger) connectionHandle
@@ -476,9 +471,9 @@ RCT_EXPORT_METHOD(connectionSignData: (NSInteger) connectionHandle
       NSString* signature = [signature_raw base64EncodedStringWithOptions:0];
       if ([[base64EncodingOption uppercaseString] isEqualToString:@"URL_SAFE"]) {
         if (encode == YES) {
-          signedData = makeUrlSafe(signedData);
+          signedData = makeStringUrlSafe(signedData);
         }
-        signature = makeUrlSafe(signature);
+        signature = makeStringUrlSafe(signature);
       }
       // since we took the data from JS layer as simple string and
       // then converted that string to Base64 encoded byte[]
@@ -639,32 +634,15 @@ RCT_EXPORT_METHOD(getProvisionToken: (NSString *)config
   }];
 }
 
-RCT_EXPORT_METHOD(createOneTimeInfoSync:(NSString *)config
-                                        resolver: (RCTPromiseResolveBlock) resolve
-                                        rejecter: (RCTPromiseRejectBlock) reject)
-{
-  resolve([NSString stringWithUTF8String:[[[ConnectMeVcx alloc] init] agentProvision:config
-  ]]);
-}
-
-
 RCT_EXPORT_METHOD(createOneTimeInfoWithToken: (NSString *)config
                                         token: (NSString *)token
                                         resolver: (RCTPromiseResolveBlock) resolve
                                         rejecter: (RCTPromiseRejectBlock) reject)
 {
-  [[[ConnectMeVcx alloc] init] agentProvisionWithToken:config
-                                                 token:token
-                                            completion:^(NSError *error, NSString *config) {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while provision with token token", error);
-    } else {
-      resolve(config);
-    }
-  }];
+  resolve([NSString stringWithUTF8String:[[[ConnectMeVcx alloc] init] agentProvisionWithToken:config
+                                        token: token]]);
 }
+
 
 RCT_EXPORT_METHOD(createConnectionWithInvite: (NSString *)invitationId
                                inviteDetails: (NSString *)inviteDetails
@@ -684,7 +662,7 @@ RCT_EXPORT_METHOD(createConnectionWithInvite: (NSString *)invitationId
   }];
 }
 
-RCT_EXPORT_METHOD(createConnectionWithOutOfBandInvite: (NSString *)invitationId
+RCT_EXPORT_METHOD(createConnectionWithOutofbandInvite: (NSString *)invitationId
                                                invite: (NSString *)invite
                                              resolver: (RCTPromiseResolveBlock) resolve
                                              rejecter: (RCTPromiseRejectBlock) reject)
@@ -702,7 +680,7 @@ RCT_EXPORT_METHOD(createConnectionWithOutOfBandInvite: (NSString *)invitationId
   }];
 }
 
-RCT_EXPORT_METHOD(vcxAcceptInvitation: (NSInteger )connectionHandle
+RCT_EXPORT_METHOD(connectionConnect: (NSInteger )connectionHandle
                     connectionType: (NSString *)connectionType
                           resolver: (RCTPromiseResolveBlock) resolve
                           rejecter: (RCTPromiseRejectBlock) reject)
@@ -904,7 +882,7 @@ RCT_EXPORT_METHOD(updateWalletItem: (NSString *) key
 
 RCT_EXPORT_METHOD(createWalletBackup: (NSString *) sourceID
                              withKey: (NSString *) backupKey
-                          resolver: (RCTbackupWalletBackupPromiseResolveBlock) resolve
+                          resolver: (RCTPromiseResolveBlock) resolve
                           rejecter: (RCTPromiseRejectBlock) reject)
 {
 
@@ -1239,39 +1217,6 @@ RCT_EXPORT_METHOD(vcxGetAgentMessages: (NSString *) messageStatus
                           rejecter: (RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] downloadAgentMessages: messageStatus uid_s:uid_s completion:^(NSError *error, NSString *messages) {
-    if (error != nil && error.code !=0) {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occured while getting vcx agent messages", error);
-    } else{
-      resolve(messages);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(vcxGetRequestPrice:(NSString *)config
-                   requesterInfoJson:(NSString *)requesterInfoJson
-                            resolver:(RCTPromiseResolveBlock) resolve
-                            rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] vcxGetRequestPrice:config
-                                   requesterInfoJson:requesterInfoJson
-                                          completion:^(NSError *error) {
-    if (error != nil && error.code !=0) {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occured while getting vcx agent messages", error);
-    } else{
-      resolve(messages);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(vcxEndorseTransaction:(NSString *)config
-                   requesterInfoJson:(NSString *)requesterInfoJson
-                            resolver:(RCTPromiseResolveBlock) resolve
-                            rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] vcxEndorseTransaction:requesterInfoJson
-                                          completion:^(NSError *error) {
     if (error != nil && error.code !=0) {
       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
       reject(indyErrorCode, @"Error occured while getting vcx agent messages", error);
@@ -1682,14 +1627,13 @@ RCT_EXPORT_METHOD(proofVerifierSendRequest:(NSInteger) proofHandle
 {
     [[[ConnectMeVcx alloc] init] proofVerifierSendRequest:proofHandle
                                          connectionHandle:connectionHandle
-                                                     name:name
-                                               completion:^(NSError *error, NSInteger handle) {
+                                               completion:^(NSError *error) {
       if (error != nil && error.code != 0)
       {
         NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
         reject(indyErrorCode, @"Error occurred while creating proof verifier with proposal", error);
       } else {
-        resolve(@(handle));
+          resolve(@{});
       }
     }];
 }
@@ -1740,25 +1684,6 @@ RCT_EXPORT_METHOD(proofVerifierGetState: (NSInteger) proofHandle
       reject(indyErrorCode, @"Error occurred while getting proof verifier state", error);
     } else {
       resolve(@(state));
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(proofVerifierSendRequest: (NSInteger) proofHandle
-                          connectionHandle: (NSInteger) connectionHandle
-                                  resolver: (RCTPromiseResolveBlock) resolve
-                                  rejecter: (RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] proofVerifierSendRequest:proofHandle
-                                       connectionHandle:connectionHandle
-                                             completion:^(NSError *error) {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while sending proof request", error);
-    }
-    else {
-      resolve(@{});
     }
   }];
 }
@@ -1854,31 +1779,17 @@ RCT_EXPORT_METHOD(proofVerifierRequestPresentation:(NSInteger) proofHandle
       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
       reject(indyErrorCode, @"Error occurred while getting proof request message", error);
     } else {
-      resolve(message);
+      resolve(@{});
     }
   }];
 }
 
-RCT_EXPORT_METHOD(proofVerifierGetProofProposal:(NSInteger) proofHandle
-                                  resolver:(RCTPromiseResolveBlock) resolve
-                                  rejecter:(RCTPromiseRejectBlock) reject)
+RCT_EXPORT_METHOD(proofVerifierGetProofProposal:(NSInteger)proofHandle
+                             resolver: (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] proofVerifierGetProofProposalMessage:proofHandle
-                                                         completion:^(SError *error, NSString* message)
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while getting proof request message", error);
-    } else {
-      resolve(message);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(proofVerifierProofRelease:(NSInteger) proofHandle
-{
-  [[[ConnectMeVcx alloc] init] proofVerifierProofRelease:proofHandle
+                                                        completion:^(NSError *error, NSString *message)
   {
     if (error != nil && error.code != 0)
     {
@@ -1922,446 +1833,144 @@ RCT_EXPORT_METHOD(createPairwiseAgent: (RCTPromiseResolveBlock) resolve
   }];
 }
 
-RCT_EXPORT_METHOD(acceptConnectionWithInvite:(NSString *)invitationId
-                               inviteDetails:(NSString *)inviteDetails
-                              connectionType:(NSString *)connectionType
-                              (RCTPromiseResolveBlock) resolve
-                                    rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] acceptConnectionWithInvite:invitationId
-                                            inviteDetails:inviteDetails
-                                           connectionType:connectionType
-                                               completion:^(NSError *error, NSInteger connectionHandle, NSString *serializedConnection)
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
-    } else {
-      resolve(agentInfo);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(connectionRelease:(NSInteger) connectionHandle
-                             (RCTPromiseResolveBlock) resolve
-                             rejecter: (RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] connectionRelease:connectionHandle
-
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
-    } else {
-      resolve(agentInfo);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(connectionSendPing:(VcxHandle)connectionHandle
-                             comment:(NSString *)comment
-                             (RCTPromiseResolveBlock) resolve
-                             rejecter: (RCTPromiseRejectBlock) reject)
+RCT_EXPORT_METHOD(connectionSendPing: (NSInteger) connectionHandle
+                                              comment:(NSString *)comment
+                                             resolver: (RCTPromiseResolveBlock) resolve
+                                             rejecter: (RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] connectionSendPing:connectionHandle
-                            comment:comment
-                            completion:^(NSError *error, NSInteger connectionHandle)
+                                                           comment:comment
+                                                        withCompletion:^(NSError *error)
   {
-    if (error != nil && error.code != 0)
-    {
+    if (error != nil && error.code != 0) {
       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+      reject(indyErrorCode, @"Error occurred while updating proof verifier state", error);
     } else {
-      resolve(agentInfo);
+      resolve(@"{}");
     }
   }];
 }
+//
+//RCT_EXPORT_METHOD(connectionInfo:(NSInteger) connectionHandle
+//                                       resolver:(RCTPromiseResolveBlock) resolve
+//                                       rejecter:(RCTPromiseRejectBlock) reject)
+//{
+//  [[[ConnectMeVcx alloc] init] connectionInfo:connectionHandle
+//                                                         completion:^(NSError *error, NSString* message)
+//  {
+//    if (error != nil && error.code != 0)
+//    {
+//      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+//      reject(indyErrorCode, @"Error occurred while getting connection info", error);
+//    } else {
+//      resolve(message);
+//    }
+//  }];
+//}
 
-RCT_EXPORT_METHOD(connectionSendDiscoveryFeatures:(VcxHandle)connectionHandle
-                             comment:(NSString *)comment
-                             query:(NSString *)query
-                             (RCTPromiseResolveBlock) resolve
-                             rejecter: (RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] connectionSendDiscoveryFeatures:connectionHandle
-                            comment:comment
-                            query:query
-                            completion:^(NSError *error, NSInteger connectionHandle)
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
-    } else {
-      resolve(agentInfo);
-    }
-  }];
-}
 
-RCT_EXPORT_METHOD(connectionGetPwDid:(VcxHandle)connectionHandle
-                             (RCTPromiseResolveBlock) resolve
-                             rejecter: (RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] connectionGetPwDid:connectionHandle
-                            completion:^(NSError *error, NSInteger connectionHandle)
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
-    } else {
-      resolve(agentInfo);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(connectionGetTheirDid:(VcxHandle)connectionHandle
-                             (RCTPromiseResolveBlock) resolve
-                             rejecter: (RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] connectionGetTheirDid:connectionHandle
-                            completion:^(NSError *error, NSInteger connectionHandle)
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
-    } else {
-      resolve(agentInfo);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(connectionInfo:(VcxHandle)connectionHandle
-                             (RCTPromiseResolveBlock) resolve
-                             rejecter: (RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] connectionInfo:connectionHandle
-                            completion:^(NSError *error, NSInteger connectionHandle)
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
-    } else {
-      resolve(agentInfo);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(connectionSendInviteAction:(VcxHandle)connectionHandle
-                             data:(NSString *)data
-                             (RCTPromiseResolveBlock) resolve
-                             rejecter: (RCTPromiseRejectBlock) reject)
+RCT_EXPORT_METHOD(connectionSendInviteAction:(NSInteger) connectionHandle
+                  data:(NSString *)data
+                                       resolver:(RCTPromiseResolveBlock) resolve
+                                       rejecter:(RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] connectionSendInviteAction:connectionHandle
-                            data:data
-                            completion:^(NSError *error, NSString *message)
+                                                     data:data
+                                                         withCompletion:^(NSError *error, NSString* message)
   {
     if (error != nil && error.code != 0)
     {
       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+      reject(indyErrorCode, @"Error occurred while getting connection info", error);
     } else {
-      resolve(agentInfo);
+      resolve(message);
     }
   }];
 }
 
-RCT_EXPORT_METHOD(connectionGetProblemReport:(VcxHandle)connectionHandle
-                             (RCTPromiseResolveBlock) resolve
-                             rejecter: (RCTPromiseRejectBlock) reject)
+RCT_EXPORT_METHOD(connectionGetProblemReport:(NSInteger) connectionHandle
+                                       resolver:(RCTPromiseResolveBlock) resolve
+                                       rejecter:(RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] connectionGetProblemReport:connectionHandle
-                                               completion:^(NSError *error, NSString *message)
+                                                         completion:^(NSError *error, NSString* message)
   {
     if (error != nil && error.code != 0)
     {
       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+      reject(indyErrorCode, @"Error occurred while getting connection info", error);
     } else {
-      resolve(agentInfo);
+      resolve(message);
     }
   }];
 }
 
-RCT_EXPORT_METHOD(credentialCreateWithMsgid:(NSString *)sourceId
-                             credentialHandle:(VcxHandle)credentialHandle
-                             msgId:(NSString *)msgId
-                             (RCTPromiseResolveBlock) resolve
-                             rejecter: (RCTPromiseRejectBlock) reject)
+RCT_EXPORT_METHOD(credentialGetRequestMsg:(NSInteger) connectionHandle
+                        myPwDid:(NSString *)myPwDid
+                     theirPwDid:(NSString *)theirPwDid
+                  paymentHandle:(NSInteger)paymentHandle
+                                       resolver:(RCTPromiseResolveBlock) resolve
+                                       rejecter:(RCTPromiseRejectBlock) reject)
 {
-  [[[ConnectMeVcx alloc] init] credentialCreateWithMsgid:sourceId
-                                        credentialHandle:credentialHandle
-                                                   msgId:msgId
-                                              completion:^(NSError *error, NSInteger credentialHandle, NSString *credentialOffer)
+  [[[ConnectMeVcx alloc] init] connectionGetProblemReport:connectionHandle
+                                                         completion:^(NSError *error, NSString* message)
   {
     if (error != nil && error.code != 0)
     {
       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+      reject(indyErrorCode, @"Error occurred while getting connection info", error);
     } else {
-      resolve(agentInfo);
+      resolve(message);
     }
   }];
 }
 
-RCT_EXPORT_METHOD(credentialGetRequestMsg:(VcxHandle)credentialHandle
-                                  myPwDid:(NSString *)myPwDid
-                               theirPwDid:(NSString *)theirPwDid
-                            paymentHandle:(vcx_payment_handle_t)paymentHandle
-                            (RCTPromiseResolveBlock) resolve
-                                 rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] credentialCreateWithMsgid:credentialHandle
-                                                 myPwDid:myPwDid
-                                              theirPwDid:theirPwDid
-                                           paymentHandle:paymentHandle
-                                              completion:^(NSError *error)
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
-    } else {
-      resolve(agentInfo);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(credentialRelease:(VcxHandle)credentialHandle
-                           (RCTPromiseResolveBlock) resolve
-                           rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] credentialRelease:credentialHandle
-
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
-    } else {
-      resolve(agentInfo);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(credentialGetOffers:(VcxHandle)credentialHandle
-                           (RCTPromiseResolveBlock) resolve
-                             rejecter:(RCTPromiseRejectBlock) reject)
+RCT_EXPORT_METHOD(credentialGetOffers:(NSInteger) credentialHandle
+                                       resolver:(RCTPromiseResolveBlock) resolve
+                                       rejecter:(RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] credentialGetOffers:credentialHandle
-                                        completion:^(NSError *error, NSString *offers)
-
+                                                         completion:^(NSError *error, NSString* offers)
   {
     if (error != nil && error.code != 0)
     {
       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+      reject(indyErrorCode, @"Error occurred while getting connection info", error);
     } else {
-      resolve(agentInfo);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(credentialAcceptCredentialOffer:(NSString *)sourceId
-                                            offer:(NSString *)credentialOffer
-                                 connectionHandle:(VcxHandle)connectionHandle
-                                 (RCTPromiseResolveBlock) resolve
-                                         rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] credentialAcceptCredentialOffer:sourceId
-                                                        offer:credentialOffer
-                                             connectionHandle:connectionHandle
-                                                   completion:^(NSError *error, NSInteger credentialHandle, NSString *credentialSerialized)
-
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
-    } else {
-      resolve(agentInfo);
+      resolve(offers);
     }
   }];
 }
 
 RCT_EXPORT_METHOD(credentialGetProblemReport:(NSInteger) credentialHandle
-                                    (RCTPromiseResolveBlock) resolve
-                                    rejecter:(RCTPromiseRejectBlock) reject)
+                                       resolver:(RCTPromiseResolveBlock) resolve
+                                       rejecter:(RCTPromiseRejectBlock) reject)
 {
   [[[ConnectMeVcx alloc] init] credentialGetProblemReport:credentialHandle
-                                                   completion:^(NSError *error, NSString *message)
-
+                                                         completion:^(NSError *error, NSString* message)
   {
     if (error != nil && error.code != 0)
     {
       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
+      reject(indyErrorCode, @"Error occurred while getting connection info", error);
     } else {
-      resolve(agentInfo);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(addTxnAuthorAgreement:(NSString *)submitterDid
-                                   text:(NSString *)text
-                                version:(NSString *)version
-                                (RCTPromiseResolveBlock) resolve
-                               rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] addTxnAuthorAgreement:submitterDid
-                                                     text:text
-                                                  version:version
-                                               completion:^(NSError *error)
-
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
-    } else {
-      resolve(agentInfo);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(addAcceptanceMechanisms:(NSString *)submitterDid
-                                      aml:(NSString *)aml
-                                  version:(NSString *)version
-                               amlContext:(NSString *)amlContext
-                               (RCTPromiseResolveBlock) resolve
-                                 rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] addAcceptanceMechanisms:submitterDid
-                                                   aml:aml
-                                               version:version
-                                            amlContext:amlContext
-                                            completion:^(NSError *error)
-
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
-    } else {
-      resolve(agentInfo);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(anonDecrypt:(VcxHandle)walletHandle
-                  recipientVk:(NSString *)recipientVk
-                 encryptedMsg:(NSData *)encryptedMsg
-                 (RCTPromiseResolveBlock) resolve
-                     rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] anonDecrypt:walletHandle
-                               recipientVk:recipientVk
-                              encryptedMsg:encryptedMsg
-                                amlContext:amlContext
-                                completion:^(NSError *error)
-
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while creating pairwise agent", error);
-    } else {
-      resolve(agentInfo);
+      resolve(message);
     }
   }];
 }
 
 RCT_EXPORT_METHOD(healthCheck:(RCTPromiseResolveBlock) resolve
-                     rejecter:(RCTPromiseRejectBlock) reject)
+                                       rejecter:(RCTPromiseRejectBlock) reject)
 {
-  [[[ConnectMeVcx alloc] init] healthCheck:^(NSError *error)
+  [[[ConnectMeVcx alloc] init]  healthCheck:^(NSError *error)
   {
-    if (error != nil && error.code != 0) {
+    if (error != nil && error.code != 0)
+    {
       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while rejecting proof", error);
-    }
-    else {
+      reject(indyErrorCode, @"Error occurred while getting connection info", error);
+    } else {
       resolve(@{});
     }
   }];
 }
-
-RCT_EXPORT_METHOD(initWithConfigPath:(NSString *)configPath
-                            (RCTPromiseResolveBlock) resolve
-                            rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] vcx_init:configPath
-                             completion:^(NSError *error)
-  {
-    if (error != nil && error.code != 0) {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while rejecting proof", error);
-    }
-    else {
-      resolve(@{});
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(vcxSetLogMaxLevel:(NSInteger *)maxLvl
-                            (RCTPromiseResolveBlock) resolve
-                            rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] vcxSetLogMaxLevel:maxLvl
-                                      completion:^(NSError *error)
-  {
-    if (error != nil && error.code != 0) {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while rejecting proof", error);
-    }
-    else {
-      resolve(@{});
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(signWithAddress:(NSString *)address
-                            message:(NSData *)message
-                            (RCTPromiseResolveBlock) resolve
-                           rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] signWithAddress:address
-                                       message:message
-                                    completion:^(NSError *error)
-  {
-    if (error != nil && error.code != 0) {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while rejecting proof", error);
-    }
-    else {
-      resolve(@{});
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(verifyWithAddress:(NSString *)address
-                            message:(NSData *)message
-                          signature:(NSData *)signature
-                            (RCTPromiseResolveBlock) resolve
-                           rejecter:(RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] verifyWithAddress:address
-                                         message:message
-                                       signature:signature
-                                      completion:^(NSError *error)
-  {
-    if (error != nil && error.code != 0) {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while rejecting proof", error);
-    }
-    else {
-      resolve(@{});
-    }
-  }];
-}
-
 @end

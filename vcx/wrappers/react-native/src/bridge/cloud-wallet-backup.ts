@@ -4,33 +4,33 @@ import { v4 as uuidv4 } from 'uuid'
 const { RNIndy } = NativeModules
 
 interface IWalletCreateBackupData {
-  backupKey: string,
+  backupKey: string
 }
 
 interface IWalletSendBackupData {
-  handle: number,
-  path: string,
+  handle: number
+  path: string
 }
 
 interface IWalletUpdateBackupStateData {
-  handle: number,
+  handle: number
 }
 
 interface IWalletUpdateBackupStateWithMessageData {
-  handle: number,
-  message: string,
+  handle: number
+  message: string
 }
 
 interface IWalletSerializeBackupData {
-  handle: number,
+  handle: number
 }
 
 interface IWalletDeserializeBackupData {
-  serialized: string,
+  serialized: string
 }
 
 interface IWalletRestoreData {
-  config: string,
+  config: string
 }
 
 export class CloudWalletBackup {
@@ -44,13 +44,8 @@ export class CloudWalletBackup {
    *
    * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
    */
-  public static async create({
-    backupKey,
-  }: IWalletCreateBackupData): Promise<number> {
-    return await RNIndy.createWalletBackup(
-      uuidv4(),
-      backupKey,
-    )
+  public static async create({ backupKey }: IWalletCreateBackupData): Promise<number> {
+    return await RNIndy.createWalletBackup(uuidv4(), backupKey)
   }
 
   /**
@@ -63,14 +58,8 @@ export class CloudWalletBackup {
    *
    * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
    */
-  public static async send({
-    handle,
-    path,
-  }: IWalletSendBackupData): Promise<number> {
-    return await RNIndy.backupWalletBackup(
-      handle,
-      path,
-    )
+  public static async send({ handle, path }: IWalletSendBackupData): Promise<number> {
+    return await RNIndy.backupWalletBackup(handle, path)
   }
 
   /**
@@ -82,12 +71,8 @@ export class CloudWalletBackup {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async updateState({
-    handle,
-  }: IWalletUpdateBackupStateData): Promise<number> {
-    return await RNIndy.updateWalletBackupState(
-      handle,
-    )
+  public static async updateState({ handle }: IWalletUpdateBackupStateData): Promise<number> {
+    return await RNIndy.updateWalletBackupState(handle)
   }
 
   /**
@@ -104,10 +89,7 @@ export class CloudWalletBackup {
     handle,
     message,
   }: IWalletUpdateBackupStateWithMessageData): Promise<number> {
-    return await RNIndy.updateWalletBackupStateWithMessage(
-      handle,
-      message,
-    )
+    return await RNIndy.updateWalletBackupStateWithMessage(handle, message)
   }
 
   /**
@@ -126,12 +108,8 @@ export class CloudWalletBackup {
    *
    * @throws VcxException    If an exception occurred in Libvcx library.
    */
-  public static async restore({
-    config,
-  }: IWalletRestoreData): Promise<number> {
-    return await RNIndy.restoreWallet(
-      config,
-    )
+  public static async restore({ config }: IWalletRestoreData): Promise<number> {
+    return await RNIndy.restoreWallet(config)
   }
 
   /**
@@ -143,12 +121,8 @@ export class CloudWalletBackup {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async serialize({
-    handle,
-  }: IWalletSerializeBackupData): Promise<string> {
-    return await RNIndy.serializeBackupWallet(
-      handle,
-    )
+  public static async serialize({ handle }: IWalletSerializeBackupData): Promise<string> {
+    return await RNIndy.serializeBackupWallet(handle)
   }
 
   /**
@@ -160,11 +134,7 @@ export class CloudWalletBackup {
    *
    * @throws VcxException    If an exception occurred in Libvcx library.
    */
-  public static async deserialize({
-    serialized,
-  }: IWalletDeserializeBackupData): Promise<number> {
-    return await RNIndy.deserializeBackupWallet(
-      serialized,
-    )
+  public static async deserialize({ serialized }: IWalletDeserializeBackupData): Promise<number> {
+    return await RNIndy.deserializeBackupWallet(serialized)
   }
 }

@@ -4,58 +4,53 @@ import { v4 as uuidv4 } from 'uuid'
 const { RNIndy } = NativeModules
 
 interface IVerifierCreateData {
-  requestedAttrs: string,
-  requestedPredicates: string,
-  revocationInterval: string,
-  name: string,
+  requestedAttrs: string
+  requestedPredicates: string
+  revocationInterval: string
+  name: string
 }
 
 interface IVerifierCreateWithProposalData {
-  presentationProposal: string,
-  name: string,
+  presentationProposal: string
+  name: string
 }
 
 interface IVerifierGetStateData {
-  handle: number,
+  handle: number
 }
 
 interface IVerifierUpdateStateData {
-  handle: number,
+  handle: number
 }
 
 interface IVerifierUpdateStateWithMessageData {
-  handle: number,
-  message: string,
-}
-
-interface IVerifierRequestProofData {
-  handle: number,
-  connectionHandle: number,
+  handle: number
+  message: string
 }
 
 interface IVerifierGetData {
-  handle: number,
+  handle: number
 }
 
 interface IVerifierSerializeData {
-  handle: number,
+  handle: number
 }
 
 interface IVerifierDeserializeData {
-  serialized: string,
+  serialized: string
 }
 
 interface IVerifierRequestPresentation {
-  handle: number,
-  connectionHandle: number,
-  requestedAttrs: string,
-  requestedPredicates: string,
-  revocationInterval: string,
-  name: string,
+  handle: number
+  connectionHandle: number
+  requestedAttrs: string
+  requestedPredicates: string
+  revocationInterval: string
+  name: string
 }
 
 interface IVerifierGetProofProposal {
-  handle: number,
+  handle: number
 }
 
 export class Verifier {
@@ -106,13 +101,7 @@ export class Verifier {
     revocationInterval,
     name,
   }: IVerifierCreateData): Promise<number> {
-    return await RNIndy.createProofVerifier(
-      uuidv4(),
-      requestedAttrs,
-      requestedPredicates,
-      revocationInterval,
-      name,
-    )
+    return await RNIndy.createProofVerifier(uuidv4(), requestedAttrs, requestedPredicates, revocationInterval, name)
   }
 
   /**
@@ -156,11 +145,7 @@ export class Verifier {
     presentationProposal,
     name,
   }: IVerifierCreateWithProposalData): Promise<number> {
-    return await RNIndy.createProofVerifierWithProposal(
-      uuidv4(),
-      presentationProposal,
-      name,
-    )
+    return await RNIndy.createProofVerifierWithProposal(uuidv4(), presentationProposal, name)
   }
 
   /**
@@ -178,9 +163,7 @@ export class Verifier {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async getState({ handle }: IVerifierGetStateData): Promise<number> {
-    return await RNIndy.proofVerifierGetState(
-      handle,
-    )
+    return await RNIndy.proofVerifierGetState(handle)
   }
 
   /**
@@ -194,9 +177,7 @@ export class Verifier {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async updateState({ handle }: IVerifierUpdateStateData): Promise<number> {
-    return await RNIndy.proofVerifierUpdateState(
-      handle,
-    )
+    return await RNIndy.proofVerifierUpdateState(handle)
   }
 
   /**
@@ -213,27 +194,7 @@ export class Verifier {
     handle,
     message,
   }: IVerifierUpdateStateWithMessageData): Promise<number> {
-    return await RNIndy.proofVerifierUpdateStateWithMessage(
-      handle,
-      message,
-    )
-  }
-
-  /**
-   * Sends a DisclosedProof Request message to pairwise connection.
-   *
-   * @param  handle               handle pointing to a DisclosedProof object.
-   * @param  connectionHandle     handle pointing to a Connection object to use for sending message.
-   *
-   * @return                      void
-   *
-   * @throws VcxException         If an exception occurred in Libvcx library.
-   */
-  public static async sendProofRequest({ handle, connectionHandle }: IVerifierRequestProofData): Promise<void> {
-    return await RNIndy.proofVerifierSendRequest(
-      handle,
-      connectionHandle,
-    )
+    return await RNIndy.proofVerifierUpdateStateWithMessage(handle, message)
   }
 
   /**
@@ -245,12 +206,8 @@ export class Verifier {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async getProofRequestMessage({
-    handle,
-  }: IVerifierGetData): Promise<string> {
-    return await RNIndy.proofVerifierGetPresentationRequest(
-      handle,
-    )
+  public static async getProofRequestMessage({ handle }: IVerifierGetData): Promise<string> {
+    return await RNIndy.proofVerifierGetPresentationRequest(handle)
   }
 
   /**
@@ -262,12 +219,8 @@ export class Verifier {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async getProofMessage({
-    handle,
-  }: IVerifierGetData): Promise<string> {
-    return await RNIndy.proofVerifierGetProofMessage(
-      handle,
-    )
+  public static async getProofMessage({ handle }: IVerifierGetData): Promise<string> {
+    return await RNIndy.proofVerifierGetProofMessage(handle)
   }
 
   /**
@@ -279,12 +232,8 @@ export class Verifier {
    *
    * @throws VcxException     If an exception occurred in Libvcx library.
    */
-  public static async getProblemReportMessage({
-    handle,
-  }: IVerifierGetData): Promise<string> {
-    return await RNIndy.proofVerifierGetProblemReport(
-      handle,
-    )
+  public static async getProblemReportMessage({ handle }: IVerifierGetData): Promise<string> {
+    return await RNIndy.proofVerifierGetProblemReport(handle)
   }
 
   /**
@@ -297,9 +246,7 @@ export class Verifier {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async serialize({ handle }: IVerifierSerializeData): Promise<string> {
-    return await RNIndy.proofVerifierSerialize(
-      handle,
-    )
+    return await RNIndy.proofVerifierSerialize(handle)
   }
 
   /**
@@ -312,9 +259,7 @@ export class Verifier {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async deserialize({ serialized }: IVerifierDeserializeData): Promise<number> {
-    return await RNIndy.proofVerifierDeserialize(
-      serialized,
-    )
+    return await RNIndy.proofVerifierDeserialize(serialized)
   }
 
   /**
@@ -340,15 +285,15 @@ export class Verifier {
    *     <pre>
    *     {@code
    *     [
-     *        { // set of requested predicates
-     *           "name": attribute name, (case insensitive and ignore spaces)
-     *           "p_type": predicate type (Currently ">=" only)
-     *           "p_value": int predicate value
-     *           "restrictions":  Optional(wql query) -  set of restrictions applying to requested credentials. (see below)
-     *           "non_revoked": Optional({
+   *        { // set of requested predicates
+   *           "name": attribute name, (case insensitive and ignore spaces)
+   *           "p_type": predicate type (Currently ">=" only)
+   *           "p_value": int predicate value
+   *           "restrictions":  Optional(wql query) -  set of restrictions applying to requested credentials. (see below)
+   *           "non_revoked": Optional({
    *               "from": Optional(u64) Requested time represented as a total number of seconds from Unix Epoch, Optional
-     *               "to": Optional(u64) Requested time represented as a total number of seconds from Unix Epoch, Optional
-     *           })
+   *               "to": Optional(u64) Requested time represented as a total number of seconds from Unix Epoch, Optional
+   *           })
    *       }
    *    ]
    *    }
@@ -375,7 +320,7 @@ export class Verifier {
       requestedAttrs,
       requestedPredicates,
       revocationInterval,
-      name
+      name,
     )
   }
 
@@ -388,9 +333,7 @@ export class Verifier {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async getProofProposalMessage({
-    handle
-  }: IVerifierGetProofProposal): Promise<string> {
+  public static async getProofProposalMessage({ handle }: IVerifierGetProofProposal): Promise<string> {
     return await RNIndy.proofVerifierGetProofProposal(handle)
   }
 }

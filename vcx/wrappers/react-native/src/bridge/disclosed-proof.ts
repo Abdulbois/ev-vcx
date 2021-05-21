@@ -4,63 +4,63 @@ import { v4 as uuidv4 } from 'uuid'
 const { RNIndy } = NativeModules
 
 interface IProofCreateWithRequestData {
-  proofRequest: string,
+  proofRequest: string
 }
 
 interface IProofGetRequestsData {
-  connectionHandle: number,
+  connectionHandle: number
 }
 
 interface IProofGetCredentialsData {
-  handle: number,
+  handle: number
 }
 
 interface IProofSendProofData {
-  handle: number,
-  connectionHandle: number,
+  handle: number
+  connectionHandle: number
 }
 
 interface IProofRejectData {
-  handle: number,
-  connectionHandle: number,
+  handle: number
+  connectionHandle: number
 }
 
 interface IProofGetStateData {
-  handle: number,
+  handle: number
 }
 
 interface IProofUpdateStateData {
-  handle: number,
+  handle: number
 }
 
 interface IProofUpdateStateWithMessageData {
-  handle: number,
-  message: string,
+  handle: number
+  message: string
 }
 
 interface IProofGenerateData {
-  handle: number,
-  selectedCredentials: string,
-  selfAttestedAttributes: string,
+  handle: number
+  selectedCredentials: string
+  selfAttestedAttributes: string
 }
 
 interface IProofDeclineData {
-  handle: number,
-  connectionHandle: number,
-  reason?: string,
-  proposal?: string,
+  handle: number
+  connectionHandle: number
+  reason?: string
+  proposal?: string
 }
 
 interface IProofGetData {
-  handle: number,
+  handle: number
 }
 
 interface IProofSerializeData {
-  handle: number,
+  handle: number
 }
 
 interface IProofDeserializeData {
-  serialized: string,
+  serialized: string
 }
 
 export class DisclosedProof {
@@ -71,7 +71,7 @@ export class DisclosedProof {
    *                          <pre>
    *                          {@code
    *                              proprietary:
-     *                                  "{"@topic":{"mid":9,"tid":1},"@type":{"name":"PROOF_REQUEST","version":"1.0"},"msg_ref_id":"ymy5nth","proof_request_data":{"name":"AccountCertificate","nonce":"838186471541979035208225","requested_attributes":{"business_2":{"name":"business"},"email_1":{"name":"email"},"name_0":{"name":"name"}},"requested_predicates":{},"version":"0.1"}}"
+   *                                  "{"@topic":{"mid":9,"tid":1},"@type":{"name":"PROOF_REQUEST","version":"1.0"},"msg_ref_id":"ymy5nth","proof_request_data":{"name":"AccountCertificate","nonce":"838186471541979035208225","requested_attributes":{"business_2":{"name":"business"},"email_1":{"name":"email"},"name_0":{"name":"name"}},"requested_predicates":{},"version":"0.1"}}"
    *                              aries:
    *                                  "{"@type": "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/present-proof/1.0/request-presentation","@id": "<uuid-request>","comment": "some comment","request_presentations~attach": [{"@id": "libindy-request-presentation-0","mime-type": "application/json","data":  {"base64": "<bytes for base64>"}}]}"
    *                          }
@@ -81,13 +81,8 @@ export class DisclosedProof {
    *
    * @throws VcxException     If an exception occurred in Libvcx library.
    */
-  public static async createWithRequest({
-    proofRequest,
-  }: IProofCreateWithRequestData): Promise<number> {
-    return await RNIndy.proofCreateWithRequest(
-      uuidv4(),
-      proofRequest,
-    )
+  public static async createWithRequest({ proofRequest }: IProofCreateWithRequestData): Promise<number> {
+    return await RNIndy.proofCreateWithRequest(uuidv4(), proofRequest)
   }
 
   /**
@@ -101,9 +96,7 @@ export class DisclosedProof {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async getRequests({ connectionHandle }: IProofGetRequestsData): Promise<string> {
-    return await RNIndy.proofGetRequests(
-      connectionHandle,
-    )
+    return await RNIndy.proofGetRequests(connectionHandle)
   }
 
   /**
@@ -117,9 +110,7 @@ export class DisclosedProof {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async getCredentialsForProofRequest({ handle }: IProofGetCredentialsData): Promise<string> {
-    return await RNIndy.proofRetrieveCredentials(
-      handle,
-    )
+    return await RNIndy.proofRetrieveCredentials(handle)
   }
 
   /**
@@ -135,9 +126,7 @@ export class DisclosedProof {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async getState({ handle }: IProofGetStateData): Promise<number> {
-    return await RNIndy.proofGetState(
-      handle,
-    )
+    return await RNIndy.proofGetState(handle)
   }
 
   /**
@@ -151,9 +140,7 @@ export class DisclosedProof {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async updateState({ handle }: IProofUpdateStateData): Promise<number> {
-    return await RNIndy.proofUpdateState(
-      handle,
-    )
+    return await RNIndy.proofUpdateState(handle)
   }
 
   /**
@@ -167,14 +154,8 @@ export class DisclosedProof {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async updateStateWithMessage({
-    handle,
-    message,
-  }: IProofUpdateStateWithMessageData): Promise<number> {
-    return await RNIndy.proofUpdateStateWithMessage(
-      handle,
-      message,
-    )
+  public static async updateStateWithMessage({ handle, message }: IProofUpdateStateWithMessageData): Promise<number> {
+    return await RNIndy.proofUpdateStateWithMessage(handle, message)
   }
 
   /**
@@ -193,11 +174,7 @@ export class DisclosedProof {
     selectedCredentials,
     selfAttestedAttributes,
   }: IProofGenerateData): Promise<void> {
-    return await RNIndy.proofGenerate(
-      handle,
-      selectedCredentials,
-      selfAttestedAttributes,
-    )
+    return await RNIndy.proofGenerate(handle, selectedCredentials, selfAttestedAttributes)
   }
 
   /**
@@ -211,10 +188,7 @@ export class DisclosedProof {
    * @throws VcxException             If an exception occurred in Libvcx library.
    */
   public static async sendProof({ handle, connectionHandle }: IProofSendProofData): Promise<void> {
-    return await RNIndy.proofSend(
-      handle,
-      connectionHandle,
-    )
+    return await RNIndy.proofSend(handle, connectionHandle)
   }
 
   /**
@@ -228,10 +202,7 @@ export class DisclosedProof {
    * @throws VcxException             If an exception occurred in Libvcx library.
    */
   public static async reject({ handle, connectionHandle }: IProofRejectData): Promise<void> {
-    return await RNIndy.proofReject(
-      handle,
-      connectionHandle,
-    )
+    return await RNIndy.proofReject(handle, connectionHandle)
   }
 
   /**
@@ -254,12 +225,7 @@ export class DisclosedProof {
    * @throws VcxException             If an exception occurred in Libvcx library.
    */
   public static async decline({ handle, connectionHandle, reason, proposal }: IProofDeclineData): Promise<void> {
-    return await RNIndy.proofDeclineRequest(
-      handle,
-      connectionHandle,
-      reason,
-      proposal,
-    )
+    return await RNIndy.proofDeclineRequest(handle, connectionHandle, reason, proposal)
   }
 
   /**
@@ -271,12 +237,8 @@ export class DisclosedProof {
    *
    * @throws VcxException     If an exception occurred in Libvcx library.
    */
-  public static async getProblemReportMessage({
-    handle,
-  }: IProofGetData): Promise<string> {
-    return await RNIndy.proofGetProblemReport(
-      handle,
-    )
+  public static async getProblemReportMessage({ handle }: IProofGetData): Promise<string> {
+    return await RNIndy.proofGetProblemReport(handle)
   }
 
   /**
@@ -289,9 +251,7 @@ export class DisclosedProof {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async serialize({ handle }: IProofSerializeData): Promise<string> {
-    return await RNIndy.proofSerialize(
-      handle,
-    )
+    return await RNIndy.proofSerialize(handle)
   }
 
   /**
@@ -304,8 +264,6 @@ export class DisclosedProof {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async deserialize({ serialized }: IProofDeserializeData): Promise<number> {
-    return await RNIndy.proofDeserialize(
-      serialized,
-    )
+    return await RNIndy.proofDeserialize(serialized)
   }
 }

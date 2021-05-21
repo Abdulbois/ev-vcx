@@ -3,64 +3,48 @@ import { NativeModules } from 'react-native'
 const { RNIndy } = NativeModules
 
 interface IWalletKeyData {
-  lengthOfKey: number,
+  lengthOfKey: number
 }
 
 interface IWalletExportData {
-  exportPath: string,
-  encryptionKey: string,
+  exportPath: string
+  encryptionKey: string
 }
 
 interface IWalletImportData {
-  config: string,
+  config: string
 }
 
 interface IWalletSetItemData {
-  key: string,
-  value: string,
+  key: string
+  value: string
 }
 
 interface IWalletGetItemData {
-  key: string,
+  key: string
 }
 
 interface IWalletDeleteItemData {
-  key: string,
+  key: string
 }
 
 interface IWalletUpdateItemData {
-  key: string,
-  value: string,
+  key: string
+  value: string
 }
 
 interface IWalletGetTokenInfoData {
-  paymentHandle: number,
+  paymentHandle: number
 }
 
 interface IWalletSendTokensData {
-  paymentHandle: number,
-  tokens: string,
-  recipient: string,
+  paymentHandle: number
+  tokens: string
+  recipient: string
 }
 
 interface IWalletCreatePaymentAddressData {
-  seed: string,
-}
-
-interface ISignDataResult {
-  data: string,
-  signature: string,
-}
-
-interface ISignWithAddress {
-  address: string,
-  message: ISignDataResult,
-}
-
-interface IVerifyWithAddress {
-  address: string,
-  message: ISignDataResult,
-  signature: ISignDataResult,
+  seed: string
 }
 
 export class Wallet {
@@ -73,12 +57,8 @@ export class Wallet {
    *
    * @throws VcxException     Thrown if an error occurs when calling the underlying SDK.
    */
-  public static async creatKey({
-    lengthOfKey,
-  }: IWalletKeyData): Promise<string> {
-    return await RNIndy.createWalletKey(
-      lengthOfKey,
-    )
+  public static async creatKey({ lengthOfKey }: IWalletKeyData): Promise<string> {
+    return await RNIndy.createWalletKey(lengthOfKey)
   }
 
   /**
@@ -91,14 +71,8 @@ export class Wallet {
    *
    * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
    */
-  public static async export({
-    exportPath,
-    encryptionKey,
-  }: IWalletExportData): Promise<number> {
-    return await RNIndy.exportWallet(
-      exportPath,
-      encryptionKey,
-    )
+  public static async export({ exportPath, encryptionKey }: IWalletExportData): Promise<number> {
+    return await RNIndy.exportWallet(exportPath, encryptionKey)
   }
 
   /**
@@ -113,12 +87,8 @@ export class Wallet {
    *
    * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
    */
-  public static async import({
-    config,
-  }: IWalletImportData): Promise<number> {
-    return await RNIndy.decryptWalletFile(
-      config,
-    )
+  public static async import({ config }: IWalletImportData): Promise<number> {
+    return await RNIndy.decryptWalletFile(config)
   }
 
   /**
@@ -131,14 +101,8 @@ export class Wallet {
    *
    * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
    */
-  public static async setItem({
-    key,
-    value,
-  }: IWalletSetItemData): Promise<number> {
-    return await RNIndy.setWalletItem(
-      key,
-      value,
-    )
+  public static async setItem({ key, value }: IWalletSetItemData): Promise<number> {
+    return await RNIndy.setWalletItem(key, value)
   }
 
   /**
@@ -150,12 +114,8 @@ export class Wallet {
    *
    * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
    */
-  public static async getItem({
-    key,
-  }: IWalletGetItemData): Promise<string> {
-    return await RNIndy.getWalletItem(
-      key,
-    )
+  public static async getItem({ key }: IWalletGetItemData): Promise<string> {
+    return await RNIndy.getWalletItem(key)
   }
 
   /**
@@ -167,12 +127,8 @@ export class Wallet {
    *
    * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
    */
-  public static async deleteItem({
-    key,
-  }: IWalletDeleteItemData): Promise<number> {
-    return await RNIndy.deleteWalletItem(
-      key,
-    )
+  public static async deleteItem({ key }: IWalletDeleteItemData): Promise<number> {
+    return await RNIndy.deleteWalletItem(key)
   }
 
   /**
@@ -185,14 +141,8 @@ export class Wallet {
    *
    * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
    */
-  public static async updateItem({
-    key,
-    value,
-  }: IWalletUpdateItemData): Promise<number> {
-    return await RNIndy.updateWalletItem(
-      key,
-      value,
-    )
+  public static async updateItem({ key, value }: IWalletUpdateItemData): Promise<number> {
+    return await RNIndy.updateWalletItem(key, value)
   }
 
   /**
@@ -204,12 +154,8 @@ export class Wallet {
    *
    * @throws VcxException             If an exception occurred in Libvcx library.
    */
-  public static async getTokenInfo({
-    paymentHandle,
-  }: IWalletGetTokenInfoData): Promise<string> {
-    return await RNIndy.getTokenInfo(
-      paymentHandle,
-    )
+  public static async getTokenInfo({ paymentHandle }: IWalletGetTokenInfoData): Promise<string> {
+    return await RNIndy.getTokenInfo(paymentHandle)
   }
 
   /**
@@ -223,16 +169,8 @@ export class Wallet {
    *
    * @throws VcxException             If an exception occurred in Libvcx library.
    */
-  public static async sendTokens({
-    paymentHandle,
-    tokens,
-    recipient,
-  }: IWalletSendTokensData): Promise<boolean> {
-    return await RNIndy.sendTokens(
-      paymentHandle,
-      tokens,
-      recipient,
-    )
+  public static async sendTokens({ paymentHandle, tokens, recipient }: IWalletSendTokensData): Promise<boolean> {
+    return await RNIndy.sendTokens(paymentHandle, tokens, recipient)
   }
 
   /**
@@ -244,51 +182,7 @@ export class Wallet {
    *
    * @throws VcxException   If an exception occurred in Libvcx library.
    */
-  public static async createPaymentAddress({
-    seed,
-  }: IWalletCreatePaymentAddressData): Promise<string> {
-    return await RNIndy.createPaymentAddress(
-      seed,
-    )
-  }
-
-  /**
-   * Signs a message with a payment address.
-   *
-   * @param address:  Payment address of message signer.
-   * @param message   The message to be signed
-   *
-   * @return A future that resolves to a signature string.
-   * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
-   */
-  public static async sign({
-    address,
-    message,
-  }: ISignWithAddress): Promise<string> {
-    return await RNIndy.signWithAddress(
-      address,
-      message
-    )
-  }
-
-  /**
-   * Verify a signature with a payment address.
-   *
-   * @param address   Payment address of the message signer
-   * @param message   Message that has been signed
-   * @param signature A signature to be verified
-   * @return A future that resolves to true if signature is valid, otherwise false.
-   * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
-   */
-  public static async verity({
-    address,
-    message,
-    signature,
-  }: IVerifyWithAddress): Promise<string> {
-    return await RNIndy.verifyWithAddress(
-      address,
-      message,
-      signature
-    )
+  public static async createPaymentAddress({ seed }: IWalletCreatePaymentAddressData): Promise<string> {
+    return await RNIndy.createPaymentAddress(seed)
   }
 }

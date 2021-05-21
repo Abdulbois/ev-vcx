@@ -3,19 +3,15 @@ import { NativeModules } from 'react-native'
 const { RNIndy } = NativeModules
 
 interface IInitData {
-  config: string,
+  config: string
 }
 
 interface IInitPoolData {
-  config: string,
+  config: string
 }
 
 interface IShutdownData {
-  deleteWallet?: boolean,
-}
-
-interface IInitWithConfigPath {
-  configPath: string
+  deleteWallet?: boolean
 }
 
 export class Library {
@@ -30,12 +26,8 @@ export class Library {
    *
    * @throws VcxException   If an exception occurred in Libvcx library.
    */
-  public static async init({
-    config,
-  }: IInitData): Promise<boolean> {
-    return await RNIndy.init(
-      config,
-    )
+  public static async init({ config }: IInitData): Promise<boolean> {
+    return await RNIndy.init(config)
   }
 
   /**
@@ -73,12 +65,8 @@ export class Library {
    *
    * @throws VcxException   If an exception occurred in Libvcx library.
    */
-  public static async initPool({
-    config,
-  }: IInitPoolData): Promise<boolean> {
-    return await RNIndy.vcxInitPool(
-      config,
-    )
+  public static async initPool({ config }: IInitPoolData): Promise<boolean> {
+    return await RNIndy.vcxInitPool(config)
   }
 
   /**
@@ -90,26 +78,7 @@ export class Library {
    *
    * @throws VcxException   If an exception occurred in Libvcx library.
    */
-  public static async shutdown({
-    deleteWallet,
-  }: IShutdownData): Promise<void> {
-    return await RNIndy.shutdownVcx(
-      deleteWallet,
-    )
-  }
-
-  /**
-   * Initializes VCX with config
-   * An example file is at libvcx/sample_config/config.json
-   * The list of available options see here: https://github.com/hyperledger/indy-sdk/blob/master/docs/configuration.md
-   *
-   * @param  configPath       config as JSON string to use for library initialization
-   *
-   * @return                  void
-   *
-   * @throws VcxException   If an exception occurred in Libvcx library.
-   */
-  public static async initWithConfigPath({ configPath }: IInitWithConfigPath): Promise<number> {
-    return await RNIndy.initWithConfigPath(configPath)
+  public static async shutdown({ deleteWallet }: IShutdownData): Promise<void> {
+    return await RNIndy.shutdownVcx(deleteWallet)
   }
 }

@@ -1,13 +1,6 @@
-//
-//  ReactNativeMobileSDK.m
-//  ReactNativeMobileSDK
-//
-//  Created by Predrag Jevtic on 10/15/20.
-//
+#import "ReactNativeVCX.h"
 
-#import "ReactNativeMobileSDK.h"
-
-@implementation ReactNativeMobileSDK
+@implementation ReactNativeVCX
 
 RCT_EXPORT_MODULE();
 

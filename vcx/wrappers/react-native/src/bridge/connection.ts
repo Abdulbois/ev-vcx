@@ -4,113 +4,107 @@ import { v4 as uuidv4 } from 'uuid'
 const { RNIndy } = NativeModules
 
 interface IConnectionCreateData {
-  goal: string,
-  goalCode: string,
-  handshake: boolean,
-  attachment?: string | null,
+  goal?: string | null
+  goalCode?: string | null
+  handshake: boolean
+  attachment?: string | null
 }
 
 interface IConnectionCreateWithInvitationData {
-  invitation: string,
+  invitation: string
 }
 
 interface IConnectionCreateWithOutofbandInvitationData {
-  invitation: string,
+  invitation: string
 }
 
 interface IConnectionConnectData {
-  handle: number,
-  options?: string | undefined | number,
+  handle: number
+  options?: string | undefined | number
 }
 
 interface IConnectionDeleteData {
-  handle: number,
+  handle: number
 }
 
 interface IConnectionSerializeData {
-  handle: number,
+  handle: number
 }
 
 interface IConnectionGetStateData {
-  handle: number,
+  handle: number
 }
 
 interface IConnectionUpdateStateData {
-  handle: number,
+  handle: number
 }
 
 interface IConnectionUpdateStateWithMessageData {
-  handle: number,
-  message: string,
+  handle: number
+  message: string
 }
 
 interface IConnectionDeserializeData {
-  serialized: string,
+  serialized: string
 }
 
 interface IConnectionSendMessageData {
-  handle: number,
-  message: string,
-  options: string,
+  handle: number
+  message: string
+  options: string
 }
 
 interface IConnectionSignData {
-  handle: number,
-  data: string,
-  base64EncodingOption: string,
+  handle: number
+  data: string
+  base64EncodingOption: string
   encodeBeforeSigning: boolean
 }
 
 interface ISignDataResult {
-  data: string,
-  signature: string,
+  data: string
+  signature: string
 }
 
 interface IConnectionVerifySignatureData {
-  handle: number,
-  data: string,
-  signature: string,
+  handle: number
+  data: string
+  signature: string
 }
 
 interface IConnectionGetInvitationData {
-  handle: number,
-  abbr: boolean,
+  handle: number
+  abbr: boolean
 }
 
 interface IConnectionSendReuseData {
-  handle: number,
-  invitation: string,
+  handle: number
+  invitation: string
 }
 
 interface IConnectionRedirectData {
-  handle: number,
-  existingConnectionHandle: number,
+  handle: number
+  existingConnectionHandle: number
 }
 
 interface IConnectionSendAnswerData {
-  handle: number,
-  question: string,
-  answer: string,
+  handle: number
+  question: string
+  answer: string
 }
 
 interface IConnectionSendInviteActionData {
-  handle: number,
-  data: string,
+  handle: number
+  data: string
 }
 
 interface IConnectionGetData {
-  handle: number,
+  handle: number
 }
 
 interface IConnectionSendPing {
-  handle: number,
-  comment: string,
-}
-
-interface IConnectionSendDiscoveryFeatures {
-  handle: number,
-  comment: string,
-  query: string,
+  handle: number
+  comment: string
 }
 
 export class Connection {
@@ -122,9 +116,7 @@ export class Connection {
    * @throws VcxException If an exception occurred in Libvcx library.
    */
   public static async createConnectionInvitation(): Promise<number> {
-    return await RNIndy.createConnection(
-      uuidv4(),
-    )
+    return await RNIndy.createConnection(uuidv4())
   }
 
   /**
@@ -154,13 +146,7 @@ export class Connection {
     handshake,
     attachment,
   }: IConnectionCreateData): Promise<number> {
-    return await RNIndy.createOutOfBandConnection(
-      uuidv4(),
-      goalCode,
-      goal,
-      handshake,
-      attachment,
-    )
+    return await RNIndy.createOutOfBandConnection(uuidv4(), goalCode, goal, handshake, attachment)
   }
 
   /**
@@ -178,10 +164,7 @@ export class Connection {
    * @throws VcxException  If an exception occurred in Libvcx library.
    */
   public static async createWithInvitation({ invitation }: IConnectionCreateWithInvitationData): Promise<number> {
-    return await RNIndy.createConnectionWithInvite(
-      uuidv4(),
-      invitation,
-    )
+    return await RNIndy.createConnectionWithInvite(uuidv4(), invitation)
   }
 
   /**
@@ -236,11 +219,10 @@ export class Connection {
    *
    * @throws VcxException  If an exception occurred in Libvcx library.
    */
-  public static async createWithOutofbandInvitation({ invitation }: IConnectionCreateWithOutofbandInvitationData): Promise<number> {
-    return await RNIndy.createConnectionWithOutofbandInvite(
-      uuidv4(),
-      invitation,
-    )
+  public static async createWithOutofbandInvitation({
+    invitation,
+  }: IConnectionCreateWithOutofbandInvitationData): Promise<number> {
+    return await RNIndy.createConnectionWithOutofbandInvite(uuidv4(), invitation)
   }
 
   /**
@@ -271,10 +253,7 @@ export class Connection {
    * @throws VcxException      If an exception occurred in Libvcx library.
    */
   public static async connect({ handle, options }: IConnectionConnectData): Promise<number> {
-    return await RNIndy.connectionConnect(
-      handle,
-      options,
-    )
+    return await RNIndy.connectionConnect(handle, options)
   }
 
   /**
@@ -292,9 +271,7 @@ export class Connection {
    * @throws VcxException     If an exception occurred in Libvcx library.
    */
   public static async getState({ handle }: IConnectionGetStateData): Promise<number> {
-    return await RNIndy.connectionGetState(
-      handle,
-    )
+    return await RNIndy.connectionGetState(handle)
   }
 
   /**
@@ -308,9 +285,7 @@ export class Connection {
    * @throws VcxException      If an exception occurred in Libvcx library.
    */
   public static async updateState({ handle }: IConnectionUpdateStateData): Promise<number> {
-    return await RNIndy.connectionUpdateState(
-      handle,
-    )
+    return await RNIndy.connectionUpdateState(handle)
   }
 
   /**
@@ -327,10 +302,7 @@ export class Connection {
     handle,
     message,
   }: IConnectionUpdateStateWithMessageData): Promise<number> {
-    return await RNIndy.connectionUpdateStateWithMessage(
-      handle,
-      message,
-    )
+    return await RNIndy.connectionUpdateStateWithMessage(handle, message)
   }
 
   /**
@@ -344,11 +316,7 @@ export class Connection {
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
   public static async sendMessage({ handle, message, options }: IConnectionSendMessageData): Promise<string> {
-    return await RNIndy.connectionSendMessage(
-      handle,
-      message,
-      options,
-    )
+    return await RNIndy.connectionSendMessage(handle, message, options)
   }
 
   /**
@@ -368,12 +336,7 @@ export class Connection {
     base64EncodingOption,
     encodeBeforeSigning,
   }: IConnectionSignData): Promise<ISignDataResult> {
-    return await RNIndy.connectionSignData(
-      handle,
-      data,
-      base64EncodingOption,
-      encodeBeforeSigning,
-    )
+    return await RNIndy.connectionSignData(handle, data, base64EncodingOption, encodeBeforeSigning)
   }
 
   /**
@@ -387,16 +350,8 @@ export class Connection {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async verifySignature({
-    handle,
-    data,
-    signature,
-  }: IConnectionVerifySignatureData): Promise<boolean> {
-    return await RNIndy.connectionVerifySignature(
-      handle,
-      data,
-      signature,
-    )
+  public static async verifySignature({ handle, data, signature }: IConnectionVerifySignatureData): Promise<boolean> {
+    return await RNIndy.connectionVerifySignature(handle, data, signature)
   }
 
   /**
@@ -409,14 +364,8 @@ export class Connection {
    *
    * @throws VcxException     If an exception occurred in Libvcx library.
    */
-  public static async getInvitation({
-    handle,
-    abbr,
-  }: IConnectionGetInvitationData): Promise<string> {
-    return await RNIndy.getConnectionInvite(
-      handle,
-      abbr,
-    )
+  public static async getInvitation({ handle, abbr }: IConnectionGetInvitationData): Promise<string> {
+    return await RNIndy.getConnectionInvite(handle, abbr)
   }
 
   /**
@@ -464,14 +413,8 @@ export class Connection {
    *
    * @throws VcxException     If an exception occurred in Libvcx library.
    */
-  public static async reuse({
-    handle,
-    invitation,
-  }: IConnectionSendReuseData): Promise<void> {
-    return await RNIndy.connectionReuse(
-      handle,
-      invitation,
-    )
+  public static async reuse({ handle, invitation }: IConnectionSendReuseData): Promise<void> {
+    return await RNIndy.connectionReuse(handle, invitation)
   }
 
   /**
@@ -484,14 +427,8 @@ export class Connection {
    *
    * @throws VcxException      If an exception occurred in Libvcx library.
    */
-  public static async redirect({
-    handle,
-    existingConnectionHandle,
-  }: IConnectionRedirectData): Promise<void> {
-    return await RNIndy.connectionRedirect(
-      handle,
-      existingConnectionHandle,
-    )
+  public static async redirect({ handle, existingConnectionHandle }: IConnectionRedirectData): Promise<void> {
+    return await RNIndy.connectionRedirect(handle, existingConnectionHandle)
   }
 
   /**
@@ -525,16 +462,8 @@ export class Connection {
    *
    * @throws VcxException     If an exception occurred in Libvcx library.
    */
-  public static async sendAnswer({
-    handle,
-    question,
-    answer,
-  }: IConnectionSendAnswerData): Promise<string> {
-    return await RNIndy.connectionSendAnswer(
-      handle,
-      question,
-      answer,
-    )
+  public static async sendAnswer({ handle, question, answer }: IConnectionSendAnswerData): Promise<string> {
+    return await RNIndy.connectionSendAnswer(handle, question, answer)
   }
 
   /**
@@ -559,14 +488,8 @@ export class Connection {
    *
    * @throws VcxException     If an exception occurred in Libvcx library.
    */
-  public static async sendInviteAction({
-    handle,
-    data,
-  }: IConnectionSendInviteActionData): Promise<string> {
-    return await RNIndy.connectionSendInviteAction(
-      handle,
-      data,
-    )
+  public static async sendInviteAction({ handle, data }: IConnectionSendInviteActionData): Promise<string> {
+    return await RNIndy.connectionSendInviteAction(handle, data)
   }
 
   /**
@@ -578,83 +501,45 @@ export class Connection {
    *
    * @throws VcxException      If an exception occurred in Libvcx library.
    */
-  public static async getRedirectDetails({
-    handle,
-  }: IConnectionGetData): Promise<string> {
-    return await RNIndy.getRedirectDetails(
-      handle,
-    )
+  public static async getRedirectDetails({ handle }: IConnectionGetData): Promise<string> {
+    return await RNIndy.getRedirectDetails(handle)
   }
 
-  /**
-   * Retrieves pairwise DID used for Connection.
-   *
-   * @param  connectionHandle     handle pointing to a Connection object.
-   *
-   * @return                      pairwise DID used for Connection.
-   *
-   * @throws VcxException         If an exception occurred in Libvcx library.
-   */
-  public static async getPwDid({
-    handle,
-  }: IConnectionGetData): Promise<string> {
-    return await RNIndy.connectionGetPwDid(
-      handle,
-    )
-  }
-
-  /**
-   * Retrieves pairwise DID of the remote side used for Connection.
-   *
-   * @param  connectionHandle     handle pointing to a Connection object.
-   *
-   * @return                      pairwise DID of the remote side used for Connection.
-   *
-   * @throws VcxException         If an exception occurred in Libvcx library.
-   */
-  public static async getTheirPwDid({
-    handle,
-  }: IConnectionGetData): Promise<string> {
-    return await RNIndy.connectionGetTheirPwDid(
-      handle,
-    )
-  }
-
-  /**
-   * Get the information about the established Connection.
-   * <p>
-   * Note: This method can be used for `aries` communication method only.
-   * For other communication method it returns ActionNotSupported error.
-   *
-   * @param  connectionHandle     handle pointing to a Connection object.
-   *
-   * @return                      Connection Information as JSON string.
-   *                              {
-   *                                  "current": {
-   *                                      "did": string, - DID of current connection side
-   *                                      "recipientKeys": array[string], - Recipient keys
-   *                                      "routingKeys": array[string], - Routing keys
-   *                                      "serviceEndpoint": string, - Endpoint
-   *                                      "protocols": array[string], - The set of protocol supported by current side.
-   *                                  },
-   *                                  "remote: Optional({ - details about remote connection side
-   *                                      "did": string - DID of remote side
-   *                                      "recipientKeys": array[string] - Recipient keys of remote side
-   *                                      "routingKeys": array[string] - Routing keys of remote side
-   *                                      "serviceEndpoint": string - Endpoint of remote side
-   *                                      "protocols": array[string] - The set of protocol supported by side. Is filled after DiscoveryFeatures process was completed.
-   *                                  })
-   *                              }
-   *
-   * @throws VcxException         If an exception occurred in Libvcx library.
-   */
-  public static async getInfo({
-    handle,
-  }: IConnectionGetData): Promise<string> {
-    return await RNIndy.connectionGetInfo(
-      handle,
-    )
-  }
+  //   /**
+  //    * Get the information about the established Connection.
+  //    * <p>
+  //    * Note: This method can be used for `aries` communication method only.
+  //    * For other communication method it returns ActionNotSupported error.
+  //    *
+  //    * @param  connectionHandle     handle pointing to a Connection object.
+  //    *
+  //    * @return                      Connection Information as JSON string.
+  //    *                              {
+  //    *                                  "current": {
+  //    *                                      "did": string, - DID of current connection side
+  //    *                                      "recipientKeys": array[string], - Recipient keys
+  //    *                                      "routingKeys": array[string], - Routing keys
+  //    *                                      "serviceEndpoint": string, - Endpoint
+  //    *                                      "protocols": array[string], - The set of protocol supported by current side.
+  //    *                                  },
+  //    *                                  "remote: Optional({ - details about remote connection side
+  //    *                                      "did": string - DID of remote side
+  //    *                                      "recipientKeys": array[string] - Recipient keys of remote side
+  //    *                                      "routingKeys": array[string] - Routing keys of remote side
+  //    *                                      "serviceEndpoint": string - Endpoint of remote side
+  //    *                                      "protocols": array[string] - The set of protocol supported by side. Is filled after DiscoveryFeatures process was completed.
+  //    *                                  })
+  //    *                              }
+  //    *
+  //    * @throws VcxException         If an exception occurred in Libvcx library.
+  //    */
+  //   public static async getInfo({
+  //     handle,
+  //   }: IConnectionGetData): Promise<string> {
+  //     return await RNIndy.connectionGetInfo(
+  //       handle,
+  //     )
+  //   }
 
   /**
    * Get Problem Report message for object in Failed or Rejected state.
@@ -665,12 +550,8 @@ export class Connection {
    *
    * @throws VcxException     If an exception occurred in Libvcx library.
    */
-  public static async getProblemReportMessage({
-    handle,
-  }: IConnectionGetData): Promise<string> {
-    return await RNIndy.connectionGetProblemReport(
-      handle,
-    )
+  public static async getProblemReportMessage({ handle }: IConnectionGetData): Promise<string> {
+    return await RNIndy.connectionGetProblemReport(handle)
   }
 
   /**
@@ -685,9 +566,7 @@ export class Connection {
    * @throws VcxException    If an exception occurred in Libvcx library.
    */
   public static async delete({ handle }: IConnectionDeleteData): Promise<void> {
-    return await RNIndy.deleteConnection(
-      handle,
-    )
+    return await RNIndy.deleteConnection(handle)
   }
 
   /**
@@ -700,9 +579,7 @@ export class Connection {
    * @throws VcxException      If an exception occurred in Libvcx library.
    */
   public static async serialize({ handle }: IConnectionSerializeData): Promise<string> {
-    return await RNIndy.getSerializedConnection(
-      handle,
-    )
+    return await RNIndy.getSerializedConnection(handle)
   }
 
   /**
@@ -715,9 +592,7 @@ export class Connection {
    * @throws VcxException    If an exception occurred in Libvcx library.
    */
   public static async deserialize({ serialized }: IConnectionDeserializeData): Promise<number> {
-    return await RNIndy.deserializeConnection(
-      serialized,
-    )
+    return await RNIndy.deserializeConnection(serialized)
   }
 
   /**
@@ -733,36 +608,7 @@ export class Connection {
    *
    * @throws VcxException     If an exception occurred in Libvcx library.
    */
-  public static async sendPing({
-    handle,
-    comment,
-  }: IConnectionSendPing): Promise<void> {
+  public static async sendPing({ handle, comment }: IConnectionSendPing): Promise<void> {
     return await RNIndy.connectionSendPing(handle, comment)
-  }
-
-  /**
-   * Send discovery features message to the specified connection to discover which features it supports, and to what extent.
-   * <p>
-   * Note that this function works in case `aries` communication method is used.
-   * In other cases it returns ActionNotSupported error.
-   *
-   * @param  connectionHandle handle pointing to a Connection object.
-   * @param  query            (Optional) query string to match against supported message types.
-   * @param  comment          (Optional) human-friendly description of the query.
-   *
-   * @return                  void
-   *
-   * @throws VcxException     If an exception occurred in Libvcx library.
-   */
-  public static async sendDiscoveryFeatures({
-    handle,
-    comment,
-    query,
-  }: IConnectionSendDiscoveryFeatures): Promise<void> {
-    return await RNIndy.connectionSendDiscoveryFeatures(handle, comment, query)
-  }
-
-  public static async getTheirDid({ handle }: IConnectionGetData): Promise<string> {
-    return await RNIndy.connectionGetTheirDid(handle)
   }
 }
