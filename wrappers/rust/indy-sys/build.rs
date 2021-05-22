@@ -1,6 +1,5 @@
 #[cfg(not(target_env = "msvc"))]
 extern crate pkg_config;
-extern crate regex;
 #[cfg(target_env = "msvc")]
 extern crate vcpkg;
 

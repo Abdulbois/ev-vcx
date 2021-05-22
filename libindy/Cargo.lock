@@ -826,7 +826,6 @@ version = "1.15.0"
 dependencies = [
  "libc",
  "pkg-config",
- "regex",
  "serde",
  "serde_derive",
  "vcpkg",
