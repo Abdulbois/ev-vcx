@@ -515,6 +515,11 @@ public abstract class LibVcx {
         public String vcx_provision_agent_with_token(String config, String token);
 
         /*
+         * Provision an agent in the agency, populate configuration and wallet for this agent.
+         * */
+        public int vcx_provision_agent_with_token_async(int command_handle, String config, String token,Callback cb);
+
+        /*
         * Update information on the agent (ie, comm method and type)
         * */
         public int vcx_get_provision_token(int command_handle, String config, Callback cb);

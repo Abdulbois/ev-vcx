@@ -72,6 +72,58 @@ pub extern fn vcx_provision_agent_with_token(config: *const c_char, token: *cons
 }
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
+///
+/// #Params
+/// config: Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+/// token: {
+///          This can be a push notification endpoint to contact the sponsee or
+///          an id that the sponsor uses to reference the sponsee in its backend system
+///          "sponseeId": String,
+///          "sponsorId": String, //Persistent Id of the Enterprise sponsoring the provisioning
+///          "nonce": String,
+///          "timestamp": String,
+///          "sig": String, // Base64Encoded(sig(nonce + timestamp + id))
+///          "sponsorVerKey": String,
+///          "attestationAlgorithm": Optional<String>, // device attestation signature algorithm. Can be one of: SafetyNet | DeviceCheck
+///          "attestationData": Optional<String>, // device attestation signature matching to specified algorithm
+///        }
+///
+/// cb: Callback that provides configuration as JSON string or error status
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_provision_agent_with_token_async(command_handle: CommandHandle,
+                                                   config: *const c_char,
+                                                   token: *const c_char,
+                                                   cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, _config: *const c_char)>) -> u32 {
+    info!("vcx_provision_agent_with_token_async >>>");
+
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+    check_useful_c_str!(config, VcxErrorKind::InvalidOption);
+    check_useful_c_str!(token, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_provision_agent_with_token_async(config: {}, token: {})", secret!(config), secret!(token));
+
+    thread::spawn(move || {
+        match messages::agent_provisioning::agent_provisioning_v0_7::provision(&config, &token) {
+            Err(e) => {
+                error!("vcx_provision_agent_with_token_async_cb(command_handle: {}, rc: {}, config: NULL", command_handle, e);
+                cb(command_handle, e.into(), ptr::null_mut());
+            }
+            Ok(config) => {
+                trace!("vcx_provision_agent_with_token_async_cb(command_handle: {}, rc: {}, config: {})",
+                       command_handle, error::SUCCESS.as_str(), secret!(config));
+                let cconfig = CStringUtils::string_to_cstring(config);
+                cb(command_handle, 0, cconfig.as_ptr());
+            }
+        }
+    });
+
+    error::SUCCESS.code_num
+}
+
+/// Provision an agent in the agency, populate configuration and wallet for this agent.
 /// NOTE: for asynchronous call use vcx_agent_provision_async
 ///
 /// #Params
@@ -120,7 +172,7 @@ pub extern fn vcx_provision_agent(config: *const c_char) -> *mut c_char {
 /// cb: Callback that provides configuration or error status
 ///
 /// #Returns
-/// Configuration (wallet also populated), on error returns NULL
+/// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_agent_provision_async(command_handle: CommandHandle,
                                         config: *const c_char,

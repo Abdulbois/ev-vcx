@@ -2425,6 +2425,33 @@ vcx_error_t vcx_provision_agent_with_token(vcx_command_handle_t command_handle,
                                    const char *token,
                                    void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
+/// Provision an agent in the agency, populate configuration and wallet for this agent.
+///
+/// #Params
+/// config: Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+/// token: {
+///          This can be a push notification endpoint to contact the sponsee or
+///          an id that the sponsor uses to reference the sponsee in its backend system
+///          "sponseeId": String,
+///          "sponsorId": String, //Persistent Id of the Enterprise sponsoring the provisioning
+///          "nonce": String,
+///          "timestamp": String,
+///          "sig": String, // Base64Encoded(sig(nonce + timestamp + id))
+///          "sponsorVerKey": String,
+///          "attestationAlgorithm": Optional<String>, // device attestation signature algorithm. Can be one of: SafetyNet | DeviceCheck
+///          "attestationData": Optional<String>, // device attestation signature matching to specified algorithm
+///        }
+///
+/// cb: Callback that provides configuration as JSON string or error status
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_provision_agent_with_token_async(vcx_command_handle_t command_handle,
+                                                 const char *json,
+                                                 const char *token,
+                                                 void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+
 vcx_error_t vcx_get_provision_token(vcx_command_handle_t command_handle, const char *config, void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
 // Create a new Schema object that can create or look up schemas on the ledger
