@@ -99,7 +99,7 @@ export class Agent {
    *
    **/
   public static async provisionWithToken({ agencyConfig, token }: IProvisionWithTokenData): Promise<string> {
-    return await RNIndy.createOneTimeInfoWithToken(agencyConfig, token)
+    return await RNIndy.agentProvisionWithTokenAsync(agencyConfig, token)
   }
 
   /**

@@ -100,6 +100,32 @@ public class UtilsApi extends VcxJava.API {
         return result;
     }
 
+    /**
+     * Provision an agent in the agency, populate configuration and wallet for this agent.
+     *
+     * @param  conf           Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+     *
+     * @return                populated config that can be used for library initialization.
+     *
+     * @throws VcxException   If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> vcxAgentProvisionWithTokenAsync(String config, String token) throws VcxException {
+        ParamGuard.notNullOrWhiteSpace(config, "config");
+        ParamGuard.notNullOrWhiteSpace(token, "token");
+
+        CompletableFuture<String> future = new CompletableFuture<String>();
+        logger.debug("vcxAgentProvisionWithTokenAsync() called with: config = [****], token = [****]");
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_provision_agent_with_token_async(
+                commandHandle,
+                config,
+                token,
+                provAsyncCB);
+        checkResult(result);
+        return future;
+    }
+
     private static Callback vcxGetProvisionTokenCB = new Callback() {
         @SuppressWarnings({"unused", "unchecked"})
         public void callback(int commandHandle, int err, String token) {

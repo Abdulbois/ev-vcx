@@ -643,6 +643,24 @@ RCT_EXPORT_METHOD(createOneTimeInfoWithToken: (NSString *)config
                                         token: token]]);
 }
 
+RCT_EXPORT_METHOD(agentProvisionWithTokenAsync: (NSString *)config
+                                         token: (NSString *)token
+                                      resolver: (RCTPromiseResolveBlock) resolve
+                                      rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] agentProvisionWithTokenAsync:config
+                                                      token:token
+                                                 completion:^(NSError *error, NSString *result) {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while provisioning with token", error);
+    } else {
+      resolve(result);
+    }
+  }];
+}
+
 
 RCT_EXPORT_METHOD(createConnectionWithInvite: (NSString *)invitationId
                                inviteDetails: (NSString *)inviteDetails

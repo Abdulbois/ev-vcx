@@ -159,6 +159,31 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void agentProvisionWithTokenAsync(String agencyConfig, String token, Promise promise) {
+        Log.d(TAG, "agentProvisionWithTokenAsync()");
+        // We have top create thew ca cert for the openssl to work properly on android
+        BridgeUtils.writeCACert(this.getReactApplicationContext());
+
+        try {
+            UtilsApi.vcxAgentProvisionWithTokenAsync(agencyConfig, token).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "agentProvisionWithTokenAsync - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                Log.d(TAG, "agentProvisionWithTokenAsync: Success");
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "agentProvisionWithTokenAsync - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+
+    @ReactMethod
     public void getProvisionToken(String agencyConfig, Promise promise) {
         Log.d(TAG, "getProvisionToken()");
         try {

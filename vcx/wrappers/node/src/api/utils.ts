@@ -57,6 +57,7 @@ export async function provisionAgentWithToken (configAgent: string, token: strin
    *
    * Params:
    *  configAgent - Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+   *  token -       Provisioning token provided by sponsor
    *
    * Example:
    * ```
@@ -106,6 +107,62 @@ export async function provisionAgentWithToken (configAgent: string, token: strin
     )
   } catch (err) {
     throw new VCXInternalError(err)
+  }
+}
+
+export async function provisionAgentWithTokenAsync (configAgent: string, token: string, options: IInitVCXOptions = {}): Promise<string> {
+  /**
+   * Provision an agent in the agency, populate configuration and wallet for this agent.
+   *
+   * Params:
+   *  configAgent - Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+   *  token -       Provisioning token provided by sponsor
+   *
+   * Example:
+   * ```
+   * configAgent = {
+   *     'agency_url': 'https://enym-eagency.pdev.evernym.com',
+   *     'agency_did': 'YRuVCckY6vfZfX9kcQZe3u',
+   *     'agency_verkey': "J8Yct6FwmarXjrE2khZesUXRVVSVczSoa9sFaGe6AD2v",
+   *     'wallet_name': 'LIBVCX_SDK_WALLET',
+   *     'agent_seed': '00000000000000000000000001234561',
+   *     'enterprise_seed': '000000000000000000000000Trustee1',
+   *     'wallet_key': '1234'
+   *  }
+   * token =
+   *    {
+   *       "sponseeId": string,
+   *       "sponsorId": string, //name of enterprise sponsoring the provisioning
+   *       "nonce": string,
+   *       "timestamp": string,
+   *       "sig": string, // base64encoded(sig(nonce + timestamp + id))
+   *       "sponsorVerKey": string,
+   *       "attestationAlgorithm": Optional<string>, // device attestation signature algorithm. Can be one of: SafetyNet | DeviceCheck
+   *       "attestationData": Optional<string>, // device attestation signature matching to specified algorithm
+   *     }
+   **/
+  try {
+    initRustAPI(options.libVCXPath)
+    return await createFFICallbackPromise<string>(
+      (resolve, reject, cb) => {
+        const rc = rustAPI().vcx_provision_agent_with_token_async(0, configAgent, token, cb)
+        if (rc) {
+          reject(rc)
+        }
+      },
+      (resolve, reject) => Callback(
+        'void',
+        ['uint32','uint32','string'],
+        (xhandle: number, err: number, config: string) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(config)
+        })
+)
+} catch (err) {
+throw new VCXInternalError(err)
   }
 }
 
