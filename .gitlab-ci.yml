@@ -667,6 +667,35 @@ package-node-wrapper-from-latest:
       - /^docker-.*/
 
 
+.package-react-native-wrapper:
+  extends: .tags_micro
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - output/*
+  script:
+    - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
+    - export vcxRevision=$(git rev-parse --short HEAD)
+    - vcx/wrappers/react-native/ci/package.sh ${vcxVersion}-${vcxRevision}
+package-react-native-wrapper-from-branch:
+  extends: .package-react-native-wrapper
+  stage: package
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
+  dependencies:
+    - build-libvcx-ubuntu18-from-branch
+  only:
+    refs:
+      - /^docker-.*/
+package-react-native-wrapper-from-latest:
+  extends: .package-react-native-wrapper
+  stage: package
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
+  dependencies:
+    - build-libvcx-ubuntu18-from-latest
+  except:
+    refs:
+      - /^docker-.*/
+
 ## - Jobs : Publish - ##
 publish-android:
   stage: publish
@@ -741,6 +770,8 @@ publish-packages:
     - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" node-vcx-*.tgz https://kraken.corp.evernym.com/repo/npm/upload
     - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" python3-vcx-*.tar.gz https://kraken.corp.evernym.com/repo/portal_dev/upload
     - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" python3-vcx-*.tar.gz https://kraken.corp.evernym.com/repo/python/upload
+    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" react-native-vcx-*.tgz https://kraken.corp.evernym.com/repo/portal_dev/upload
+    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" react-native-vcx-*.tgz https://kraken.corp.evernym.com/repo/npm/upload
 
 publish-mobile-sdk:
   stage: publish
@@ -754,12 +785,16 @@ publish-mobile-sdk:
       variables:
         msdkPackageVer: ${msdkVersion}-${CI_PIPELINE_ID}
   script:
-    - vcx/ci/scripts/githubArtifacts.py ${msdkVersion} vcx/wrappers/java/artifacts/aar/*.aar IOSBuilds/libvcx{partial,all}/vcx.libvcx*.zip
+    - vcx/ci/scripts/githubArtifacts.py ${msdkVersion} vcx/wrappers/java/artifacts/aar/*.aar IOSBuilds/libvcx{partial,all}/vcx.libvcx*.zip output/react-native-vcx-*.tgz
     - >
       find ./vcx/wrappers/java/artifacts/aar/ -name "*.aar" -exec
       curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
       "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
     - >
       find ./IOSBuilds/libvcx{partial,all}/ -name "vcx.libvcx*.zip" -exec
+      curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
+      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
+    - >
+      find ./output/ -name "react-native-vcx-*.tgz" -exec
       curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
       "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
