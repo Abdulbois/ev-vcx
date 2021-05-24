@@ -44,6 +44,7 @@ extern crate strum_macros;
 extern crate chrono;
 extern crate sha2;
 extern crate dashmap;
+extern crate rust_base58;
 
 #[macro_use]
 pub mod utils;

@@ -61,11 +61,14 @@ impl Connection {
         Ok(connection)
     }
 
-    pub fn create_with_outofband_invite(source_id: &str, invitation: OutofbandInvitation) -> VcxResult<Connection> {
+    pub fn create_with_outofband_invite(source_id: &str, mut invitation: OutofbandInvitation) -> VcxResult<Connection> {
         trace!("Connection::create_with_outofband_invite >>> source_id: {}, invitation: {:?}", source_id, secret!(invitation));
         debug!("Connection {}: Creating Connection state object with out-of-band invite", source_id);
 
         invitation.validate()?;
+
+        // normalize service keys in case invitation is using did:key format
+        invitation.normalize_service_keys()?;
 
         let mut connection = Connection {
             connection_sm: DidExchangeSM::new(Actor::Invitee, source_id, None),
