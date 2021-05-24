@@ -1,8 +1,13 @@
+VCX_VERSION=$1
+
 OUTPUTDIR=output
 DIR=vcx/wrappers/react-native
 CURDIR=$(pwd)
 
 cd $DIR
+
+sed -riE "s|com.evernym:vcx:.*@aar|com.evernym:vcx:${VCX_VERSION}@aar|" android/build.gradle
+
 npm i
 npm run build
 npm pack

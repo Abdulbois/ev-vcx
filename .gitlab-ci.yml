@@ -674,7 +674,9 @@ package-node-wrapper-from-latest:
     paths:
       - output/*
   script:
-    - vcx/wrappers/react-native/ci/package.sh
+    - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
+    - export vcxRevision=$(git rev-parse --short HEAD)
+    - vcx/wrappers/react-native/ci/package.sh ${vcxVersion}-${vcxRevision}
 package-react-native-wrapper-from-branch:
   extends: .package-react-native-wrapper
   stage: package
