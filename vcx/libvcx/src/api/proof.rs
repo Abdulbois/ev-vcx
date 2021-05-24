@@ -154,7 +154,7 @@ pub extern fn vcx_proof_create(command_handle: CommandHandle,
         let (rc, handle) = match proof::create_proof(source_id.clone(), requested_attrs, requested_predicates, revocation_interval, name) {
             Ok(x) => {
                 trace!("vcx_proof_create_cb(command_handle: {}, rc: {}, handle: {}) source_id: {}",
-                       command_handle, error::SUCCESS.message, x, source_id);
+                       command_handle, error::SUCCESS.as_str(), x, source_id);
                 (error::SUCCESS.code_num, x)
             }
             Err(x) => {
@@ -230,7 +230,7 @@ pub extern fn vcx_proof_create_with_proposal(command_handle: CommandHandle,
         let (rc, handle) = match proof::create_proof_with_proposal(source_id.clone(), name, presentation_proposal) {
             Ok(x) => {
                 trace!("vcx_proof_create_with_proposal_cb(command_handle: {}, rc: {}, handle: {}) source_id: {}",
-                       command_handle, error::SUCCESS.message, x, source_id);
+                       command_handle, error::SUCCESS.as_str(), x, source_id);
                 (error::SUCCESS.code_num, x)
             }
             Err(x) => {
@@ -279,7 +279,7 @@ pub extern fn vcx_proof_update_state(command_handle: CommandHandle,
         match proof::update_state(proof_handle, None) {
             Ok(state) => {
                 trace!("vcx_proof_update_state_cb(command_handle: {}, rc: {}, proof_handle: {}, state: {})",
-                      command_handle, error::SUCCESS.message, proof_handle, state);
+                      command_handle, error::SUCCESS.as_str(), proof_handle, state);
                 cb(command_handle, error::SUCCESS.code_num, state);
             },
             Err(x) => {
@@ -330,7 +330,7 @@ pub extern fn vcx_proof_update_state_with_message(command_handle: CommandHandle,
         match proof::update_state(proof_handle, Some(message)) {
             Ok(x) => {
                 trace!("vcx_proof_update_state_with_message_cb(command_handle: {}, rc: {}, proof_handle: {}, state: {})",
-                      command_handle, error::SUCCESS.message, proof_handle, x);
+                      command_handle, error::SUCCESS.as_str(), proof_handle, x);
                 cb(command_handle, error::SUCCESS.code_num, x);
             },
             Err(x) => {
@@ -376,7 +376,7 @@ pub extern fn vcx_proof_get_state(command_handle: CommandHandle,
         match proof::get_state(proof_handle) {
             Ok(x) => {
                 trace!("vcx_proof_get_state_cb(command_handle: {}, rc: {}, proof_handle: {}, state: {})",
-                      command_handle, error::SUCCESS.message, proof_handle, x);
+                      command_handle, error::SUCCESS.as_str(), proof_handle, x);
                 cb(command_handle, error::SUCCESS.code_num, x);
             },
             Err(x) => {
@@ -417,7 +417,7 @@ pub extern fn vcx_proof_serialize(command_handle: CommandHandle,
         match proof::to_string(proof_handle) {
             Ok(x) => {
                 trace!("vcx_proof_serialize_cb(command_handle: {}, proof_handle: {}, rc: {}, state: {})",
-                      command_handle, proof_handle, error::SUCCESS.message, secret!(x));
+                      command_handle, proof_handle, error::SUCCESS.as_str(), secret!(x));
                 let msg = CStringUtils::string_to_cstring(x);
                 cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
             },
@@ -461,7 +461,7 @@ pub extern fn vcx_proof_deserialize(command_handle: CommandHandle,
         let (rc, handle) = match proof::from_string(&proof_data) {
             Ok(x) => {
                 trace!("vcx_proof_deserialize_cb(command_handle: {}, rc: {}, handle: {})",
-                      command_handle, error::SUCCESS.message, x);
+                      command_handle, error::SUCCESS.as_str(), x);
                 (error::SUCCESS.code_num, x)
             },
             Err(x) => {
@@ -493,7 +493,7 @@ pub extern fn vcx_proof_release(proof_handle: u32) -> u32 {
         match proof::release(proof_handle) {
             Ok(()) => {
                 trace!("vcx_proof_release(proof_handle: {}, rc: {})",
-                       proof_handle, error::SUCCESS.message);
+                       proof_handle, error::SUCCESS.as_str());
             }
             Err(e) => {
                 warn!("vcx_proof_release(proof_handle: {}), rc: {})",
@@ -872,7 +872,7 @@ pub extern fn vcx_proof_set_connection(command_handle: CommandHandle,
         let err = match proof::set_connection(proof_handle, connection_handle) {
             Ok(x) => {
                 trace!("vcx_proof_set_connection_cb(command_handle: {}, credential_handle: {}, rc: {})",
-                       command_handle, proof_handle, error::SUCCESS.message);
+                       command_handle, proof_handle, error::SUCCESS.as_str());
                 x
             }
             Err(x) => {
@@ -955,7 +955,7 @@ pub extern fn vcx_proof_get_problem_report(command_handle: CommandHandle,
         match proof::get_problem_report_message(proof_handle) {
             Ok(message) => {
                 trace!("vcx_proof_get_problem_report_cb(command_handle: {}, rc: {}, msg: {})",
-                       command_handle, error::SUCCESS.message, secret!(message));
+                       command_handle, error::SUCCESS.as_str(), secret!(message));
                 let message = CStringUtils::string_to_cstring(message);
                 cb(command_handle, error::SUCCESS.code_num, message.as_ptr());
             }

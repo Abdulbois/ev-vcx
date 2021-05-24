@@ -259,15 +259,12 @@ impl Fail for VcxError {
 
 impl fmt::Display for VcxError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut first = true;
-
-        for cause in Fail::iter_chain(&self.inner) {
-            if first {
-                first = false;
-                writeln!(f, "Error: {}", cause)?;
-            } else {
-                writeln!(f, "  Caused by: {}", cause)?;
-            }
+        let mut causes = <dyn Fail>::iter_chain(&self.inner);
+        if let Some(first_cause) = causes.next() {
+            writeln!(f, "Error: {}", first_cause)?;
+        }
+        for cause in causes {
+            writeln!(f, "  Caused by: {}", cause)?;
         }
 
         Ok(())
@@ -303,7 +300,7 @@ pub fn err_msg<D>(kind: VcxErrorKind, msg: D) -> VcxError
 
 impl From<VcxErrorKind> for VcxError {
     fn from(kind: VcxErrorKind) -> VcxError {
-        VcxError::from_msg(kind, ::utils::error::error_message(&kind.clone().into()))
+        VcxError::from_msg(kind, ::utils::error::error_message(kind.into()))
     }
 }
 
@@ -461,7 +458,7 @@ pub fn set_current_error(err: &VcxError) {
         let error_json = json!({
             "error": err.kind().to_string(),
             "message": err.to_string(),
-            "cause": Fail::find_root_cause(err).to_string(),
+            "cause": <dyn Fail>::find_root_cause(err).to_string(),
             "backtrace": err.backtrace().map(|bt| bt.to_string())
         }).to_string();
         error.replace(Some(CStringUtils::string_to_cstring(error_json)));

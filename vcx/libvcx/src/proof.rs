@@ -295,7 +295,7 @@ impl Proof {
         let valid = Proof::validate_indy_proof(&proof_json, &proof_req_json).map_err(|err| {
             error!("Error: {}, Proof {} wasn't valid", err, self.source_id);
             self.proof_state = ProofStateType::ProofInvalid;
-            err.map(VcxErrorKind::InvalidProof, error::INVALID_PROOF.message)
+            err.map(VcxErrorKind::InvalidProof, error::INVALID_PROOF.as_str())
         })?;
 
         if !valid {
@@ -882,7 +882,7 @@ pub mod tests {
     use utils::devsetup::*;
     use utils::httpclient::AgencyMock;
     use connection;
-    use messages::proofs::proof_request::{AttrInfo, PredicateInfo};
+    
     use v3::messages::proof_presentation::presentation_proposal::PresentationPreview;
 
     fn default_agent_info(connection_handle: Option<u32>) -> MyAgentInfo {
