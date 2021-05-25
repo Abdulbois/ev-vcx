@@ -174,6 +174,29 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 - (const char *)agentProvisionWithToken:(NSString *)config
                           token:(NSString *)token;
 
+/// Provision an agent in the agency, populate configuration and wallet for this agent.
+///
+/// config: Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+/// token: {
+///          This can be a push notification endpoint to contact the sponsee or
+///          an id that the sponsor uses to reference the sponsee in its backend system
+///          "sponseeId": String,
+///          "sponsorId": String, //Persistent Id of the Enterprise sponsoring the provisioning
+///          "nonce": String,
+///          "timestamp": String,
+///          "sig": String, // Base64Encoded(sig(nonce + timestamp + id))
+///          "sponsorVerKey": String,
+///          "attestationAlgorithm": Optional<String>, // device attestation signature algorithm. Can be one of: SafetyNet | DeviceCheck
+///          "attestationData": Optional<String>, // device attestation signature matching to specified algorithm
+///        }
+///
+/// #Returns
+/// Configuration
+- (void)agentProvisionWithTokenAsync:(NSString *)config
+                               token:(NSString *)token
+                          completion:(void (^)(NSError *error, NSString *result))completion;
+
+
 /// Get token which can be used for provisioning an agent
 /// NOTE: Can be used only for Evernym's applications
 ///
