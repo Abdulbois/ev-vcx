@@ -85,7 +85,7 @@ Added `react-native-vcx-wrapper` package as dependency into your `package.json`:
 
     ```ruby
     ....
-    source 'git@github.com:evernym/mobile-sdk.git'
+    source 'git@gitlab.com:evernym/mobile/mobile-sdk.git'
     ```
 
 1. Add VCX dependency into your Podfile inside target <ProjectName>:
