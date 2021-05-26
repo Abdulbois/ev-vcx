@@ -20,7 +20,64 @@ Added `react-native-vcx-wrapper` package as dependency into your `package.json`:
 
 ##### Android
 
-There are no steps need to do.
+1. Update the minimum supported SDK version in your `android/build.gradle` file to be `23`:
+    ```groovy
+    buildscript {
+        ext {
+            ...
+            minSdkVersion = 23
+            ...
+        }
+        ...
+    ```
+
+1. Add a new source repository in your `android/build.gradle` file:
+    ```groovy
+    allprojects {
+        repositories {
+            ...
+            maven {
+                url 'https://evernym.mycloudrepo.io/public/repositories/libvcx-android'
+            }
+        }
+    }
+
+1. Setup packaging options in your `android/app/build.gradle` file:
+   ```groovy
+   android {
+       ...
+       packagingOptions{
+           pickFirst 'lib/armeabi-v7a/libc++_shared.so'
+           pickFirst 'lib/arm64-v8a/libc++_shared.so'
+           pickFirst 'lib/x86_64/libc++_shared.so'
+           pickFirst 'lib/x86/libc++_shared.so'
+       }
+       ...
+   }
+   ```
+
+1. Update your `MainActivity` by adding the following code (it's needed to configure your app storage):
+    ```
+    import android.content.ContextWrapper;
+    import android.system.Os;
+    ```
+    ```
+    @Override
+    protected void onStart() {
+        super.onStart();
+        try {
+            ContextWrapper c = new ContextWrapper(this);
+            Os.setenv("EXTERNAL_STORAGE", c.getFilesDir().toString(), true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+   ```
+
+1. Enable backups in your `AndroidManifest.xml` file:
+    ```
+    android:allowBackup="true"
+    ```
 
 ##### iOS
 
@@ -28,14 +85,18 @@ There are no steps need to do.
 
     ```ruby
     ....
-    source 'git@github.com:evernym/mobile-sdk.git'
+    source 'git@gitlab.com:evernym/mobile/mobile-sdk.git'
     ```
 
-1. Add VCX dependency into your `Podfile` inside `target <ProjectName>`: 
-
-    ```ruby
-    pod 'vcx', 0.0.205
-   ```
+1. Add VCX dependency into your Podfile inside target <ProjectName>:
+    * release build for devices only (`arm64`):
+        ```ruby
+        pod 'vcx', 0.0.207
+        ```
+    * debug build dor devices and simulators (`arm64` and `x86_64`)
+        ```ruby
+        pod 'vcx', 0.0.208
+        ```
 
 1. Run `pod install`
 
