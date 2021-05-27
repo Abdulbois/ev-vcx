@@ -79,7 +79,7 @@ export class Verifier {
    *     [
    *        { // set of requested predicates
    *           "name": attribute name, (case insensitive and ignore spaces)
-   *           "p_type": predicate type (Currently ">=" only)
+   *           "p_type": predicate type (">=", ">", "<=", "<")
    *           "p_value": int predicate value
    *           "restrictions":  Optional(wql query) -  set of restrictions applying to requested credentials. (see below)
    *           "non_revoked": Optional({
@@ -294,7 +294,7 @@ export class Verifier {
    *     [
    *        { // set of requested predicates
    *           "name": attribute name, (case insensitive and ignore spaces)
-   *           "p_type": predicate type (Currently ">=" only)
+   *           "p_type": predicate type (">=", ">", "<=", "<")
    *           "p_value": int predicate value
    *           "restrictions":  Optional(wql query) -  set of restrictions applying to requested credentials. (see below)
    *           "non_revoked": Optional({

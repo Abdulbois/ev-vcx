@@ -113,7 +113,7 @@ class Proof(VcxStateful):
         :param requested_predicates: Predicates associated with the Proof
            { // set of requested predicates
               "name": attribute name, (case insensitive and ignore spaces)
-              "p_type": predicate type (Currently ">=" only)
+              "p_type": predicate type (">=", ">", "<=", "<")
               "p_value": int predicate value
               "restrictions": Optional<filter_json>, // see above
               "non_revoked": Optional<{
@@ -368,7 +368,7 @@ class Proof(VcxStateful):
         :param requested_predicates: Predicates associated with the Proof
            { // set of requested predicates
               "name": attribute name, (case insensitive and ignore spaces)
-              "p_type": predicate type (Currently ">=" only)
+              "p_type": predicate type (">=", ">", "<=", "<")
               "p_value": int predicate value
               "restrictions": Optional<filter_json>, // see above
               "non_revoked": Optional<{
