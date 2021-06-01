@@ -973,7 +973,9 @@ vcx_error_t vcx_credential_release(vcx_credential_handle_t handle);
 //
 // credential_handle: credential handle that was provided during creation. Used to identify credential object
 //
-// connection_handle: Connection handle that identifies pairwise connection
+/// connection_handle: Connection handle that identifies pairwise connection.
+///                    Pass `0` in order to reply on ephemeral/connectionless credential offer
+///                    Ephemeral/Connectionless Credential Offer contains `~server` decorator
 //
 // cb: Callback that provides error status of credential request
 //
@@ -1502,7 +1504,9 @@ vcx_error_t vcx_disclosed_proof_retrieve_credentials(vcx_command_handle_t comman
 //
 // proof_handle: proof handle that was provided duration creation.  Used to identify proof object.
 //
-// connection_handle: Connection handle that identifies pairwise connection
+/// connection_handle: Connection handle that identifies pairwise connection.
+///                    Pass `0` in order to reply on ephemeral/connectionless proof request
+///                    Ephemeral/Connectionless Proof Request contains `~server` decorator
 //
 // cb: Callback that provides error status of proof send request
 //

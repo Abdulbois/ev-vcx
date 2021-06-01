@@ -253,6 +253,20 @@ impl From<(OfferReceivedState, String, String, CompletedConnection, Thread)> for
     }
 }
 
+impl From<(OfferReceivedState, String, Credential, Thread)> for FinishedHolderState {
+    fn from((state, cred_id, credential, thread): (OfferReceivedState, String, Credential, Thread)) -> Self {
+        trace!("HolderSM: transit state from OfferReceivedState to FinishedHolderState");
+        trace!("Thread: {:?}", thread);
+        FinishedHolderState {
+            offer: Some(state.offer),
+            cred_id: Some(cred_id),
+            credential: Some(credential),
+            status: Status::Success,
+            thread,
+        }
+    }
+}
+
 impl From<(RequestSentState, String, Credential, Thread)> for FinishedHolderState {
     fn from((state, cred_id, credential, thread): (RequestSentState, String, Credential, Thread)) -> Self {
         trace!("HolderSM: transit state from RequestSentState to FinishedHolderState");

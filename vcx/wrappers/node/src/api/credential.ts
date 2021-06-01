@@ -108,7 +108,7 @@ export interface ICredentialCreateWithMsgId {
  */
 export interface ICredentialSendData {
   // Connection to send credential request
-  connection: Connection,
+  connection?: Connection | null,
   // Fee amount
   payment: number
 }
@@ -345,6 +345,10 @@ export class Credential extends VCXBaseWithState<ICredentialStructData> {
    * Approves the credential offer and submits a credential request.
    * The result will be a credential stored in the prover's wallet.
    *
+   * @param: connection - connection to send credential request
+   *                      Pass `null` in order to reply on ephemeral/connectionless credential offer
+   *                      Ephemeral/Connectionless Credential Offer contains `~server` decorator
+   *
    * ```
    * connection = await Connection.create({id: 'foobar'})
    * inviteDetails = await connection.connect()
@@ -357,7 +361,12 @@ export class Credential extends VCXBaseWithState<ICredentialStructData> {
     try {
       await createFFICallbackPromise<void>(
           (resolve, reject, cb) => {
-            const rc = rustAPI().vcx_credential_send_request(0, this.handle, connection.handle, payment, cb)
+            const rc = rustAPI().vcx_credential_send_request(0,
+              this.handle,
+              connection? connection.handle : 0,
+              payment,
+              cb
+            )
             if (rc) {
               reject(rc)
             }
@@ -559,7 +568,7 @@ export class Credential extends VCXBaseWithState<ICredentialStructData> {
   /**
    * Build Presentation Proposal message for revealing Credential data.
    *
-   * Presentation Proposal is an optional message that can be sent by the Prover to the Verifier to 
+   * Presentation Proposal is an optional message that can be sent by the Prover to the Verifier to
    * initiate a Presentation Proof process.
    *
    * Presentation Proposal Format:

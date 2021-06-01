@@ -2,6 +2,7 @@ use v3::messages::a2a::{MessageId, A2AMessage};
 use v3::messages::attachment::{Attachments, AttachmentId};
 use error::VcxResult;
 use messages::thread::Thread;
+use v3::messages::transport::Transport;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Default)]
 pub struct CredentialRequest {
@@ -12,7 +13,9 @@ pub struct CredentialRequest {
     #[serde(rename = "requests~attach")]
     pub requests_attach: Attachments,
     #[serde(rename = "~thread")]
-    pub thread: Thread
+    pub thread: Thread,
+    #[serde(rename = "~transport")]
+    pub transport: Option<Transport>,
 }
 
 impl CredentialRequest {
@@ -32,6 +35,7 @@ impl CredentialRequest {
 }
 
 threadlike!(CredentialRequest);
+return_route!(CredentialRequest);
 a2a_message!(CredentialRequest);
 
 #[cfg(test)]
@@ -59,6 +63,7 @@ pub mod tests {
             comment: Some(_comment()),
             requests_attach: attachment,
             thread: thread(),
+            transport: None
         }
     }
 
