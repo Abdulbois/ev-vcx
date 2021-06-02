@@ -66,6 +66,7 @@ pub extern fn vcx_provision_agent_with_token(config: *const c_char, token: *cons
             debug!("Provision Agent Successful");
             let msg = CStringUtils::string_to_cstring(s);
 
+            // TODO: this is a memory leak
             msg.into_raw()
         }
     }
@@ -104,6 +105,7 @@ pub extern fn vcx_provision_agent(config: *const c_char) -> *mut c_char {
             debug!("Provision Agent Successful");
             let msg = CStringUtils::string_to_cstring(s);
 
+            // TODO: this is a memory leak
             msg.into_raw()
         }
     }
@@ -916,11 +918,13 @@ mod tests {
     use utils::timeout::TimeoutUtils;
 
     static CONFIG: &'static str = r#"{"agency_url":"https://enym-eagency.pdev.evernym.com","agency_did":"Ab8TvZa3Q19VNkQVzAWVL7","agency_verkey":"5LXaR43B1aQyeh94VBP8LG1Sgvjk7aNfqiksBCSjwqbf","wallet_name":"test_provision_agent","agent_seed":null,"enterprise_seed":null,"wallet_key":"key"}"#;
+    const CONFIG_CSTR: *const c_char = concat!(r#"{"agency_url":"https://enym-eagency.pdev.evernym.com","agency_did":"Ab8TvZa3Q19VNkQVzAWVL7","agency_verkey":"5LXaR43B1aQyeh94VBP8LG1Sgvjk7aNfqiksBCSjwqbf","wallet_name":"test_provision_agent","agent_seed":null,"enterprise_seed":null,"wallet_key":"key"}"#, "\0").as_ptr().cast();
 
     fn _vcx_agent_provision_async_c_closure(config: &str) -> Result<Option<String>, u32> {
         let cb = return_types_u32::Return_U32_STR::new().unwrap();
+        let config = CString::new(config).unwrap();
         let rc = vcx_agent_provision_async(cb.command_handle,
-                                           CString::new(config).unwrap().into_raw(),
+                                           config.as_ptr(),
                                            Some(cb.get_callback()));
         if rc != error::SUCCESS.code_num {
             return Err(rc);
@@ -932,9 +936,7 @@ mod tests {
     fn test_provision_agent() {
         let _setup = SetupMocks::init();
 
-        let c_json = CString::new(CONFIG).unwrap().into_raw();
-
-        let result = vcx_provision_agent(c_json);
+        let result = vcx_provision_agent(CONFIG_CSTR);
 
         let result = CStringUtils::c_str_to_string(result).unwrap().unwrap();
         let _config: serde_json::Value = serde_json::from_str(&result).unwrap();
@@ -950,10 +952,10 @@ mod tests {
             "com_method": {"id":"123","value":"FCM:Value"}
         });
 
-        let c_json = CString::new(config.to_string()).unwrap().into_raw();
+        let c_json = CString::new(config.to_string()).unwrap();
 
         let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        let rc = vcx_get_provision_token(cb.command_handle, c_json, Some(cb.get_callback()));
+        let rc = vcx_get_provision_token(cb.command_handle, c_json.as_ptr(), Some(cb.get_callback()));
         assert_eq!(rc, error::INVALID_CONFIGURATION.code_num)
     }
 
@@ -969,10 +971,10 @@ mod tests {
             "com_method": {"type": 1, "id":"123","value":"FCM:Value"}
         });
 
-        let c_json = CString::new(config.to_string()).unwrap().into_raw();
+        let c_json = CString::new(config.to_string()).unwrap();
 
         let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        let rc = vcx_get_provision_token(cb.command_handle, c_json, Some(cb.get_callback()));
+        let rc = vcx_get_provision_token(cb.command_handle, c_json.as_ptr(), Some(cb.get_callback()));
         assert_eq!(rc, error::SUCCESS.code_num);
         cb.receive(TimeoutUtils::some_medium()).unwrap();
     }
@@ -1016,8 +1018,7 @@ mod tests {
     fn test_update_agent_info() {
         let _setup = SetupMocks::init();
 
-        let json_string = r#"{"id":"123","value":"value"}"#;
-        let c_json = CString::new(json_string).unwrap().into_raw();
+        let c_json = concat!(r#"{"id":"123","value":"value"}"#, "\0").as_ptr().cast();
 
         let cb = return_types_u32::Return_U32::new().unwrap();
         let _result = vcx_agent_update_info(cb.command_handle, c_json, Some(cb.get_callback()));
@@ -1028,8 +1029,7 @@ mod tests {
     fn test_update_agent_info_with_type() {
         let _setup = SetupMocks::init();
 
-        let json_string = r#"{"id":"123","value":"value", "type":1}"#;
-        let c_json = CString::new(json_string).unwrap().into_raw();
+        let c_json = concat!(r#"{"id":"123","value":"value", "type":1}"#, "\0").as_ptr().cast();
 
         let cb = return_types_u32::Return_U32::new().unwrap();
         let _result = vcx_agent_update_info(cb.command_handle, c_json, Some(cb.get_callback()));
@@ -1042,8 +1042,7 @@ mod tests {
 
         AgencyMock::set_next_response(REGISTER_RESPONSE.to_vec()); //set response garbage
 
-        let json_string = r#"{"id":"123"}"#;
-        let c_json = CString::new(json_string).unwrap().into_raw();
+        let c_json = concat!(r#"{"id":"123"}"#, "\0").as_ptr().cast();
 
         let cb = return_types_u32::Return_U32::new().unwrap();
         assert_eq!(vcx_agent_update_info(cb.command_handle,
@@ -1075,8 +1074,8 @@ mod tests {
     fn test_messages_update_status() {
         let _setup = SetupMocks::init();
 
-        let status = CString::new("MS-103").unwrap().into_raw();
-        let json = CString::new(r#"[{"pairwiseDID":"QSrw8hebcvQxiwBETmAaRs","uids":["mgrmngq"]}]"#).unwrap().into_raw();
+        let status = "MS-103\0".as_ptr().cast();
+        let json = concat!(r#"[{"pairwiseDID":"QSrw8hebcvQxiwBETmAaRs","uids":["mgrmngq"]}]"#, "\0").as_ptr().cast();
 
         let cb = return_types_u32::Return_U32::new().unwrap();
         assert_eq!(vcx_messages_update_status(cb.command_handle,

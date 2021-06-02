@@ -1072,9 +1072,10 @@ mod tests {
 
     fn _vcx_credential_create_with_offer_c_closure(offer: &str) -> Result<u32, u32> {
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
+        let offer = CString::new(offer).unwrap();
         let rc = vcx_credential_create_with_offer(cb.command_handle,
-                                                  CString::new("test_create").unwrap().into_raw(),
-                                                  CString::new(offer).unwrap().into_raw(),
+                                                  "test_create\0".as_ptr().cast(),
+                                                  offer.as_ptr(),
                                                   Some(cb.get_callback()));
         if rc != error::SUCCESS.code_num {
             return Err(rc);
@@ -1116,8 +1117,9 @@ mod tests {
         assert_eq!(object["version"], PENDING_OBJECT_SERIALIZE_VERSION);
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
+        let cred_json_cstr = CString::new(credential_json).unwrap();
         assert_eq!(vcx_credential_deserialize(cb.command_handle,
-                                              CString::new(credential_json).unwrap().into_raw(),
+                                              cred_json_cstr.as_ptr(),
                                               Some(cb.get_callback())), error::SUCCESS.code_num);
         let handle = cb.receive(TimeoutUtils::some_short()).unwrap();
         assert!(handle > 0);
@@ -1159,9 +1161,9 @@ mod tests {
 
         let cb = return_types_u32::Return_U32_U32_STR::new().unwrap();
         assert_eq!(vcx_credential_create_with_msgid(cb.command_handle,
-                                                    CString::new("test_vcx_credential_create").unwrap().into_raw(),
+                                                    "test_vcx_credential_create\0".as_ptr().cast(),
                                                     cxn,
-                                                    CString::new("123").unwrap().into_raw(),
+                                                    "123\0".as_ptr().cast(),
                                                     Some(cb.get_callback())), error::SUCCESS.code_num);
         cb.receive(TimeoutUtils::some_medium()).unwrap();
     }
@@ -1202,8 +1204,8 @@ mod tests {
 
         let cxn = ::connection::tests::build_test_connection();
 
-        let my_pw_did = CString::new(::connection::get_pw_did(cxn).unwrap()).unwrap().into_raw();
-        let their_pw_did = CString::new(::connection::get_their_pw_did(cxn).unwrap()).unwrap().into_raw();
+        let my_pw_did = CString::new(::connection::get_pw_did(cxn).unwrap()).unwrap();
+        let their_pw_did = CString::new(::connection::get_their_pw_did(cxn).unwrap()).unwrap();
 
         let handle = credential::from_string(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
 
@@ -1214,7 +1216,7 @@ mod tests {
         assert_eq!(cb.receive(TimeoutUtils::some_medium()).unwrap(), VcxStateType::VcxStateRequestReceived as u32);
 
         let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_credential_get_request_msg(cb.command_handle, handle, my_pw_did, their_pw_did, 0, Some(cb.get_callback())), error::SUCCESS.code_num);
+        assert_eq!(vcx_credential_get_request_msg(cb.command_handle, handle, my_pw_did.as_ptr(), their_pw_did.as_ptr(), 0, Some(cb.get_callback())), error::SUCCESS.code_num);
         let msg = cb.receive(TimeoutUtils::some_medium()).unwrap().unwrap();
 
         ::serde_json::from_str::<CredentialRequest>(&msg).unwrap();

@@ -596,8 +596,9 @@ mod tests {
 
     fn _vcx_init_c_closure(path: &str) -> Result<(), u32> {
         let cb = return_types_u32::Return_U32::new().unwrap();
+        let path = CString::new(path.as_bytes()).unwrap();
         let rc = vcx_init(cb.command_handle,
-                          CString::new(path.to_string()).unwrap().into_raw(),
+                          path.as_ptr(),
                           Some(cb.get_callback()));
         if rc != error::SUCCESS.code_num {
             return Err(rc);
@@ -607,8 +608,9 @@ mod tests {
 
     fn _vcx_init_with_config_c_closure(config: &str) -> Result<(), u32> {
         let cb = return_types_u32::Return_U32::new().unwrap();
+        let config = CString::new(config.as_bytes()).unwrap();
         let rc = vcx_init_with_config(cb.command_handle,
-                                      CString::new(config.to_string()).unwrap().into_raw(),
+                                      config.as_ptr(),
                                       Some(cb.get_callback()));
         if rc != error::SUCCESS.code_num {
             return Err(rc);
@@ -929,13 +931,14 @@ mod tests {
     fn test_vcx_update_institution_info() {
         let _setup = SetupDefaults::init();
 
-        let new_name = "new_name";
-        let new_url = "http://www.evernym.com";
+        let new_name_cstr = "new_name\0";
+        let new_name = &new_name_cstr[..new_name_cstr.len() - 1];
+        let new_url_cstr = "http://www.evernym.com\0";
+        let new_url = &new_url_cstr[..new_url_cstr.len() - 1];
         assert_ne!(new_name, &settings::get_config_value(::settings::CONFIG_INSTITUTION_NAME).unwrap());
         assert_ne!(new_url, &settings::get_config_value(::settings::CONFIG_INSTITUTION_LOGO_URL).unwrap());
 
-        assert_eq!(error::SUCCESS.code_num, vcx_update_institution_info(CString::new(new_name.to_string()).unwrap().into_raw(),
-                                                                        CString::new(new_url.to_string()).unwrap().into_raw()));
+        assert_eq!(error::SUCCESS.code_num, vcx_update_institution_info(new_name_cstr.as_ptr().cast(), new_url_cstr.as_ptr().cast()));
 
         assert_eq!(new_name, &settings::get_config_value(::settings::CONFIG_INSTITUTION_NAME).unwrap());
         assert_eq!(new_url, &settings::get_config_value(::settings::CONFIG_INSTITUTION_LOGO_URL).unwrap());
@@ -945,10 +948,11 @@ mod tests {
     fn test_vcx_update_institution_webhook() {
         let _setup = SetupDefaults::init();
 
-        let webhook_url = "http://www.evernym.com";
+        let webhook_url_cstr = "http://www.evernym.com\0";
+        let webhook_url = &webhook_url_cstr[..webhook_url_cstr.len() - 1];
         assert_ne!(webhook_url, &settings::get_config_value(::settings::CONFIG_WEBHOOK_URL).unwrap());
 
-        assert_eq!(error::SUCCESS.code_num, vcx_update_webhook_url(CString::new(webhook_url.to_string()).unwrap().into_raw()));
+        assert_eq!(error::SUCCESS.code_num, vcx_update_webhook_url(webhook_url_cstr.as_ptr().cast()));
 
         assert_eq!(webhook_url, &settings::get_config_value(::settings::CONFIG_WEBHOOK_URL).unwrap());
     }
@@ -999,21 +1003,21 @@ mod tests {
 
         assert!(&settings::get_config_value(::settings::CONFIG_TXN_AUTHOR_AGREEMENT).is_err());
 
-        let text = "text";
-        let version = "1.0.0";
-        let acc_mech_type = "type 1";
+        let text = "text\0";
+        let version = "1.0.0\0";
+        let acc_mech_type = "type 1\0";
         let time_of_acceptance = 123456789;
 
-        assert_eq!(error::SUCCESS.code_num, vcx_set_active_txn_author_agreement_meta(CString::new(text.to_string()).unwrap().into_raw(),
-                                                                                     CString::new(version.to_string()).unwrap().into_raw(),
+        assert_eq!(error::SUCCESS.code_num, vcx_set_active_txn_author_agreement_meta(text.as_ptr().cast(),
+                                                                                     version.as_ptr().cast(),
                                                                                      ::std::ptr::null(),
-                                                                                     CString::new(acc_mech_type.to_string()).unwrap().into_raw(),
+                                                                                     acc_mech_type.as_ptr().cast(),
                                                                                      time_of_acceptance));
 
         let expected = json!({
-            "text": text,
-            "version": version,
-            "acceptanceMechanismType": acc_mech_type,
+            "text": &text[..text.len() - 1],
+            "version": &version[..version.len() - 1],
+            "acceptanceMechanismType": &acc_mech_type[..acc_mech_type.len() - 1],
             "timeOfAcceptance": time_of_acceptance,
         });
 
@@ -1054,7 +1058,8 @@ mod tests {
     }
 
     fn _vcx_init_minimal_c_closure(content: &str) -> u32 {
-        vcx_init_minimal(CString::new(content).unwrap().into_raw())
+        let content = CString::new(content).unwrap();
+        vcx_init_minimal(content.as_ptr())
     }
 
     #[cfg(feature = "pool_tests")]

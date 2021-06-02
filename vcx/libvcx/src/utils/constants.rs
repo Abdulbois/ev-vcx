@@ -114,7 +114,8 @@ pub static INDY_PROVER_CRED: &str = r#"{"attrs":{"state_2":[{"referent":"claim::
 
 //--------------------------------------------New Constants----------------------------------------------------------------
 pub static CRED_REV_ID: &str = "1";
-pub static SCHEMA_ID: &str = r#"2hoqvcwupRTUNkXn6ArYzs:2:test-licence:4.4.4"#;
+pub static SCHEMA_ID: &str = "2hoqvcwupRTUNkXn6ArYzs:2:test-licence:4.4.4";
+pub const SCHEMA_ID_CSTR: *const i8 = "2hoqvcwupRTUNkXn6ArYzs:2:test-licence:4.4.4\0".as_ptr().cast();
 pub static SCHEMA_CREATE_JSON: &str = r#"{"ver":"1.0","id":"2hoqvcwupRTUNkXn6ArYzs:2:schema_name:0.0.11","name":"schema_name","version":"0.0.11","attrNames":["name","age","height","sex"],"seqNo":null}"#;
 pub static SCHEMA_REQ: &str = r#"{"reqId":1523972184443268076,"identifier":"2hoqvcwupRTUNkXn6ArYzs","operation":{"type":"101","data":{"name":"schema_name","version":"0.0.11","attr_names":["name","age","sex","height"]}},"protocolVersion":1}"#;
 pub static SUBMIT_SCHEMA_RESPONSE: &str = r#"{"op":"REPLY","result":{"reqId":1526055830283606591,"auditPath":["7ugDzcJ9KosJtxeG1USXrnthg6z8zcFfmh76s5P3Unmt","GKvW54XopASjPX8ihN9wjeVfYVqgmKW2K5nehUo2UCj6","32v8haTvzkNGxrPiHYRiBipqPLA2FDj7BY5mTt9anKD7","49eEV1Y1xKttCLfrsTu1p9CQcTwuBjGhXKAWTfyVLzvm","7ijtXV2TeGBMHwdrVKpFKBwnzu2dWxhfTH9sNa7xM4wM","7WNdgAkQzhnV2LcHPynDc6NPSrqipiZr2vP4zYDGzWKR"],"rootHash":"49dVmci81excka4Ff17uUPY6NyK5Fkyb7mxKQxHXGUXT","identifier":"2hoqvcwupRTUNkXn6ArYzs","signature":"2EpvwtTCBXPpwC8yG7bVWtWCqFhvU917ATma7auc4hpph3s9wpmGKVwUdp6WAd4MCCH2XsgfW9RS3aw6cNNJ6iVy","type":"101","data":{"name":"test-licence","attr_names":["age","height","name","sex"],"version":"4.4.4"},"seqNo":2471,"txnTime":1526055830,"signatures":null}}"#;

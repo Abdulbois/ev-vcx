@@ -96,22 +96,17 @@ pub extern "C" fn call_cb_u32_u32_str_str_str(command_handle: CommandHandle, arg
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ffi::CString;
     use utils::devsetup::SetupDefaults;
-
-    fn cstring(str_val: &String) -> CString {
-        CString::new(str_val.clone()).unwrap()
-    }
 
     #[test]
     fn test_build_string() {
         let _setup = SetupDefaults::init();
 
-        let test_str = "Journey before destination".to_string();
+        let test_str = "Journey before destination\0";
 
-        let test = build_string(cstring(&test_str).as_ptr());
+        let test = build_string(test_str.as_ptr().cast());
         assert!(test.is_some());
-        assert_eq!(test_str, test.unwrap());
+        assert_eq!(test_str[..test_str.len() - 1], test.unwrap());
     }
 
     #[test]
