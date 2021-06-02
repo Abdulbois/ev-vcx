@@ -870,15 +870,15 @@ pub fn parse_acceptance_details(message: &Message) -> VcxResult<SenderDetail> {
             trace!("Connection::parse_acceptance_details >>> MessagePayload::V1 payload");
 
             // TODO: check returned verkey
-            let (_, payload) = crypto::parse_msg(&my_vk, &messages::to_u8(&payload))
+            let (_, payload) = crypto::parse_msg(&my_vk, messages::i8_as_u8_slice(payload))
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt Message payload. Err: {}", err)))?;
 
-            let response: ConnectionPayload = rmp_serde::from_slice(&payload[..])
+            let response: ConnectionPayload = rmp_serde::from_slice(&payload)
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt Message payload. Err: {}", err)))?;
 
-            let payload = messages::to_u8(&response.msg);
+            let payload = messages::i8_as_u8_slice(&response.msg);
 
-            let response: AcceptanceDetails = rmp_serde::from_slice(&payload[..])
+            let response: AcceptanceDetails = rmp_serde::from_slice(payload)
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
 
             response.sender_detail
@@ -886,7 +886,7 @@ pub fn parse_acceptance_details(message: &Message) -> VcxResult<SenderDetail> {
         MessagePayload::V2(payload) => {
             trace!("Connection::parse_acceptance_details >>> MessagePayload::V2 payload");
 
-            let payload = Payloads::decrypt_payload_v2(&my_vk, &payload)?;
+            let payload = Payloads::decrypt_payload_v2(&my_vk, payload)?;
             let response: AcceptanceDetails = serde_json::from_str(&payload.msg)
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
 
@@ -914,15 +914,15 @@ impl Connection {
                 trace!("Connection::parse_redirection_details >>> MessagePayload::V1 payload");
 
                 // TODO: check returned verkey
-                let (_, payload) = crypto::parse_msg(&my_vk, &messages::to_u8(&payload))
+                let (_, payload) = crypto::parse_msg(&my_vk, messages::i8_as_u8_slice(&payload))
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt Message payload. Err: {}", err)))?;
 
-                let response: ConnectionPayload = rmp_serde::from_slice(&payload[..])
+                let response: ConnectionPayload = rmp_serde::from_slice(&payload)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt Message payload. Err: {}", err)))?;
 
-                let payload = messages::to_u8(&response.msg);
+                let payload = messages::i8_as_u8_slice(&response.msg);
 
-                let response: RedirectionDetails = rmp_serde::from_slice(&payload[..])
+                let response: RedirectionDetails = rmp_serde::from_slice(&payload)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot parse RedirectionDetails from Message payload. Err: {}", err)))?;
 
                 response.redirect_detail
@@ -930,7 +930,7 @@ impl Connection {
             MessagePayload::V2(payload) => {
                 trace!("Connection::parse_redirection_details >>> MessagePayload::V2 payload");
 
-                let payload = Payloads::decrypt_payload_v2(&my_vk, &payload)?;
+                let payload = Payloads::decrypt_payload_v2(&my_vk, payload)?;
                 let response: RedirectionDetails = serde_json::from_str(&payload.msg)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot parse RedirectionDetails from Message payload. Err: {}", err)))?;
 
@@ -956,8 +956,7 @@ impl Connection {
             MessagePayload::V1(payload) => {
                 trace!("Connection::force_v2_parse_acceptance_details >>> MessagePayload::V1 payload");
 
-                let vec = messages::to_u8(payload);
-                let json: Value = serde_json::from_slice(&vec[..])
+                let json: Value = serde_json::from_slice(messages::i8_as_u8_slice(payload))
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
 
                 let payload = Payloads::decrypt_payload_v12(&my_vk, &json)?;
@@ -973,7 +972,7 @@ impl Connection {
             MessagePayload::V2(payload) => {
                 trace!("Connection::force_v2_parse_acceptance_details >>> MessagePayload::V2 payload");
 
-                let payload = Payloads::decrypt_payload_v2(&my_vk, &payload)?;
+                let payload = Payloads::decrypt_payload_v2(&my_vk, payload)?;
                 let response: AcceptanceDetails = serde_json::from_str(&payload.msg)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
 
@@ -1033,8 +1032,7 @@ impl Connection {
             MessagePayload::V1(payload) => {
                 trace!("Connection::force_v2_parse_redirection_details >>> MessagePayload::V1 payload");
 
-                let vec = messages::to_u8(payload);
-                let json: Value = serde_json::from_slice(&vec[..])
+                let json: Value = serde_json::from_slice(messages::i8_as_u8_slice(payload))
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot parse RedirectionDetails from Message payload. Err: {}", err)))?;
 
                 let payload = Payloads::decrypt_payload_v12(&my_vk, &json)?;
@@ -1557,11 +1555,11 @@ pub mod tests {
 
         connect(handle, Some("{}".to_string())).unwrap();
 
-        AgencyMock::set_next_response(GET_MESSAGES_INVITE_ACCEPTED_RESPONSE.to_vec());
+        AgencyMock::set_next_response(GET_MESSAGES_INVITE_ACCEPTED_RESPONSE);
         update_state(handle, None).unwrap();
         assert_eq!(get_state(handle), VcxStateType::VcxStateAccepted as u32);
 
-        AgencyMock::set_next_response(DELETE_CONNECTION_RESPONSE.to_vec());
+        AgencyMock::set_next_response(DELETE_CONNECTION_RESPONSE);
         assert_eq!(delete_connection(handle).unwrap(), 0);
 
         // This errors b/c we release handle in delete connection

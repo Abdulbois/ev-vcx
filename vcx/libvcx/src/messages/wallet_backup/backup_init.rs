@@ -1,6 +1,6 @@
 use settings;
 use messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, prepare_message_for_agent_v2};
-use messages::message_type::{ MessageTypes };
+use messages::message_type::MessageTypes;
 use error::{VcxResult, VcxErrorKind, VcxError};
 use utils::httpclient;
 
@@ -47,8 +47,8 @@ impl BackupInitBuilder {
         Ok(self)
     }
 
-    pub fn cloud_address(&mut self, address: &Vec<u8>) -> VcxResult<&mut Self> {
-        self.cloud_address = Some(address.clone());
+    pub fn cloud_address(&mut self, address: &[u8]) -> VcxResult<&mut Self> {
+        self.cloud_address = Some(address.to_vec());
         Ok(self)
     }
 
@@ -129,7 +129,7 @@ mod tests {
         let msg = wallet_backup_init()
             .recovery_vk(settings::CONFIG_WALLET_BACKUP_KEY).unwrap()
             .dead_drop_address(settings::CONFIG_WALLET_BACKUP_KEY).unwrap()
-            .cloud_address(&settings::CONFIG_REMOTE_TO_SDK_DID.as_bytes().to_vec()).unwrap()
+            .cloud_address(settings::CONFIG_REMOTE_TO_SDK_DID.as_bytes()).unwrap()
             .prepare_request()
             .unwrap();
         assert!(msg.len() > 0);
@@ -146,7 +146,7 @@ mod tests {
         assert!(wallet_backup_init()
             .recovery_vk(settings::CONFIG_WALLET_BACKUP_KEY).unwrap()
             .dead_drop_address(settings::CONFIG_WALLET_BACKUP_KEY).unwrap()
-            .cloud_address(&settings::CONFIG_REMOTE_TO_SDK_DID.as_bytes().to_vec()).unwrap()
+            .cloud_address(settings::CONFIG_REMOTE_TO_SDK_DID.as_bytes()).unwrap()
             .send_secure().is_ok());
     }
 
@@ -160,7 +160,7 @@ mod tests {
         wallet_backup_init()
             .recovery_vk(settings::CONFIG_WALLET_BACKUP_KEY).unwrap()
             .dead_drop_address(settings::CONFIG_WALLET_BACKUP_KEY).unwrap()
-            .cloud_address(&settings::CONFIG_REMOTE_TO_SDK_DID.as_bytes().to_vec()).unwrap()
+            .cloud_address(settings::CONFIG_REMOTE_TO_SDK_DID.as_bytes()).unwrap()
             .send_secure().unwrap();
         thread::sleep(Duration::from_millis(2000));
 

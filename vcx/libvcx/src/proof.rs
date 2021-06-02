@@ -162,7 +162,7 @@ impl Proof {
         Ok(())
     }
 
-    pub fn build_credential_defs_json(credential_data: &Vec<CredInfo>) -> VcxResult<String> {
+    pub fn build_credential_defs_json(credential_data: &[CredInfo]) -> VcxResult<String> {
         trace!("Proof::build_credential_defs_json >>> credential_data: {:?}", secret!(credential_data));
         debug!("Proof: Building credential definitions for proof validation");
         let mut credential_json = json!({});
@@ -183,13 +183,13 @@ impl Proof {
         Ok(credential_json.to_string())
     }
 
-    pub fn build_schemas_json(credential_data: &Vec<CredInfo>) -> VcxResult<String> {
+    pub fn build_schemas_json(credential_data: &[CredInfo]) -> VcxResult<String> {
         trace!("Proof::build_schemas_json >>> credential_data: {:?}", secret!(credential_data));
         debug!("Proof: Building schemas for proof validation");
 
         let mut schemas_json = json!({});
 
-        for ref cred_info in credential_data.iter() {
+        for cred_info in credential_data {
             if schemas_json.get(&cred_info.schema_id).is_none() {
                 let (id, schema_json) = anoncreds::get_schema_json(&cred_info.schema_id)?;
 
@@ -205,13 +205,13 @@ impl Proof {
         Ok(schemas_json.to_string())
     }
 
-    pub fn build_rev_reg_defs_json(credential_data: &Vec<CredInfo>) -> VcxResult<String> {
+    pub fn build_rev_reg_defs_json(credential_data: &[CredInfo]) -> VcxResult<String> {
         trace!("Proof::build_rev_reg_defs_json >>> credential_data: {:?}", secret!(credential_data));
         debug!("Proof: Building revocation registry definitions for proof validation");
 
         let mut rev_reg_defs_json = json!({});
 
-        for ref cred_info in credential_data.iter() {
+        for cred_info in credential_data {
             let rev_reg_id = cred_info
                 .rev_reg_id
                 .as_ref()
@@ -234,13 +234,13 @@ impl Proof {
         Ok(rev_reg_defs_json.to_string())
     }
 
-    pub fn build_rev_reg_json(credential_data: &Vec<CredInfo>) -> VcxResult<String> {
+    pub fn build_rev_reg_json(credential_data: &[CredInfo]) -> VcxResult<String> {
         trace!("Proof::build_rev_reg_json >>> credential_data: {:?}", secret!(credential_data));
         debug!("Proof: building revocation registries for proof validation");
 
         let mut rev_regs_json = json!({});
 
-        for ref cred_info in credential_data.iter() {
+        for cred_info in credential_data {
             let rev_reg_id = cred_info
                 .rev_reg_id
                 .as_ref()
@@ -1107,8 +1107,8 @@ pub mod tests {
 
         apply_agent_info(&mut proof, &default_agent_info(connection_h));
 
-        AgencyMock::set_next_response(PROOF_RESPONSE.to_vec());
-        AgencyMock::set_next_response(UPDATE_PROOF_RESPONSE.to_vec());
+        AgencyMock::set_next_response(PROOF_RESPONSE);
+        AgencyMock::set_next_response(UPDATE_PROOF_RESPONSE);
 
         proof.update_state(None).unwrap();
         assert_eq!(proof.get_state(), VcxStateType::VcxStateRequestReceived as u32);
@@ -1144,9 +1144,9 @@ pub mod tests {
                                            None,
                                            Some(build_test_connection()));
 
-        AgencyMock::set_next_response(PROOF_RESPONSE.to_vec());
-        AgencyMock::set_next_response(UPDATE_PROOF_RESPONSE.to_vec());
-        //httpclient::set_next_u8_response(GET_PROOF_OR_CREDENTIAL_RESPONSE.to_vec());
+        AgencyMock::set_next_response(PROOF_RESPONSE);
+        AgencyMock::set_next_response(UPDATE_PROOF_RESPONSE);
+        //httpclient::set_next_u8_response(GET_PROOF_OR_CREDENTIAL_RESPONSE);
 
         proof.update_state(None).unwrap();
         assert_eq!(proof.get_state(), VcxStateType::VcxStateRequestReceived as u32);
@@ -1359,9 +1359,9 @@ pub mod tests {
 
         let mut proof = create_boxed_proof(None, None, Some(build_test_connection()));
 
-        AgencyMock::set_next_response(PROOF_RESPONSE.to_vec());
-        AgencyMock::set_next_response(UPDATE_PROOF_RESPONSE.to_vec());
-        //httpclient::set_next_u8_response(GET_PROOF_OR_CREDENTIAL_RESPONSE.to_vec());
+        AgencyMock::set_next_response(PROOF_RESPONSE);
+        AgencyMock::set_next_response(UPDATE_PROOF_RESPONSE);
+        //httpclient::set_next_u8_response(GET_PROOF_OR_CREDENTIAL_RESPONSE);
 
         proof.get_proof_request_status(None).unwrap();
         assert_eq!(proof.get_state(), VcxStateType::VcxStateRequestReceived as u32);
@@ -1369,8 +1369,8 @@ pub mod tests {
 
         // Changing the state and proof state to show that validation happens again
         // and resets the values to received and Invalid
-        AgencyMock::set_next_response(PROOF_RESPONSE.to_vec());
-        AgencyMock::set_next_response(UPDATE_PROOF_RESPONSE.to_vec());
+        AgencyMock::set_next_response(PROOF_RESPONSE);
+        AgencyMock::set_next_response(UPDATE_PROOF_RESPONSE);
         proof.state = VcxStateType::VcxStateOfferSent;
         proof.proof_state = ProofStateType::ProofUndefined;
         proof.get_proof_request_status(None).unwrap();

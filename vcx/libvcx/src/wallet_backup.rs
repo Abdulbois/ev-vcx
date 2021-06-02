@@ -370,7 +370,6 @@ fn _write_tmp_encrypted_wallet_for_import(recovery_config: &RestoreWalletConfigs
         .write(true)
         .create(true)
         .truncate(true)
-        .truncate(true)
         .open(&tmp_dir).map_err(_io_err_res)?
         .write_all(wallet).map_err(_io_err_res)?;
 
@@ -682,7 +681,7 @@ pub mod tests {
         fn retrieve_exported_wallet_success_with_file_already_created() {
             let _setup = SetupLibraryWallet::init();
 
-            File::create(FILE_PATH).and_then(|mut f| f.write_all(&vec![1, 2, 3])).unwrap();
+            File::create(FILE_PATH).and_then(|mut f| f.write_all(&[1, 2, 3])).unwrap();
 
             assert!(_read_exported_wallet(backup_key_gen().as_str(), FILE_PATH).is_ok());
         }
@@ -880,7 +879,7 @@ pub mod tests {
                 backup_key: settings::get_config_value(::settings::CONFIG_WALLET_BACKUP_KEY).unwrap_or(backup_key_gen()),
                 key_derivation: None,
             };
-            _write_tmp_encrypted_wallet_for_import(&recovery_config, &vec![1, 2, 3, 4, 5, 6, 7]).unwrap();
+            _write_tmp_encrypted_wallet_for_import(&recovery_config, &[1, 2, 3, 4, 5, 6, 7]).unwrap();
 
             restore_wallet(&restore_config(Some(recovery_config.exported_wallet_path.to_string()), Some(wb.encryption_key)).to_string().unwrap()).unwrap();
             ::std::fs::remove_dir_all(&PathBuf::from(&recovery_config.exported_wallet_path).parent().unwrap()).unwrap_or(println!("No Directory to delete after test"));

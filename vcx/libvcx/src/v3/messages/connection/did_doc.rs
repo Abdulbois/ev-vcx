@@ -351,7 +351,7 @@ impl From<DidDoc> for Invitation {
 impl From<Service> for DidDoc {
     fn from(service: Service) -> DidDoc {
         let mut did_doc: DidDoc = DidDoc::default();
-        did_doc.set_service_endpoint(service.service_endpoint.clone());
+        did_doc.set_service_endpoint(service.service_endpoint);
         did_doc.set_keys(service.recipient_keys, service.routing_keys);
         did_doc
     }
@@ -368,8 +368,8 @@ impl From<Service> for Invitation {
 }
 
 impl From<OutofbandInvitation> for DidDoc {
-    fn from(invite: OutofbandInvitation) -> DidDoc {
-        DidDoc::from(invite.service.clone().remove(0))
+    fn from(mut invite: OutofbandInvitation) -> DidDoc {
+        DidDoc::from(invite.service.swap_remove(0))
     }
 }
 

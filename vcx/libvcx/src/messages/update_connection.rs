@@ -89,7 +89,7 @@ impl DeleteConnectionBuilder {
     pub fn send_secure(&mut self) -> VcxResult<()> {
         trace!("DeleteConnection::send >>>");
 
-        AgencyMock::set_next_response(DELETE_CONNECTION_RESPONSE.to_vec());
+        AgencyMock::set_next_response(DELETE_CONNECTION_RESPONSE);
 
         let data = self.prepare_request()?;
 
@@ -98,12 +98,12 @@ impl DeleteConnectionBuilder {
         self.parse_response(&response)
     }
 
-    fn parse_response(&self, response: &Vec<u8>) -> VcxResult<()> {
+    fn parse_response(&self, response: &[u8]) -> VcxResult<()> {
         trace!("DeleteConnection::parse_response >>>");
 
-        let mut response = parse_response_from_agency(response, &self.version)?;
+        let response = parse_response_from_agency(response, &self.version)?;
 
-        match response.remove(0) {
+        match response.first().ok_or_else(|| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "No agency responses"))? {
             A2AMessage::Version1(A2AMessageV1::UpdateConnectionResponse(_)) => Ok(()),
             A2AMessage::Version2(A2AMessageV2::UpdateConnectionResponse(_)) => Ok(()),
             _ => Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of UpdateConnectionResponse"))
@@ -176,7 +176,7 @@ mod tests {
     fn test_deserialize_delete_connection_payload() {
         let _setup = SetupDefaults::init();
 
-        let payload = vec![130, 165, 64, 116, 121, 112, 101, 130, 164, 110, 97, 109, 101, 179, 67, 79, 78, 78, 95, 83, 84, 65, 84, 85, 83, 95, 85, 80, 68, 65, 84, 69, 68, 163, 118, 101, 114, 163, 49, 46, 48, 170, 115, 116, 97, 116, 117, 115, 67, 111, 100, 101, 166, 67, 83, 45, 49, 48, 51];
+        let payload = [130, 165, 64, 116, 121, 112, 101, 130, 164, 110, 97, 109, 101, 179, 67, 79, 78, 78, 95, 83, 84, 65, 84, 85, 83, 95, 85, 80, 68, 65, 84, 69, 68, 163, 118, 101, 114, 163, 49, 46, 48, 170, 115, 116, 97, 116, 117, 115, 67, 111, 100, 101, 166, 67, 83, 45, 49, 48, 51];
         let msg_str = r#"{ "@type": { "name": "CONN_STATUS_UPDATED", "ver": "1.0" }, "statusCode": "CS-103" }"#;
         let delete_connection_payload: UpdateConnectionResponse = serde_json::from_str(&msg_str).unwrap();
         assert_eq!(delete_connection_payload, rmp_serde::from_slice(&payload).unwrap());

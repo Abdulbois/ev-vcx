@@ -1897,7 +1897,7 @@ mod tests {
         assert!(handle > 0);
         connect(handle, None).unwrap();
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
-        AgencyMock::set_next_response(GET_MESSAGES_RESPONSE.to_vec());
+        AgencyMock::set_next_response(GET_MESSAGES_RESPONSE);
         let rc = vcx_connection_update_state(cb.command_handle, handle, Some(cb.get_callback()));
         assert_eq!(rc, error::SUCCESS.code_num);
         assert_eq!(cb.receive(TimeoutUtils::some_medium()).unwrap(), VcxStateType::VcxStateAccepted as u32);
@@ -1969,7 +1969,7 @@ mod tests {
 
         let handle = build_test_connection();
 
-        AgencyMock::set_next_response(GET_MESSAGES_RESPONSE.to_vec());
+        AgencyMock::set_next_response(GET_MESSAGES_RESPONSE);
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         let _rc = vcx_connection_update_state(cb.command_handle, handle, Some(cb.get_callback()));

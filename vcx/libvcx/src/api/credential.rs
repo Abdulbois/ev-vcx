@@ -1185,7 +1185,7 @@ mod tests {
 
         let handle = credential::from_string(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
 
-        AgencyMock::set_next_response(::utils::constants::NEW_CREDENTIAL_OFFER_RESPONSE.to_vec());
+        AgencyMock::set_next_response(::utils::constants::NEW_CREDENTIAL_OFFER_RESPONSE);
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         assert_eq!(vcx_credential_update_state(cb.command_handle, handle, Some(cb.get_callback())), error::SUCCESS.code_num);
@@ -1207,7 +1207,7 @@ mod tests {
 
         let handle = credential::from_string(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
 
-        AgencyMock::set_next_response(::utils::constants::NEW_CREDENTIAL_OFFER_RESPONSE.to_vec());
+        AgencyMock::set_next_response(::utils::constants::NEW_CREDENTIAL_OFFER_RESPONSE);
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         assert_eq!(vcx_credential_update_state(cb.command_handle, handle, Some(cb.get_callback())), error::SUCCESS.code_num);

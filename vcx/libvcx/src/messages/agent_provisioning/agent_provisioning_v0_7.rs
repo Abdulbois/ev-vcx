@@ -131,7 +131,7 @@ pub fn create_agent(my_did: &str, my_vk: &str, token: ProvisionToken) -> VcxResu
     let mut response = provisioning_v0_7_send_message_to_agency(&message, &my_vk)?;
 
     let response: AgentCreated =
-        match response.remove(0) {
+        match response.swap_remove(0) {
             A2AMessage::Version2(A2AMessageV2::AgentCreated(resp)) => resp,
             A2AMessage::Version2(A2AMessageV2::ProblemReport(resp)) => {
                 return Err(VcxError::from_msg(VcxErrorKind::InvalidProvisioningToken, format!("provisioning failed: {:?}", resp)))

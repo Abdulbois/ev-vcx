@@ -767,7 +767,7 @@ fn get_credential_offer_msg(connection_handle: u32, msg_id: &str) -> VcxResult<S
 
     let my_agent = get_agent_info()?.pw_info(connection_handle)?;
 
-    AgencyMock::set_next_response(constants::NEW_CREDENTIAL_OFFER_RESPONSE.to_vec());
+    AgencyMock::set_next_response(constants::NEW_CREDENTIAL_OFFER_RESPONSE);
 
     let message = get_connection_messages(&my_agent.my_pw_did()?,
                                           &my_agent.my_pw_vk()?,
@@ -823,7 +823,7 @@ pub fn get_credential_offer_messages(connection_handle: u32) -> VcxResult<String
 
     let my_agent = get_agent_info()?.pw_info(connection_handle)?;
 
-    AgencyMock::set_next_response(constants::NEW_CREDENTIAL_OFFER_RESPONSE.to_vec());
+    AgencyMock::set_next_response(constants::NEW_CREDENTIAL_OFFER_RESPONSE);
 
     let payload = get_connection_messages(&my_agent.my_pw_did()?,
                                           &my_agent.my_pw_vk()?,
@@ -1077,8 +1077,8 @@ pub mod tests {
 
         assert_eq!(get_credential_id(c_h).unwrap(), "");
 
-        AgencyMock::set_next_response(::utils::constants::CREDENTIAL_RESPONSE.to_vec());
-        AgencyMock::set_next_response(::utils::constants::UPDATE_CREDENTIAL_RESPONSE.to_vec());
+        AgencyMock::set_next_response(::utils::constants::CREDENTIAL_RESPONSE);
+        AgencyMock::set_next_response(::utils::constants::UPDATE_CREDENTIAL_RESPONSE);
 
         update_state(c_h, None).unwrap();
         assert_eq!(get_state(c_h).unwrap(), VcxStateType::VcxStateAccepted as u32);

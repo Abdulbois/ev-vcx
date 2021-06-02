@@ -112,7 +112,7 @@ mod tests {
         wallet_backup_init()
             .recovery_vk(settings::CONFIG_WALLET_BACKUP_KEY).unwrap()
             .dead_drop_address(settings::CONFIG_WALLET_BACKUP_KEY).unwrap()
-            .cloud_address(&settings::CONFIG_REMOTE_TO_SDK_DID.as_bytes().to_vec()).unwrap()
+            .cloud_address(settings::CONFIG_REMOTE_TO_SDK_DID.as_bytes()).unwrap()
             .send_secure().unwrap();
         thread::sleep(Duration::from_millis(2000));
 
@@ -128,7 +128,7 @@ mod tests {
         wallet_backup_init()
             .recovery_vk(settings::CONFIG_WALLET_BACKUP_KEY).unwrap()
             .dead_drop_address(settings::CONFIG_WALLET_BACKUP_KEY).unwrap()
-            .cloud_address(&settings::CONFIG_REMOTE_TO_SDK_DID.as_bytes().to_vec()).unwrap()
+            .cloud_address(settings::CONFIG_REMOTE_TO_SDK_DID.as_bytes()).unwrap()
             .send_secure().unwrap();
         thread::sleep(Duration::from_millis(2000));
 

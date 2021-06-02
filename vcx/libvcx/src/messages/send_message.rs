@@ -98,7 +98,7 @@ impl SendMessageBuilder {
     pub fn send_secure(&mut self) -> VcxResult<SendResponse> {
         trace!("SendMessage::send >>>");
 
-        AgencyMock::set_next_response(constants::SEND_MESSAGE_RESPONSE.to_vec());
+        AgencyMock::set_next_response(constants::SEND_MESSAGE_RESPONSE);
 
         let data = self.prepare_request()?;
 

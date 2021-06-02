@@ -76,7 +76,7 @@ macro_rules! check_useful_c_byte_array {
 }
 
 //Returnable pointer is valid only before first vector modification
-pub fn vec_to_pointer(v: &Vec<u8>) -> (*const u8, u32) {
+pub fn vec_to_pointer(v: &[u8]) -> (*const u8, u32) {
     let len = v.len() as u32;
     (v.as_ptr() as *const u8, len)
 }
