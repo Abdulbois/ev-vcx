@@ -452,7 +452,9 @@ pub extern fn vcx_credential_create_with_msgid(command_handle: CommandHandle,
 ///
 /// credential_handle: credential handle that was provided during creation. Used to identify credential object
 ///
-/// connection_handle: Connection handle that identifies pairwise connection
+/// connection_handle: Connection handle that identifies pairwise connection.
+///                    Pass `0` in order to reply on ephemeral/connectionless credential offer
+///                    Ephemeral/Connectionless Credential Offer contains `~server` decorator
 ///
 /// cb: Callback that provides error status of credential request
 ///

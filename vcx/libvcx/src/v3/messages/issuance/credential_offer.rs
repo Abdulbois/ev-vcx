@@ -8,6 +8,7 @@ use messages::issuance::credential_offer::CredentialOffer as CredentialOfferV1;
 use messages::payload::PayloadKinds;
 use std::convert::TryInto;
 use utils::libindy::anoncreds::ensure_credential_definition_contains_offered_attributes;
+use v3::messages::connection::service::Service;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Default)]
 pub struct CredentialOffer {
@@ -21,6 +22,9 @@ pub struct CredentialOffer {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "~thread")]
     pub thread: Option<Thread>,
+    #[serde(rename = "~service")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service: Option<Service>,
 }
 
 impl CredentialOffer {
@@ -160,6 +164,7 @@ pub mod tests {
             credential_preview: _preview_data(),
             offers_attach: attachment,
             thread: None,
+            service: None
         }
     }
 

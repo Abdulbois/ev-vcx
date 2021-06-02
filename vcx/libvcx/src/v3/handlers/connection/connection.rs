@@ -225,6 +225,13 @@ impl Connection {
         self.agent_info().send_message(message, &did_doc)
     }
 
+    pub fn send_message_and_wait_result(message: &A2AMessage, did_doc: &DidDoc, sender_vk: &str) -> VcxResult<A2AMessage> {
+        trace!("Connection::send_message_and_wait_result >>> message: {:?}, did_doc: {:?}, sender_vk: {:?}",
+               secret!(message), secret!(did_doc), secret!(sender_vk));
+
+        AgentInfo::send_message_and_wait_result(message, did_doc, sender_vk)
+    }
+
     pub fn send_message_to_self_endpoint(message: &A2AMessage, did_doc: &DidDoc) -> VcxResult<()> {
         trace!("Connection::send_message_to_self_endpoint >>> message: {:?}, did_doc: {:?}", secret!(message), secret!(did_doc));
 
