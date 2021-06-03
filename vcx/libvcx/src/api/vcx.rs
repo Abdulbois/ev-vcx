@@ -4,6 +4,7 @@ use utils::cstring::CStringUtils;
 use utils::libindy::{wallet, pool, ledger};
 use utils::error;
 use settings;
+use std::ffi::CString;
 use utils::threadpool::spawn;
 use error::prelude::*;
 use indy::{INVALID_WALLET_HANDLE, CommandHandle};
@@ -126,7 +127,7 @@ fn _finish_init(command_handle: CommandHandle, cb: extern fn(xcommand_handle: Co
     let storage_config = settings::get_config_value(settings::CONFIG_WALLET_STORAGE_CONFIG).ok();
     let storage_creds = settings::get_config_value(settings::CONFIG_WALLET_STORAGE_CREDS).ok();
 
-    trace!("libvcx version: {}", version_constants::VERSION_STRING);
+    trace!("libvcx version: {}{}", version_constants::VERSION, version_constants::REVISION);
 
     spawn(move || {
         let pool_open_thread = thread::spawn(|| {
@@ -218,7 +219,7 @@ pub extern fn vcx_init_minimal(config: *const c_char) -> u32 {
 
     settings::log_settings();
 
-    trace!("libvcx version: {}", version_constants::VERSION_STRING);
+    trace!("libvcx version: {}{}", version_constants::VERSION, version_constants::REVISION);
 
     error::SUCCESS.code_num
 }
@@ -303,10 +304,14 @@ pub extern fn vcx_init_pool(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
+lazy_static! {
+    pub static ref VERSION_STRING: CString = CString::new(format!("{}{}", version_constants::VERSION, version_constants::REVISION)).unwrap();
+}
+
 #[no_mangle]
 pub extern fn vcx_version() -> *const c_char {
     info!("vcx_version >>>");
-    version_constants::VERSION_STRING_CSTR
+    VERSION_STRING.as_ptr()
 }
 
 /// Reset libvcx to a pre-configured state, releasing/deleting any handles and freeing memory
@@ -560,8 +565,6 @@ mod tests {
             pool::get_pool_handle,
         }
     };
-
-    use std::ffi::CString;
     use api::VcxStateType;
     use api::return_types_u32;
     use indy::WalletHandle;

@@ -36,14 +36,14 @@ fn main() {
         println!("cargo:rustc-link-lib=static=crypto");
         println!("cargo:rustc-link-lib=static=ssl");
     } else if target.contains("darwin") {
-        //OSX specific logic
+        // OSX specific logic
         println!("cargo:rustc-link-lib=sodium");
         println!("cargo:rustc-link-lib=zmq");
         println!("cargo:rustc-link-lib=indy");
-        //OSX does not allow 3rd party libs to be installed in /usr/lib. Instead install it in /usr/local/lib
+        // OSX does not allow 3rd party libs to be installed in /usr/lib. Instead install it in /usr/local/lib
         println!("cargo:rustc-link-search=native=/usr/local/lib");
     } else if target.contains("-linux-") {
-        //Linux specific logic
+        // Linux specific logic
         println!("cargo:rustc-link-lib=indy");
         println!("cargo:rustc-link-search=native=/usr/lib");
     } else if target.contains("-windows-") {
@@ -82,15 +82,12 @@ fn main() {
     }
     if env::var("CARGO_FEATURE_CI").is_ok() {
         println!("injecting version information");
-        let version = env::var("CARGO_PKG_VERSION").unwrap();
         let revision = get_revision();
         let contents = format!(
-            r#"use std::os::raw::c_char;
-pub const VERSION_STRING: &str = "{version}+{revision}";
-pub const VERSION_STRING_CSTR: *const c_char = "{version}+{revision}\0".as_ptr().cast();
+            r#"pub static VERSION: &str = env!("CARGO_PKG_VERSION");
+pub static REVISION: &str = "+{}";
 "#,
-            version = version,
-            revision = revision
+            revision
         );
         fs::write("src/utils/version_constants.rs", contents).unwrap();
     } else {
