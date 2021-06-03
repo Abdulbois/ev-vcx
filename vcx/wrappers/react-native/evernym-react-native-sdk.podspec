@@ -3,7 +3,7 @@ require "json"
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 
 Pod::Spec.new do |s|
-  s.name         = "react-native-vcx-wrapper"
+  s.name         = "evernym-react-native-sdk"
   s.version      = package["version"]
   s.summary      = "React Native version of Evernym's VCX."
   s.description  = package["description"]

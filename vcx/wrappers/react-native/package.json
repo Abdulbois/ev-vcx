@@ -1,6 +1,6 @@
 {
-  "name": "react-native-vcx-wrapper",
-  "description": "React Native wrapper for vcx",
+  "name": "@evernym/react-native-sdk",
+  "description": "React Native SDK for VCX",
   "version": "0.0.1",
   "license": "SEE LICENSE IN LICENSE.txt",
   "author": {
@@ -17,7 +17,7 @@
     "/dist",
     "/ios",
     "/src",
-    "react-native-vcx-wrapper.podspec",
+    "evernym-react-native-sdk.podspec",
     "package.json"
   ],
   "scripts": {
