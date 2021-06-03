@@ -1,18 +1,18 @@
-## React Native VCX wrapper
+## React Native SDK
 
 This is a React Native wrapper for VCX library.
 
 VCX is the open-source library on top of Libindy which fully implements the credentials exchange.
 
-**Note**: The wrapper is currently in **EXPERIMENTAL** state, so the API functions can be changed.
+**Note**: The SDK is currently in **EXPERIMENTAL** state, so the API functions can be changed.
 
 ### Installation
 
-Added `react-native-vcx-wrapper` package as dependency into your `package.json`:
+Added `@evernym/react-native-sdk` package as dependency into your `package.json`:
 ```javascript
   "dependencies": {
     ...
-    "react-native-vcx-wrapper": "link to the tgz archive"
+    "@evernym/react-native-sdk": "version"
   },
 ```
 
@@ -114,7 +114,7 @@ Added `react-native-vcx-wrapper` package as dependency into your `package.json`:
 
 * Create an agent with received token: 
     ```javascript
-    import { Agent } from 'react-native-vcx-wrapper'
+    import { Agent } from '@evernym/react-native-sdk'
     
     const config: string = await Agent.provisionWithToken({
        agencyConfig,
@@ -124,7 +124,7 @@ Added `react-native-vcx-wrapper` package as dependency into your `package.json`:
 
 * Initialize library with a config:
     ```javascript
-    import { Library } from 'react-native-vcx-wrapper'
+    import { Library } from '@evernym/react-native-sdk'
     
     await Library.init({
         config,
