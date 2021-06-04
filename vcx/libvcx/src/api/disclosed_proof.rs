@@ -1098,7 +1098,7 @@ mod tests {
 
         let cxn = ::connection::tests::build_test_connection();
 
-        AgencyMock::set_next_response(::utils::constants::NEW_PROOF_REQUEST_RESPONSE.to_vec());
+        AgencyMock::set_next_response(::utils::constants::NEW_PROOF_REQUEST_RESPONSE);
 
         let cb = return_types_u32::Return_U32_U32_STR::new().unwrap();
         assert_eq!(vcx_disclosed_proof_create_with_msgid(cb.command_handle,
@@ -1205,7 +1205,7 @@ mod tests {
 
         let cxn = ::connection::tests::build_test_connection();
 
-        AgencyMock::set_next_response(::utils::constants::NEW_PROOF_REQUEST_RESPONSE.to_vec());
+        AgencyMock::set_next_response(::utils::constants::NEW_PROOF_REQUEST_RESPONSE);
 
         let cb = return_types_u32::Return_U32_STR::new().unwrap();
         assert_eq!(vcx_disclosed_proof_get_requests(cb.command_handle, cxn, Some(cb.get_callback())), error::SUCCESS.code_num as u32);

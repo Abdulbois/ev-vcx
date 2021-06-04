@@ -403,16 +403,16 @@ pub extern fn vcx_set_next_agency_response(message_index: u32) {
     info!("vcx_set_next_agency_response >>>");
 
     let message = match message_index {
-        1 => CREATE_KEYS_RESPONSE.to_vec(),
-        2 => UPDATE_PROFILE_RESPONSE.to_vec(),
-        3 => GET_MESSAGES_RESPONSE.to_vec(),
-        4 => UPDATE_CREDENTIAL_RESPONSE.to_vec(),
-        5 => UPDATE_PROOF_RESPONSE.to_vec(),
-        6 => CREDENTIAL_REQ_RESPONSE.to_vec(),
-        7 => PROOF_RESPONSE.to_vec(),
-        8 => CREDENTIAL_RESPONSE.to_vec(),
-        9 => GET_MESSAGES_INVITE_ACCEPTED_RESPONSE.to_vec(),
-        _ => Vec::new(),
+        1 => &CREATE_KEYS_RESPONSE[..],
+        2 => &UPDATE_PROFILE_RESPONSE[..],
+        3 => &GET_MESSAGES_RESPONSE[..],
+        4 => &UPDATE_CREDENTIAL_RESPONSE[..],
+        5 => &UPDATE_PROOF_RESPONSE[..],
+        6 => &CREDENTIAL_REQ_RESPONSE[..],
+        7 => &PROOF_RESPONSE[..],
+        8 => &CREDENTIAL_RESPONSE[..],
+        9 => &GET_MESSAGES_INVITE_ACCEPTED_RESPONSE[..],
+        _ => &[],
     };
 
     AgencyMock::set_next_response(message);
@@ -443,18 +443,16 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
 
     let message_status = if !message_status.is_null() {
         check_useful_c_str!(message_status, VcxErrorKind::InvalidOption);
-        let v: Vec<&str> = message_status.split(',').collect();
-        let v = v.iter().map(|s| s.to_string()).collect::<Vec<String>>();
-        Some(v.to_owned())
+        let v = message_status.split(',').map(|s| s.to_string()).collect::<Vec<String>>();
+        Some(v)
     } else {
         None
     };
 
     let uids = if !uids.is_null() {
         check_useful_c_str!(uids, VcxErrorKind::InvalidOption);
-        let v: Vec<&str> = uids.split(',').collect();
-        let v = v.iter().map(|s| s.to_string()).collect::<Vec<String>>();
-        Some(v.to_owned())
+        let v = uids.split(',').map(|s| s.to_string()).collect::<Vec<String>>();
+        Some(v)
     } else {
         None
     };
@@ -1092,7 +1090,7 @@ mod tests {
     fn test_update_agent_fails() {
         let _setup = SetupMocks::init();
 
-        AgencyMock::set_next_response(REGISTER_RESPONSE.to_vec()); //set response garbage
+        AgencyMock::set_next_response(REGISTER_RESPONSE); //set response garbage
 
         let c_json = concat!(r#"{"id":"123"}"#, "\0").as_ptr().cast();
 

@@ -339,7 +339,7 @@ impl DisclosedProof {
         Ok(credentials)
     }
 
-    pub fn build_schemas_json(credentials_identifiers: &Vec<CredInfo>) -> VcxResult<String> {
+    pub fn build_schemas_json(credentials_identifiers: &[CredInfo]) -> VcxResult<String> {
         trace!("build_schemas_json >>> credentials_identifiers: {:?}", secret!(credentials_identifiers));
         debug!("DisclosedProof: Getting schemas for proof generation");
 
@@ -362,7 +362,7 @@ impl DisclosedProof {
         Ok(rtn.to_string())
     }
 
-    pub fn build_cred_def_json(credentials_identifiers: &Vec<CredInfo>) -> VcxResult<String> {
+    pub fn build_cred_def_json(credentials_identifiers: &[CredInfo]) -> VcxResult<String> {
         trace!("build_cred_def_json >>> credentials_identifiers: {:?}", secret!(credentials_identifiers));
         debug!("DisclosedProof: Getting credential definitions for proof generation");
 
@@ -385,7 +385,7 @@ impl DisclosedProof {
         Ok(rtn.to_string())
     }
 
-    pub fn build_requested_credentials_json(credentials_identifiers: &Vec<CredInfo>,
+    pub fn build_requested_credentials_json(credentials_identifiers: &[CredInfo],
                                             self_attested_attrs: &str,
                                             proof_req: &ProofRequestData) -> VcxResult<String> {
         trace!("build_requested_credentials_json >>> credentials_identifiers: {:?}, self_attested_attrs: {:?}, proof_req: {:?}",
@@ -983,7 +983,7 @@ fn get_proof_request(connection_handle: u32, msg_id: &str) -> VcxResult<String> 
 
     let agent_info = get_agent_info()?.pw_info(connection_handle)?;
 
-    AgencyMock::set_next_response(NEW_PROOF_REQUEST_RESPONSE.to_vec());
+    AgencyMock::set_next_response(NEW_PROOF_REQUEST_RESPONSE);
 
     let message = messages::get_message::get_connection_messages(&agent_info.my_pw_did()?,
                                                                  &agent_info.my_pw_vk()?,
@@ -1026,7 +1026,7 @@ pub fn get_proof_request_messages(connection_handle: u32, match_name: Option<&st
             });
     }
 
-    AgencyMock::set_next_response(NEW_PROOF_REQUEST_RESPONSE.to_vec());
+    AgencyMock::set_next_response(NEW_PROOF_REQUEST_RESPONSE);
 
     let agent_info = get_agent_info()?.pw_info(connection_handle)?;
 
@@ -1226,7 +1226,7 @@ mod tests {
     fn test_find_schemas() {
         let _setup = SetupMocks::init();
 
-        assert_eq!(DisclosedProof::build_schemas_json(&Vec::new()).unwrap(), "{}".to_string());
+        assert_eq!(DisclosedProof::build_schemas_json(&[]).unwrap(), "{}");
 
         let cred1 = CredInfo {
             requested_attr: "height_1".to_string(),

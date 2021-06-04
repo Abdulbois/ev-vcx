@@ -270,8 +270,8 @@ pub mod auth_rule {
         _send_auth_rules(submitter_did, &auth_rules)
     }
 
-    fn _send_auth_rules(submitter_did: &str, data: &Vec<AuthRule>) -> VcxResult<()> {
-        let data = serde_json::to_string(&data)
+    fn _send_auth_rules(submitter_did: &str, data: &[AuthRule]) -> VcxResult<()> {
+        let data = serde_json::to_string(data)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError,
                                               format!("Cannot serialize auth rules: {:?}", err)))?;
 

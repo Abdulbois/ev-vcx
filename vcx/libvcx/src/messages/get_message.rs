@@ -131,19 +131,19 @@ impl GetMessagesBuilder {
 
         let response = httpclient::post_u8(&data)?;
 
-        if settings::agency_mocks_enabled() && response.len() == 0 {
+        if settings::agency_mocks_enabled() && response.is_empty() {
             return Ok(Vec::new());
         }
 
-        self.parse_response(response)
+        self.parse_response(&response)
     }
 
-    fn parse_response(&self, response: Vec<u8>) -> VcxResult<Vec<Message>> {
+    fn parse_response(&self, response: &[u8]) -> VcxResult<Vec<Message>> {
         trace!("GetMessagesBuilder::parse_response >>>");
 
-        let mut response = parse_response_from_agency(&response, &self.version)?;
+        let mut response = parse_response_from_agency(response, &self.version)?;
 
-        match response.remove(0) {
+        match response.swap_remove(0) {
             A2AMessage::Version1(A2AMessageV1::GetMessagesResponse(res)) => Ok(res.msgs),
             A2AMessage::Version2(A2AMessageV2::GetMessagesResponse(res)) => Ok(res.msgs),
             _ => Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of GetMessagesResponse"))
@@ -209,20 +209,22 @@ impl GetMessagesBuilder {
         let mut response = parse_response_from_agency(&response, &self.version)?;
 
         trace!("parse_download_messages_response: parsed response {:?}", response);
-        let msgs = match response.remove(0) {
+        let msgs = match response.swap_remove(0) {
             A2AMessage::Version1(A2AMessageV1::GetMessagesByConnectionsResponse(res)) => res.msgs,
             A2AMessage::Version2(A2AMessageV2::GetMessagesByConnectionsResponse(res)) => res.msgs,
             _ => return Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of GetMessagesByConnectionsResponse"))
         };
 
         msgs
-            .iter()
+            .into_iter()
             .map(|connection| {
                 ::utils::libindy::signus::get_local_verkey(&connection.pairwise_did)
-                    .map(|vk| MessageByConnection {
-                        pairwise_did: connection.pairwise_did.clone(),
-                        msgs: connection.msgs.iter().map(|message| message.decrypt(&vk)).collect(),
-                    })
+                    .map(|vk|  {
+                        let msgs = connection.msgs.iter().map(|message| message.decrypt(&vk)).collect();
+                        MessageByConnection {
+                            pairwise_did: connection.pairwise_did,
+                            msgs,
+                        }})
             })
             .collect()
     }
@@ -308,11 +310,11 @@ pub struct Message {
 }
 
 impl Message {
-    pub fn payload<'a>(&'a self) -> VcxResult<Vec<u8>> {
+    pub fn payload(&self) -> VcxResult<Vec<u8>> {
         trace!("Message::payload >>>");
-        match self.payload {
-            Some(MessagePayload::V1(ref payload)) => Ok(to_u8(payload)),
-            Some(MessagePayload::V2(ref payload)) => serde_json::to_vec(payload)
+        match &self.payload {
+            Some(MessagePayload::V1(payload)) => Ok(i8_as_u8_slice(payload).to_vec()),
+            Some(MessagePayload::V2(payload)) => serde_json::to_vec(payload)
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot represent JSON object as bytes. Err: {:?}", err))),
             None => Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response Message doesn't contain any payload")),
         }
@@ -330,7 +332,7 @@ impl Message {
                         Ok(Payloads::PayloadV1(payload))
                     } else {
                         warn!("fallback to Payloads::decrypt_payload_v12 in Message:decrypt for MessagePayload::V1");
-                        serde_json::from_slice::<serde_json::Value>(&to_u8(payload)[..])
+                        serde_json::from_slice::<serde_json::Value>(i8_as_u8_slice(payload))
                             .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot deserialize MessagePayload: {}", err)))
                             .and_then(|json| Payloads::decrypt_payload_v12(&vk, &json))
                             .map(|json| {
@@ -575,7 +577,7 @@ pub fn download_messages(pairwise_dids: Option<Vec<String>>, status_codes: Optio
            secret!(pairwise_dids), status_codes, uids);
     debug!("Agency: Downloading messages");
 
-    AgencyMock::set_next_response(constants::GET_ALL_MESSAGES_RESPONSE.to_vec());
+    AgencyMock::set_next_response(constants::GET_ALL_MESSAGES_RESPONSE);
 
     let status_codes = _parse_status_code(status_codes)?;
 
@@ -596,7 +598,7 @@ pub fn download_agent_messages(status_codes: Option<Vec<String>>, uids: Option<V
     trace!("download_agent_messages >>> status_codes: {:?}, uids: {:?}", status_codes, secret!(uids));
     debug!("Agency: Downloading Agent messages");
 
-    AgencyMock::set_next_response(constants::GET_ALL_MESSAGES_RESPONSE.to_vec());
+    AgencyMock::set_next_response(constants::GET_ALL_MESSAGES_RESPONSE);
 
     let status_codes = _parse_status_code(status_codes)?;
 
@@ -619,7 +621,7 @@ pub fn download_message(uid: String) -> VcxResult<Message> {
     trace!("download_message >>> uid: {:?}", uid);
     debug!("Agency: Downloading message {:?}", uid);
 
-    AgencyMock::set_next_response(constants::GET_ALL_MESSAGES_RESPONSE.to_vec());
+    AgencyMock::set_next_response(constants::GET_ALL_MESSAGES_RESPONSE);
 
     let mut messages: Vec<Message> =
         get_messages()
@@ -662,7 +664,7 @@ mod tests {
     fn test_parse_get_messages_response() {
         let _setup = SetupMocks::init();
 
-        let result = GetMessagesBuilder::create_v1().parse_response(GET_MESSAGES_RESPONSE.to_vec()).unwrap();
+        let result = GetMessagesBuilder::create_v1().parse_response(GET_MESSAGES_RESPONSE).unwrap();
         assert_eq!(result.len(), 3)
     }
 

@@ -348,9 +348,9 @@ impl SendInviteBuilder {
 
         if settings::agency_mocks_enabled() {
             match self.version {
-                settings::ProtocolTypes::V1 => AgencyMock::set_next_response(SEND_INVITE_RESPONSE.to_vec()),
+                settings::ProtocolTypes::V1 => AgencyMock::set_next_response(SEND_INVITE_RESPONSE),
                 settings::ProtocolTypes::V2 |
-                settings::ProtocolTypes::V3 => AgencyMock::set_next_response(SEND_INVITE_V2_RESPONSE.to_vec()),
+                settings::ProtocolTypes::V3 => AgencyMock::set_next_response(SEND_INVITE_V2_RESPONSE),
             }
         }
 
@@ -375,7 +375,7 @@ impl SendInviteBuilder {
             settings::ProtocolTypes::V3 => 0
         };
 
-        match response.remove(index) {
+        match response.swap_remove(index) {
             A2AMessage::Version1(A2AMessageV1::MessageDetail(MessageDetail::ConnectionRequestResp(res))) =>
                 Ok((res.invite_detail, res.url_to_invite_detail)),
             A2AMessage::Version2(A2AMessageV2::ConnectionRequestResponse(res)) =>
@@ -470,9 +470,9 @@ impl AcceptInviteBuilder {
 
         if settings::agency_mocks_enabled() {
             match self.version {
-                settings::ProtocolTypes::V1 => AgencyMock::set_next_response(ACCEPT_INVITE_RESPONSE.to_vec()),
+                settings::ProtocolTypes::V1 => AgencyMock::set_next_response(ACCEPT_INVITE_RESPONSE),
                 settings::ProtocolTypes::V2 |
-                settings::ProtocolTypes::V3 => AgencyMock::set_next_response(ACCEPT_INVITE_V2_RESPONSE.to_vec()),
+                settings::ProtocolTypes::V3 => AgencyMock::set_next_response(ACCEPT_INVITE_V2_RESPONSE),
             }
         }
 
@@ -488,7 +488,7 @@ impl AcceptInviteBuilder {
 
         let mut response = parse_response_from_agency(&response, &self.version)?;
 
-        match response.remove(0) {
+        match response.swap_remove(0) {
             A2AMessage::Version1(A2AMessageV1::MessageCreated(res)) => Ok(res.uid),
             A2AMessage::Version2(A2AMessageV2::ConnectionRequestAnswerResponse(res)) => Ok(res.id),
             _ => Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of ConnectionAnswerResponse"))
@@ -588,9 +588,9 @@ impl RedirectConnectionBuilder {
 
         if settings::agency_mocks_enabled() {
             match self.version {
-                settings::ProtocolTypes::V1 => AgencyMock::set_next_response(ACCEPT_INVITE_RESPONSE.to_vec()),
+                settings::ProtocolTypes::V1 => AgencyMock::set_next_response(ACCEPT_INVITE_RESPONSE),
                 settings::ProtocolTypes::V2 |
-                settings::ProtocolTypes::V3 => AgencyMock::set_next_response(ACCEPT_INVITE_V2_RESPONSE.to_vec()),
+                settings::ProtocolTypes::V3 => AgencyMock::set_next_response(ACCEPT_INVITE_V2_RESPONSE),
             }
         }
 
@@ -606,7 +606,7 @@ impl RedirectConnectionBuilder {
 
         let mut response = parse_response_from_agency(&response, &self.version)?;
 
-        match response.remove(0) {
+        match response.swap_remove(0) {
             A2AMessage::Version1(A2AMessageV1::MessageCreated(res)) => Ok(res.uid),
             A2AMessage::Version2(A2AMessageV2::ConnectionRequestRedirectResponse(res)) => Ok(res.id),
             _ => return Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of ConnectionRequestRedirectResponse"))

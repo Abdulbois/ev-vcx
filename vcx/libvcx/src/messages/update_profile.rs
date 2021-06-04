@@ -94,7 +94,7 @@ impl UpdateProfileDataBuilder {
     pub fn send_secure(&mut self) -> VcxResult<()> {
         trace!("UpdateProfileData::send_secure >>>");
 
-        AgencyMock::set_next_response(UPDATE_PROFILE_RESPONSE.to_vec());
+        AgencyMock::set_next_response(UPDATE_PROFILE_RESPONSE);
 
         let data = self.prepare_request()?;
 
