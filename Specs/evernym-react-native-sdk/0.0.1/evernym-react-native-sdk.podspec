@@ -1,7 +1,7 @@
 require "json"
 
 Pod::Spec.new do |s|
-  s.name         = "react-native-vcx-wrapper"
+  s.name         = "evernym-react-native-sdk"
   s.version      = "0.0.1"
   s.summary      = "React Native version of Evernym's VCX."
   s.description  = "React Native wrapper for vcx"
