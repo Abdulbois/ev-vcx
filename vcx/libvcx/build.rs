@@ -103,9 +103,7 @@ pub fn get_revision() -> String {
         .ok()
         .and_then(|cnts| {
             Some(
-                cnts.get("package")?
-                    .get("metadata")?
-                    .get("deb")?
+                cnts["package"]["metadata"]["deb"]
                     .get("revision")?
                     .as_str()?
                     .to_string(),
