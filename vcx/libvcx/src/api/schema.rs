@@ -523,7 +523,7 @@ mod tests {
     use std::ffi::CString;
     use settings;
     #[allow(unused_imports)]
-    use utils::constants::{SCHEMA_ID, SCHEMA_WITH_VERSION, DEFAULT_SCHEMA_ATTRS, DEFAULT_SCHEMA_ID, DEFAULT_SCHEMA_NAME};
+    use utils::constants::{SCHEMA_ID_CSTR, SCHEMA_WITH_VERSION, DEFAULT_SCHEMA_ATTRS, DEFAULT_SCHEMA_ID, DEFAULT_SCHEMA_NAME};
     use api::return_types_u32;
     use utils::devsetup::*;
     use schema::tests::prepare_schema_data;
@@ -531,13 +531,17 @@ mod tests {
     use schema::CreateSchema;
     use utils::timeout::TimeoutUtils;
 
+    const TEST_SOURCE_ID: *const c_char = "Test Source ID\0".as_ptr().cast();
     fn vcx_schema_create_c_closure(name: &str, version: &str, data: &str) -> Result<u32, u32> {
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
+        let name = CString::new(name).unwrap();
+        let version = CString::new(version).unwrap();
+        let data = CString::new(data).unwrap();
         let rc = vcx_schema_create(cb.command_handle,
-                                   CString::new("Test Source ID").unwrap().into_raw(),
-                                   CString::new(name).unwrap().into_raw(),
-                                   CString::new(version).unwrap().into_raw(),
-                                   CString::new(data).unwrap().into_raw(),
+                                   TEST_SOURCE_ID,
+                                   name.as_ptr(),
+                                   version.as_ptr(),
+                                   data.as_ptr(),
                                    0,
                                    Some(cb.get_callback()));
         if rc != error::SUCCESS.code_num {
@@ -582,9 +586,10 @@ mod tests {
         let (schema_id, _) = ::utils::libindy::anoncreds::tests::create_and_write_test_schema(::utils::constants::DEFAULT_SCHEMA_ATTRS);
 
         let cb = return_types_u32::Return_U32_U32_STR::new().unwrap();
+        let id = CString::new(schema_id).unwrap();
         assert_eq!(vcx_schema_get_attributes(cb.command_handle,
-                                             CString::new("Test Source ID").unwrap().into_raw(),
-                                             CString::new(schema_id).unwrap().into_raw(),
+                                             TEST_SOURCE_ID,
+                                             id.as_ptr(),
                                              Some(cb.get_callback())), error::SUCCESS.code_num);
 
         let (_err, attrs) = cb.receive(TimeoutUtils::some_short()).unwrap();
@@ -608,7 +613,8 @@ mod tests {
         let _setup = SetupMocks::init();
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
-        let err = vcx_schema_deserialize(cb.command_handle, CString::new(SCHEMA_WITH_VERSION).unwrap().into_raw(), Some(cb.get_callback()));
+        let version = CString::new(SCHEMA_WITH_VERSION).unwrap();
+        let err = vcx_schema_deserialize(cb.command_handle, version.as_ptr(), Some(cb.get_callback()));
         assert_eq!(err, error::SUCCESS.code_num);
         let schema_handle = cb.receive(TimeoutUtils::some_short()).unwrap();
         assert!(schema_handle > 0);
@@ -635,8 +641,8 @@ mod tests {
         let cb = return_types_u32::Return_U32_U32_STR::new().unwrap();
         let data = r#"["height","name","sex","age"]"#;
         assert_eq!(vcx_schema_get_attributes(cb.command_handle,
-                                             CString::new("Test Source ID").unwrap().into_raw(),
-                                             CString::new(SCHEMA_ID).unwrap().into_raw(),
+                                             TEST_SOURCE_ID,
+                                             SCHEMA_ID_CSTR,
                                              Some(cb.get_callback())), error::SUCCESS.code_num);
         let (_handle, schema_data_as_string) = cb.receive(TimeoutUtils::some_short()).unwrap();
         let schema_data_as_string = schema_data_as_string.unwrap();
@@ -689,11 +695,11 @@ mod tests {
         settings::set_config_value(settings::CONFIG_ENABLE_TEST_MODE, "true");
         let cb = return_types_u32::Return_U32_U32_STR::new().unwrap();
         assert_eq!(vcx_schema_prepare_for_endorser(cb.command_handle,
-                                                   CString::new("Test Source ID").unwrap().into_raw(),
-                                                   CString::new("Test Schema").unwrap().into_raw(),
-                                                   CString::new("0.0").unwrap().into_raw(),
-                                                   CString::new("[att1, att2]").unwrap().into_raw(),
-                                                   CString::new("V4SGRU86Z58d6TV7PBUe6f").unwrap().into_raw(),
+                                                   TEST_SOURCE_ID,
+                                                   "Test Schema\0".as_ptr().cast(),
+                                                   "0.0\0".as_ptr().cast(),
+                                                   "[att1, att2]\0".as_ptr().cast(),
+                                                   "V4SGRU86Z58d6TV7PBUe6f\0".as_ptr().cast(),
                                                    Some(cb.get_callback())), error::SUCCESS.code_num);
         let (_handle, schema_transaction) = cb.receive(TimeoutUtils::some_short()).unwrap();
         let schema_transaction = schema_transaction.unwrap();

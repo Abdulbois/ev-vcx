@@ -978,7 +978,6 @@ mod tests {
     use super::*;
     use std::ffi::CString;
     use std::ptr;
-    use std::str;
     use proof;
     use api::{ProofStateType, return_types_u32, VcxStateType};
     use utils::constants::*;
@@ -986,16 +985,18 @@ mod tests {
     use connection::tests::build_test_connection;
     use utils::timeout::TimeoutUtils;
 
-    static DEFAULT_PROOF_NAME: &'static str = "PROOF_NAME";
+    const REV_INT: *const c_char = concat!(r#"{"support_revocation":false}"#, "\0").as_ptr().cast();
 
     fn create_proof_util() -> Result<u32, u32> {
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
+        let requested_atrs = CString::new(REQUESTED_ATTRS).unwrap();
+        let requested_preds = CString::new(REQUESTED_PREDICATES).unwrap();
         let rc = vcx_proof_create(cb.command_handle,
-                                  CString::new(DEFAULT_PROOF_NAME).unwrap().into_raw(),
-                                  CString::new(REQUESTED_ATTRS).unwrap().into_raw(),
-                                  CString::new(REQUESTED_PREDICATES).unwrap().into_raw(),
-                                  CString::new(r#"{"support_revocation":false}"#).unwrap().into_raw(),
-                                  CString::new("optional").unwrap().into_raw(),
+                                  "PROOF_NAME\0".as_ptr().cast(),
+                                  requested_atrs.as_ptr(),
+                                  requested_preds.as_ptr(),
+                                  REV_INT,
+                                  "optional\0".as_ptr().cast(),
                                   Some(cb.get_callback()));
         if rc != error::SUCCESS.code_num {
             return Err(rc);
@@ -1032,7 +1033,7 @@ mod tests {
                                     ptr::null(),
                                     ptr::null(),
                                     ptr::null(),
-                                    CString::new(r#"{"support_revocation":false}"#).unwrap().into_raw(),
+                                    REV_INT,
                                     ptr::null(),
                                     None),
                    error::INVALID_OPTION.code_num);
@@ -1067,10 +1068,10 @@ mod tests {
     #[test]
     fn test_vcx_proof_deserialize_succeeds() {
         let _setup = SetupMocks::init();
-
+        let data =  CString::new(PROOF_WITH_INVALID_STATE).unwrap();
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         assert_eq!(vcx_proof_deserialize(cb.command_handle,
-                                         CString::new(PROOF_WITH_INVALID_STATE).unwrap().into_raw(),
+                                         data.as_ptr().cast(),
                                          Some(cb.get_callback())),
                    error::SUCCESS.code_num);
         let handle = cb.receive(TimeoutUtils::some_medium()).unwrap();
@@ -1113,9 +1114,10 @@ mod tests {
         assert_eq!(proof::get_state(proof_handle).unwrap(), VcxStateType::VcxStateOfferSent as u32);
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
+        let response = CString::new(PROOF_RESPONSE_STR).unwrap();
         assert_eq!(vcx_proof_update_state_with_message(cb.command_handle,
                                                        proof_handle,
-                                                       CString::new(PROOF_RESPONSE_STR).unwrap().into_raw(),
+                                                       response.as_ptr(),
                                                        Some(cb.get_callback())),
                    error::SUCCESS.code_num);
         let _state = cb.receive(TimeoutUtils::some_medium()).unwrap();

@@ -1064,15 +1064,17 @@ mod tests {
 
     fn _vcx_disclosed_proof_create_with_request_c_closure(proof_request: &str) -> Result<u32, u32> {
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
+        let proof_req_cstr = CString::new(proof_request).unwrap();
         let rc = vcx_disclosed_proof_create_with_request(cb.command_handle,
-                                                         CString::new("test_create").unwrap().into_raw(),
-                                                         CString::new(proof_request).unwrap().into_raw(),
+                                                         "test_create\0".as_ptr().cast(),
+                                                         proof_req_cstr.as_ptr(),
                                                          Some(cb.get_callback()));
         if rc != error::SUCCESS.code_num {
             return Err(rc);
         }
         cb.receive(TimeoutUtils::some_medium())
     }
+    const EMPTY_JSON: *const c_char = "{}\0".as_ptr().cast();
 
     #[test]
     fn test_vcx_proof_create_with_request_success() {
@@ -1100,9 +1102,9 @@ mod tests {
 
         let cb = return_types_u32::Return_U32_U32_STR::new().unwrap();
         assert_eq!(vcx_disclosed_proof_create_with_msgid(cb.command_handle,
-                                                         CString::new("test_create_with_msgid").unwrap().into_raw(),
+                                                         "test_create_with_msgid\0".as_ptr().cast(),
                                                          cxn,
-                                                         CString::new("123").unwrap().into_raw(),
+                                                         "123\0".as_ptr().cast(),
                                                          Some(cb.get_callback())), error::SUCCESS.code_num);
         let (handle, disclosed_proof) = cb.receive(TimeoutUtils::some_medium()).unwrap();
         assert!(handle > 0 && disclosed_proof.is_some());
@@ -1132,8 +1134,9 @@ mod tests {
         assert_eq!(j["version"], PENDING_OBJECT_SERIALIZE_VERSION);
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
+        let cstr = CString::new(s).unwrap();
         assert_eq!(vcx_disclosed_proof_deserialize(cb.command_handle,
-                                                   CString::new(s).unwrap().into_raw(),
+                                                   cstr.as_ptr(),
                                                    Some(cb.get_callback())),
                    error::SUCCESS.code_num);
 
@@ -1244,8 +1247,8 @@ mod tests {
         let cb = return_types_u32::Return_U32::new().unwrap();
         assert_eq!(vcx_disclosed_proof_generate_proof(cb.command_handle,
                                                       handle,
-                                                      CString::new("{}").unwrap().into_raw(),
-                                                      CString::new("{}").unwrap().into_raw(),
+                                                      EMPTY_JSON,
+                                                      EMPTY_JSON,
                                                       Some(cb.get_callback())), error::SUCCESS.code_num);
         cb.receive(TimeoutUtils::some_medium()).unwrap();
     }

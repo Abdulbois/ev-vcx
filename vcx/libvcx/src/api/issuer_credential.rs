@@ -797,9 +797,10 @@ pub mod tests {
     use utils::devsetup::*;
     use utils::timeout::TimeoutUtils;
 
-    static DEFAULT_CREDENTIAL_NAME: &str = "Credential Name Default";
+    const DEFAULT_CREDENTIAL_NAME_CSTR: *const c_char = "Credential Name Default\0".as_ptr().cast();
+    const DEFAULT_DID_CSTR: *const c_char = "8XFh8yBzrpJQmNyZzgoTqB\0".as_ptr().cast();
     static DEFAULT_DID: &str = "8XFh8yBzrpJQmNyZzgoTqB";
-    static DEFAULT_ATTR: &str = "{\"attr\":\"value\"}";
+    const DEFAULT_ATTR_CSTR: *const c_char = "{\"attr\":\"value\"}\0".as_ptr().cast();
 
     pub fn issuer_credential_state_accepted() -> String {
         json!({
@@ -868,12 +869,12 @@ pub mod tests {
     fn _vcx_issuer_create_credential_c_closure() -> Result<u32, u32> {
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         let rc = vcx_issuer_create_credential(cb.command_handle,
-                                              CString::new(DEFAULT_CREDENTIAL_NAME).unwrap().into_raw(),
+                                              DEFAULT_CREDENTIAL_NAME_CSTR,
                                               ::credential_def::tests::create_cred_def_fake(),
-                                              CString::new(DEFAULT_DID).unwrap().into_raw(),
-                                              CString::new(DEFAULT_ATTR).unwrap().into_raw(),
-                                              CString::new(DEFAULT_CREDENTIAL_NAME).unwrap().into_raw(),
-                                              CString::new("1").unwrap().into_raw(),
+                                              DEFAULT_DID_CSTR,
+                                              DEFAULT_ATTR_CSTR,
+                                              DEFAULT_CREDENTIAL_NAME_CSTR,
+                                              "1\0".as_ptr().cast(),
                                               Some(cb.get_callback()));
         if rc != error::SUCCESS.code_num {
             return Err(rc);
@@ -895,12 +896,12 @@ pub mod tests {
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         assert_eq!(vcx_issuer_create_credential(cb.command_handle,
-                                                CString::new(DEFAULT_CREDENTIAL_NAME).unwrap().into_raw(),
+                                                DEFAULT_CREDENTIAL_NAME_CSTR,
                                                 ::credential_def::tests::create_cred_def_fake(),
                                                 ptr::null(),
                                                 ptr::null(),
-                                                CString::new(DEFAULT_CREDENTIAL_NAME).unwrap().into_raw(),
-                                                CString::new("1").unwrap().into_raw(),
+                                                DEFAULT_CREDENTIAL_NAME_CSTR,
+                                                "1\0".as_ptr().cast(),
                                                 Some(cb.get_callback())),
                    error::INVALID_OPTION.code_num);
         let _ = cb.receive(TimeoutUtils::some_medium()).is_err();
@@ -920,8 +921,9 @@ pub mod tests {
         let credential_json = cb.receive(TimeoutUtils::some_short()).unwrap().unwrap();
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
+        let cstr = CString::new(credential_json).unwrap();
         assert_eq!(vcx_issuer_credential_deserialize(cb.command_handle,
-                                                     CString::new(credential_json).unwrap().into_raw(),
+                                                     cstr.as_ptr(),
                                                      Some(cb.get_callback())),
                    error::SUCCESS.code_num);
         let handle_2 = cb.receive(TimeoutUtils::some_short()).unwrap();
@@ -947,9 +949,10 @@ pub mod tests {
         cb.receive(TimeoutUtils::some_medium()).unwrap();
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
+        let cstr = CString::new(CREDENTIAL_REQ_RESPONSE_STR).unwrap();
         assert_eq!(vcx_issuer_credential_update_state_with_message(cb.command_handle,
                                                                    handle,
-                                                                   CString::new(CREDENTIAL_REQ_RESPONSE_STR).unwrap().into_raw(),
+                                                                   cstr.as_ptr(),
                                                                    Some(cb.get_callback())), error::SUCCESS.code_num);
         let state = cb.receive(TimeoutUtils::some_medium()).unwrap();
         assert_eq!(state, VcxStateType::VcxStateRequestReceived as u32);
@@ -999,7 +1002,7 @@ pub mod tests {
         let cb = return_types_u32::Return_U32_STR::new().unwrap();
         assert_eq!(vcx_issuer_get_credential_msg(cb.command_handle,
                                                  handle,
-                                                 CString::new(DEFAULT_DID).unwrap().into_raw(),
+                                                 DEFAULT_DID_CSTR,
                                                  Some(cb.get_callback())),
                    error::SUCCESS.code_num);
         let _msg = cb.receive(TimeoutUtils::some_medium()).unwrap().unwrap();
@@ -1026,12 +1029,12 @@ pub mod tests {
         settings::set_config_value(settings::CONFIG_INSTITUTION_DID, DEFAULT_DID);
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         assert_eq!(vcx_issuer_create_credential(cb.command_handle,
-                                                CString::new(DEFAULT_CREDENTIAL_NAME).unwrap().into_raw(),
+                                                DEFAULT_CREDENTIAL_NAME_CSTR,
                                                 ::credential_def::tests::create_cred_def_fake(),
-                                                CString::new(DEFAULT_DID).unwrap().into_raw(),
-                                                CString::new(DEFAULT_ATTR).unwrap().into_raw(),
-                                                CString::new(DEFAULT_CREDENTIAL_NAME).unwrap().into_raw(),
-                                                CString::new("-1").unwrap().into_raw(),
+                                                DEFAULT_DID_CSTR,
+                                                DEFAULT_ATTR_CSTR,
+                                                DEFAULT_CREDENTIAL_NAME_CSTR,
+                                                "-1\0".as_ptr().cast(),
                                                 Some(cb.get_callback())),
                    error::INVALID_OPTION.code_num);
     }

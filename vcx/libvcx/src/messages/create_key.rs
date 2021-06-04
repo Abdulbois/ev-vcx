@@ -121,7 +121,7 @@ impl CreateKeyBuilder {
         match response.remove(0) {
             A2AMessage::Version1(A2AMessageV1::CreateKeyResponse(res)) => Ok((res.for_did, res.for_verkey)),
             A2AMessage::Version2(A2AMessageV2::CreateKeyResponse(res)) => Ok((res.for_did, res.for_verkey)),
-            _ => Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of CreateKeyResponse"))
+            r => Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Agency response does not match any variant of CreateKeyResponse, got: {:#?}", r)))
         }
     }
 }

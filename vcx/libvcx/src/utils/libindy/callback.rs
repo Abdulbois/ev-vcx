@@ -39,33 +39,26 @@ pub fn get_cb<H: Eq + Hash,T>(command_handle: H, map: &Mutex<HashMap<H, T>>) -> 
     //TODO Error case, what should we do if the static map can't be locked? Some what
     //TODO general question for all of our Mutexes.
     let mut locked_map = map.lock().expect(POISON_MSG);
-    match locked_map.remove(&command_handle){
-        Some(t) => Some(t),
-        None => {
-            warn!("Unable to find callback in map for libindy call");
-            None
-        }
+    let ret = locked_map.remove(&command_handle);
+    if ret.is_none() {
+        warn!("Unable to find callback in map for libindy call");
     }
+    ret
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ffi::CString;
     use utils::devsetup::SetupDefaults;
-
-    fn cstring(str_val: &String) -> CString {
-        CString::new(str_val.clone()).unwrap()
-    }
 
     #[test]
     fn test_build_string() {
         let _setup = SetupDefaults::init();
 
-        let test_str = "Journey before destination".to_string();
+        let test_str = "Journey before destination\0";
 
-        let test = build_string(cstring(&test_str).as_ptr());
-        assert_eq!(test_str, test.unwrap());
+        let test = build_string(test_str.as_ptr().cast());
+        assert_eq!(&test_str[..test_str.len() - 1], test.unwrap());
     }
 
     #[test]
