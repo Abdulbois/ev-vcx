@@ -1171,8 +1171,8 @@ pub mod tests {
 
         let mut credential = create_pending_issuer_credential();
 
-        AgencyMock::set_next_response(CREDENTIAL_REQ_RESPONSE.to_vec());
-        AgencyMock::set_next_response(UPDATE_CREDENTIAL_RESPONSE.to_vec());
+        AgencyMock::set_next_response(CREDENTIAL_REQ_RESPONSE);
+        AgencyMock::set_next_response(UPDATE_CREDENTIAL_RESPONSE);
 
         credential.update_state(None).unwrap();
         assert_eq!(credential.get_state(), VcxStateType::VcxStateRequestReceived as u32);

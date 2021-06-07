@@ -343,6 +343,10 @@ export class DisclosedProof extends VCXBaseWithState<IDisclosedProofData> {
   /**
    * Sends the proof to the Connection (pass null as Connection in case of ephemeral proof).
    *
+   * @param: connection - connection to send proof
+   *                      Pass `null` in order to reply on ephemeral/connectionless proof request
+   *                      Ephemeral/Connectionless Proof Request contains `~server` decorator
+   *
    * Example:
    * ```
    * connection = await Connection.create({id: 'foobar'})

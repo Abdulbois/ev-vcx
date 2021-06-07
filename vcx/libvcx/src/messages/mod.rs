@@ -18,7 +18,6 @@ pub mod token_provisioning;
 pub mod thread;
 pub mod issuance;
 
-use std::u8;
 use settings;
 use utils::libindy::crypto;
 use self::create_key::{CreateKeyBuilder, CreateKey, CreateKeyResponse};
@@ -790,8 +789,7 @@ impl std::string::ToString for MessageStatusCode {
 
 impl Serialize for MessageStatusCode {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        let value = self.to_string();
-        Value::String(value.to_string()).serialize(serializer)
+        Value::String(self.to_string()).serialize(serializer)
     }
 }
 
@@ -983,7 +981,7 @@ fn pack_for_agency_v2(message: &A2AMessage, agency_did: &str) -> VcxResult<Vec<u
     let message = ::serde_json::to_string(&message)
         .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize A2A message: {}", err)))?;
 
-    let receiver_keys = ::serde_json::to_string(&vec![&agent_vk])
+    let receiver_keys = ::serde_json::to_string(&[&agent_vk])
         .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize receiver keys: {}", err)))?;
 
     let message = crypto::pack_message(Some(&my_vk), &receiver_keys, message.as_bytes())?;
@@ -994,7 +992,7 @@ fn pack_for_agency_v2(message: &A2AMessage, agency_did: &str) -> VcxResult<Vec<u
     Ok(forward)
 }
 
-fn parse_response_from_agency(response: &Vec<u8>, version: &ProtocolTypes) -> VcxResult<Vec<A2AMessage>> {
+fn parse_response_from_agency(response: &[u8], version: &ProtocolTypes) -> VcxResult<Vec<A2AMessage>> {
     trace!("parse_response_from_agency >>> response {:?}", response);
     match version {
         settings::ProtocolTypes::V1 => parse_response_from_agency_v1(response),
@@ -1003,12 +1001,12 @@ fn parse_response_from_agency(response: &Vec<u8>, version: &ProtocolTypes) -> Vc
     }
 }
 
-fn parse_response_from_agency_v1(response: &Vec<u8>) -> VcxResult<Vec<A2AMessage>> {
+fn parse_response_from_agency_v1(response: &[u8]) -> VcxResult<Vec<A2AMessage>> {
     trace!("parse_response_from_agency_v1 >>>");
 
     let verkey = settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_VERKEY)?;
     let (_, data) = crypto::parse_msg(&verkey, &response)?;
-    let bundle: Bundled<Vec<u8>> = bundle_from_u8(data)?;
+    let bundle: Bundled<Vec<u8>> = bundle_from_u8(&data)?;
     let messages = bundle.bundled
         .iter()
         .map(|msg| rmp_serde::from_slice(msg)
@@ -1019,12 +1017,12 @@ fn parse_response_from_agency_v1(response: &Vec<u8>) -> VcxResult<Vec<A2AMessage
     Ok(messages)
 }
 
-pub fn parse_message_from_response(response: &Vec<u8>) -> VcxResult<String> {
+pub fn parse_message_from_response(response: &[u8]) -> VcxResult<String> {
     trace!("parse_message_from_response >>>");
 
-    let unpacked_msg = crypto::unpack_message(&response[..])?;
+    let unpacked_msg = crypto::unpack_message(response)?;
 
-    let message: Value = ::serde_json::from_slice(unpacked_msg.as_slice())
+    let message: Value = ::serde_json::from_slice(&unpacked_msg)
         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot deserialize JSON object from bytes. Err: {}", err)))?;
 
     let message = message["message"].as_str()
@@ -1034,7 +1032,7 @@ pub fn parse_message_from_response(response: &Vec<u8>) -> VcxResult<String> {
     Ok(message)
 }
 
-fn parse_response_from_agency_v2(response: &Vec<u8>) -> VcxResult<Vec<A2AMessage>> {
+fn parse_response_from_agency_v2(response: &[u8]) -> VcxResult<Vec<A2AMessage>> {
     trace!("parse_response_from_agency_v2 >>>");
 
     let message = parse_message_from_response(response)?;
@@ -1069,34 +1067,46 @@ impl<T> Bundled<T> {
     }
 }
 
-pub fn try_i8_bundle(data: Vec<u8>) -> VcxResult<Bundled<Vec<u8>>> {
+pub fn try_i8_bundle(data: &[u8]) -> VcxResult<Bundled<Vec<u8>>> {
     let bundle: Bundled<Vec<i8>> =
-        rmp_serde::from_slice(&data[..])
+        rmp_serde::from_slice(data)
             .map_err(|_| {
                 trace!("could not deserialize bundle with i8, will try u8");
                 VcxError::from_msg(VcxErrorKind::InvalidMessagePack, "Could not deserialize bundle with i8")
             })?;
 
-    let mut new_bundle: Bundled<Vec<u8>> = Bundled { bundled: Vec::new() };
-    for i in bundle.bundled {
-        let mut buf: Vec<u8> = Vec::new();
-        for j in i { buf.push(j as u8); }
-        new_bundle.bundled.push(buf);
+    Ok(Bundled {
+        bundled: bundle
+            .bundled
+            .into_iter()
+            .map(i8_as_u8_vec)
+            .collect()
+    })
+}
+
+pub fn i8_as_u8_slice(bytes: &[i8]) -> &[u8] {
+    let len = bytes.len();
+    let ptr = bytes.as_ptr() as *const u8;
+    // SAFETY: i8 and u8 have the same layout, and the lengths are identical
+    unsafe {
+        std::slice::from_raw_parts(ptr, len)
     }
-    Ok(new_bundle)
 }
 
-pub fn to_u8(bytes: &Vec<i8>) -> Vec<u8> {
-    bytes.iter().map(|i| *i as u8).collect()
+pub fn i8_as_u8_vec(mut bytes: Vec<i8>) -> Vec<u8> {
+    let len = bytes.len();
+    let cap = bytes.capacity();
+    let ptr = bytes.as_mut_ptr() as *mut u8;
+    std::mem::forget(bytes);
+    // SAFETY: i8 and u8 have the same layout, and the length and capacity are identical
+    unsafe {
+        Vec::from_raw_parts(ptr, len, cap)
+    }
 }
 
-pub fn to_i8(bytes: &Vec<u8>) -> Vec<i8> {
-    bytes.iter().map(|i| *i as i8).collect()
-}
-
-pub fn bundle_from_u8(data: Vec<u8>) -> VcxResult<Bundled<Vec<u8>>> {
-    try_i8_bundle(data.clone())
-        .or_else(|_| rmp_serde::from_slice::<Bundled<Vec<u8>>>(&data[..]))
+pub fn bundle_from_u8(data: &[u8]) -> VcxResult<Bundled<Vec<u8>>> {
+    try_i8_bundle(data)
+        .or_else(|_| rmp_serde::from_slice::<Bundled<Vec<u8>>>(&data))
         .map_err(|err| {
             error!("could not deserialize bundle with i8 or u8: {}", err);
             VcxError::from_msg(VcxErrorKind::InvalidMessagePack, "Could not deserialize bundle with i8 or u8")
@@ -1138,7 +1148,7 @@ fn prepare_forward_message_for_agency_v2(message: &ForwardV2, agency_vk: &str) -
     let message = serde_json::to_string(message)
         .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize Forward message: {}", err)))?;
 
-    let receiver_keys = serde_json::to_string(&vec![agency_vk])
+    let receiver_keys = serde_json::to_string(&[agency_vk])
         .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize receiver keys: {}", err)))?;
 
     let res = crypto::pack_message(None, &receiver_keys, message.as_bytes())?;
@@ -1190,7 +1200,7 @@ fn prepare_message_for_agent_v2(messages: Vec<A2AMessage>, pw_vk: &str, agent_di
     let message = serde_json::to_string(message)
         .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize A2A message: {}", err)))?;
 
-    let receiver_keys = serde_json::to_string(&vec![&agent_vk])
+    let receiver_keys = serde_json::to_string(&[&agent_vk])
         .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot receiver keys: {}", err)))?;
 
     let message = crypto::pack_message(Some(pw_vk), &receiver_keys, message.as_bytes())?;
@@ -1307,21 +1317,9 @@ pub mod tests {
 
     #[test]
     fn test_to_u8() {
-        let _setup = SetupDefaults::init();
-
-        let vec: Vec<i8> = vec![-127, -89, 98, 117, 110, 100, 108, 101, 100, -111, -36, 5, -74];
-
-        let buf = to_u8(&vec);
-        println!("new bundle: {:?}", buf);
-    }
-
-    #[test]
-    fn test_to_i8() {
-        let _setup = SetupDefaults::init();
-
-        let vec: Vec<u8> = vec![129, 167, 98, 117, 110, 100, 108, 101, 100, 145, 220, 19, 13];
-        let buf = to_i8(&vec);
-        println!("new bundle: {:?}", buf);
+        let a: &[i8] = &[-127, -89, 98, 117, 110, 100, 108, 101, 100, -111, -36, 5, -74];
+        let b: &[u8] = &[129, 167, 98, 117, 110, 100, 108, 101, 100, 145, 220, 5, 182];
+        assert_eq!(i8_as_u8_slice(a), b);
     }
 
     #[test]

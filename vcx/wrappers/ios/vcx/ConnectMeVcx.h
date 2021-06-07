@@ -1116,7 +1116,9 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 ///
 /// credential_handle: credential handle that was provided during creation. Used to identify credential object
 ///
-/// connection_handle: Connection handle that identifies pairwise connection
+/// connection_handle: Connection handle that identifies pairwise connection.
+///                    Pass `0` in order to reply on ephemeral/connectionless credential offer
+///                    Ephemeral/Connectionless Credential Offer contains `~server` decorator
 ///
 /// cb: Callback that provides error status of credential request
 ///
@@ -1541,7 +1543,7 @@ withSelectedCredentials:(NSString *)selectedCredentials
 /// requested_predicates: predicate specifications prover must provide claim for
 ///          [{ // set of requested predicates
 ///             "name": attribute name, (case insensitive and ignore spaces)
-///             "p_type": predicate type (Currently ">=" only)
+///             "p_type": predicate type (">=", ">", "<=", "<")
 ///             "p_value": int predicate value
 ///             "restrictions":  Optional<wql query> -  set of restrictions applying to requested credentials. (see below)
 ///             "non_revoked": Optional<{
@@ -1607,7 +1609,9 @@ withSelectedCredentials:(NSString *)selectedCredentials
 ///
 /// proof_handle: proof handle that was provided duration creation.  Used to identify proof object.
 ///
-/// connection_handle: Connection handle that identifies pairwise connection (pass 0 in case of ephemeral proof).
+/// connection_handle: Connection handle that identifies pairwise connection.
+///                    Pass `0` in order to reply on ephemeral/connectionless proof request
+///                    Ephemeral/Connectionless Proof Request contains `~server` decorator
 ///
 /// cb: Callback that provides error status of proof send request
 ///
@@ -2310,7 +2314,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 /// requestedPredicates: predicate specifications prover must provide claim for
 ///          [{ // set of requested predicates
 ///             "name": attribute name, (case insensitive and ignore spaces)
-///             "p_type": predicate type (Currently ">=" only)
+///             "p_type": predicate type (">=", ">", "<=", "<")
 ///             "p_value": int predicate value
 ///             "restrictions":  Optional<wql query> -  set of restrictions applying to requested credentials. (see below)
 ///             "non_revoked": Optional<{
@@ -2472,7 +2476,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 /// requestedPredicates: predicate specifications prover must provide claim for
 ///          [{ // set of requested predicates
 ///             "name": attribute name, (case insensitive and ignore spaces)
-///             "p_type": predicate type (Currently ">=" only)
+///             "p_type": predicate type (">=", ">", "<=", "<")
 ///             "p_value": int predicate value
 ///             "restrictions":  Optional<wql query> -  set of restrictions applying to requested credentials. (see below)
 ///             "non_revoked": Optional<{

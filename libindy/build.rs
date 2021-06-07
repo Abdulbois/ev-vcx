@@ -1,6 +1,6 @@
 use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 fn main() {
     let target = env::var("TARGET").unwrap();
@@ -13,7 +13,7 @@ fn main() {
         println!("cargo:rustc-link-lib=static=sodium");
     }
 
-    if target.find("-windows-").is_some() {
+    if target.contains("-windows-") {
         // do not build c-code on windows, use binaries
         let output_dir = env::var("OUT_DIR").unwrap();
         let prebuilt_dir = env::var("INDY_PREBUILT_DEPS_DIR").unwrap();
@@ -25,41 +25,40 @@ fn main() {
         println!("cargo:rustc-flags=-L {}\\lib", prebuilt_dir);
         println!("cargo:include={}\\include", prebuilt_dir);
 
-        let files = vec!["libeay32md.dll", "libsodium.dll", "libzmq.dll", "ssleay32md.dll"];
+        let files = [
+            "libeay32md.dll",
+            "libsodium.dll",
+            "libzmq.dll",
+            "ssleay32md.dll",
+        ];
+
         for f in files.iter() {
-            if let Ok(_) = fs::copy(&prebuilt_lib.join(f), &dst.join(f)) {
-                println!("copy {} -> {}", &prebuilt_lib.join(f).display(), &dst.join(f).display());
+            let src_f = prebuilt_lib.join(f);
+            let dst_f = dst.join(f);
+            if fs::copy(&src_f, &dst_f).is_ok() {
+                println!("copy {} -> {}", src_f.display(), dst_f.display());
             }
         }
-    } else if target.find("linux-android").is_some() {
+    } else if target.contains("linux-android") {
         //statically link files
-        let openssl = match env::var("OPENSSL_LIB_DIR") {
-            Ok(val) => val,
-            Err(..) => match env::var("OPENSSL_DIR") {
-                Ok(dir) => Path::new(&dir[..]).join("lib").to_string_lossy().into_owned(),
-                Err(..) => panic!("Missing required environment variables OPENSSL_DIR or OPENSSL_LIB_DIR")
-            }
-        };
 
-        let sodium = match env::var("SODIUM_LIB_DIR") {
-            Ok(val) => val,
-            Err(..) => panic!("Missing required environment variable SODIUM_LIB_DIR")
-        };
+        let openssl = env::var("OPENSSL_LIB_DIR").map(PathBuf::from).unwrap_or_else(|_| {
+            PathBuf::from(env::var("OPENSSL_DIR").expect("OPENSSL_LIB_DIR or OPENSSL_DIR"))
+                .join("lib")
+        });
 
-        let zmq = match env::var("LIBZMQ_LIB_DIR") {
-            Ok(val) => val,
-            Err(..) => match env::var("LIBZMQ_PREFIX") {
-                Ok(dir) => Path::new(&dir[..]).join("lib").to_string_lossy().into_owned(),
-                Err(..) => panic!("Missing required environment variables LIBZMQ_PREFIX or LIBZMQ_LIB_DIR")
-            }
-        };
+        let sodium = env::var("SODIUM_LIB_DIR").expect("SODIUM_LIB_DIR");
 
-        println!("cargo:rustc-link-search=native={}", openssl);
+        let zmq = env::var("LIBZMQ_LIB_DIR").map(PathBuf::from).unwrap_or_else(|_| {
+            PathBuf::from(env::var("LIBZMQ_PREFIX").expect("LIBZMQ_PREFIX or LIBZMQ_LIB_DIR"))
+                .join("lib")
+        });
+        println!("cargo:rustc-link-search=native={}", openssl.display());
         println!("cargo:rustc-link-lib=static=crypto");
         println!("cargo:rustc-link-lib=static=ssl");
         println!("cargo:rustc-link-search=native={}", sodium);
         println!("cargo:rustc-link-lib=static=sodium");
-        println!("cargo:rustc-link-search=native={}", zmq);
+        println!("cargo:rustc-link-search=native={}", zmq.display());
         println!("cargo:rustc-link-lib=static=zmq");
     }
 }

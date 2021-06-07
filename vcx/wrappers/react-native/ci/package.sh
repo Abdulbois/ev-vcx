@@ -12,7 +12,7 @@ npm i
 npm run build
 npm pack
 
-rename \s/react-native-vcx-wrapper-/react-native-vcx-wrapper_/ *.tgz
+rename \s/evernym-react-native-sdk-/evernym-react-native-sdk_/ *.tgz
 
 cd $CURDIR
-cp $DIR/react-native-vcx-wrapper*.tgz $OUTPUTDIR
+cp $DIR/evernym-react-native-sdk*.tgz $OUTPUTDIR

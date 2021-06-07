@@ -1,5 +1,5 @@
 use messages::message_type::*;
-use messages::to_u8;
+use messages::i8_as_u8_slice;
 use messages::get_message::MessagePayload;
 use settings::{ProtocolTypes, get_protocol_type};
 use utils::libindy::crypto;
@@ -81,7 +81,7 @@ impl Payloads {
                         VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize payload: {}", err))
                     })?;
 
-                let receiver_keys = ::serde_json::to_string(&vec![&their_vk])
+                let receiver_keys = ::serde_json::to_string(&[&their_vk])
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize receiver keys: {}", err)))?;
 
                 trace!("Sending payload: {:?}", secret!(message.as_bytes()));
@@ -102,7 +102,7 @@ impl Payloads {
                         VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize payload: {}", err))
                     })?;
 
-                let receiver_keys = ::serde_json::to_string(&vec![&their_vk])
+                let receiver_keys = ::serde_json::to_string(&[&their_vk])
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize receiver keys: {}", err)))?;
 
                 trace!("Sending payload: {:?}", secret!(message.as_bytes()));
@@ -123,8 +123,7 @@ impl Payloads {
                     trace!("Payloads::decrypt: decrypted V1 >> {:?}", secret!(payload));
                     Ok((payload.msg, None))
                 } else {
-                    let vec = to_u8(payload);
-                    let json: Value = serde_json::from_slice(&vec[..])
+                    let json: Value = serde_json::from_slice(i8_as_u8_slice(payload))
                         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot deserialize MessagePayload: {}", err)))?;
 
                     let payload = match Payloads::decrypt_payload_v12(&my_vk, &json)?.msg {
@@ -144,11 +143,11 @@ impl Payloads {
         }
     }
 
-    pub fn decrypt_payload_v1(my_vk: &str, payload: &Vec<i8>) -> VcxResult<PayloadV1> {
+    pub fn decrypt_payload_v1(my_vk: &str, payload: &[i8]) -> VcxResult<PayloadV1> {
         debug!("decrypt_payload_v1 >>>");
-        let (_, data) = crypto::parse_msg(&my_vk, &to_u8(payload))?;
+        let (_, data) = crypto::parse_msg(&my_vk, i8_as_u8_slice(payload))?;
 
-        let my_payload: PayloadV1 = rmp_serde::from_slice(&data[..])
+        let my_payload: PayloadV1 = rmp_serde::from_slice(&data)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt payload: {}", err)))?;
 
         debug!("decrypt_payload_v1 <<< payload: {:?}", secret!(my_payload));

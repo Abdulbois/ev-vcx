@@ -70,9 +70,9 @@ impl CreateKeyBuilder {
 
         if settings::agency_mocks_enabled() {
             match self.version {
-                settings::ProtocolTypes::V1 => AgencyMock::set_next_response(constants::CREATE_KEYS_RESPONSE.to_vec()),
+                settings::ProtocolTypes::V1 => AgencyMock::set_next_response(constants::CREATE_KEYS_RESPONSE),
                 settings::ProtocolTypes::V2 |
-                settings::ProtocolTypes::V3 => AgencyMock::set_next_response(constants::CREATE_KEYS_V2_RESPONSE.to_vec()),
+                settings::ProtocolTypes::V3 => AgencyMock::set_next_response(constants::CREATE_KEYS_V2_RESPONSE),
             }
         }
 
@@ -113,15 +113,15 @@ impl CreateKeyBuilder {
         prepare_message_for_agency(&message, &agency_did, &self.version)
     }
 
-    fn parse_response(&self, response: &Vec<u8>) -> VcxResult<(String, String)> {
+    fn parse_response(&self, response: &[u8]) -> VcxResult<(String, String)> {
         trace!("CreateKeyBuilder::parse_response >>>");
 
         let mut response = parse_response_from_agency(response, &self.version)?;
 
-        match response.remove(0) {
+        match response.swap_remove(0) {
             A2AMessage::Version1(A2AMessageV1::CreateKeyResponse(res)) => Ok((res.for_did, res.for_verkey)),
             A2AMessage::Version2(A2AMessageV2::CreateKeyResponse(res)) => Ok((res.for_did, res.for_verkey)),
-            _ => Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of CreateKeyResponse"))
+            r => Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Agency response does not match any variant of CreateKeyResponse, got: {:#?}", r)))
         }
     }
 }

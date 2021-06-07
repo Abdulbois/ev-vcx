@@ -1,12 +1,10 @@
 require "json"
 
-package = JSON.parse(File.read(File.join(__dir__, "package.json")))
-
 Pod::Spec.new do |s|
-  s.name         = "react-native-vcx-wrapper"
-  s.version      = package["version"]
+  s.name         = "evernym-react-native-sdk"
+  s.version      = "0.0.1"
   s.summary      = "React Native version of Evernym's VCX."
-  s.description  = package["description"]
+  s.description  = "React Native wrapper for vcx"
   s.homepage     = "https://gitlab.corp.evernym.com/dev/vcx/indy-sdk.git"
   # brief license entry:
   s.license      =  { :type => 'MIT', :file => 'LICENSE' }

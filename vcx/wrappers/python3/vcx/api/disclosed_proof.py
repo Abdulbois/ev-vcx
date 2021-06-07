@@ -355,6 +355,11 @@ class DisclosedProof(VcxStateful):
     async def send_proof(self, connection: Optional[Connection] = None):
         """
         Sends the proof to the Connection
+
+        :param connection: connection to send proof
+                              Pass `null` in order to reply on ephemeral/connectionless proof request
+                              Ephemeral/Connectionless Proof Request contains `~server` decorator
+
         Example:
         msg_id = '1'
         phone_number = '8019119191'
@@ -518,7 +523,7 @@ class DisclosedProof(VcxStateful):
                }
            selected_credentials can be empty "{}" if the proof only contains self_attested_attrs
         :param self_attested_attrs: a json with attributes self attested by user
-        
+
         Example:
          self_attested_attrs: {"self_attested_attr_0":"attested_val"} or {}
          selected_credentials -> {'attrs': {'attribute_0': {'credential': {'cred_info': {'cred_def_id': 'od', 'schema_id': 'id', 'referent': '0c212108-9433-4199-a21f-336a44164f38', 'attrs': {'attr_name': 'attr_value', ...}}}}}}

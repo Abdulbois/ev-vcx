@@ -79,6 +79,8 @@ public class CredentialApi extends VcxJava.API {
      *
      * @param  credentialHandle     handle pointing to a Credential object.
      * @param  connectionHandle     handle pointing to a Connection object.
+     *                              Pass `0` in order to reply on ephemeral/connectionless credential offer
+     *                              Ephemeral/Connectionless Credential Offer contains `~server` decorator
      * @param  paymentHandle        deprecated parameter (use 0).
      *
      * @return                      void
@@ -294,7 +296,7 @@ public class CredentialApi extends VcxJava.API {
      * Query the agency for the received messages.
      * Checks for any messages changing state in the Credential object and updates the state attribute.
      * If it detects a credential it will store the credential in the wallet.
-     * 
+     *
      * @param  credentialHandle     handle pointing to a Credential object.
      *
      * @return                      the most current state of the Credential object.
@@ -359,7 +361,7 @@ public class CredentialApi extends VcxJava.API {
      *     2 - Credential Request Sent
      *     3 - Credential Offer Received
      *     4 - Credential Accepted
-     * 
+     *
      * @param  credentialHandle     handle pointing to a Credential object.
      *
      * @return                      the most current state of the Credential object.

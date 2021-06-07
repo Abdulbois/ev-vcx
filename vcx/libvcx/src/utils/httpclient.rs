@@ -14,7 +14,7 @@ lazy_static! {
 
 #[derive(Default)]
 pub struct AgencyMock {
-    responses: Vec<Vec<u8>>
+    responses: Vec<&'static [u8]>
 }
 
 enum RequestType {
@@ -23,19 +23,19 @@ enum RequestType {
 }
 
 impl AgencyMock {
-    pub fn set_next_response(body: Vec<u8>) {
+    pub fn set_next_response(body: &'static [u8]) {
         if settings::agency_mocks_enabled() {
             AGENCY_MOCK.lock().unwrap().responses.push(body);
         }
     }
 
-    pub fn get_response() -> VcxResult<Vec<u8>> {
+    pub fn get_response() -> VcxResult<&'static [u8]> {
         Ok(AGENCY_MOCK.lock().unwrap().responses.pop().unwrap_or_default())
     }
 }
 
 //Todo: change this RC to a u32
-pub fn post_u8(body_content: &Vec<u8>) -> VcxResult<Vec<u8>> {
+pub fn post_u8(body_content: &[u8]) -> VcxResult<Vec<u8>> {
     let endpoint = format!("{}/agency/msg", settings::get_config_value(settings::CONFIG_AGENCY_ENDPOINT)?);
     post_message(body_content, &endpoint)
 }
@@ -45,17 +45,17 @@ pub fn get_status() -> VcxResult<Vec<u8>> {
     get_message(&endpoint)
 }
 
-pub fn post_message(body_content: &Vec<u8>, url: &str) -> VcxResult<Vec<u8>> {
+pub fn post_message(body_content: &[u8], url: &str) -> VcxResult<Vec<u8>> {
     send_http_message(body_content, url, RequestType::POST)
 }
 
 pub fn get_message(url: &str) -> VcxResult<Vec<u8>> {
-    send_http_message(&Vec::new(), url, RequestType::GET)
+    send_http_message(&[], url, RequestType::GET)
 }
 
-fn send_http_message(body_content: &Vec<u8>, url: &str, request_type: RequestType) -> VcxResult<Vec<u8>> {
+fn send_http_message(body_content: &[u8], url: &str, request_type: RequestType) -> VcxResult<Vec<u8>> {
     if settings::agency_mocks_enabled() {
-        return AgencyMock::get_response();
+        return AgencyMock::get_response().map(|s| s.to_vec());
     }
 
     //Setting SSL Certs location. This is needed on android platform. Or openssl will fail to verify the certs
@@ -97,7 +97,6 @@ fn send_http_message(body_content: &Vec<u8>, url: &str, request_type: RequestTyp
             None => Err(VcxError::from_msg(VcxErrorKind::PostMessageFailed, format!("Sending POST HTTP request failed with: {}", content)))
         };
     }
-
     let mut content = Vec::new();
     response.read_to_end(&mut content)
         .map_err(|err| VcxError::from_msg(VcxErrorKind::PostMessageFailed, format!("Could not read HTTP response. Err: {:?}", err)))?;

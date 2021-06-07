@@ -95,12 +95,12 @@ impl TokenRequestBuilder {
         prepare_message_for_agency(&message, &agency_did, &ProtocolTypes::V3)
     }
 
-    fn parse_response(&self, response: &Vec<u8>) -> VcxResult<String> {
+    fn parse_response(&self, response: &[u8]) -> VcxResult<String> {
         trace!("TokenRequestBuilder::parse_response >>>");
 
-        let mut response = parse_response_from_agency(response, &ProtocolTypes::V2)?;
+        let response = parse_response_from_agency(response, &ProtocolTypes::V2)?;
 
-        match response.remove(0) {
+        match response.first().ok_or_else(|| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "No agency responses"))? {
             A2AMessage::Version1(_) => {
                 Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response expected to be of version 2"))
             },

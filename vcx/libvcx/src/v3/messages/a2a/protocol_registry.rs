@@ -37,7 +37,7 @@ impl ProtocolRegistry {
         registry
     }
 
-    pub fn add_protocol(&mut self, actors: &Vec<Actors>, family: MessageFamilies) {
+    pub fn add_protocol(&mut self, actors: &[Actors], family: MessageFamilies) {
         match family.actors() {
             None => {
                 self.protocols.push(ProtocolDescriptor { pid: family.id(), roles: None })
@@ -72,7 +72,7 @@ impl ProtocolRegistry {
 
     pub fn get_protocols_for_query(&self, query: Option<&str>) -> Vec<ProtocolDescriptor> {
         match query {
-            Some(query_) if query_ == "*" => self.protocols.clone(),
+            Some("*") => self.protocols.clone(),
             Some(query_) => {
                 match Regex::new(query_) {
                     Ok(re) => self.protocols.iter().filter(|protocol| re.is_match(&protocol.pid)).cloned().collect(),

@@ -72,7 +72,7 @@ impl UpdateMessageStatusByConnectionsBuilder {
     pub fn send_secure(&mut self) -> VcxResult<()> {
         trace!("UpdateMessages::send >>>");
 
-        AgencyMock::set_next_response(constants::UPDATE_MESSAGES_RESPONSE.to_vec());
+        AgencyMock::set_next_response(constants::UPDATE_MESSAGES_RESPONSE);
 
         let data = self.prepare_request()?;
 
@@ -114,12 +114,12 @@ impl UpdateMessageStatusByConnectionsBuilder {
         prepare_message_for_agency(&message, &agency_did, &self.version)
     }
 
-    fn parse_response(&self, response: &Vec<u8>) -> VcxResult<()> {
+    fn parse_response(&self, response: &[u8]) -> VcxResult<()> {
         trace!("UpdateMessageStatusByConnections::parse_response >>>");
 
-        let mut response = parse_response_from_agency(response, &self.version)?;
+        let response = parse_response_from_agency(response, &self.version)?;
 
-        match response.remove(0) {
+        match response.first().ok_or_else(|| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "No agency responses"))? {
             A2AMessage::Version1(A2AMessageV1::UpdateMessageStatusByConnectionsResponse(_)) => Ok(()),
             A2AMessage::Version2(A2AMessageV2::UpdateMessageStatusByConnectionsResponse(_)) => Ok(()),
             _ => Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of UpdateMessageStatusByConnectionsResponse"))
@@ -165,7 +165,7 @@ mod tests {
     fn test_parse_parse_update_messages_response() {
         let _setup = SetupMocks::init();
 
-        UpdateMessageStatusByConnectionsBuilder::create().parse_response(&::utils::constants::UPDATE_MESSAGES_RESPONSE.to_vec()).unwrap();
+        UpdateMessageStatusByConnectionsBuilder::create().parse_response(::utils::constants::UPDATE_MESSAGES_RESPONSE).unwrap();
     }
 
     #[cfg(feature = "agency")]
@@ -195,7 +195,7 @@ mod tests {
         assert!(pending.len() > 0);
         let did = pending[0].pairwise_did.clone();
         let uid = pending[0].msgs[0].uid.clone();
-        let message = serde_json::to_string(&vec![UIDsByConn { pairwise_did: did, uids: vec![uid] }]).unwrap();
+        let message = serde_json::to_string(&[UIDsByConn { pairwise_did: did, uids: vec![uid] }]).unwrap();
         update_agency_messages("MS-106", &message).unwrap();
         let updated = ::messages::get_message::download_messages(None, Some(vec!["MS-106".to_string()]), None).unwrap();
         assert_eq!(pending[0].msgs[0].uid, updated[0].msgs[0].uid);

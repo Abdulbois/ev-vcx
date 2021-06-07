@@ -2,6 +2,8 @@
 pub mod a2a;
 #[macro_use]
 pub mod ack;
+#[macro_use]
+pub mod transport;
 pub mod connection;
 pub mod error;
 pub mod forward;

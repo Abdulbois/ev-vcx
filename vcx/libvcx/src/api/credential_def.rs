@@ -596,9 +596,15 @@ mod tests {
     use std::ffi::CString;
     use settings;
     use api::return_types_u32;
-    use utils::constants::{SCHEMA_ID};
+    use utils::constants::{SCHEMA_ID, SCHEMA_ID_CSTR};
     use utils::devsetup::*;
     use utils::timeout::TimeoutUtils;
+
+    const TEST_SOURCE_ID: *const c_char = "Test Source ID\0".as_ptr().cast();
+    const TEST_CRED_DEF: *const c_char = "Test Credential Def\0".as_ptr().cast();
+    const EMPTY_JSON: *const c_char = "{}\0".as_ptr().cast();
+    const TAG: *const c_char = "tag\0".as_ptr().cast();
+    const ISSUER_DID: *const c_char = "6vkhW3L28AophhA68SSzRS\0".as_ptr().cast();
 
     #[test]
     fn test_vcx_create_credentialdef_success() {
@@ -606,12 +612,12 @@ mod tests {
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         assert_eq!(vcx_credentialdef_create(cb.command_handle,
-                                            CString::new("Test Source ID").unwrap().into_raw(),
-                                            CString::new("Test Credential Def").unwrap().into_raw(),
-                                            CString::new(SCHEMA_ID).unwrap().into_raw(),
-                                            CString::new("6vkhW3L28AophhA68SSzRS").unwrap().into_raw(),
-                                            CString::new("tag").unwrap().into_raw(),
-                                            CString::new("{}").unwrap().into_raw(),
+                                            TEST_SOURCE_ID,
+                                            TEST_CRED_DEF,
+                                            SCHEMA_ID_CSTR,
+                                            ISSUER_DID,
+                                            TAG,
+                                            EMPTY_JSON,
                                             0,
                                             Some(cb.get_callback())), error::SUCCESS.code_num);
         cb.receive(TimeoutUtils::some_medium()).unwrap();
@@ -624,12 +630,12 @@ mod tests {
         settings::set_defaults();
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         assert_eq!(vcx_credentialdef_create(cb.command_handle,
-                                            CString::new("Test Source ID").unwrap().into_raw(),
-                                            CString::new("Test Credential Def").unwrap().into_raw(),
-                                            CString::new(SCHEMA_ID).unwrap().into_raw(),
+                                            TEST_SOURCE_ID,
+                                            TEST_CRED_DEF,
+                                            SCHEMA_ID_CSTR,
                                             ptr::null(),
-                                            CString::new("tag").unwrap().into_raw(),
-                                            CString::new("{}").unwrap().into_raw(),
+                                            TAG,
+                                            EMPTY_JSON,
                                             0,
                                             Some(cb.get_callback())), error::SUCCESS.code_num);
         assert!(cb.receive(TimeoutUtils::some_medium()).is_err());
@@ -640,9 +646,9 @@ mod tests {
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         assert_eq!(vcx_credentialdef_create_with_id(cb.command_handle,
-                                            CString::new("Test Source ID").unwrap().into_raw(),
-                                            CString::new("Test Credential Def").unwrap().into_raw(),
-                                            CString::new("6vkhW3L28AophhA68SSzRS").unwrap().into_raw(),
+                                            TEST_SOURCE_ID,
+                                            TEST_CRED_DEF,
+                                            ISSUER_DID,
                                             ptr::null(),
                                             Some(cb.get_callback())), error::SUCCESS.code_num);
         cb.receive(TimeoutUtils::some_medium()).unwrap();
@@ -654,12 +660,12 @@ mod tests {
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         assert_eq!(vcx_credentialdef_create(cb.command_handle,
-                                            CString::new("Test Source ID").unwrap().into_raw(),
-                                            CString::new("Test Credential Def").unwrap().into_raw(),
-                                            CString::new(SCHEMA_ID).unwrap().into_raw(),
+                                            TEST_SOURCE_ID,
+                                            TEST_CRED_DEF,
+                                            SCHEMA_ID_CSTR,
                                             ptr::null(),
-                                            CString::new("tag").unwrap().into_raw(),
-                                            CString::new("{}").unwrap().into_raw(),
+                                            TAG,
+                                            EMPTY_JSON ,
                                             0,
                                             Some(cb.get_callback())), error::SUCCESS.code_num);
 
@@ -676,9 +682,9 @@ mod tests {
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
 
-        let original = r#"{"version":"1.0", "data": {"id":"2hoqvcwupRTUNkXn6ArYzs:3:CL:1697","issuer_did":"2hoqvcwupRTUNkXn6ArYzs","tag":"tag","name":"Test Credential Definition","rev_ref_def":null,"rev_reg_entry":null,"rev_reg_id":null,"source_id":"SourceId"}}"#;
+        let original = concat!(r#"{"version":"1.0", "data": {"id":"2hoqvcwupRTUNkXn6ArYzs:3:CL:1697","issuer_did":"2hoqvcwupRTUNkXn6ArYzs","tag":"tag","name":"Test Credential Definition","rev_ref_def":null,"rev_reg_entry":null,"rev_reg_id":null,"source_id":"SourceId"}}"#, "\0").as_ptr().cast();
         assert_eq!(vcx_credentialdef_deserialize(cb.command_handle,
-                                                 CString::new(original).unwrap().into_raw(),
+                                                 original,
                                                  Some(cb.get_callback())), error::SUCCESS.code_num);
 
         let handle = cb.receive(TimeoutUtils::some_short()).unwrap();
@@ -692,9 +698,11 @@ mod tests {
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
 
-        let original = r#"{"data":{"id":"V4SGRU86Z58d6TV7PBUe6f:3:CL:912:tag1","name":"color","payment_txn":null,"source_id":"1","tag":"tag1"},"version":"1.0"}"#;
+        let original = concat!(r#"{"data":{"id":"V4SGRU86Z58d6TV7PBUe6f:3:CL:912:tag1","name":"color","payment_txn":null,"source_id":"1","tag":"tag1"},"version":"1.0"}"#, "\0")
+            .as_ptr()
+            .cast();
         assert_eq!(vcx_credentialdef_deserialize(cb.command_handle,
-                                                 CString::new(original).unwrap().into_raw(),
+                                                 original,
                                                  Some(cb.get_callback())), error::SUCCESS.code_num);
 
         let handle = cb.receive(TimeoutUtils::some_short()).unwrap();
@@ -709,12 +717,12 @@ mod tests {
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         assert_eq!(vcx_credentialdef_create(cb.command_handle,
-                                            CString::new("Test Source ID Release Test").unwrap().into_raw(),
-                                            CString::new("Test Credential Def Release").unwrap().into_raw(),
-                                            CString::new(SCHEMA_ID).unwrap().into_raw(),
+                                            "Test Source ID Release Test\0".as_ptr().cast(),
+                                            "Test Credential Def Release\0".as_ptr().cast(),
+                                            SCHEMA_ID_CSTR,
                                             ptr::null(),
-                                            CString::new("tag").unwrap().into_raw(),
-                                            CString::new("{}").unwrap().into_raw(),
+                                            TAG,
+                                            EMPTY_JSON,
                                             0,
                                             Some(cb.get_callback())), error::SUCCESS.code_num);
 
@@ -728,12 +736,12 @@ mod tests {
 
         let cb = return_types_u32::Return_U32_U32::new().unwrap();
         assert_eq!(vcx_credentialdef_create(cb.command_handle,
-                                            CString::new("Test Source ID").unwrap().into_raw(),
-                                            CString::new("Test Credential Def").unwrap().into_raw(),
-                                            CString::new(SCHEMA_ID).unwrap().into_raw(),
-                                            CString::new("6vkhW3L28AophhA68SSzRS").unwrap().into_raw(),
-                                            CString::new("tag").unwrap().into_raw(),
-                                            CString::new("{}").unwrap().into_raw(),
+                                            TEST_SOURCE_ID,
+                                            TEST_CRED_DEF,
+                                            SCHEMA_ID_CSTR,
+                                            ISSUER_DID,
+                                            TAG,
+                                            EMPTY_JSON,
                                             0,
                                             Some(cb.get_callback())), error::SUCCESS.code_num);
         let handle = cb.receive(TimeoutUtils::some_medium()).unwrap();
@@ -764,13 +772,13 @@ mod tests {
         settings::set_config_value(settings::CONFIG_ENABLE_TEST_MODE, "true");
         let cb = return_types_u32::Return_U32_U32_STR_STR_STR::new().unwrap();
         assert_eq!(vcx_credentialdef_prepare_for_endorser(cb.command_handle,
-                                            CString::new("Test Source ID").unwrap().into_raw(),
-                                            CString::new("Test Credential Def").unwrap().into_raw(),
-                                            CString::new(SCHEMA_ID).unwrap().into_raw(),
-                                            CString::new("6vkhW3L28AophhA68SSzRS").unwrap().into_raw(),
-                                            CString::new("tag").unwrap().into_raw(),
-                                            CString::new("{}").unwrap().into_raw(),
-                                                          CString::new("V4SGRU86Z58d6TV7PBUe6f").unwrap().into_raw(),
+                                            TEST_SOURCE_ID,
+                                            TEST_CRED_DEF,
+                                            SCHEMA_ID_CSTR,
+                                            ISSUER_DID,
+                                            TAG,
+                                            EMPTY_JSON,
+                                            "V4SGRU86Z58d6TV7PBUe6f\0".as_ptr().cast(),
                                             Some(cb.get_callback())), error::SUCCESS.code_num);
         let (_handle, cred_def_transaction, rev_reg_def_transaction, rev_reg_delta_transaction) = cb.receive(TimeoutUtils::some_short()).unwrap();
         let cred_def_transaction = cred_def_transaction.unwrap();
@@ -787,14 +795,15 @@ mod tests {
 
         settings::set_config_value(settings::CONFIG_ENABLE_TEST_MODE, "true");
         let cb = return_types_u32::Return_U32_U32_STR_STR_STR::new().unwrap();
+        let details = CString::new(credential_def::tests::revocation_details(true).to_string()).unwrap();
         assert_eq!(vcx_credentialdef_prepare_for_endorser(cb.command_handle,
-                                            CString::new("Test Source ID").unwrap().into_raw(),
-                                            CString::new("Test Credential Def").unwrap().into_raw(),
-                                            CString::new(SCHEMA_ID).unwrap().into_raw(),
-                                            CString::new("6vkhW3L28AophhA68SSzRS").unwrap().into_raw(),
-                                            CString::new("tag").unwrap().into_raw(),
-                                            CString::new(credential_def::tests::revocation_details(true).to_string()).unwrap().into_raw(),
-                                                          CString::new("V4SGRU86Z58d6TV7PBUe6f").unwrap().into_raw(),
+                                            TEST_SOURCE_ID,
+                                            TEST_CRED_DEF,
+                                            SCHEMA_ID_CSTR,
+                                            ISSUER_DID,
+                                            TAG,
+                                            details.as_ptr(),
+                                            "V4SGRU86Z58d6TV7PBUe6f\0".as_ptr().cast(),
                                             Some(cb.get_callback())), error::SUCCESS.code_num);
         let (_handle, cred_def_transaction, rev_reg_def_transaction, rev_reg_delta_transaction) = cb.receive(TimeoutUtils::some_short()).unwrap();
         let cred_def_transaction = cred_def_transaction.unwrap();

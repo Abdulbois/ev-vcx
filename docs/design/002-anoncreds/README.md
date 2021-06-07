@@ -643,7 +643,7 @@ pub  extern fn indy_prover_close_credentials_search(command_handle: i32,
 /// predicate_info: Describes requested attribute predicate
 ///     {
 ///         "name": attribute name, (case insensitive and ignore spaces)
-///         "p_type": predicate type (Currently ">=" only)
+///         "p_type": predicate type (">=", ">", "<=", "<")
 ///         "p_value": int predicate value
 ///         "restrictions": Optional<filter_json>, // see above
 ///         "non_revoked": Optional<<non_revoc_interval>>, // see below,
@@ -891,7 +891,7 @@ pub  extern fn indy_prover_close_credentials_search_for_proof_req(command_handle
 /// predicate_info: Describes requested attribute predicate
 ///     {
 ///         "name": attribute name, (case insensitive and ignore spaces)
-///         "p_type": predicate type (Currently >= only)
+///         "p_type": predicate type (">=", ">", "<=", "<")
 ///         "p_value": predicate value
 ///         "restrictions": Optional<wql query>,
 ///         "non_revoked": Optional<<non_revoc_interval>>, // see below,
