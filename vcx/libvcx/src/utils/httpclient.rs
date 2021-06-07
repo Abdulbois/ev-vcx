@@ -4,7 +4,6 @@ use std::sync::Mutex;
 use reqwest::header::CONTENT_TYPE;
 use std::env;
 use error::prelude::*;
-use utils::timeout::TimeoutUtils;
 use reqwest::ClientBuilder;
 use error::agency_error::AgencyError;
 
@@ -65,7 +64,7 @@ fn send_http_message(body_content: &[u8], url: &str, request_type: RequestType) 
     }
     let client =
         ClientBuilder::new()
-            .timeout(TimeoutUtils::long_timeout())
+            .timeout(std::time::Duration::from_secs(50))
             .build()
             .map_err(|err| VcxError::from_msg(VcxErrorKind::PostMessageFailed, format!("Could not prepare HTTP client. Err: {:?}", err)))?;
 

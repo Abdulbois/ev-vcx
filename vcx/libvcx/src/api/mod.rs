@@ -9,7 +9,8 @@ pub mod credential;
 pub mod disclosed_proof;
 pub mod wallet;
 pub mod logger;
-pub mod return_types_u32;
+#[cfg(test)]
+pub mod return_types;
 pub mod extensions;
 pub mod wallet_backup;
 
@@ -20,6 +21,7 @@ use std::fmt;
 /// a string, because its still JSON).
 macro_rules! enum_number {
     ($name:ident { $($variant:ident = $value:expr, )* }) => {
+        #[repr(u32)]
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         pub enum $name {
             $($variant = $value,)*

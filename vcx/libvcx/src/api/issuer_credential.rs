@@ -2,12 +2,17 @@ use serde_json;
 use libc::c_char;
 use utils::cstring::CStringUtils;
 use utils::error;
+use crate::connection::Connections;
+use crate::credential_def::CredentialDef;
+use crate::issuer_credential::IssuerCredentials;
 use settings;
 use issuer_credential;
 use std::ptr;
 use utils::threadpool::spawn;
 use error::prelude::*;
 use indy_sys::CommandHandle;
+
+use crate::object_cache::Handle;
 
 /*
     The API represents an Issuer side in credential issuance process.
@@ -109,12 +114,12 @@ use indy_sys::CommandHandle;
 #[allow(unused_variables, unused_mut)]
 pub extern fn vcx_issuer_create_credential(command_handle: CommandHandle,
                                            source_id: *const c_char,
-                                           cred_def_handle: u32,
+                                           cred_def_handle: Handle<CredentialDef>,
                                            issuer_did: *const c_char,
                                            credential_data: *const c_char,
                                            credential_name: *const c_char,
                                            price: *const c_char,
-                                           cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, credential_handle: u32)>) -> u32 {
+                                           cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, credential_handle: Handle<IssuerCredentials>)>) -> u32 {
     info!("vcx_issuer_create_credential >>>");
 
     check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
@@ -156,7 +161,7 @@ pub extern fn vcx_issuer_create_credential(command_handle: CommandHandle,
             Err(x) => {
                 warn!("vcx_issuer_create_credential_cb(command_handle: {}, rc: {}, handle: {})",
                       command_handle, x, 0);
-                (x.into(), 0)
+                (x.into(), Handle::dummy())
             }
         };
 
@@ -183,8 +188,8 @@ pub extern fn vcx_issuer_create_credential(command_handle: CommandHandle,
 /// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_issuer_send_credential_offer(command_handle: CommandHandle,
-                                               credential_handle: u32,
-                                               connection_handle: u32,
+                                               credential_handle: Handle<IssuerCredentials>,
+                                               connection_handle: Handle<Connections>,
                                                cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32)>) -> u32 {
     info!("vcx_issuer_send_credential_offer >>>");
 
@@ -194,7 +199,7 @@ pub extern fn vcx_issuer_send_credential_offer(command_handle: CommandHandle,
            command_handle, credential_handle, connection_handle);
 
     spawn(move || {
-        let err = match issuer_credential::send_credential_offer(credential_handle, connection_handle) {
+        let err = match credential_handle.send_credential_offer(connection_handle) {
             Ok(x) => {
                 trace!("vcx_issuer_send_credential_cb(command_handle: {}, credential_handle: {}, rc: {})",
                        command_handle, credential_handle, error::SUCCESS.as_str());
@@ -228,7 +233,7 @@ pub extern fn vcx_issuer_send_credential_offer(command_handle: CommandHandle,
 /// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_issuer_get_credential_offer_msg(command_handle: CommandHandle,
-                                                  credential_handle: u32,
+                                                  credential_handle: Handle<IssuerCredentials>,
                                                   cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, msg: *const c_char)>) -> u32 {
     info!("vcx_issuer_get_credential_offer_msg >>>");
 
@@ -238,7 +243,7 @@ pub extern fn vcx_issuer_get_credential_offer_msg(command_handle: CommandHandle,
            command_handle, credential_handle);
 
     spawn(move || {
-        match issuer_credential::generate_credential_offer_msg(credential_handle) {
+        match credential_handle.generate_credential_offer_msg() {
             Ok(msg) => {
                 trace!("vcx_issuer_get_credential_offer_msg_cb(command_handle: {}, credential_handle: {}, rc: {}, msg: {})",
                        command_handle, credential_handle, error::SUCCESS.as_str(), secret!(msg));
@@ -277,7 +282,7 @@ pub extern fn vcx_issuer_get_credential_offer_msg(command_handle: CommandHandle,
 /// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_issuer_credential_update_state(command_handle: CommandHandle,
-                                                 credential_handle: u32,
+                                                 credential_handle: Handle<IssuerCredentials>,
                                                  cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, state: u32)>) -> u32 {
     info!("vcx_issuer_credential_update_state >>>");
 
@@ -287,7 +292,7 @@ pub extern fn vcx_issuer_credential_update_state(command_handle: CommandHandle,
            command_handle, credential_handle);
 
     spawn(move || {
-        match issuer_credential::update_state(credential_handle, None) {
+        match credential_handle.update_state(None) {
             Ok(state) => {
                 trace!("vcx_issuer_credential_update_state_cb(command_handle: {}, credential_handle: {}, rc: {}, state: {})",
                        command_handle, credential_handle, error::SUCCESS.as_str(), state);
@@ -326,7 +331,7 @@ pub extern fn vcx_issuer_credential_update_state(command_handle: CommandHandle,
 /// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_issuer_credential_update_state_with_message(command_handle: CommandHandle,
-                                                              credential_handle: u32,
+                                                              credential_handle: Handle<IssuerCredentials>,
                                                               message: *const c_char,
                                                               cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, state: u32)>) -> u32 {
     info!("vcx_issuer_credential_update_state_with_message >>>");
@@ -338,7 +343,7 @@ pub extern fn vcx_issuer_credential_update_state_with_message(command_handle: Co
            command_handle, credential_handle, secret!(message));
 
     spawn(move || {
-        match issuer_credential::update_state(credential_handle, Some(message)) {
+        match credential_handle.update_state(Some(message)) {
             Ok(x) => {
                 trace!("vcx_issuer_credential_update_state_with_message_cb(command_handle: {}, credential_handle: {}, rc: {}, state: {})",
                        command_handle, credential_handle, error::SUCCESS.as_str(), x);
@@ -375,7 +380,7 @@ pub extern fn vcx_issuer_credential_update_state_with_message(command_handle: Co
 /// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_issuer_credential_get_state(command_handle: CommandHandle,
-                                              credential_handle: u32,
+                                              credential_handle: Handle<IssuerCredentials>,
                                               cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, state: u32)>) -> u32 {
     info!("vcx_issuer_credential_get_state >>>");
 
@@ -385,7 +390,7 @@ pub extern fn vcx_issuer_credential_get_state(command_handle: CommandHandle,
            command_handle, credential_handle);
 
     spawn(move || {
-        match issuer_credential::get_state(credential_handle) {
+        match credential_handle.get_state() {
             Ok(x) => {
                 trace!("vcx_issuer_credential_get_state_cb(command_handle: {}, credential_handle: {}, rc: {}, state: {})",
                        command_handle, credential_handle, error::SUCCESS.as_str(), x);
@@ -405,13 +410,13 @@ pub extern fn vcx_issuer_credential_get_state(command_handle: CommandHandle,
 }
 
 #[allow(unused_variables, unused_mut)]
-pub extern fn vcx_issuer_get_credential_request(credential_handle: u32, credential_request: *mut c_char) -> u32 {
+pub extern fn vcx_issuer_get_credential_request(credential_handle: Handle<IssuerCredentials>, credential_request: *mut c_char) -> u32 {
     info!("vcx_issuer_get_credential_request >>>");
     error::SUCCESS.code_num
 }
 
 #[allow(unused_variables, unused_mut)]
-pub extern fn vcx_issuer_accept_credential(credential_handle: u32) -> u32 {
+pub extern fn vcx_issuer_accept_credential(credential_handle: Handle<IssuerCredentials>) -> u32 {
     info!("vcx_issuer_accept_credential >>>");
     error::SUCCESS.code_num
 }
@@ -431,8 +436,8 @@ pub extern fn vcx_issuer_accept_credential(credential_handle: u32) -> u32 {
 /// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_issuer_send_credential(command_handle: CommandHandle,
-                                         credential_handle: u32,
-                                         connection_handle: u32,
+                                         credential_handle: Handle<IssuerCredentials>,
+                                         connection_handle: Handle<Connections>,
                                          cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32)>) -> u32 {
     info!("vcx_issuer_send_credential >>>");
 
@@ -442,7 +447,7 @@ pub extern fn vcx_issuer_send_credential(command_handle: CommandHandle,
            command_handle, credential_handle, connection_handle);
 
     spawn(move || {
-        let err = match issuer_credential::send_credential(credential_handle, connection_handle) {
+        let err = match credential_handle.send_credential(connection_handle) {
             Ok(x) => {
                 trace!("vcx_issuer_send_credential_cb(command_handle: {}, credential_handle: {}, rc: {})",
                        command_handle, credential_handle, error::SUCCESS.as_str());
@@ -478,7 +483,7 @@ pub extern fn vcx_issuer_send_credential(command_handle: CommandHandle,
 /// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_issuer_get_credential_msg(command_handle: CommandHandle,
-                                            credential_handle: u32,
+                                            credential_handle: Handle<IssuerCredentials>,
                                             my_pw_did: *const c_char,
                                             cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, msg: *const c_char)>) -> u32 {
     info!("vcx_issuer_get_credential_msg >>>");
@@ -490,7 +495,7 @@ pub extern fn vcx_issuer_get_credential_msg(command_handle: CommandHandle,
            command_handle, credential_handle,  secret!(my_pw_did));
 
     spawn(move || {
-        match issuer_credential::generate_credential_msg(credential_handle, &my_pw_did) {
+        match credential_handle.generate_credential_msg(&my_pw_did) {
             Ok(msg) => {
                 trace!("vcx_issuer_get_credential_msg_cb(command_handle: {}, credential_handle: {}, rc: {}, msg: {})",
                        command_handle, credential_handle, error::SUCCESS.as_str(), secret!(msg));
@@ -511,7 +516,7 @@ pub extern fn vcx_issuer_get_credential_msg(command_handle: CommandHandle,
 }
 
 #[allow(unused_variables)]
-pub extern fn vcx_issuer_terminate_credential(credential_handle: u32, termination_type: u32, msg: *const c_char) -> u32 {
+pub extern fn vcx_issuer_terminate_credential(credential_handle: Handle<IssuerCredentials>, termination_type: u32, msg: *const c_char) -> u32 {
     info!("vcx_issuer_terminate_credential >>>");
     error::SUCCESS.code_num
 }
@@ -529,7 +534,7 @@ pub extern fn vcx_issuer_terminate_credential(credential_handle: u32, terminatio
 /// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_issuer_credential_serialize(command_handle: CommandHandle,
-                                              credential_handle: u32,
+                                              credential_handle: Handle<IssuerCredentials>,
                                               cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, credential_state: *const c_char)>) -> u32 {
     info!("vcx_issuer_credential_serialize >>>");
 
@@ -539,7 +544,7 @@ pub extern fn vcx_issuer_credential_serialize(command_handle: CommandHandle,
            command_handle, credential_handle);
 
     spawn(move || {
-        match issuer_credential::to_string(credential_handle) {
+        match credential_handle.to_string() {
             Ok(x) => {
                 trace!("vcx_issuer_credential_serialize_cb(command_handle: {}, credential_handle: {}, rc: {}, state: {})",
                        command_handle, credential_handle, error::SUCCESS.as_str(), secret!(x));
@@ -573,7 +578,7 @@ pub extern fn vcx_issuer_credential_serialize(command_handle: CommandHandle,
 #[no_mangle]
 pub extern fn vcx_issuer_credential_deserialize(command_handle: CommandHandle,
                                                 credential_data: *const c_char,
-                                                cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, credential_handle: u32)>) -> u32 {
+                                                cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, credential_handle: Handle<IssuerCredentials>)>) -> u32 {
     info!("vcx_issuer_credential_deserialize >>>");
 
     check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
@@ -592,7 +597,7 @@ pub extern fn vcx_issuer_credential_deserialize(command_handle: CommandHandle,
             Err(x) => {
                 warn!("vcx_issuer_credential_deserialize_cb(command_handle: {}, rc: {}, handle: {})",
                       command_handle, x, 0);
-                (x.into(), 0)
+                (x.into(), Handle::dummy())
             }
         };
 
@@ -612,11 +617,11 @@ pub extern fn vcx_issuer_credential_deserialize(command_handle: CommandHandle,
 /// #Returns
 /// Success
 #[no_mangle]
-pub extern fn vcx_issuer_credential_release(credential_handle: u32) -> u32 {
+pub extern fn vcx_issuer_credential_release(credential_handle: Handle<IssuerCredentials>) -> u32 {
     info!("vcx_issuer_credential_release >>>");
 
     spawn(move || {
-        match issuer_credential::release(credential_handle) {
+        match credential_handle.release() {
             Ok(()) => {
                 trace!("vcx_issuer_credential_release(credential_handle: {}, rc: {})",
                        credential_handle, error::SUCCESS.as_str());
@@ -654,7 +659,7 @@ pub extern fn vcx_issuer_credential_release(credential_handle: u32) -> u32 {
 ///     }
 #[no_mangle]
 pub extern fn vcx_issuer_credential_get_payment_txn(command_handle: CommandHandle,
-                                                    handle: u32,
+                                                    handle: Handle<IssuerCredentials>,
                                                     cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, txn: *const c_char)>) -> u32 {
     info!("vcx_issuer_credential_get_payment_txn >>>");
 
@@ -663,7 +668,7 @@ pub extern fn vcx_issuer_credential_get_payment_txn(command_handle: CommandHandl
     trace!("vcx_issuer_credential_get_payment_txn(command_handle: {})", command_handle);
 
     spawn(move || {
-        match issuer_credential::get_payment_txn(handle) {
+        match handle.get_payment_txn() {
             Ok(x) => {
                 match serde_json::to_string(&x) {
                     Ok(x) => {
@@ -707,7 +712,7 @@ pub extern fn vcx_issuer_credential_get_payment_txn(command_handle: CommandHandl
 /// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_issuer_revoke_credential(command_handle: CommandHandle,
-                                           credential_handle: u32,
+                                           credential_handle: Handle<IssuerCredentials>,
                                            cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32)>) -> u32 {
     check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
 
@@ -715,7 +720,7 @@ pub extern fn vcx_issuer_revoke_credential(command_handle: CommandHandle,
           command_handle, credential_handle);
 
     spawn(move || {
-        let err = match issuer_credential::revoke_credential(credential_handle) {
+        let err = match credential_handle.revoke_credential() {
             Ok(()) => {
                 info!("vcx_issuer_revoke_credential_cb(command_handle: {}, credential_handle: {}, rc: {})",
                       command_handle, credential_handle, error::SUCCESS.as_str());
@@ -749,7 +754,7 @@ pub extern fn vcx_issuer_revoke_credential(command_handle: CommandHandle,
 /// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_issuer_credential_get_problem_report(command_handle: CommandHandle,
-                                                       credential_handle: u32,
+                                                       credential_handle: Handle<IssuerCredentials>,
                                                        cb: Option<extern fn(xcommand_handle: CommandHandle,
                                                                             err: u32,
                                                                             message: *const c_char)>) -> u32 {
@@ -761,7 +766,7 @@ pub extern fn vcx_issuer_credential_get_problem_report(command_handle: CommandHa
            command_handle, credential_handle);
 
     spawn(move || {
-        match issuer_credential::get_problem_report_message(credential_handle) {
+        match credential_handle.get_problem_report_message() {
             Ok(message) => {
                 trace!("vcx_issuer_credential_get_problem_report_cb(command_handle: {}, rc: {}, msg: {})",
                        command_handle, error::SUCCESS.as_str(), secret!(message));
@@ -793,9 +798,8 @@ pub mod tests {
         constants::CREDENTIAL_REQ_RESPONSE_STR,
         get_temp_dir_path
     };
-    use api::{return_types_u32, VcxStateType};
+    use api::{return_types, VcxStateType};
     use utils::devsetup::*;
-    use utils::timeout::TimeoutUtils;
 
     const DEFAULT_CREDENTIAL_NAME_CSTR: *const c_char = "Credential Name Default\0".as_ptr().cast();
     const DEFAULT_DID_CSTR: *const c_char = "8XFh8yBzrpJQmNyZzgoTqB\0".as_ptr().cast();
@@ -866,20 +870,20 @@ pub mod tests {
         }).to_string()
     }
 
-    fn _vcx_issuer_create_credential_c_closure() -> Result<u32, u32> {
-        let cb = return_types_u32::Return_U32_U32::new().unwrap();
-        let rc = vcx_issuer_create_credential(cb.command_handle,
+    fn _vcx_issuer_create_credential_c_closure() -> Result<Handle<IssuerCredentials>, u32> {
+        let (h, cb, r) = return_types::return_u32_ih();
+        let rc = vcx_issuer_create_credential(h,
                                               DEFAULT_CREDENTIAL_NAME_CSTR,
                                               ::credential_def::tests::create_cred_def_fake(),
                                               DEFAULT_DID_CSTR,
                                               DEFAULT_ATTR_CSTR,
                                               DEFAULT_CREDENTIAL_NAME_CSTR,
                                               "1\0".as_ptr().cast(),
-                                              Some(cb.get_callback()));
+                                              Some(cb));
         if rc != error::SUCCESS.code_num {
             return Err(rc);
         }
-        cb.receive(TimeoutUtils::some_short())
+        r.recv_short()
     }
 
     #[test]
@@ -894,17 +898,17 @@ pub mod tests {
     fn test_vcx_issuer_create_credential_fails() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32_U32::new().unwrap();
-        assert_eq!(vcx_issuer_create_credential(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_ih();
+        assert_eq!(vcx_issuer_create_credential(h,
                                                 DEFAULT_CREDENTIAL_NAME_CSTR,
                                                 ::credential_def::tests::create_cred_def_fake(),
                                                 ptr::null(),
                                                 ptr::null(),
                                                 DEFAULT_CREDENTIAL_NAME_CSTR,
                                                 "1\0".as_ptr().cast(),
-                                                Some(cb.get_callback())),
+                                                Some(cb)),
                    error::INVALID_OPTION.code_num);
-        let _ = cb.receive(TimeoutUtils::some_medium()).is_err();
+        let _ = r.recv_medium().is_err();
     }
 
     #[test]
@@ -913,20 +917,20 @@ pub mod tests {
 
         let handle = _vcx_issuer_create_credential_c_closure().unwrap();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_issuer_credential_serialize(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_issuer_credential_serialize(h,
                                                    handle,
-                                                   Some(cb.get_callback())),
+                                                   Some(cb)),
                    error::SUCCESS.code_num);
-        let credential_json = cb.receive(TimeoutUtils::some_short()).unwrap().unwrap();
+        let credential_json = r.recv_short().unwrap().unwrap();
 
-        let cb = return_types_u32::Return_U32_U32::new().unwrap();
+        let (h, cb, r) = return_types::return_u32_ih();
         let cstr = CString::new(credential_json).unwrap();
-        assert_eq!(vcx_issuer_credential_deserialize(cb.command_handle,
+        assert_eq!(vcx_issuer_credential_deserialize(h,
                                                      cstr.as_ptr(),
-                                                     Some(cb.get_callback())),
+                                                     Some(cb)),
                    error::SUCCESS.code_num);
-        let handle_2 = cb.receive(TimeoutUtils::some_short()).unwrap();
+        let handle_2 = r.recv_short().unwrap();
         assert!(handle_2 > 0);
 
         assert_ne!(handle, handle_2);
@@ -940,21 +944,21 @@ pub mod tests {
 
         let handle = _vcx_issuer_create_credential_c_closure().unwrap();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_issuer_send_credential_offer(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_issuer_send_credential_offer(h,
                                                     handle,
                                                     connection_handle,
-                                                    Some(cb.get_callback())),
+                                                    Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
 
-        let cb = return_types_u32::Return_U32_U32::new().unwrap();
+        let (h, cb, r) = return_types::return_u32_u32();
         let cstr = CString::new(CREDENTIAL_REQ_RESPONSE_STR).unwrap();
-        assert_eq!(vcx_issuer_credential_update_state_with_message(cb.command_handle,
+        assert_eq!(vcx_issuer_credential_update_state_with_message(h,
                                                                    handle,
                                                                    cstr.as_ptr(),
-                                                                   Some(cb.get_callback())), error::SUCCESS.code_num);
-        let state = cb.receive(TimeoutUtils::some_medium()).unwrap();
+                                                                   Some(cb)), error::SUCCESS.code_num);
+        let state = r.recv_medium().unwrap();
         assert_eq!(state, VcxStateType::VcxStateRequestReceived as u32);
     }
 
@@ -964,12 +968,12 @@ pub mod tests {
 
         let handle = _vcx_issuer_create_credential_c_closure().unwrap();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_issuer_get_credential_offer_msg(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_issuer_get_credential_offer_msg(h,
                                                        handle,
-                                                       Some(cb.get_callback())),
+                                                       Some(cb)),
                    error::SUCCESS.code_num);
-        let _msg = cb.receive(TimeoutUtils::some_medium()).unwrap().unwrap();
+        let _msg = r.recv_medium().unwrap().unwrap();
     }
 
     #[test]
@@ -983,13 +987,13 @@ pub mod tests {
         let handle = issuer_credential::from_string(&issuer_credential_state_accepted()).unwrap();
 
         // send the credential
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_issuer_send_credential(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_issuer_send_credential(h,
                                               handle,
                                               connection_handle,
-                                              Some(cb.get_callback())),
+                                              Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
@@ -999,13 +1003,13 @@ pub mod tests {
         let handle = issuer_credential::from_string(&issuer_credential_state_accepted()).unwrap();
 
         // send the credential
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_issuer_get_credential_msg(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_issuer_get_credential_msg(h,
                                                  handle,
                                                  DEFAULT_DID_CSTR,
-                                                 Some(cb.get_callback())),
+                                                 Some(cb)),
                    error::SUCCESS.code_num);
-        let _msg = cb.receive(TimeoutUtils::some_medium()).unwrap().unwrap();
+        let _msg = r.recv_medium().unwrap().unwrap();
     }
 
     #[test]
@@ -1014,12 +1018,12 @@ pub mod tests {
 
         let handle = _vcx_issuer_create_credential_c_closure().unwrap();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_issuer_credential_serialize(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_issuer_credential_serialize(h,
                                                    handle,
-                                                   Some(cb.get_callback())),
+                                                   Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
@@ -1027,15 +1031,15 @@ pub mod tests {
         let _setup = SetupMocks::init();
 
         settings::set_config_value(settings::CONFIG_INSTITUTION_DID, DEFAULT_DID);
-        let cb = return_types_u32::Return_U32_U32::new().unwrap();
-        assert_eq!(vcx_issuer_create_credential(cb.command_handle,
+        let (h, cb, _r) = return_types::return_u32_ih();
+        assert_eq!(vcx_issuer_create_credential(h,
                                                 DEFAULT_CREDENTIAL_NAME_CSTR,
                                                 ::credential_def::tests::create_cred_def_fake(),
                                                 DEFAULT_DID_CSTR,
                                                 DEFAULT_ATTR_CSTR,
                                                 DEFAULT_CREDENTIAL_NAME_CSTR,
                                                 "-1\0".as_ptr().cast(),
-                                                Some(cb.get_callback())),
+                                                Some(cb)),
                    error::INVALID_OPTION.code_num);
     }
 
@@ -1045,12 +1049,12 @@ pub mod tests {
 
         let handle = _vcx_issuer_create_credential_c_closure().unwrap();
 
-        let cb = return_types_u32::Return_U32_U32::new().unwrap();
-        assert_eq!(vcx_issuer_credential_get_state(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_u32();
+        assert_eq!(vcx_issuer_credential_get_state(h,
                                                    handle,
-                                                   Some(cb.get_callback())),
+                                                   Some(cb)),
                    error::SUCCESS.code_num);
-        let state = cb.receive(TimeoutUtils::some_medium()).unwrap();
+        let state = r.recv_medium().unwrap();
         assert_eq!(state, VcxStateType::VcxStateInitialized as u32);
     }
 
@@ -1060,9 +1064,9 @@ pub mod tests {
         let credential = issuer_credential::tests::create_standard_issuer_credential_json(None);
         let handle = issuer_credential::from_string(&credential).unwrap();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        vcx_issuer_credential_get_payment_txn(cb.command_handle, handle, Some(cb.get_callback()));
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        let (h, cb, r) = return_types::return_u32_str();
+        vcx_issuer_credential_get_payment_txn(h, handle, Some(cb));
+        r.recv_medium().unwrap();
     }
 
     #[test]
@@ -1073,12 +1077,12 @@ pub mod tests {
         let handle = issuer_credential::from_string(&issuer_credential_state_accepted()).unwrap();
 
         // send the credential
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_issuer_revoke_credential(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_issuer_revoke_credential(h,
                                                 handle,
-                                                Some(cb.get_callback())),
+                                                Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]

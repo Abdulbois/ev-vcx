@@ -559,14 +559,12 @@ pub extern fn vcx_get_current_error(error_json_p: *mut *const c_char) {
 mod tests {
     use super::*;
     use std::ptr;
-    use utils::{
-        libindy::{
-            wallet::{import, tests::export_test_wallet},
-            pool::get_pool_handle,
-        }
+    use utils::libindy::{
+        wallet::{import, tests::export_test_wallet},
+        pool::get_pool_handle,
     };
     use api::VcxStateType;
-    use api::return_types_u32;
+    use api::return_types;
     use indy::WalletHandle;
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     use utils::get_temp_dir_path;
@@ -577,7 +575,6 @@ mod tests {
     use utils::libindy::wallet::get_wallet_handle;
     #[cfg(feature = "pool_tests")]
     use utils::libindy::pool::tests::delete_test_pool;
-    use utils::timeout::TimeoutUtils;
 
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     fn config() -> String {
@@ -595,27 +592,27 @@ mod tests {
     }
 
     fn _vcx_init_c_closure(path: &str) -> Result<(), u32> {
-        let cb = return_types_u32::Return_U32::new().unwrap();
+        let (h, cb, r) = return_types::return_u32();
         let path = CString::new(path.as_bytes()).unwrap();
-        let rc = vcx_init(cb.command_handle,
+        let rc = vcx_init(h,
                           path.as_ptr(),
-                          Some(cb.get_callback()));
+                          Some(cb));
         if rc != error::SUCCESS.code_num {
             return Err(rc);
         }
-        cb.receive(TimeoutUtils::some_medium())
+        r.recv_medium()
     }
 
     fn _vcx_init_with_config_c_closure(config: &str) -> Result<(), u32> {
-        let cb = return_types_u32::Return_U32::new().unwrap();
+        let (h, cb, r) = return_types::return_u32();
         let config = CString::new(config.as_bytes()).unwrap();
-        let rc = vcx_init_with_config(cb.command_handle,
+        let rc = vcx_init_with_config(h,
                                       config.as_ptr(),
-                                      Some(cb.get_callback()));
+                                      Some(cb));
         if rc != error::SUCCESS.code_num {
             return Err(rc);
         }
-        cb.receive(TimeoutUtils::some_medium())
+        r.recv_medium()
     }
 
     #[cfg(feature = "pool_tests")]
@@ -863,10 +860,10 @@ mod tests {
     fn test_init_no_config_path() {
         let _setup = SetupEmpty::init();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_init(cb.command_handle,
+        let (h, cb, _r) = return_types::return_u32();
+        assert_eq!(vcx_init(h,
                             ptr::null(),
-                            Some(cb.get_callback())),
+                            Some(cb)),
                    error::INVALID_CONFIGURATION.code_num);
     }
 
@@ -892,13 +889,13 @@ mod tests {
         let credential = ::credential::credential_create_with_offer("name", ::utils::constants::CREDENTIAL_OFFER_JSON).unwrap();
 
         vcx_shutdown(true);
-        assert_eq!(::connection::release(connection).unwrap_err().kind(), VcxErrorKind::InvalidConnectionHandle);
-        assert_eq!(::issuer_credential::release(issuer_credential).unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
-        assert_eq!(::schema::release(schema).unwrap_err().kind(), VcxErrorKind::InvalidSchemaHandle);
-        assert_eq!(::proof::release(proof).unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
-        assert_eq!(::credential_def::release(credentialdef).unwrap_err().kind(), VcxErrorKind::InvalidCredDefHandle);
-        assert_eq!(::credential::release(credential).unwrap_err().kind(), VcxErrorKind::InvalidCredentialHandle);
-        assert_eq!(::disclosed_proof::release(disclosed_proof).unwrap_err().kind(), VcxErrorKind::InvalidDisclosedProofHandle);
+        assert_eq!(connection.release().unwrap_err().kind(), VcxErrorKind::InvalidConnectionHandle);
+        assert_eq!(issuer_credential.release().unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
+        assert_eq!(schema.release().unwrap_err().kind(), VcxErrorKind::InvalidSchemaHandle);
+        assert_eq!(proof.release().unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
+        assert_eq!(credentialdef.release().unwrap_err().kind(), VcxErrorKind::InvalidCredDefHandle);
+        assert_eq!(credential.release().unwrap_err().kind(), VcxErrorKind::InvalidCredentialHandle);
+        assert_eq!(disclosed_proof.release().unwrap_err().kind(), VcxErrorKind::InvalidDisclosedProofHandle);
         assert_eq!(wallet::get_wallet_handle(), INVALID_WALLET_HANDLE);
     }
 
@@ -1033,10 +1030,10 @@ mod tests {
     fn test_vcx_get_ledger_author_agreement() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_get_ledger_author_agreement(cb.command_handle,
-                                                   Some(cb.get_callback())), error::SUCCESS.code_num);
-        let agreement = cb.receive(TimeoutUtils::some_short()).unwrap();
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_get_ledger_author_agreement(h,
+                                                   Some(cb)), error::SUCCESS.code_num);
+        let agreement = r.recv_short().unwrap();
         assert_eq!(::utils::constants::DEFAULT_AUTHOR_AGREEMENT, agreement.unwrap());
     }
 
@@ -1115,16 +1112,16 @@ mod tests {
 
         let cred_handle = ::issuer_credential::from_string(::utils::constants::DEFAULT_SERIALIZED_ISSUER_CREDENTIAL).unwrap();
         let connection_handle = ::connection::from_string(::utils::constants::DEFAULT_CONNECTION).unwrap();
-        let my_pw_did = ::connection::get_pw_did(connection_handle).unwrap();
-        let their_pw_did = ::connection::get_their_pw_did(connection_handle).unwrap();
+        let my_pw_did = connection_handle.get_pw_did().unwrap();
+        let their_pw_did = connection_handle.get_their_pw_did().unwrap();
 
-        let offer = ::issuer_credential::generate_credential_offer_msg(cred_handle).unwrap();
+        let offer = cred_handle.generate_credential_offer_msg().unwrap();
         let mycred = ::credential::credential_create_with_offer("test1", &offer).unwrap();
-        let request = ::credential::generate_credential_request_msg(mycred, &my_pw_did, &their_pw_did).unwrap();
-        ::issuer_credential::update_state(cred_handle, Some(request)).unwrap();
-        let cred = ::issuer_credential::generate_credential_msg(cred_handle, &my_pw_did).unwrap();
-        ::credential::update_state(mycred, Some(cred)).unwrap();
-        assert_eq!(::credential::get_state(mycred).unwrap(), VcxStateType::VcxStateAccepted as u32);
+        let request = mycred.generate_credential_request_msg(&my_pw_did, &their_pw_did).unwrap();
+        cred_handle.update_state(Some(request)).unwrap();
+        let cred = cred_handle.generate_credential_msg(&my_pw_did).unwrap();
+        mycred.update_state(Some(cred)).unwrap();
+        assert_eq!(mycred.get_state().unwrap(), VcxStateType::VcxStateAccepted as u32);
     }
 
     #[cfg(feature = "pool_tests")]
@@ -1146,7 +1143,8 @@ mod tests {
         assert_eq!(_vcx_init_minimal_c_closure(&config), error::SUCCESS.code_num);
 
         let connection_handle = ::connection::create_connection("test_create_fails").unwrap();
-        ::connection::connect(connection_handle, None).unwrap_err();
+
+        connection_handle.connect(None).unwrap_err();
 
         settings::set_defaults();
     }

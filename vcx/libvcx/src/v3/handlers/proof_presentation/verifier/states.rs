@@ -387,7 +387,7 @@ impl VerifierSM {
             VerifierState::Initiated(state) => {
                 match message {
                     VerifierMessages::SendPresentationRequest(connection_handle) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
 
                         let presentation_request: PresentationRequestData =
                             state.presentation_request_data.clone()
@@ -424,11 +424,11 @@ impl VerifierSM {
             VerifierState::PresentationRequestPrepared(state) => {
                 match message {
                     VerifierMessages::SetConnection(connection_handle) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
                         VerifierState::PresentationRequestPrepared((state, connection).into())
                     }
                     VerifierMessages::SendPresentationRequest(connection_handle) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
 
 
                         let presentation_request =
@@ -538,7 +538,7 @@ impl VerifierSM {
             VerifierState::PresentationProposalReceived(state) => {
                 match message {
                     VerifierMessages::RequestPresentation(connection_handle, presentation_request_data) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
 
                         let thread = state.thread.clone()
                             .update_received_order(&connection.data.did_doc.id)
@@ -560,7 +560,7 @@ impl VerifierSM {
                         VerifierState::PresentationRequestSent((state, presentation_request, connection, thread).into())
                     }
                     VerifierMessages::SendPresentationRequest(connection_handle) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
 
                         let thread = state.thread.clone()
                             .update_received_order(&connection.data.did_doc.id)

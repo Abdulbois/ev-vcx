@@ -1,6 +1,9 @@
 use error::prelude::*;
 use std::convert::TryInto;
 
+use crate::connection::Connections;
+use crate::object_cache::Handle;
+
 use messages::proofs::proof_request::ProofRequestMessage;
 use messages::proofs::proof_message::ProofMessage;
 
@@ -117,14 +120,14 @@ impl Verifier {
         self.step(VerifierMessages::PresentationReceived(presentation))
     }
 
-    pub fn send_presentation_request(&mut self, connection_handle: u32) -> VcxResult<()> {
+    pub fn send_presentation_request(&mut self, connection_handle: Handle<Connections>) -> VcxResult<()> {
         trace!("Verifier::send_presentation_request >>> connection_handle: {:?}", connection_handle);
         debug!("Verifier {}: Sending presentation request", self.get_source_id());
         self.step(VerifierMessages::SendPresentationRequest(connection_handle))
     }
 
     pub fn request_proof(&mut self,
-                         connection_handle: u32,
+                         connection_handle: Handle<Connections>,
                          requested_attrs: String,
                          requested_predicates: String,
                          revocation_details: String,
@@ -172,7 +175,7 @@ impl Verifier {
         self.step(VerifierMessages::PreparePresentationRequest())
     }
 
-    pub fn set_connection(&mut self, connection_handle: u32) -> VcxResult<()> {
+    pub fn set_connection(&mut self, connection_handle: Handle<Connections>) -> VcxResult<()> {
         debug!("Issuer {}: Sending credential", self.get_source_id());
         self.step(VerifierMessages::SetConnection(connection_handle))
     }

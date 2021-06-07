@@ -48,7 +48,6 @@ rmp-serde = "0.13.7"
 base64 = "0.8.0"
 openssl = "0.10"
 hex = "0.3.2"
-num-traits = "0.2.0"
 indy = { version = "1.15.0", path = "../../wrappers/rust/" }
 indy-sys = { version = "1.15.0", path = "../../wrappers/rust/indy-sys/" }
 tokio-threadpool = "0.1.6"

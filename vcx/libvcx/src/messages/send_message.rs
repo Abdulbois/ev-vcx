@@ -1,5 +1,4 @@
 use settings;
-use connection;
 use api::VcxStateType;
 use messages::*;
 use messages::message_type::MessageTypes;
@@ -10,6 +9,9 @@ use utils::uuid::uuid;
 use error::prelude::*;
 use utils::agent_info::get_agent_info;
 use utils::httpclient::AgencyMock;
+
+use crate::connection::Connections;
+use crate::object_cache::Handle;
 
 #[derive(Debug)]
 pub struct SendMessageBuilder {
@@ -215,8 +217,8 @@ pub struct SendMessageOptions {
     pub ref_msg_id: Option<String>,
 }
 
-pub fn send_generic_message(connection_handle: u32, msg: &str, msg_options: &str) -> VcxResult<String> {
-    if connection::get_state(connection_handle) != VcxStateType::VcxStateAccepted as u32 {
+pub fn send_generic_message(connection_handle: Handle<Connections>, msg: &str, msg_options: &str) -> VcxResult<String> {
+    if connection_handle.get_state() != VcxStateType::VcxStateAccepted as u32 {
         return Err(VcxError::from_msg(VcxErrorKind::NotReady, "Connection is not completed yet. It cannot be used for message sending."));
     }
 
