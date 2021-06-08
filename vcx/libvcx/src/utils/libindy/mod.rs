@@ -2,8 +2,6 @@ pub mod ledger;
 pub mod anoncreds;
 pub mod signus;
 pub mod wallet;
-pub mod callback;
-pub mod callback_u32;
 pub mod pool;
 pub mod crypto;
 pub mod payments;
@@ -18,15 +16,6 @@ pub mod mysql_wallet;
 
 use std::sync::Mutex;
 use settings;
-
-use std::sync::atomic::{AtomicUsize, Ordering};
-use indy_sys::CommandHandle;
-
-static COMMAND_HANDLE_COUNTER: AtomicUsize = AtomicUsize::new(1);
-
-pub fn next_command_handle() -> CommandHandle {
-    (COMMAND_HANDLE_COUNTER.fetch_add(1, Ordering::SeqCst) + 1) as CommandHandle
-}
 
 lazy_static! {
     static ref LIBINDY_MOCK: Mutex<LibindyMock> = Mutex::new(LibindyMock::default());

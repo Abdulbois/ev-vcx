@@ -5,17 +5,20 @@ use v3::messages::error::ProblemReport;
 use v3::messages::a2a::A2AMessage;
 use v3::messages::proof_presentation::presentation::Presentation;
 
+use crate::connection::Connections;
+use crate::object_cache::Handle;
+
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub enum ProverMessages {
     PresentationRequestReceived(PresentationRequest),
-    RejectPresentationRequest((u32, String)),
+    RejectPresentationRequest((Handle<Connections>, String)),
     SetPresentation(Presentation),
     PreparePresentation((String, String)),
-    SendPresentation(u32),
-    SendProposal(u32),
+    SendPresentation(Handle<Connections>),
+    SendProposal(Handle<Connections>),
     PresentationAckReceived(PresentationAck),
     PresentationRejectReceived(ProblemReport),
-    ProposePresentation((u32, PresentationPreview)),
+    ProposePresentation((Handle<Connections>, PresentationPreview)),
     Unknown
 }
 

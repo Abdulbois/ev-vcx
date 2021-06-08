@@ -343,7 +343,7 @@ macro_rules! assert_match {
 
 use utils::constants;
 use utils::libindy::wallet;
-use object_cache::ObjectCache;
+use object_cache::{ObjectCache, Handle};
 
 use indy::WalletHandle;
 use utils::libindy::wallet::init_wallet;
@@ -352,8 +352,8 @@ use utils::libindy::pool::tests::{open_test_pool, delete_test_pool, create_test_
 use utils::file::write_file;
 use utils::logger::LibvcxDefaultLogger;
 
-static mut INSTITUTION_CONFIG: u32 = 0;
-static mut CONSUMER_CONFIG: u32 = 0;
+static mut INSTITUTION_CONFIG: Handle<String> = Handle::dummy();
+static mut CONSUMER_CONFIG: Handle<String> = Handle::dummy();
 
 lazy_static! {
     static ref CONFIG_STRING: ObjectCache<String> = Default::default();

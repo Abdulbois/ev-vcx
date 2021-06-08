@@ -15,6 +15,8 @@ use utils::libindy::anoncreds::{self, libindy_prover_store_credential, libindy_p
 use error::prelude::*;
 use std::collections::HashMap;
 
+use crate::object_cache::Handle;
+use crate::connection::Connections;
 use ::{credential, settings};
 use v3::handlers::connection::agent::AgentInfo;
 use messages::thread::Thread;
@@ -135,7 +137,7 @@ impl HolderSM {
                     }
                 }
                 CredentialIssuanceMessage::CredentialRejectSend((connection_handle, comment)) => {
-                    let connection = ::connection::get_completed_connection(connection_handle)?;
+                    let connection = connection_handle.get_completed_connection()?;
                     let thread = state_data.thread.clone()
                         .update_received_order(&connection.data.did_doc.id);
 
@@ -181,7 +183,7 @@ impl HolderSM {
                     HolderState::Finished((state_data, problem_report, thread, Reason::Fail).into())
                 }
                 CredentialIssuanceMessage::CredentialRejectSend((connection_handle, comment)) => {
-                    let connection = ::connection::get_completed_connection(connection_handle)?;
+                    let connection = (connection_handle.get_completed_connection())?;
 
                     let thread = state_data.thread.clone()
                         .increment_sender_order()
@@ -389,10 +391,10 @@ impl OfferReceivedState {
         }
     }
 
-    fn handle_credential_offer(self, connection_handle: u32) -> VcxResult<HolderState> {
+    fn handle_credential_offer(self, connection_handle: Handle<Connections>) -> VcxResult<HolderState> {
         trace!("Holder::OfferReceivedState::handle_credential_offer >>> offer: {:?}", secret!(self.offer));
 
-        let connection = ::connection::get_completed_connection(connection_handle)?;
+        let connection = connection_handle.get_completed_connection()?;
         let thread = self.thread.clone()
             .update_received_order(&connection.data.did_doc.id)
             .set_opt_pthid(connection.data.thread.pthid.clone());

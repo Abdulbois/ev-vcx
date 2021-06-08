@@ -7,7 +7,15 @@ pub const SERIALIZE_VERSION: &'static str = "2.0";
 
 #[cfg(test)]
 pub mod test {
+    use crate::disclosed_proof::DisclosedProofs;
+    use crate::issuer_credential::IssuerCredentials;
+    use crate::object_cache::Handle;
+    use crate::connection::Connections;
+    use crate::proof::Proofs;
     use rand;
+    use crate::credential::Credentials;
+    use crate::credential_def::CredentialDef;
+    use crate::schema::CreateSchema;
     use rand::Rng;
     use utils::devsetup::*;
     use messages::agent_utils::connect_register_provision;
@@ -136,12 +144,12 @@ pub mod test {
     pub struct Faber {
         pub wallet_name: String,
         pub wallet_handle: WalletHandle,
-        pub connection_handle: u32,
+        pub connection_handle: Handle<Connections>,
         pub config: String,
-        pub schema_handle: u32,
-        pub cred_def_handle: u32,
-        pub credential_handle: u32,
-        pub presentation_handle: u32,
+        pub schema_handle: Handle<CreateSchema>,
+        pub cred_def_handle: Handle<CredentialDef>,
+        pub credential_handle: Handle<IssuerCredentials>,
+        pub presentation_handle: Handle<Proofs>,
     }
 
     impl Faber {
@@ -168,12 +176,12 @@ pub mod test {
             Faber {
                 config,
                 wallet_name: wallet_name.to_string(),
-                schema_handle: 0,
-                cred_def_handle: 0,
-                connection_handle: 0,
+                schema_handle: Handle::dummy(),
+                cred_def_handle: Handle::dummy(),
+                connection_handle: Handle::dummy(),
                 wallet_handle: get_wallet_handle(),
-                credential_handle: 0,
-                presentation_handle: 0,
+                credential_handle: Handle::dummy(),
+                presentation_handle: Handle::dummy(),
             }
         }
 
@@ -185,7 +193,7 @@ pub mod test {
 
         pub fn send_message(&self, message: &A2AMessage) {
             self.activate();
-            let agent_info = ::connection::get_completed_connection(self.connection_handle).unwrap();
+            let agent_info = self.connection_handle.get_completed_connection().unwrap();
             agent_info.agent.send_message(message, &agent_info.data.did_doc).unwrap();
         }
 
@@ -202,7 +210,7 @@ pub mod test {
         pub fn create_credential_definition(&mut self) {
             self.activate();
 
-            let schema_id = ::schema::get_schema_id(self.schema_handle).unwrap();
+            let schema_id = self.schema_handle.get_schema_id().unwrap();
             let did = String::from("V4SGRU86Z58d6TV7PBUe6f");
             let name = String::from("degree");
             let tag = String::from("tag");
@@ -210,7 +218,7 @@ pub mod test {
             self.cred_def_handle = ::credential_def::create_and_publish_credentialdef(String::from("test_cred_def"), name, did.clone(), schema_id, tag, String::from("{}")).unwrap();
         }
 
-        pub fn create_presentation_request(&self) -> u32 {
+        pub fn create_presentation_request(&self) -> Handle<Proofs> {
             let requested_attrs = json!([
                 {"name": "name"},
                 {"name": "date"},
@@ -228,40 +236,40 @@ pub mod test {
         pub fn create_invite(&mut self) -> String {
             self.activate();
             self.connection_handle = ::connection::create_connection("alice").unwrap();
-            ::connection::connect(self.connection_handle, None).unwrap();
-            ::connection::update_state(self.connection_handle, None).unwrap();
-            assert_eq!(2, ::connection::get_state(self.connection_handle));
+            self.connection_handle.connect(None).unwrap();
+            self.connection_handle.update_state(None).unwrap();
+            assert_eq!(2, self.connection_handle.get_state());
 
-            ::connection::get_invite_details(self.connection_handle, false).unwrap()
+            self.connection_handle.get_invite_details(false).unwrap()
         }
 
         pub fn create_outofband_connection(&mut self, invite: OutofbandMeta) -> String {
             self.activate();
 
             self.connection_handle = ::connection::create_outofband_connection("alice", invite.goal_code, invite.goal, invite.handshake, invite.request_attach).unwrap();
-            ::connection::connect(self.connection_handle, None).unwrap();
-            ::connection::get_invite_details(self.connection_handle, false).unwrap()
+            self.connection_handle.connect(None).unwrap();
+            self.connection_handle.get_invite_details(false).unwrap()
         }
 
         pub fn update_state(&self, expected_state: u32) {
             self.activate();
-            ::connection::update_state(self.connection_handle, None).unwrap();
-            assert_eq!(expected_state, ::connection::get_state(self.connection_handle));
+            self.connection_handle.update_state(None).unwrap();
+            assert_eq!(expected_state, self.connection_handle.get_state());
         }
 
         pub fn ping(&self) {
             self.activate();
-            ::connection::send_ping(self.connection_handle, None).unwrap();
+            self.connection_handle.send_ping(None).unwrap();
         }
 
         pub fn discovery_features(&self) {
             self.activate();
-            ::connection::send_discovery_features(self.connection_handle, None, None).unwrap();
+            self.connection_handle.send_discovery_features(None, None).unwrap();
         }
 
         pub fn connection_info(&self) -> ::serde_json::Value {
             self.activate();
-            let details = ::connection::get_connection_info(self.connection_handle).unwrap();
+            let details = self.connection_handle.get_connection_info().unwrap();
             ::serde_json::from_str(&details).unwrap()
         }
 
@@ -282,30 +290,30 @@ pub mod test {
                                                                                    String::from("cred"),
                                                                                    credential_data,
                                                                                    0).unwrap();
-            ::issuer_credential::send_credential_offer(self.credential_handle, self.connection_handle).unwrap();
-            ::issuer_credential::update_state(self.credential_handle, None).unwrap();
-            assert_eq!(2, ::issuer_credential::get_state(self.credential_handle).unwrap());
+            self.credential_handle.send_credential_offer(self.connection_handle).unwrap();
+            self.credential_handle.update_state(None).unwrap();
+            assert_eq!(2, self.credential_handle.get_state().unwrap());
         }
 
         pub fn send_credential(&self) {
             self.activate();
-            ::issuer_credential::update_state(self.credential_handle, None).unwrap();
-            assert_eq!(3, ::issuer_credential::get_state(self.credential_handle).unwrap());
+            self.credential_handle.update_state(None).unwrap();
+            assert_eq!(3, self.credential_handle.get_state().unwrap());
 
-            ::issuer_credential::send_credential(self.credential_handle, self.connection_handle).unwrap();
-            ::issuer_credential::update_state(self.credential_handle, None).unwrap();
-            assert_eq!(VcxStateType::VcxStateAccepted as u32, ::issuer_credential::get_state(self.credential_handle).unwrap());
+            self.credential_handle.send_credential(self.connection_handle).unwrap();
+            self.credential_handle.update_state(None).unwrap();
+            assert_eq!(VcxStateType::VcxStateAccepted as u32, self.credential_handle.get_state().unwrap());
         }
 
         pub fn request_presentation(&mut self) {
             self.activate();
             self.presentation_handle = self.create_presentation_request();
-            assert_eq!(1, ::proof::get_state(self.presentation_handle).unwrap());
+            assert_eq!(1, self.presentation_handle.get_state().unwrap());
 
-            ::proof::send_proof_request(self.presentation_handle, self.connection_handle).unwrap();
-            ::proof::update_state(self.presentation_handle, None).unwrap();
+            self.presentation_handle.send_proof_request(self.connection_handle).unwrap();
+            self.presentation_handle.update_state(None).unwrap();
 
-            assert_eq!(2, ::proof::get_state(self.presentation_handle).unwrap());
+            assert_eq!(2, self.presentation_handle.get_state().unwrap());
         }
 
         pub fn verify_presentation(&self) {
@@ -316,13 +324,13 @@ pub mod test {
         pub fn update_proof_state(&self, expected_state: u32) {
             self.activate();
 
-            ::proof::update_state(self.presentation_handle, None).unwrap();
-            assert_eq!(expected_state, ::proof::get_state(self.presentation_handle).unwrap());
+            self.presentation_handle.update_state(None).unwrap();
+            assert_eq!(expected_state, self.presentation_handle.get_state().unwrap());
         }
 
         pub fn update_message(&self, uid: &str) {
             self.activate();
-            let agent_info = ::connection::get_completed_connection(self.connection_handle).unwrap();
+            let agent_info = self.connection_handle.get_completed_connection().unwrap();
             agent_info.agent.update_message_status(uid.to_string(), None).unwrap();
         }
 
@@ -336,10 +344,10 @@ pub mod test {
     pub struct Alice {
         pub wallet_name: String,
         pub wallet_handle: WalletHandle,
-        pub connection_handle: u32,
+        pub connection_handle: Handle<Connections>,
         pub config: String,
-        pub credential_handle: u32,
-        pub presentation_handle: u32,
+        pub credential_handle: Handle<Credentials>,
+        pub presentation_handle: Handle<DisclosedProofs>,
     }
 
     impl Alice {
@@ -366,9 +374,9 @@ pub mod test {
                 config,
                 wallet_name: wallet_name.to_string(),
                 wallet_handle: get_wallet_handle(),
-                connection_handle: 0,
-                credential_handle: 0,
-                presentation_handle: 0,
+                connection_handle: Handle::dummy(),
+                credential_handle: Handle::dummy(),
+                presentation_handle: Handle::dummy(),
             }
         }
 
@@ -381,26 +389,26 @@ pub mod test {
         pub fn accept_invite(&mut self, invite: &str) {
             self.activate();
             self.connection_handle = ::connection::create_connection_with_invite("faber", invite).unwrap();
-            ::connection::connect(self.connection_handle, None).unwrap();
-            ::connection::update_state(self.connection_handle, None).unwrap();
-            assert_eq!(3, ::connection::get_state(self.connection_handle));
+            self.connection_handle.connect(None).unwrap();
+            self.connection_handle.update_state(None).unwrap();
+            assert_eq!(3, self.connection_handle.get_state());
         }
 
         pub fn accept_outofband_invite(&mut self, invite: &str) {
             self.activate();
             self.connection_handle = ::connection::create_connection_with_outofband_invite("faber", invite).unwrap();
-            ::connection::connect(self.connection_handle, None).unwrap();
+            self.connection_handle.connect(None).unwrap();
         }
 
         pub fn update_state(&self, expected_state: u32) {
             self.activate();
-            ::connection::update_state(self.connection_handle, None).unwrap();
-            assert_eq!(expected_state, ::connection::get_state(self.connection_handle));
+            self.connection_handle.update_state(None).unwrap();
+            assert_eq!(expected_state, self.connection_handle.get_state());
         }
 
         pub fn download_message(&self, message_type: &str) -> Message {
             self.activate();
-            let did = ::connection::get_pw_did(self.connection_handle).unwrap();
+            let did = self.connection_handle.get_pw_did().unwrap();
             download_message(did, message_type)
         }
 
@@ -411,16 +419,16 @@ pub mod test {
             let offer_json = ::serde_json::to_string(&offer).unwrap();
 
             self.credential_handle = ::credential::credential_create_with_offer("degree", &offer_json).unwrap();
-            assert_eq!(3, ::credential::get_state(self.credential_handle).unwrap());
+            assert_eq!(3, self.credential_handle.get_state().unwrap());
 
-            ::credential::send_credential_request(self.credential_handle, self.connection_handle).unwrap();
-            assert_eq!(2, ::credential::get_state(self.credential_handle).unwrap());
+            self.credential_handle.send_credential_request(self.connection_handle).unwrap();
+            assert_eq!(2, self.credential_handle.get_state().unwrap());
         }
 
         pub fn accept_credential(&self) {
             self.activate();
-            ::credential::update_state(self.credential_handle, None).unwrap();
-            assert_eq!(VcxStateType::VcxStateAccepted as u32, ::credential::get_state(self.credential_handle).unwrap());
+            self.credential_handle.update_state(None).unwrap();
+            assert_eq!(VcxStateType::VcxStateAccepted as u32, self.credential_handle.get_state().unwrap());
         }
 
         pub fn get_proof_request_messages(&self) -> String {
@@ -439,7 +447,7 @@ pub mod test {
         pub fn get_credentials_for_presentation(&self) -> serde_json::Value {
             self.activate();
 
-            let credentials = ::disclosed_proof::retrieve_credentials(self.presentation_handle).unwrap();
+            let credentials = self.presentation_handle.retrieve_credentials().unwrap();
             let credentials: ::std::collections::HashMap<String, ::serde_json::Value> = ::serde_json::from_str(&credentials).unwrap();
 
             let mut use_credentials = json!({});
@@ -461,11 +469,11 @@ pub mod test {
 
             let credentials = self.get_credentials_for_presentation();
 
-            ::disclosed_proof::generate_proof(self.presentation_handle, credentials.to_string(), String::from("{}")).unwrap();
-            assert_eq!(3, ::disclosed_proof::get_state(self.presentation_handle).unwrap());
+            self.presentation_handle.generate_proof(credentials.to_string(), String::from("{}")).unwrap();
+            assert_eq!(3, self.presentation_handle.get_state().unwrap());
 
-            ::disclosed_proof::send_proof(self.presentation_handle, self.connection_handle).unwrap();
-            assert_eq!(2, ::disclosed_proof::get_state(self.presentation_handle).unwrap());
+            self.presentation_handle.send_proof(self.connection_handle).unwrap();
+            assert_eq!(2, self.presentation_handle.get_state().unwrap());
         }
 
         pub fn decline_presentation_request(&mut self) {
@@ -473,7 +481,7 @@ pub mod test {
             let presentation_request_json = self.get_proof_request_messages();
 
             self.presentation_handle = ::disclosed_proof::create_proof("degree", &presentation_request_json).unwrap();
-            ::disclosed_proof::decline_presentation_request(self.presentation_handle, self.connection_handle, Some(String::from("reason")), None).unwrap();
+            self.presentation_handle.decline_presentation_request(self.connection_handle, Some(String::from("reason")), None).unwrap();
         }
 
         pub fn propose_presentation(&mut self) {
@@ -495,25 +503,25 @@ pub mod test {
                     }
                 ]
             });
-            ::disclosed_proof::decline_presentation_request(self.presentation_handle, self.connection_handle, None, Some(proposal_data.to_string())).unwrap();
+            self.presentation_handle.decline_presentation_request(self.connection_handle, None, Some(proposal_data.to_string())).unwrap();
         }
 
         pub fn ensure_presentation_verified(&self) {
             self.activate();
-            ::disclosed_proof::update_state(self.presentation_handle, None).unwrap();
-            assert_eq!(VcxStateType::VcxStateAccepted as u32, ::disclosed_proof::get_state(self.presentation_handle).unwrap());
+            self.presentation_handle.update_state(None).unwrap();
+            assert_eq!(VcxStateType::VcxStateAccepted as u32, self.presentation_handle.get_state().unwrap());
         }
 
         pub fn update_message_status(&self, uid: String) {
             self.activate();
-            let agent_info = ::connection::get_completed_connection(self.connection_handle).unwrap();
+            let agent_info = self.connection_handle.get_completed_connection().unwrap();
             agent_info.agent.update_message_status(uid, None).unwrap();
         }
 
         pub fn delete_credential(&self) {
             self.activate();
-            ::credential::delete_credential(self.credential_handle).unwrap();
-            assert_eq!(VcxStateType::VcxStateAccepted as u32, ::disclosed_proof::get_state(self.presentation_handle).unwrap());
+            self.credential_handle.delete_credential().unwrap();
+            assert_eq!(VcxStateType::VcxStateAccepted as u32, self.presentation_handle.get_state().unwrap());
         }
     }
 
@@ -534,324 +542,321 @@ pub mod test {
     }
 
     #[cfg(feature = "aries")]
-    #[test]
-    fn aries_demo() {
-        PaymentPlugin::load();
-        let _pool = Pool::open();
+    mod aries {
+        use super::*;
+        #[test]
+        fn aries_demo() {
+            PaymentPlugin::load();
+            let _pool = Pool::open();
 
-        let mut faber = Faber::setup();
-        let mut alice = Alice::setup();
+            let mut faber = Faber::setup();
+            let mut alice = Alice::setup();
 
-        // Publish Schema and Credential Definition
-        faber.create_schema();
+            // Publish Schema and Credential Definition
+            faber.create_schema();
 
-        ::std::thread::sleep(::std::time::Duration::from_secs(2));
+            ::std::thread::sleep(::std::time::Duration::from_secs(2));
 
-        faber.create_credential_definition();
+            faber.create_credential_definition();
 
-        // Connection
-        let invite = faber.create_invite();
-        alice.accept_invite(&invite);
+            // Connection
+            let invite = faber.create_invite();
+            alice.accept_invite(&invite);
 
-        faber.update_state(3);
-        alice.update_state(4);
-        faber.update_state(4);
+            faber.update_state(3);
+            alice.update_state(4);
+            faber.update_state(4);
 
-        // Credential issuance
-        faber.offer_credential();
-        alice.accept_offer();
-        faber.send_credential();
-        alice.accept_credential();
-        assert_eq!(1, alice.get_credentials().len());
+            // Credential issuance
+            faber.offer_credential();
+            alice.accept_offer();
+            faber.send_credential();
+            alice.accept_credential();
+            assert_eq!(1, alice.get_credentials().len());
 
-        // Credential Presentation
-        faber.request_presentation();
-        alice.send_presentation();
-        faber.verify_presentation();
-        alice.ensure_presentation_verified();
+            // Credential Presentation
+            faber.request_presentation();
+            alice.send_presentation();
+            faber.verify_presentation();
+            alice.ensure_presentation_verified();
 
-        // Alice delete credential
-        alice.delete_credential();
-        assert_eq!(0, alice.get_credentials().len());
-    }
-
-    #[cfg(feature = "aries")]
-    #[test]
-    fn aries_demo_handle_connection_related_messages() {
-        PaymentPlugin::load();
-        let _pool = Pool::open();
-
-        let mut faber = Faber::setup();
-        let mut alice = Alice::setup();
-
-        // Publish Schema and Credential Definition
-        faber.create_schema();
-
-        ::std::thread::sleep(::std::time::Duration::from_secs(2));
-
-        faber.create_credential_definition();
-
-        // Connection
-        let invite = faber.create_invite();
-        alice.accept_invite(&invite);
-
-        faber.update_state(3);
-        alice.update_state(4);
-        faber.update_state(4);
-
-        // Ping
-        faber.ping();
-
-        alice.update_state(4);
-
-        faber.update_state(4);
-
-        let faber_connection_info = faber.connection_info();
-        assert!(faber_connection_info["their"]["protocols"].as_array().is_none());
-
-        // Discovery Features
-        faber.discovery_features();
-
-        alice.update_state(4);
-
-        faber.update_state(4);
-
-        let faber_connection_info = faber.connection_info();
-        assert!(faber_connection_info["their"]["protocols"].as_array().unwrap().len() > 0);
-    }
-
-    #[cfg(feature = "aries")]
-    #[test]
-    fn aries_demo_create_with_message_id_flow() {
-        PaymentPlugin::load();
-        let _pool = Pool::open();
-
-        let mut faber = Faber::setup();
-        let mut alice = Alice::setup();
-
-        // Publish Schema and Credential Definition
-        faber.create_schema();
-
-        ::std::thread::sleep(::std::time::Duration::from_secs(2));
-
-        faber.create_credential_definition();
-
-        // Connection
-        let invite = faber.create_invite();
-        alice.accept_invite(&invite);
-
-        faber.update_state(3);
-        alice.update_state(4);
-        faber.update_state(4);
-
-        /*
-         Create with message id flow
-        */
-
-        // Credential issuance
-        faber.offer_credential();
-
-        // Alice creates Credential object with message id
-        {
-            let message = alice.download_message("credential-offer");
-            let (credential_handle, _credential_offer) = ::credential::credential_create_with_msgid("test", alice.connection_handle, &message.uid).unwrap();
-            alice.credential_handle = credential_handle;
-
-            ::credential::send_credential_request(alice.credential_handle, alice.connection_handle).unwrap();
-            assert_eq!(2, ::credential::get_state(alice.credential_handle).unwrap());
+            // Alice delete credential
+            alice.delete_credential();
+            assert_eq!(0, alice.get_credentials().len());
         }
 
-        faber.send_credential();
-        alice.accept_credential();
+        #[test]
+        fn aries_demo_handle_connection_related_messages() {
+            PaymentPlugin::load();
+            let _pool = Pool::open();
 
-        // Credential Presentation
-        faber.request_presentation();
+            let mut faber = Faber::setup();
+            let mut alice = Alice::setup();
 
-        // Alice creates Presentation object with message id
-        {
-            let message = alice.download_message("presentation-request");
-            let (presentation_handle, _presentation_request) = ::disclosed_proof::create_proof_with_msgid("test", alice.connection_handle, &message.uid).unwrap();
-            alice.presentation_handle = presentation_handle;
+            // Publish Schema and Credential Definition
+            faber.create_schema();
 
-            let credentials = alice.get_credentials_for_presentation();
+            ::std::thread::sleep(::std::time::Duration::from_secs(2));
 
-            ::disclosed_proof::generate_proof(alice.presentation_handle, credentials.to_string(), String::from("{}")).unwrap();
-            assert_eq!(3, ::disclosed_proof::get_state(alice.presentation_handle).unwrap());
+            faber.create_credential_definition();
 
-            ::disclosed_proof::send_proof(alice.presentation_handle, alice.connection_handle).unwrap();
-            assert_eq!(2, ::disclosed_proof::get_state(alice.presentation_handle).unwrap());
+            // Connection
+            let invite = faber.create_invite();
+            alice.accept_invite(&invite);
+
+            faber.update_state(3);
+            alice.update_state(4);
+            faber.update_state(4);
+
+            // Ping
+            faber.ping();
+
+            alice.update_state(4);
+
+            faber.update_state(4);
+
+            let faber_connection_info = faber.connection_info();
+            assert!(faber_connection_info["their"]["protocols"].as_array().is_none());
+
+            // Discovery Features
+            faber.discovery_features();
+
+            alice.update_state(4);
+
+            faber.update_state(4);
+
+            let faber_connection_info = faber.connection_info();
+            assert!(faber_connection_info["their"]["protocols"].as_array().unwrap().len() > 0);
         }
 
-        faber.verify_presentation();
-    }
+        #[test]
+        fn aries_demo_create_with_message_id_flow() {
+            PaymentPlugin::load();
+            let _pool = Pool::open();
 
-    #[cfg(feature = "aries")]
-    #[test]
-    fn aries_demo_download_message_flow() {
-        PaymentPlugin::load();
-        let _pool = Pool::open();
+            let mut faber = Faber::setup();
+            let mut alice = Alice::setup();
 
-        let mut faber = Faber::setup();
-        let mut alice = Alice::setup();
+            // Publish Schema and Credential Definition
+            faber.create_schema();
 
-        // Publish Schema and Credential Definition
-        faber.create_schema();
+            ::std::thread::sleep(::std::time::Duration::from_secs(2));
 
-        ::std::thread::sleep(::std::time::Duration::from_secs(2));
+            faber.create_credential_definition();
 
-        faber.create_credential_definition();
+            // Connection
+            let invite = faber.create_invite();
+            alice.accept_invite(&invite);
 
-        // Connection
-        let invite = faber.create_invite();
-        alice.accept_invite(&invite);
+            faber.update_state(3);
+            alice.update_state(4);
+            faber.update_state(4);
 
-        faber.update_state(3);
-        alice.update_state(4);
-        faber.update_state(4);
+            /*
+             Create with message id flow
+            */
 
-        /*
-         Create with message flow
-        */
+            // Credential issuance
+            faber.offer_credential();
 
-        // Credential issuance
-        faber.offer_credential();
+            // Alice creates Credential object with message id
+            {
+                let message = alice.download_message("credential-offer");
+                let (credential_handle, _credential_offer) = ::credential::credential_create_with_msgid("test", alice.connection_handle, &message.uid).unwrap();
+                alice.credential_handle = credential_handle;
 
-        // Alice creates Credential object with Offer
-        {
-            let message = alice.download_message("credential-offer");
+                alice.credential_handle.send_credential_request(alice.connection_handle).unwrap();
+                assert_eq!(2, alice.credential_handle.get_state().unwrap());
+            }
 
-            alice.credential_handle = ::credential::credential_create_with_offer("test", &message.message).unwrap();
+            faber.send_credential();
+            alice.accept_credential();
 
-            alice.update_message_status(message.uid);
+            // Credential Presentation
+            faber.request_presentation();
 
-            ::credential::send_credential_request(alice.credential_handle, alice.connection_handle).unwrap();
-            assert_eq!(2, ::credential::get_state(alice.credential_handle).unwrap());
+            // Alice creates Presentation object with message id
+            {
+                let message = alice.download_message("presentation-request");
+                let (presentation_handle, _presentation_request) = ::disclosed_proof::create_proof_with_msgid("test", alice.connection_handle, &message.uid).unwrap();
+                alice.presentation_handle = presentation_handle;
+
+                let credentials = alice.get_credentials_for_presentation();
+
+                alice.presentation_handle.generate_proof(credentials.to_string(), String::from("{}")).unwrap();
+                assert_eq!(3, alice.presentation_handle.get_state().unwrap());
+
+                alice.presentation_handle.send_proof(alice.connection_handle).unwrap();
+                assert_eq!(2, alice.presentation_handle.get_state().unwrap());
+            }
+
+            faber.verify_presentation();
         }
 
-        faber.send_credential();
-        alice.accept_credential();
+        #[test]
+        fn aries_demo_download_message_flow() {
+            PaymentPlugin::load();
+            let _pool = Pool::open();
 
-        // Credential Presentation
-        faber.request_presentation();
+            let mut faber = Faber::setup();
+            let mut alice = Alice::setup();
 
-        // Alice creates Presentation object with Proof Request
-        {
-            let message = alice.download_message("presentation-request");
+            // Publish Schema and Credential Definition
+            faber.create_schema();
 
-            alice.presentation_handle = ::disclosed_proof::create_proof("test", &message.message).unwrap();
+            ::std::thread::sleep(::std::time::Duration::from_secs(2));
 
-            alice.update_message_status(message.uid);
+            faber.create_credential_definition();
 
-            let credentials = alice.get_credentials_for_presentation();
+            // Connection
+            let invite = faber.create_invite();
+            alice.accept_invite(&invite);
 
-            ::disclosed_proof::generate_proof(alice.presentation_handle, credentials.to_string(), String::from("{}")).unwrap();
-            assert_eq!(3, ::disclosed_proof::get_state(alice.presentation_handle).unwrap());
+            faber.update_state(3);
+            alice.update_state(4);
+            faber.update_state(4);
 
-            ::disclosed_proof::send_proof(alice.presentation_handle, alice.connection_handle).unwrap();
-            assert_eq!(2, ::disclosed_proof::get_state(alice.presentation_handle).unwrap());
+            /*
+             Create with message flow
+            */
+
+            // Credential issuance
+            faber.offer_credential();
+
+            // Alice creates Credential object with Offer
+            {
+                let message = alice.download_message("credential-offer");
+
+                alice.credential_handle = ::credential::credential_create_with_offer("test", &message.message).unwrap();
+
+                alice.update_message_status(message.uid);
+
+                alice.credential_handle.send_credential_request(alice.connection_handle).unwrap();
+                assert_eq!(2, alice.credential_handle.get_state().unwrap());
+            }
+
+            faber.send_credential();
+            alice.accept_credential();
+
+            // Credential Presentation
+            faber.request_presentation();
+
+            // Alice creates Presentation object with Proof Request
+            {
+                let message = alice.download_message("presentation-request");
+
+                alice.presentation_handle = ::disclosed_proof::create_proof("test", &message.message).unwrap();
+
+                alice.update_message_status(message.uid);
+
+                let credentials = alice.get_credentials_for_presentation();
+
+                alice.presentation_handle.generate_proof(credentials.to_string(), String::from("{}")).unwrap();
+                assert_eq!(3, alice.presentation_handle.get_state().unwrap());
+
+                alice.presentation_handle.send_proof(alice.connection_handle).unwrap();
+                assert_eq!(2, alice.presentation_handle.get_state().unwrap());
+            }
+
+            faber.verify_presentation();
         }
 
-        faber.verify_presentation();
-    }
+        use v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
 
-    #[cfg(feature = "aries")]
-    use v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
+        #[test]
+        fn test_outofband_connection_works() {
+            PaymentPlugin::load();
+            let _pool = Pool::open();
 
-    #[cfg(feature = "aries")]
-    #[test]
-    fn test_outofband_connection_works() {
-        PaymentPlugin::load();
-        let _pool = Pool::open();
+            let mut faber = Faber::setup();
+            let mut alice = Alice::setup();
 
-        let mut faber = Faber::setup();
-        let mut alice = Alice::setup();
+            // Publish Schema and Credential Definition
+            faber.create_schema();
 
-        // Publish Schema and Credential Definition
-        faber.create_schema();
+            ::std::thread::sleep(::std::time::Duration::from_secs(2));
 
-        ::std::thread::sleep(::std::time::Duration::from_secs(2));
+            faber.create_credential_definition();
 
-        faber.create_credential_definition();
+            let meta = OutofbandMeta {
+                goal_code: None,
+                goal: Some(String::from("Test Goal")),
+                handshake: true,
+                request_attach: None
+            };
+            let invite = faber.create_outofband_connection(meta);
+            println!("invite {}", invite);
+            let outofband_invite: OutofbandInvitation = ::serde_json::from_str(&invite).unwrap();
+            assert_eq!(1, outofband_invite.handshake_protocols.len());
+            assert_eq!(0, outofband_invite.request_attach.0.len());
 
-        let meta = OutofbandMeta {
-            goal_code: None,
-            goal: Some(String::from("Test Goal")),
-            handshake: true,
-            request_attach: None
-        };
-        let invite = faber.create_outofband_connection(meta);
-        println!("invite {}", invite);
-        let outofband_invite: OutofbandInvitation = ::serde_json::from_str(&invite).unwrap();
-        assert_eq!(1, outofband_invite.handshake_protocols.len());
-        assert_eq!(0, outofband_invite.request_attach.0.len());
+            alice.accept_outofband_invite(&invite);
 
-        alice.accept_outofband_invite(&invite);
+            // Connection is not completed
+            assert_eq!(VcxStateType::VcxStateOfferSent as u32, faber.connection_handle.get_state());
+            assert_eq!(VcxStateType::VcxStateRequestReceived as u32, alice.connection_handle.get_state());
 
-        // Connection is not completed
-        assert_eq!(VcxStateType::VcxStateOfferSent as u32, ::connection::get_state(faber.connection_handle));
-        assert_eq!(VcxStateType::VcxStateRequestReceived as u32, ::connection::get_state(alice.connection_handle));
+            // Complete connection
+            faber.update_state(3);
+            alice.update_state(4);
+            faber.update_state(4);
 
-        // Complete connection
-        faber.update_state(3);
-        alice.update_state(4);
-        faber.update_state(4);
+            // Credential issuance
+            faber.offer_credential();
+            alice.accept_offer();
+            faber.send_credential();
+            alice.accept_credential();
+        }
 
-        // Credential issuance
-        faber.offer_credential();
-        alice.accept_offer();
-        faber.send_credential();
-        alice.accept_credential();
-    }
+        #[test]
+        fn test_outofband_connection_works_without_handshake() {
+            PaymentPlugin::load();
+            let _pool = Pool::open();
 
-    #[cfg(feature = "aries")]
-    #[test]
-    fn test_outofband_connection_works_without_handshake() {
-        PaymentPlugin::load();
-        let _pool = Pool::open();
+            let mut faber = Faber::setup();
+            let mut alice = Alice::setup();
 
-        let mut faber = Faber::setup();
-        let mut alice = Alice::setup();
+            // Publish Schema and Credential Definition
+            faber.create_schema();
 
-        // Publish Schema and Credential Definition
-        faber.create_schema();
+            ::std::thread::sleep(::std::time::Duration::from_secs(2));
 
-        ::std::thread::sleep(::std::time::Duration::from_secs(2));
+            faber.create_credential_definition();
 
-        faber.create_credential_definition();
+            let meta = OutofbandMeta {
+                goal_code: None,
+                goal: Some(String::from("Test Goal")),
+                handshake: false,
+                request_attach: Some(String::from("{}"))
+            };
+            let invite = faber.create_outofband_connection(meta);
+            let outofband_invite: OutofbandInvitation = ::serde_json::from_str(&invite).unwrap();
+            assert_eq!(0, outofband_invite.handshake_protocols.len());
+            assert_eq!(1, outofband_invite.request_attach.0.len());
 
-        let meta = OutofbandMeta {
-            goal_code: None,
-            goal: Some(String::from("Test Goal")),
-            handshake: false,
-            request_attach: Some(String::from("{}"))
-        };
-        let invite = faber.create_outofband_connection(meta);
-        let outofband_invite: OutofbandInvitation = ::serde_json::from_str(&invite).unwrap();
-        assert_eq!(0, outofband_invite.handshake_protocols.len());
-        assert_eq!(1, outofband_invite.request_attach.0.len());
+            alice.accept_outofband_invite(&invite);
 
-        alice.accept_outofband_invite(&invite);
+            // Connection is not completed
+            assert_eq!(VcxStateType::VcxStateAccepted as u32, faber.connection_handle.get_state());
+            assert_eq!(VcxStateType::VcxStateAccepted as u32, alice.connection_handle.get_state());
 
-        // Connection is not completed
-        assert_eq!(VcxStateType::VcxStateAccepted as u32, ::connection::get_state(faber.connection_handle));
-        assert_eq!(VcxStateType::VcxStateAccepted as u32, ::connection::get_state(alice.connection_handle));
+            // Alice Send Basic Message
+            alice.activate();
 
-        // Alice Send Basic Message
-        alice.activate();
+            {
+                let basic_message = r#"Hi there"#;
+                alice.connection_handle.send_generic_message(basic_message, "").unwrap();
 
-        {
-            let basic_message = r#"Hi there"#;
-            ::connection::send_generic_message(alice.connection_handle, basic_message, "").unwrap();
+                faber.activate();
+                let messages = faber.connection_handle.get_messages().unwrap();
+                assert_eq!(1, messages.len());
 
-            faber.activate();
-            let messages = ::connection::get_messages(faber.connection_handle).unwrap();
-            assert_eq!(1, messages.len());
+                let message = messages.values().next().unwrap().clone();
 
-            let message = messages.values().next().unwrap().clone();
-
-            match message {
-                A2AMessage::BasicMessage(message) => assert_eq!(basic_message, message.content),
-                _ => assert!(false)
+                match message {
+                    A2AMessage::BasicMessage(message) => assert_eq!(basic_message, message.content),
+                    _ => assert!(false)
+                }
             }
         }
     }

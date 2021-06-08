@@ -18,6 +18,8 @@ use utils::libindy::wallet;
 use std::path::PathBuf;
 use rand::Rng;
 
+use crate::object_cache::Handle;
+
 lazy_static! {
     static ref WALLET_BACKUP_MAP: ObjectCache<WalletBackup> = Default::default();
 }
@@ -177,7 +179,7 @@ impl WalletBackup {
     }
 }
 
-pub fn create_wallet_backup(source_id: &str, wallet_encryption_key: &str) -> VcxResult<u32> {
+pub fn create_wallet_backup(source_id: &str, wallet_encryption_key: &str) -> VcxResult<Handle<WalletBackup>> {
     info!("create_wallet_backup >>> source_id: {}", source_id);
     debug!("creating wallet backup {}", source_id);
 
@@ -186,7 +188,7 @@ pub fn create_wallet_backup(source_id: &str, wallet_encryption_key: &str) -> Vcx
     wb.init_backup()?;
 
     let handle = WALLET_BACKUP_MAP.add(wb)
-        .or(Err(VcxError::from(VcxErrorKind::CreateWalletBackup)))?;
+        .map_err(|_| VcxError::from(VcxErrorKind::CreateWalletBackup))?;
 
     info!("create_wallet_backup <<< handle: {}", handle);
     Ok(handle)
@@ -264,19 +266,6 @@ fn gen_cloud_address(vk: &str) -> VcxResult<Vec<u8>> {
 
     let receiver_keys = json!([vk]).to_string();
     pack_message(None, &receiver_keys, cloud_address.to_string()?.as_bytes())
-}
-
-/*
-    Todo: exported_wallet_path is needed because the only exposed libindy functionality for exporting
-    an encrypted wallet, writes it to the file system. A possible better way is for libindy's export_wallet
-    to optionally return an encrypted stream of bytes instead of writing it to the fs. This could also
-    be done in a separate libindy api call if necessary.
- */
-pub fn backup_wallet(handle: u32, exported_wallet_path: &str) -> VcxResult<u32> {
-    info!("backup_wallet >>> handle: {}, export_path: {}", handle, secret!(exported_wallet_path));
-    WALLET_BACKUP_MAP.get_mut(handle, |wb| {
-        wb.backup(exported_wallet_path)
-    })
 }
 
 fn _read_exported_wallet(backup_key: &str, exported_wallet_path: &str) -> VcxResult<Vec<u8>> {
@@ -415,28 +404,62 @@ pub fn recover_dead_drop(vk: &str) -> VcxResult<CloudAddress> {
     Ok(cloud_addr)
 }
 
-pub fn is_valid_handle(handle: u32) -> bool { WALLET_BACKUP_MAP.has_handle(handle) }
+impl Handle<WalletBackup> {
+    pub fn is_valid_handle(self) -> bool { WALLET_BACKUP_MAP.has_handle(self) }
 
-pub fn get_state(handle: u32) -> u32 {
-    WALLET_BACKUP_MAP.get(handle, |wb| {
-        debug!("get state for wallet_backup {}", wb.get_source_id());
-        Ok(wb.get_state().clone())
-    }).unwrap_or(WalletBackupState::Uninitialized as u32)
+    pub fn get_state(self) -> u32 {
+        WALLET_BACKUP_MAP.get(self, |wb| {
+            debug!("get state for wallet_backup {}", wb.get_source_id());
+            Ok(wb.get_state().clone())
+        }).unwrap_or(WalletBackupState::Uninitialized as u32)
+    }
+
+    pub fn get_source_id(self) -> VcxResult<String> {
+        WALLET_BACKUP_MAP.get(self, |wb| {
+            Ok(wb.get_source_id().clone())
+        })
+    }
+
+    pub fn to_string(self) -> VcxResult<String> {
+        WALLET_BACKUP_MAP.get(self, |obj| {
+            WalletBackup::to_string(&obj)
+        })
+    }
+
+    /*
+       Todo: exported_wallet_path is needed because the only exposed libindy functionality for exporting
+       an encrypted wallet, writes it to the file system. A possible better way is for libindy's export_wallet
+       to optionally return an encrypted stream of bytes instead of writing it to the fs. This could also
+       be done in a separate libindy api call if necessary.
+       */
+    pub fn backup_wallet(self, exported_wallet_path: &str) -> VcxResult<u32> {
+        info!("backup_wallet >>> handle: {}, export_path: {}", self, secret!(exported_wallet_path));
+        WALLET_BACKUP_MAP.get_mut(self, |wb| {
+            wb.backup(exported_wallet_path)
+        })
+    }
+
+    pub fn set_state(self, state: WalletBackupState) -> VcxResult<()> {
+        WALLET_BACKUP_MAP.get_mut(self, |wb| {
+            Ok(wb.set_state(state))
+        })
+    }
+
+    pub fn update_state(self, message: Option<Message>) -> VcxResult<u32> {
+        info!("update_state >>> source_id {}", self.get_source_id()?);
+        WALLET_BACKUP_MAP.get_mut(self, move |wb| {
+            wb.update_state(message)
+        })
+    }
+
+    pub fn has_known_cloud_backup(self) -> bool {
+        WALLET_BACKUP_MAP.get(self, |wb| {
+            Ok(wb.has_stored_backup().clone())
+        }).unwrap_or(false)
+    }
 }
 
-pub fn get_source_id(handle: u32) -> VcxResult<String> {
-    WALLET_BACKUP_MAP.get(handle, |wb| {
-        Ok(wb.get_source_id().clone())
-    })
-}
-
-pub fn to_string(handle: u32) -> VcxResult<String> {
-    WALLET_BACKUP_MAP.get(handle, |obj| {
-        WalletBackup::to_string(&obj)
-    })
-}
-
-pub fn from_string(wallet_backup_data: &str) -> VcxResult<u32> {
+pub fn from_string(wallet_backup_data: &str) -> VcxResult<Handle<WalletBackup>> {
     let wallet_backup: WalletBackup = WalletBackup::from_str(wallet_backup_data)?;
 
     let new_handle = WALLET_BACKUP_MAP.add(wallet_backup)?;
@@ -445,28 +468,7 @@ pub fn from_string(wallet_backup_data: &str) -> VcxResult<u32> {
 
     Ok(new_handle)
 }
-
-pub fn set_state(handle: u32, state: WalletBackupState) -> VcxResult<()> {
-    WALLET_BACKUP_MAP.get_mut(handle, |wb| {
-        Ok(wb.set_state(state))
-    })
-}
-
-pub fn update_state(handle: u32, message: Option<Message>) -> VcxResult<u32> {
-    info!("update_state >>> source_id {}", get_source_id(handle)?);
-    WALLET_BACKUP_MAP.get_mut(handle, |wb| {
-        wb.update_state(message.clone())
-    })
-}
-
-pub fn has_known_cloud_backup(handle: u32) -> bool {
-    WALLET_BACKUP_MAP.get(handle, |wb| {
-        Ok(wb.has_stored_backup().clone())
-    }).unwrap_or(false)
-}
-
-#[cfg(feature = "wallet_backup")]
-#[cfg(test)]
+#[cfg(all(test, feature = "wallet_backup"))]
 pub mod tests {
     use super::*;
     use serde_json::Value;
@@ -493,7 +495,7 @@ pub mod tests {
     }
 
     pub struct TestBackupData {
-        pub wb_handle: u32,
+        pub wb_handle: Handle<WalletBackup>,
         pub recovery_vk: String,
         pub dd_address: String,
         pub locator: String,
@@ -503,7 +505,7 @@ pub mod tests {
     }
 
     impl TestBackupData {
-        pub fn new(handle: Option<u32>, vk: Option<String>, dd_address: Option<String>,
+        pub fn new(handle: Option<Handle<WalletBackup>>, vk: Option<String>, dd_address: Option<String>,
                    locator: Option<String>, cloud_address: Option<Vec<u8>>, sig: Option<Vec<u8>>, key: Option<String>) -> TestBackupData {
             TestBackupData {
                 wb_handle: handle.unwrap_or_default(),
@@ -553,30 +555,22 @@ pub mod tests {
         wallet::add_record(RECORD_TYPE, ID, RECORD_VALUE, None).unwrap();
         let wb = init_backup();
 
-        backup_wallet(wb.wb_handle, PATH).unwrap();
+        wb.wb_handle.backup_wallet(PATH).unwrap();
         thread::sleep(Duration::from_millis(1000));
 
         wb
     }
 
-    #[cfg(feature = "wallet_backup")]
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
+    #[cfg(all(feature = "agency", feature = "pool_tests"))]
     mod create_wallet_backup {
         use super::*;
 
-        #[cfg(feature = "wallet_backup")]
-        #[cfg(feature = "agency")]
-        #[cfg(feature = "pool_tests")]
         #[test]
         fn create_backup_succeeds_real() {
             let _setup = SetupConsumer::init();
             assert!(create_wallet_backup(SOURCE_ID, &backup_key_gen()).is_ok());
         }
 
-        #[cfg(feature = "wallet_backup")]
-        #[cfg(feature = "agency")]
-        #[cfg(feature = "pool_tests")]
         #[test]
         fn create_two_backup_init_succeeds_real() {
             let _setup = SetupConsumer::init();
@@ -590,21 +584,18 @@ pub mod tests {
     mod update_state {
         use super::*;
 
-        #[cfg(feature = "wallet_backup")]
         #[test]
         fn update_state_success() {
             let _setup = SetupMocks::init();
 
-            ::utils::httpclient::AgencyMock::set_next_response(WALLET_PROVISION_AGENT_RESPONSE.to_vec());
+            ::utils::httpclient::AgencyMock::set_next_response(WALLET_PROVISION_AGENT_RESPONSE);
 
             let handle = create_wallet_backup(SOURCE_ID, &backup_key_gen()).unwrap();
-            assert!(update_state(handle, None).is_ok());
-            assert_eq!(get_state(handle), WalletBackupState::InitRequested as u32);
+            assert!(handle.update_state(None).is_ok());
+            assert_eq!(handle.get_state(), WalletBackupState::InitRequested as u32);
         }
 
-        #[cfg(feature = "wallet_backup")]
-        #[cfg(feature = "agency")]
-        #[cfg(feature = "pool_tests")]
+        #[cfg(all(feature = "agency", feature = "pool_tests"))]
         #[test]
         fn update_state_with_provisioned_msg_changes_state_to_ready_to_export() {
             let _setup = SetupConsumer::init();
@@ -612,13 +603,11 @@ pub mod tests {
             let handle = create_wallet_backup(SOURCE_ID, backup_key_gen().as_str()).unwrap();
             thread::sleep(Duration::from_millis(2000));
 
-            assert!(update_state(handle, None).is_ok());
-            assert_eq!(get_state(handle), WalletBackupState::ReadyToExportWallet as u32);
+            assert!(handle.update_state(None).is_ok());
+            assert_eq!(handle.get_state(), WalletBackupState::ReadyToExportWallet as u32);
         }
 
-        #[cfg(feature = "wallet_backup")]
-        #[cfg(feature = "agency")]
-        #[cfg(feature = "pool_tests")]
+        #[cfg(all(feature = "agency", feature = "pool_tests"))]
         #[test]
         fn update_state_with_backup_ack_msg_changes_state_to_ready_to_export() {
             let _setup = SetupConsumer::init();
@@ -626,37 +615,35 @@ pub mod tests {
             let handle = create_wallet_backup(SOURCE_ID, backup_key_gen().as_str()).unwrap();
             thread::sleep(Duration::from_millis(2000));
 
-            assert!(update_state(handle, None).is_ok());
-            assert_eq!(get_state(handle), WalletBackupState::ReadyToExportWallet as u32);
+            assert!(handle.update_state(None).is_ok());
+            assert_eq!(handle.get_state(), WalletBackupState::ReadyToExportWallet as u32);
 
-            backup_wallet(handle, FILE_PATH).unwrap();
-            assert_eq!(get_state(handle), WalletBackupState::BackupInProgress as u32);
+            handle.backup_wallet(FILE_PATH).unwrap();
+            assert_eq!(handle.get_state(), WalletBackupState::BackupInProgress as u32);
 
             thread::sleep(Duration::from_millis(2000));
 
-            assert!(update_state(handle, None).is_ok());
-            assert_eq!(get_state(handle), WalletBackupState::ReadyToExportWallet as u32);
+            assert!(handle.update_state(None).is_ok());
+            assert_eq!(handle.get_state(), WalletBackupState::ReadyToExportWallet as u32);
         }
     }
 
     mod serialization {
         use super::*;
 
-        #[cfg(feature = "wallet_backup")]
         #[test]
         fn to_string_test() {
             let _setup = SetupMocks::init();
 
-            ::utils::httpclient::AgencyMock::set_next_response(WALLET_PROVISION_AGENT_RESPONSE.to_vec());
+            ::utils::httpclient::AgencyMock::set_next_response(WALLET_PROVISION_AGENT_RESPONSE);
 
             let handle = create_wallet_backup(SOURCE_ID, backup_key_gen().as_str()).unwrap();
-            let serialized = to_string(handle).unwrap();
+            let serialized = handle.to_string().unwrap();
             let j: Value = serde_json::from_str(&serialized).unwrap();
             assert_eq!(j["version"], "1.0");
             WalletBackup::from_str(&serialized).unwrap();
         }
 
-        #[cfg(feature = "wallet_backup")]
         #[test]
         fn test_deserialize_fails() {
             assert_eq!(from_string("{}").unwrap_err().kind(), VcxErrorKind::InvalidJson);
@@ -666,7 +653,6 @@ pub mod tests {
     mod backup_wallet {
         use super::*;
 
-        #[cfg(feature = "wallet_backup")]
         #[test]
         fn retrieving_exported_wallet_data_successful() {
             let _setup = SetupLibraryWallet::init();
@@ -676,7 +662,6 @@ pub mod tests {
             assert!(data.unwrap().len() > 0);
         }
 
-        #[cfg(feature = "wallet_backup")]
         #[test]
         fn retrieve_exported_wallet_success_with_file_already_created() {
             let _setup = SetupLibraryWallet::init();
@@ -686,16 +671,13 @@ pub mod tests {
             assert!(_read_exported_wallet(backup_key_gen().as_str(), FILE_PATH).is_ok());
         }
 
-        #[cfg(feature = "wallet_backup")]
         #[test]
         fn backup_wallet_fails_with_invalid_handle() {
             let _setup = SetupMocks::init();
-            assert_eq!(backup_wallet(0, FILE_PATH).unwrap_err().kind(), VcxErrorKind::InvalidHandle)
+            assert_eq!(Handle::<WalletBackup>::dummy().backup_wallet(FILE_PATH).unwrap_err().kind(), VcxErrorKind::InvalidHandle)
         }
 
-        #[cfg(feature = "wallet_backup")]
-        #[cfg(feature = "agency")]
-        #[cfg(feature = "pool_tests")]
+        #[cfg(all(feature = "agency", feature = "pool_tests"))]
         #[test]
         fn backup_wallet_succeeds_real() {
             let _setup = SetupConsumer::init();
@@ -707,23 +689,21 @@ pub mod tests {
             let wallet_backup = create_wallet_backup(SOURCE_ID, &backup_key_gen()).unwrap();
             thread::sleep(Duration::from_millis(2000));
 
-            assert_eq!(get_state(wallet_backup), WalletBackupState::InitRequested as u32);
-            assert!(update_state(wallet_backup, None).is_ok());
+            assert_eq!(wallet_backup.get_state(), WalletBackupState::InitRequested as u32);
+            assert!(wallet_backup.update_state(None).is_ok());
 
-            backup_wallet(wallet_backup, FILE_PATH).unwrap();
+            wallet_backup.backup_wallet(FILE_PATH).unwrap();
             thread::sleep(Duration::from_millis(2000));
-            assert_eq!(get_state(wallet_backup), WalletBackupState::BackupInProgress as u32);
+            assert_eq!(wallet_backup.get_state(), WalletBackupState::BackupInProgress as u32);
 
             thread::sleep(Duration::from_millis(2000));
 
-            assert!(update_state(wallet_backup, None).is_ok());
-            assert_eq!(get_state(wallet_backup), WalletBackupState::ReadyToExportWallet as u32);
-            assert!(has_known_cloud_backup(wallet_backup));
+            assert!(wallet_backup.update_state(None).is_ok());
+            assert_eq!(wallet_backup.get_state(), WalletBackupState::ReadyToExportWallet as u32);
+            assert!(wallet_backup.has_known_cloud_backup());
         }
 
-        #[cfg(feature = "wallet_backup")]
-        #[cfg(feature = "agency")]
-        #[cfg(feature = "pool_tests")]
+        #[cfg(all(feature = "agency", feature = "pool_tests"))]
         #[test]
         fn backup_wallet_fails_when_size_is_over_max() {
             let _setup = SetupConsumer::init();
@@ -734,19 +714,17 @@ pub mod tests {
             let wallet_backup = create_wallet_backup(SOURCE_ID, &backup_key_gen()).unwrap();
             thread::sleep(Duration::from_millis(2000));
 
-            assert_eq!(get_state(wallet_backup), WalletBackupState::InitRequested as u32);
-            assert!(update_state(wallet_backup, None).is_ok());
+            assert_eq!(wallet_backup.get_state(), WalletBackupState::InitRequested as u32);
+            assert!(wallet_backup.update_state(None).is_ok());
 
-            let rc = backup_wallet(wallet_backup, FILE_PATH);
+            let rc = wallet_backup.backup_wallet(FILE_PATH);
             assert_eq!(
                 rc.unwrap_err().to_string(),
                 "Error: Cloud Backup exceeds max size limit\n  Caused by: Cloud Backup exceeds max size limit\n"
             );
         }
 
-        #[cfg(feature = "wallet_backup")]
-        #[cfg(feature = "agency")]
-        #[cfg(feature = "pool_tests")]
+        #[cfg(all(feature = "agency", feature = "pool_tests"))]
         #[test]
         fn backup_wallet_multiple_times_real() {
             let _setup = SetupConsumer::init();
@@ -754,32 +732,27 @@ pub mod tests {
             let wallet_backup = create_wallet_backup(SOURCE_ID, backup_key_gen().as_str()).unwrap();
             thread::sleep(Duration::from_millis(2000));
 
-            assert_eq!(get_state(wallet_backup), WalletBackupState::InitRequested as u32);
-            assert!(update_state(wallet_backup, None).is_ok());
+            assert_eq!(wallet_backup.get_state(), WalletBackupState::InitRequested as u32);
+            assert!(wallet_backup.update_state(None).is_ok());
 
-            backup_wallet(wallet_backup, FILE_PATH).unwrap();
-            assert_eq!(get_state(wallet_backup), WalletBackupState::BackupInProgress as u32);
+            wallet_backup.backup_wallet(FILE_PATH).unwrap();
+            assert_eq!(wallet_backup.get_state(), WalletBackupState::BackupInProgress as u32);
 
             thread::sleep(Duration::from_millis(2000));
 
-            assert!(update_state(wallet_backup, None).is_ok());
-            assert_eq!(get_state(wallet_backup), WalletBackupState::ReadyToExportWallet as u32);
-            assert!(has_known_cloud_backup(wallet_backup));
+            assert!(wallet_backup.update_state(None).is_ok());
+            assert_eq!(wallet_backup.get_state(), WalletBackupState::ReadyToExportWallet as u32);
+            assert!(wallet_backup.has_known_cloud_backup());
 
-            backup_wallet(wallet_backup, FILE_PATH).unwrap();
-            assert_eq!(get_state(wallet_backup), WalletBackupState::BackupInProgress as u32);
+            wallet_backup.backup_wallet(FILE_PATH).unwrap();
+            assert_eq!(wallet_backup.get_state(), WalletBackupState::BackupInProgress as u32);
         }
     }
 
-    #[cfg(feature = "wallet_backup")]
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
+    #[cfg(all(feature = "agency", feature = "pool_tests"))]
     mod restore_wallet {
         use super::*;
 
-        #[cfg(feature = "wallet_backup")]
-        #[cfg(feature = "agency")]
-        #[cfg(feature = "pool_tests")]
         #[test]
         fn restore_wallet_real() {
             let wb;
@@ -806,9 +779,6 @@ pub mod tests {
             assert_eq!(&record, &json!({"value":RECORD_VALUE, "type": RECORD_TYPE, "id": ID, "tags": {}}));
         }
 
-        #[cfg(feature = "wallet_backup")]
-        #[cfg(feature = "agency")]
-        #[cfg(feature = "pool_tests")]
         #[test]
         fn restore_wallet_fails_with_no_backup() {
             let wb;
@@ -829,9 +799,6 @@ pub mod tests {
             );
         }
 
-        #[cfg(feature = "wallet_backup")]
-        #[cfg(feature = "agency")]
-        #[cfg(feature = "pool_tests")]
         #[cfg(feature = "too_long_request")]
         #[test]
         fn recovery_creates_file_structure_for_undefined_path_recovery_success() {
@@ -854,9 +821,6 @@ pub mod tests {
             assert!(rc.is_ok());
         }
 
-        #[cfg(feature = "wallet_backup")]
-        #[cfg(feature = "agency")]
-        #[cfg(feature = "pool_tests")]
         #[test]
         fn recovery_overwrites_export_path_when_file_already_exists() {
             let wb;
@@ -886,10 +850,7 @@ pub mod tests {
         }
     }
 
-    #[cfg(feature = "wallet_backup")]
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
-    #[cfg(feature = "too_long_request")]
+    #[cfg(all(feature = "agency", feature = "pool_tests", feature = "too_long_request"))]
     #[test]
     fn recovery_full() {
         let config_wallet_key = "CONFIG_WALLET_KEY";
@@ -913,7 +874,7 @@ pub mod tests {
 
             // 3. Backup Wallet
             wb = init_backup();
-            backup_wallet(wb.wb_handle, PATH).unwrap();
+            wb.wb_handle.backup_wallet(PATH).unwrap();
             thread::sleep(Duration::from_millis(1000));
         }
         // 4. Destroy Environment
@@ -951,7 +912,7 @@ pub mod tests {
         ::api::vcx::vcx_shutdown(false);
 
         // 11. Full init with previously stored config
-        process_config_string(&retrieved_config_p1, true).unwrap();
+        crate::settings::process_config_string(&retrieved_config_p1, true).unwrap();
         open_wallet(&consumer_wallet_name, None, None, None).unwrap();
 
         let record = serde_json::from_str::<serde_json::Value>(&wallet::get_record(config_wallet_key, config_wallet_key, &options).unwrap()).unwrap();

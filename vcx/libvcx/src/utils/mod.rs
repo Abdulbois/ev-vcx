@@ -39,7 +39,6 @@ macro_rules! map (
 pub mod error;
 pub mod httpclient;
 pub mod constants;
-pub mod timeout;
 pub mod openssl;
 pub mod json;
 pub mod libindy;

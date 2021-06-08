@@ -720,7 +720,6 @@ dependencies = [
  "libc",
  "libloading",
  "log",
- "num-traits 0.2.6",
  "openssl",
  "rand 0.3.23",
  "regex",

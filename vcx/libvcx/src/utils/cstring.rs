@@ -4,35 +4,42 @@ use std::ffi::CStr;
 use std::str::Utf8Error;
 use std::ffi::CString;
 
-pub struct CStringUtils {}
+// TODO: refactor this into free functions
+#[allow(non_snake_case)]
+pub mod CStringUtils {
+    use super::*;
 
-impl CStringUtils {
     pub fn c_str_to_string(cstr: *const c_char) -> Result<Option<String>, Utf8Error> {
-        if cstr.is_null() {
-            return Ok(None);
-        }
-
-        unsafe {
-            match CStr::from_ptr(cstr).to_str() {
-                Ok(str) => Ok(Some(str.to_string())),
-                Err(err) => Err(err)
-            }
-        }
+        c_str_to_str(cstr).map(|opt| opt.map(String::from))
+    }
+    pub fn c_str_to_opt_string(cstr: *const c_char) -> Option<String> {
+        c_str_to_str(cstr).ok().flatten().map(String::from)
     }
     pub fn c_str_to_str<'a>(cstr: *const c_char) -> Result<Option<&'a str>, Utf8Error> {
         if cstr.is_null() {
-            return Ok(None);
-        }
-
-        unsafe {
-            match CStr::from_ptr(cstr).to_str() {
-                Ok(s) => Ok(Some(s)),
-                Err(err) => Err(err)
+            Ok(None)
+        } else {
+            // SAFETY: the pointer is non-null; we assume the foreign code has
+            // upheld the other invariants
+            unsafe {
+                CStr::from_ptr(cstr).to_str().map(Some)
             }
         }
+
     }
     pub fn string_to_cstring(s: String) -> CString {
         CString::new(s).unwrap()
+    }
+}
+
+// TODO: decide on a better place to put this
+pub fn raw_slice_to_vec(ptr: *const u8, len: u32) -> Vec<u8> {
+    if ptr.is_null() {
+        Vec::new()
+    } else {
+        // SAFETY: the pointer is non-null; we assume the foreign code has
+        // upheld the other invariants
+        unsafe { std::slice::from_raw_parts(ptr, len as usize).to_vec() }
     }
 }
 
