@@ -1,6 +1,6 @@
 use super::*;
 
-use {CString, Error, CommandHandle, PoolHandle};
+use crate::{CString, Error, CommandHandle, PoolHandle};
 
 extern {
 

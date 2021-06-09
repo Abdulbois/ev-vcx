@@ -1,5 +1,3 @@
-extern crate libc;
-
 pub mod anoncreds;
 pub mod blob_storage;
 pub mod crypto;
@@ -13,12 +11,10 @@ pub mod wallet;
 pub mod logger;
 pub mod cache;
 
-extern crate serde;
-
 #[macro_use]
 extern crate serde_derive;
 
-use self::libc::{c_void, c_char};
+use libc::{c_void, c_char};
 
 pub type CVoid = c_void;
 pub type BString = *const u8;
