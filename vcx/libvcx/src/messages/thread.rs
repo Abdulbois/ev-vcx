@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use error::prelude::*;
+use crate::error::prelude::*;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Thread {

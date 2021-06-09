@@ -1,8 +1,8 @@
-use settings;
-use messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, prepare_message_for_agent_v2};
-use messages::message_type::MessageTypes;
-use error::VcxResult;
-use utils::httpclient;
+use crate::settings;
+use crate::messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, prepare_message_for_agent_v2};
+use crate::messages::message_type::MessageTypes;
+use crate::error::VcxResult;
+use crate::utils::httpclient;
 //use messages::wallet_backup::{prepare_message_for_agency_v2};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -71,14 +71,14 @@ pub struct BackupAck {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use messages::{wallet_backup_init, backup_wallet, RemoteMessageType};
-    use settings::{CONFIG_PROTOCOL_TYPE};
-    use utils::libindy::signus::create_and_store_my_did;
-    use utils::constants::{MY1_SEED, MY2_SEED, MY3_SEED};
+    use crate::messages::{wallet_backup_init, backup_wallet, RemoteMessageType};
+    use crate::settings::{CONFIG_PROTOCOL_TYPE};
+    use crate::utils::libindy::signus::create_and_store_my_did;
+    use crate::utils::constants::{MY1_SEED, MY2_SEED, MY3_SEED};
     use std::thread;
     use std::time::Duration;
-    use messages::wallet_backup::received_expected_message;
-    use utils::devsetup::*;
+    use crate::messages::wallet_backup::received_expected_message;
+    use crate::utils::devsetup::*;
 
     #[cfg(feature = "wallet_backup")]
     #[test]

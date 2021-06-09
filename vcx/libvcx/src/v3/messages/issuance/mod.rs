@@ -1,7 +1,7 @@
-use v3::messages::a2a::message_type::MessageType;
-use v3::messages::a2a::message_family::MessageFamilies;
-use v3::messages::mime_type::MimeType;
-use error::VcxResult;
+use crate::v3::messages::a2a::message_type::MessageType;
+use crate::v3::messages::a2a::message_family::MessageFamilies;
+use crate::v3::messages::mime_type::MimeType;
+use crate::error::VcxResult;
 
 pub mod credential;
 pub mod credential_offer;
@@ -56,9 +56,9 @@ impl Default for CredentialPreviewData {
 
 #[cfg(test)]
 pub mod test {
-    use v3::messages::ack;
-    use v3::messages::error;
-    use v3::messages::issuance::credential_offer::tests::_credential_offer;
+    use crate::v3::messages::ack;
+    use crate::v3::messages::error;
+    use crate::v3::messages::issuance::credential_offer::tests::_credential_offer;
 
     pub fn _ack() -> ack::Ack {
         ack::tests::_ack().set_thread_id(&_credential_offer().id.0)

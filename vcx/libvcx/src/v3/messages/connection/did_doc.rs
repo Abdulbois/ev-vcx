@@ -1,9 +1,9 @@
-use v3::messages::connection::invite::Invitation;
-use v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
+use crate::v3::messages::connection::invite::Invitation;
+use crate::v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
 
-use error::prelude::*;
+use crate::error::prelude::*;
 use reqwest::Url;
-use messages::validation::validate_verkey;
+use crate::messages::validation::validate_verkey;
 use rust_base58::{FromBase58, ToBase58};
 
 pub const CONTEXT: &str = "https://w3id.org/did/v1";
@@ -406,8 +406,8 @@ impl From<OutofbandInvitation> for DidDoc {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::a2a::MessageId;
-    use v3::messages::connection::invite::tests::_invitation;
+    use crate::v3::messages::a2a::MessageId;
+    use crate::v3::messages::connection::invite::tests::_invitation;
 
     pub fn _key_1() -> String {
         String::from("GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL")

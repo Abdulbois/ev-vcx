@@ -1,15 +1,15 @@
 use serde_json;
 use libc::c_char;
-use utils::cstring::CStringUtils;
-use utils::error;
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
 use crate::connection::Connections;
 use crate::credential_def::CredentialDef;
 use crate::issuer_credential::IssuerCredentials;
-use settings;
-use issuer_credential;
+use crate::settings;
+use crate::issuer_credential;
 use std::ptr;
-use utils::threadpool::spawn;
-use error::prelude::*;
+use crate::utils::threadpool::spawn;
+use crate::error::prelude::*;
 use indy_sys::CommandHandle;
 
 use crate::object_cache::Handle;
@@ -793,13 +793,13 @@ pub mod tests {
     use super::*;
     use std::ffi::CString;
     use std::ptr;
-    use settings;
-    use utils::{
+    use crate::settings;
+    use crate::utils::{
         constants::CREDENTIAL_REQ_RESPONSE_STR,
         get_temp_dir_path
     };
-    use api::{return_types, VcxStateType};
-    use utils::devsetup::*;
+    use crate::api::{return_types, VcxStateType};
+    use crate::utils::devsetup::*;
 
     const DEFAULT_CREDENTIAL_NAME_CSTR: *const c_char = "Credential Name Default\0".as_ptr().cast();
     const DEFAULT_DID_CSTR: *const c_char = "8XFh8yBzrpJQmNyZzgoTqB\0".as_ptr().cast();
@@ -874,7 +874,7 @@ pub mod tests {
         let (h, cb, r) = return_types::return_u32_ih();
         let rc = vcx_issuer_create_credential(h,
                                               DEFAULT_CREDENTIAL_NAME_CSTR,
-                                              ::credential_def::tests::create_cred_def_fake(),
+                                              crate::credential_def::tests::create_cred_def_fake(),
                                               DEFAULT_DID_CSTR,
                                               DEFAULT_ATTR_CSTR,
                                               DEFAULT_CREDENTIAL_NAME_CSTR,
@@ -901,7 +901,7 @@ pub mod tests {
         let (h, cb, r) = return_types::return_u32_ih();
         assert_eq!(vcx_issuer_create_credential(h,
                                                 DEFAULT_CREDENTIAL_NAME_CSTR,
-                                                ::credential_def::tests::create_cred_def_fake(),
+                                                crate::credential_def::tests::create_cred_def_fake(),
                                                 ptr::null(),
                                                 ptr::null(),
                                                 DEFAULT_CREDENTIAL_NAME_CSTR,
@@ -940,7 +940,7 @@ pub mod tests {
     fn test_vcx_issuer_send_credential_offer() {
         let _setup = SetupMocks::init();
 
-        let connection_handle = ::connection::tests::build_test_connection();
+        let connection_handle = crate::connection::tests::build_test_connection();
 
         let handle = _vcx_issuer_create_credential_c_closure().unwrap();
 
@@ -981,7 +981,7 @@ pub mod tests {
         let _setup = SetupMocks::init();
 
         // create connection
-        let connection_handle = ::connection::tests::build_test_connection();
+        let connection_handle = crate::connection::tests::build_test_connection();
 
         settings::set_config_value(settings::CONFIG_INSTITUTION_DID, DEFAULT_DID);
         let handle = issuer_credential::from_string(&issuer_credential_state_accepted()).unwrap();
@@ -1034,7 +1034,7 @@ pub mod tests {
         let (h, cb, _r) = return_types::return_u32_ih();
         assert_eq!(vcx_issuer_create_credential(h,
                                                 DEFAULT_CREDENTIAL_NAME_CSTR,
-                                                ::credential_def::tests::create_cred_def_fake(),
+                                                crate::credential_def::tests::create_cred_def_fake(),
                                                 DEFAULT_DID_CSTR,
                                                 DEFAULT_ATTR_CSTR,
                                                 DEFAULT_CREDENTIAL_NAME_CSTR,

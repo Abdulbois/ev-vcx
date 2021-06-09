@@ -1,13 +1,13 @@
-use settings;
-use messages::{A2AMessage, A2AMessageV1, A2AMessageV2, A2AMessageKinds, prepare_message_for_agency, parse_response_from_agency};
-use messages::message_type::MessageTypes;
-use utils::{httpclient, constants};
-use utils::libindy::{wallet, anoncreds};
-use utils::libindy::signus::create_and_store_my_did;
-use utils::option_util::get_or_default;
-use error::prelude::*;
-use utils::httpclient::AgencyMock;
-use settings::ProtocolTypes;
+use crate::settings;
+use crate::messages::{A2AMessage, A2AMessageV1, A2AMessageV2, A2AMessageKinds, prepare_message_for_agency, parse_response_from_agency};
+use crate::messages::message_type::MessageTypes;
+use crate::utils::{httpclient, constants};
+use crate::utils::libindy::{wallet, anoncreds};
+use crate::utils::libindy::signus::create_and_store_my_did;
+use crate::utils::option_util::get_or_default;
+use crate::error::prelude::*;
+use crate::utils::httpclient::AgencyMock;
+use crate::settings::ProtocolTypes;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Connect {
@@ -195,7 +195,7 @@ pub fn configure_wallet(my_config: &Config) -> VcxResult<(String, String, String
     trace!("initialized wallet");
 
     // If MS is already in wallet then just continue
-    anoncreds::libindy_prover_create_master_secret(::settings::DEFAULT_LINK_SECRET_ALIAS).ok();
+    anoncreds::libindy_prover_create_master_secret(crate::settings::DEFAULT_LINK_SECRET_ALIAS).ok();
 
     let (my_did, my_vk) = create_and_store_my_did(
         my_config.agent_seed.as_ref().map(String::as_str),
@@ -367,7 +367,7 @@ pub fn update_agent_profile(agent_did: &str,
     let webhook_url = settings::get_config_value(settings::CONFIG_WEBHOOK_URL).ok();
 
     if let Ok(name) = settings::get_config_value(settings::CONFIG_INSTITUTION_NAME) {
-        ::messages::update_data()
+        crate::messages::update_data()
             .to(agent_did)?
             .name(&name)?
             .logo_url(&settings::get_config_value(settings::CONFIG_INSTITUTION_LOGO_URL)?)?
@@ -380,7 +380,7 @@ pub fn update_agent_profile(agent_did: &str,
 
     trace!("Connection::create_agent_pairwise <<<");
 
-    Ok(::utils::error::SUCCESS.code_num)
+    Ok(crate::utils::error::SUCCESS.code_num)
 }
 
 pub fn connect_v2(my_did: &str, my_vk: &str, agency_did: &str) -> VcxResult<(String, String)> {
@@ -506,8 +506,8 @@ pub fn send_message_to_agency(message: &A2AMessage, did: &str) -> VcxResult<Vec<
 mod tests {
     use std::env;
     use super::*;
-    use utils::devsetup::*;
-    use api::vcx::vcx_shutdown;
+    use crate::utils::devsetup::*;
+    use crate::api::vcx::vcx_shutdown;
 
     #[test]
     #[ignore]
@@ -619,7 +619,7 @@ mod tests {
     fn test_update_agent_info_real() {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
 
         let com_method = ComMethod {
             id: "7b7f97f2".to_string(),

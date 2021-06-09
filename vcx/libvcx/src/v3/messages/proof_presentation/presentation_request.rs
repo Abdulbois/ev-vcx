@@ -1,11 +1,11 @@
-use v3::messages::a2a::{MessageId, A2AMessage};
-use v3::messages::attachment::{Attachments, AttachmentId};
-use v3::messages::connection::service::Service;
-use error::prelude::*;
+use crate::v3::messages::a2a::{MessageId, A2AMessage};
+use crate::v3::messages::attachment::{Attachments, AttachmentId};
+use crate::v3::messages::connection::service::Service;
+use crate::error::prelude::*;
 use std::convert::TryInto;
-use messages::thread::Thread;
+use crate::messages::thread::Thread;
 
-pub use messages::proofs::proof_request::{ProofRequestMessage, ProofRequestData, ProofRequestVersion};
+pub use crate::messages::proofs::proof_request::{ProofRequestMessage, ProofRequestData, ProofRequestVersion};
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
 pub struct PresentationRequest {
@@ -113,8 +113,8 @@ pub type PresentationRequestData = ProofRequestData;
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use messages::thread::Thread;
-    use v3::messages::connection::service::tests::_service;
+    use crate::messages::thread::Thread;
+    use crate::v3::messages::connection::service::tests::_service;
 
     pub fn _presentation_request_data() -> PresentationRequestData {
         PresentationRequestData::default()

@@ -1,4 +1,4 @@
-use error::prelude::*;
+use crate::error::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct CredentialRequest {
@@ -45,14 +45,14 @@ pub fn set_cred_req_ref_message(cred_request: &str, msg_id: &str) -> VcxResult<C
 mod tests {
     use super::*;
     use serde_json;
-    use utils::constants::{CREDENTIAL_REQ_STRING, CRED_REQ, CRED_REQ_META};
-    use utils::devsetup::*;
+    use crate::utils::constants::{CREDENTIAL_REQ_STRING, CRED_REQ, CRED_REQ_META};
+    use crate::utils::devsetup::*;
 
     fn create_credential_req() -> CredentialRequest {
         let _setup = SetupDefaults::init();
 
-        ::settings::set_defaults();
-        let issuer_did = ::settings::get_config_value(::settings::CONFIG_INSTITUTION_DID).unwrap();
+        crate::settings::set_defaults();
+        let issuer_did = crate::settings::get_config_value(crate::settings::CONFIG_INSTITUTION_DID).unwrap();
         CredentialRequest::new(&issuer_did)
     }
 
@@ -61,7 +61,7 @@ mod tests {
         let _setup = SetupDefaults::init();
 
         let req = create_credential_req();
-        let issuer_did = ::settings::get_config_value(::settings::CONFIG_INSTITUTION_DID).unwrap();
+        let issuer_did = crate::settings::get_config_value(crate::settings::CONFIG_INSTITUTION_DID).unwrap();
         assert_eq!(req.from_did, issuer_did);
     }
 

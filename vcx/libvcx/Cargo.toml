@@ -2,6 +2,7 @@
 
 name = "libvcx"
 version = "0.11.2"
+edition = "2018"
 authors = ["Hyperledger Indy Contributors <hyperledger-indy@lists.hyperledger.org>"]
 publish = false
 description = "This is the official SDK for Evernym's VCX"

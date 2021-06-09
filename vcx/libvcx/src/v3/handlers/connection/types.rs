@@ -1,11 +1,11 @@
-use v3::messages::discovery::disclose::ProtocolDescriptor;
-use v3::handlers::connection::agent::AgentInfo;
-use v3::handlers::connection::states::CompleteState;
-use v3::messages::connection::invite::Invitation;
-use v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
-use v3::messages::connection::did_doc::DidDoc;
-use error::VcxResult;
-use v3::messages::connection::service::Service;
+use crate::v3::messages::discovery::disclose::ProtocolDescriptor;
+use crate::v3::handlers::connection::agent::AgentInfo;
+use crate::v3::handlers::connection::states::CompleteState;
+use crate::v3::messages::connection::invite::Invitation;
+use crate::v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
+use crate::v3::messages::connection::did_doc::DidDoc;
+use crate::error::VcxResult;
+use crate::v3::messages::connection::service::Service;
 
 /*
     object returning by vcx_connection_info

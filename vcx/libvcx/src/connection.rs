@@ -5,31 +5,31 @@ use serde_json;
 use serde_json::Value;
 
 use crate::object_cache::Handle;
-use api::VcxStateType;
-use error::prelude::*;
-use messages;
-use messages::{GeneralMessage, MessageStatusCode, RemoteMessageType, SerializableObjectWithState};
-use messages::invite::{InviteDetail, SenderDetail, Payload as ConnectionPayload, AcceptanceDetails, RedirectDetail, RedirectionDetails};
-use messages::payload::{Payloads, PayloadKinds};
-use messages::thread::Thread;
-use messages::send_message::SendMessageOptions;
-use messages::get_message::{Message, MessagePayload};
-use object_cache::ObjectCache;
-use settings;
-use utils::error;
-use utils::libindy::signus::create_and_store_my_did;
-use utils::libindy::crypto;
-use utils::json::mapped_key_rewrite;
+use crate::api::VcxStateType;
+use crate::error::prelude::*;
+use crate::messages;
+use crate::messages::{GeneralMessage, MessageStatusCode, RemoteMessageType, SerializableObjectWithState};
+use crate::messages::invite::{InviteDetail, SenderDetail, Payload as ConnectionPayload, AcceptanceDetails, RedirectDetail, RedirectionDetails};
+use crate::messages::payload::{Payloads, PayloadKinds};
+use crate::messages::thread::Thread;
+use crate::messages::send_message::SendMessageOptions;
+use crate::messages::get_message::{Message, MessagePayload};
+use crate::object_cache::ObjectCache;
+use crate::settings;
+use crate::utils::error;
+use crate::utils::libindy::signus::create_and_store_my_did;
+use crate::utils::libindy::crypto;
+use crate::utils::json::mapped_key_rewrite;
 
-use v3::handlers::connection::connection::Connection as ConnectionV3;
-use v3::handlers::connection::states::ActorDidExchangeState;
-use v3::handlers::connection::agent::AgentInfo;
-use v3::messages::connection::invite::Invitation as InvitationV3;
-use v3::messages::a2a::A2AMessage;
-use v3::handlers::connection::types::CompletedConnection;
-use v3::messages::invite_action::invite::{Invite as InviteForAction, InviteActionData};
+use crate::v3::handlers::connection::connection::Connection as ConnectionV3;
+use crate::v3::handlers::connection::states::ActorDidExchangeState;
+use crate::v3::handlers::connection::agent::AgentInfo;
+use crate::v3::messages::connection::invite::Invitation as InvitationV3;
+use crate::v3::messages::a2a::A2AMessage;
+use crate::v3::handlers::connection::types::CompletedConnection;
+use crate::v3::messages::invite_action::invite::{Invite as InviteForAction, InviteActionData};
 
-use settings::ProtocolTypes;
+use crate::settings::ProtocolTypes;
 
 lazy_static! {
     static ref CONNECTION_MAP: ObjectCache<Connections> = Default::default();
@@ -253,7 +253,7 @@ impl Connection {
         debug!("Connection {}: Generating redirection details", self.source_id);
 
         let signature = format!("{}{}", self.pw_did, self.pw_verkey);
-        let signature = ::utils::libindy::crypto::sign(&self.pw_verkey, signature.as_bytes())?;
+        let signature = crate::utils::libindy::crypto::sign(&self.pw_verkey, signature.as_bytes())?;
         let signature = base64::encode(&signature);
 
         let details = RedirectDetail {
@@ -365,7 +365,7 @@ impl Connection {
             self.public_did = Some(settings::get_config_value(settings::CONFIG_INSTITUTION_DID)?);
         };
 
-        ::messages::agent_utils::update_agent_profile(&self.pw_did,
+        crate::messages::agent_utils::update_agent_profile(&self.pw_did,
                                                       &self.public_did,
                                                       ProtocolTypes::V1)
     }
@@ -450,7 +450,7 @@ impl Connection {
                                           format!("Cannot parse SendMessageOptions from `msg_options` JSON string. Err: {:?}", err)))?;
 
         let response =
-            ::messages::send_message()
+            crate::messages::send_message()
                 .to(&self.get_pw_did())?
                 .to_vk(&self.get_pw_verkey())?
                 .msg_type(&RemoteMessageType::Other(msg_options.msg_type.clone()))?
@@ -493,7 +493,7 @@ impl Connection {
                 .to_a2a_message()
             ).to_string();
 
-        ::messages::send_message()
+        crate::messages::send_message()
             .to(&self.get_pw_did())?
             .to_vk(&self.get_pw_verkey())?
             .msg_type(&RemoteMessageType::InviteAction)?
@@ -1023,7 +1023,7 @@ impl Handle<Connections> {
 }
 
 pub fn from_string(connection_data: &str) -> VcxResult<Handle<Connections>> {
-    let object: SerializableObjectWithState<Connection, ::v3::handlers::connection::states::ActorDidExchangeState> = ::serde_json::from_str(connection_data)
+    let object: SerializableObjectWithState<Connection, crate::v3::handlers::connection::states::ActorDidExchangeState> = ::serde_json::from_str(connection_data)
         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
                                           format!("Cannot parse Connection state object from JSON string. Err: {:?}", err)))?;
 
@@ -1482,14 +1482,14 @@ pub mod tests {
     use std::thread;
     use std::time::Duration;
 
-    use messages::get_message::*;
-    use utils::constants::*;
-    use utils::constants::INVITE_DETAIL_STRING;
+    use crate::messages::get_message::*;
+    use crate::utils::constants::*;
+    use crate::utils::constants::INVITE_DETAIL_STRING;
 
     use super::*;
-    use utils::devsetup::*;
-    use utils::httpclient::AgencyMock;
-    use utils::constants;
+    use crate::utils::devsetup::*;
+    use crate::utils::httpclient::AgencyMock;
+    use crate::utils::constants;
 
     pub fn build_test_connection() -> Handle<Connections> {
         let handle = create_connection("alice").unwrap();
@@ -1498,7 +1498,7 @@ pub mod tests {
     }
 
     pub fn create_connected_connections() -> (Handle<Connections>, Handle<Connections>) {
-        ::utils::devsetup::set_institution();
+        crate::utils::devsetup::set_institution();
 
         let alice = create_connection("alice").unwrap();
         let my_public_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
@@ -1508,7 +1508,7 @@ pub mod tests {
         let details = alice.get_invite_details(false).unwrap();
 
         //BE CONSUMER AND ACCEPT INVITE FROM INSTITUTION
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
 
         let faber = create_connection_with_invite("faber", &details).unwrap();
 
@@ -1519,7 +1519,7 @@ pub mod tests {
         assert_eq!(my_public_did, public_did);
 
         //BE INSTITUTION AND CHECK THAT INVITE WAS ACCEPTED
-        ::utils::devsetup::set_institution();
+        crate::utils::devsetup::set_institution();
 
         thread::sleep(Duration::from_secs(5));
 
@@ -1662,7 +1662,7 @@ pub mod tests {
         assert!(handle.release().is_ok());
 
         // Aries connection
-        ::settings::set_config_value(::settings::COMMUNICATION_METHOD, "aries");
+        crate::settings::set_config_value(crate::settings::COMMUNICATION_METHOD, "aries");
 
         let handle = create_connection("test_serialize_deserialize").unwrap();
 
@@ -1973,10 +1973,10 @@ pub mod tests {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
         //0. Create initial connection
-        let (faber, alice) = ::connection::tests::create_connected_connections();
+        let (faber, alice) = crate::connection::tests::create_connected_connections();
 
         //1. Faber sends another invite
-        ::utils::devsetup::set_institution(); //Faber to Alice
+        crate::utils::devsetup::set_institution(); //Faber to Alice
         let alice2 = create_connection("alice2").unwrap();
         let my_public_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
         let options = json!({"use_public_did": true}).to_string();
@@ -1986,7 +1986,7 @@ pub mod tests {
 
         //2. Alice receives (recognizes that there is already a connection), calls different api (redirect rather than regular connect)
         //BE CONSUMER AND REDIRECT INVITE FROM INSTITUTION
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
         let faber_duplicate = create_connection_with_invite("faber_duplicate", &details_for_alice2).unwrap();
         assert_eq!(VcxStateType::VcxStateRequestReceived as u32, faber_duplicate.get_state());
         faber_duplicate.redirect(faber).unwrap();
@@ -1995,7 +1995,7 @@ pub mod tests {
 
         //3. Faber waits for redirect state change
         //BE INSTITUTION AND CHECK THAT INVITE WAS ACCEPTED
-        ::utils::devsetup::set_institution();
+        crate::utils::devsetup::set_institution();
         thread::sleep(Duration::from_millis(2000));
         alice2.update_state(None).unwrap();
         assert_eq!(VcxStateType::VcxStateRedirected as u32, alice2.get_state());
@@ -2007,8 +2007,8 @@ pub mod tests {
         let rd: RedirectDetail = serde_json::from_str(&redirect_data).unwrap();
         let alice_serialized = alice.to_string().unwrap();
 
-        let to_alice_old: Connection = ::messages::ObjectWithVersion::deserialize(&alice_serialized)
-            .map(|obj: ::messages::ObjectWithVersion<Connection>| obj.data).unwrap();
+        let to_alice_old: Connection = crate::messages::ObjectWithVersion::deserialize(&alice_serialized)
+            .map(|obj: crate::messages::ObjectWithVersion<Connection>| obj.data).unwrap();
 
 
         // Assert redirected data match old connection to alice

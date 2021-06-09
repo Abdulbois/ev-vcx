@@ -1,5 +1,5 @@
-use error::{VcxResult, VcxError, VcxErrorKind};
-use utils::httpclient::get_status;
+use crate::error::{VcxResult, VcxError, VcxErrorKind};
+use crate::utils::httpclient::get_status;
 
 #[derive(Serialize, Deserialize)]
 struct VerityResponse {

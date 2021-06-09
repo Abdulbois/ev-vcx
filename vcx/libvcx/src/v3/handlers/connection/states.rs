@@ -1,35 +1,35 @@
-use api::VcxStateType;
+use crate::api::VcxStateType;
 
-use v3::handlers::connection::messages::DidExchangeMessages;
-use v3::messages::a2a::A2AMessage;
-use v3::handlers::connection::agent::AgentInfo;
-use v3::messages::connection::invite::Invitation;
-use v3::messages::connection::request::Request;
-use v3::messages::connection::response::{Response, SignedResponse};
-use v3::messages::connection::problem_report::{ProblemReport, ProblemCode};
-use v3::messages::trust_ping::ping::Ping;
-use v3::messages::trust_ping::ping_response::PingResponse;
-use v3::messages::ack::Ack;
-use v3::messages::connection::did_doc::{DidDoc, Service, SERVICE_ID, OUTOFBAND_SERVICE_TYPE};
-use v3::messages::discovery::query::Query;
-use v3::messages::discovery::disclose::{Disclose, ProtocolDescriptor};
-use v3::messages::a2a::protocol_registry::ProtocolRegistry;
-use v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
-use v3::messages::outofband::handshake_reuse::HandshakeReuse;
-use v3::messages::outofband::handshake_reuse_accepted::HandshakeReuseAccepted;
-use v3::messages::questionanswer::question::{Question, QuestionResponse};
-use v3::messages::questionanswer::answer::Answer;
-use v3::messages::committedanswer::question::Question as CommittedQuestion;
-use v3::messages::committedanswer::answer::Answer as CommittedAnswer;
-use v3::handlers::connection::types::{CompletedConnection, OutofbandMeta, Invitations};
-use v3::messages::invite_action::invite::{Invite as InviteForAction};
+use crate::v3::handlers::connection::messages::DidExchangeMessages;
+use crate::v3::messages::a2a::A2AMessage;
+use crate::v3::handlers::connection::agent::AgentInfo;
+use crate::v3::messages::connection::invite::Invitation;
+use crate::v3::messages::connection::request::Request;
+use crate::v3::messages::connection::response::{Response, SignedResponse};
+use crate::v3::messages::connection::problem_report::{ProblemReport, ProblemCode};
+use crate::v3::messages::trust_ping::ping::Ping;
+use crate::v3::messages::trust_ping::ping_response::PingResponse;
+use crate::v3::messages::ack::Ack;
+use crate::v3::messages::connection::did_doc::{DidDoc, Service, SERVICE_ID, OUTOFBAND_SERVICE_TYPE};
+use crate::v3::messages::discovery::query::Query;
+use crate::v3::messages::discovery::disclose::{Disclose, ProtocolDescriptor};
+use crate::v3::messages::a2a::protocol_registry::ProtocolRegistry;
+use crate::v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
+use crate::v3::messages::outofband::handshake_reuse::HandshakeReuse;
+use crate::v3::messages::outofband::handshake_reuse_accepted::HandshakeReuseAccepted;
+use crate::v3::messages::questionanswer::question::{Question, QuestionResponse};
+use crate::v3::messages::questionanswer::answer::Answer;
+use crate::v3::messages::committedanswer::question::Question as CommittedQuestion;
+use crate::v3::messages::committedanswer::answer::Answer as CommittedAnswer;
+use crate::v3::handlers::connection::types::{CompletedConnection, OutofbandMeta, Invitations};
+use crate::v3::messages::invite_action::invite::{Invite as InviteForAction};
 
 use std::collections::HashMap;
 
-use error::prelude::*;
-use messages::thread::Thread;
-use settings;
-use connection::ConnectionOptions;
+use crate::error::prelude::*;
+use crate::messages::thread::Thread;
+use crate::settings;
+use crate::connection::ConnectionOptions;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DidExchangeSM {
@@ -1305,19 +1305,19 @@ pub enum Actor {
 pub mod test {
     use super::*;
 
-    use utils::devsetup::SetupAriesMocks;
-    use v3::test::source_id;
-    use v3::test::setup::AgencyModeSetup;
-    use v3::messages::connection::invite::tests::_invitation;
-    use v3::messages::connection::request::tests::_request;
-    use v3::messages::connection::response::tests::_signed_response;
-    use v3::messages::connection::problem_report::tests::_problem_report;
-    use v3::messages::trust_ping::ping::tests::_ping;
-    use v3::messages::trust_ping::ping_response::tests::_ping_response;
-    use v3::messages::ack::tests::_ack as t_ack;
-    use v3::messages::discovery::query::tests::_query;
-    use v3::messages::discovery::disclose::tests::_disclose;
-    use v3::messages::outofband::invitation::tests::{_invitation as _outofband_invitation, _invitation_no_handshake as _outofband_invitation_no_handshake};
+    use crate::utils::devsetup::SetupAriesMocks;
+    use crate::v3::test::source_id;
+    use crate::v3::test::setup::AgencyModeSetup;
+    use crate::v3::messages::connection::invite::tests::_invitation;
+    use crate::v3::messages::connection::request::tests::_request;
+    use crate::v3::messages::connection::response::tests::_signed_response;
+    use crate::v3::messages::connection::problem_report::tests::_problem_report;
+    use crate::v3::messages::trust_ping::ping::tests::_ping;
+    use crate::v3::messages::trust_ping::ping_response::tests::_ping_response;
+    use crate::v3::messages::ack::tests::_ack as t_ack;
+    use crate::v3::messages::discovery::query::tests::_query;
+    use crate::v3::messages::discovery::disclose::tests::_disclose;
+    use crate::v3::messages::outofband::invitation::tests::{_invitation as _outofband_invitation, _invitation_no_handshake as _outofband_invitation_no_handshake};
 
     pub fn _ack() -> Ack {
         let mut ack = t_ack();
@@ -1377,7 +1377,7 @@ pub mod test {
 
         mod step {
             use super::*;
-            use v3::messages::connection::response::tests::_thread;
+            use crate::v3::messages::connection::response::tests::_thread;
 
             #[test]
             fn test_did_exchange_init() -> Result<(), String> {
@@ -1642,8 +1642,8 @@ pub mod test {
 
         mod find_message_to_handle {
             use super::*;
-            use v3::messages::questionanswer::question::tests::_question;
-            use v3::messages::questionanswer::answer::tests::_answer;
+            use crate::v3::messages::questionanswer::question::tests::_question;
+            use crate::v3::messages::questionanswer::answer::tests::_answer;
 
             #[test]
             fn test_find_message_to_handle_from_null_state() {
@@ -1871,7 +1871,7 @@ pub mod test {
     pub mod invitee {
         use super::*;
 
-        use v3::messages::connection::did_doc::tests::_service_endpoint;
+        use crate::v3::messages::connection::did_doc::tests::_service_endpoint;
 
         pub fn invitee_sm() -> DidExchangeSM {
             DidExchangeSM::new(Actor::Invitee, &source_id(), None)
@@ -2151,8 +2151,8 @@ pub mod test {
 
         mod find_message_to_handle {
             use super::*;
-            use v3::messages::questionanswer::question::tests::_question;
-            use v3::messages::questionanswer::answer::tests::_answer;
+            use crate::v3::messages::questionanswer::question::tests::_question;
+            use crate::v3::messages::questionanswer::answer::tests::_answer;
 
             #[test]
             fn test_find_message_to_handle_from_invited_state() {

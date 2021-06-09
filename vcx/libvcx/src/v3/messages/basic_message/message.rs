@@ -1,5 +1,5 @@
-use v3::messages::a2a::{MessageId, A2AMessage};
-use v3::messages::localization::Localization;
+use crate::v3::messages::a2a::{MessageId, A2AMessage};
+use crate::v3::messages::localization::Localization;
 use chrono::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]

@@ -1,10 +1,10 @@
-use messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, prepare_message_for_agency, parse_response_from_agency};
-use error::prelude::*;
-use messages::agent_utils::{set_config_values, configure_wallet, ComMethod, Config};
-use messages::message_type::MessageTypes;
-use utils::httpclient;
-use settings::ProtocolTypes;
-use settings::ProtocolTypes::V2;
+use crate::messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, prepare_message_for_agency, parse_response_from_agency};
+use crate::error::prelude::*;
+use crate::messages::agent_utils::{set_config_values, configure_wallet, ComMethod, Config};
+use crate::messages::message_type::MessageTypes;
+use crate::utils::httpclient;
+use crate::settings::ProtocolTypes;
+use crate::settings::ProtocolTypes::V2;
 
 pub static VALID_SIGNATURE_ALGORITHMS: [&'static str; 2] = ["SafetyNet", "DeviceCheck"];
 
@@ -132,20 +132,20 @@ pub fn provision(my_config: Config, sponsee_id: &str, sponsor_id: &str, com_meth
 #[cfg(all(test, feature = "agency", feature = "pool_tests"))]
 mod tests {
     use super::*;
-    use settings;
-    use utils::constants;
-    use utils::devsetup::{C_AGENCY_DID, C_AGENCY_VERKEY, C_AGENCY_ENDPOINT, cleanup_indy_env};
-    use utils::plugins::init_plugin;
-    use utils::libindy::wallet::delete_wallet;
-    use messages::agent_utils::parse_config;
+    use crate::settings;
+    use crate::utils::constants;
+    use crate::utils::devsetup::{C_AGENCY_DID, C_AGENCY_VERKEY, C_AGENCY_ENDPOINT, cleanup_indy_env};
+    use crate::utils::plugins::init_plugin;
+    use crate::utils::libindy::wallet::delete_wallet;
+    use crate::messages::agent_utils::parse_config;
 
     #[test]
     fn test_token_provisioning() {
         cleanup_indy_env();
-        init_plugin(::settings::DEFAULT_PAYMENT_PLUGIN, ::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
+        init_plugin(crate::settings::DEFAULT_PAYMENT_PLUGIN, crate::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
-        let seed1 = ::utils::devsetup::create_new_seed();
-        let enterprise_wallet_name = format!("{}_{}", ::utils::constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
+        let seed1 = crate::utils::devsetup::create_new_seed();
+        let enterprise_wallet_name = format!("{}_{}", crate::utils::constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
 
         let protocol_type = "2.0";
         let config = json!({

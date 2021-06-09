@@ -1,9 +1,9 @@
 use regex::Regex;
 use strum::IntoEnumIterator;
 
-use v3::messages::a2a::message_family::MessageFamilies;
-use v3::messages::discovery::disclose::ProtocolDescriptor;
-use settings::Actors;
+use crate::v3::messages::a2a::message_family::MessageFamilies;
+use crate::v3::messages::discovery::disclose::ProtocolDescriptor;
+use crate::settings::Actors;
 
 pub struct ProtocolRegistry {
     protocols: Vec<ProtocolDescriptor>
@@ -12,7 +12,7 @@ pub struct ProtocolRegistry {
 impl ProtocolRegistry {
     pub fn init() -> ProtocolRegistry {
         let mut registry = ProtocolRegistry { protocols: Vec::new() };
-        let actors = ::settings::get_actors();
+        let actors = crate::settings::get_actors();
 
         for family in MessageFamilies::iter() {
             match family {
@@ -91,7 +91,7 @@ impl ProtocolRegistry {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use utils::devsetup::SetupEmpty;
+    use crate::utils::devsetup::SetupEmpty;
 
     fn _protocols() -> Vec<ProtocolDescriptor> {
         vec![
@@ -198,7 +198,7 @@ pub mod tests {
     fn test_get_protocols_for_query_works_for_limited_actors() {
         let _setup = SetupEmpty::init();
 
-        ::settings::set_config_value(::settings::CONFIG_ACTORS, &json!([Actors::Invitee]).to_string());
+        crate::settings::set_config_value(crate::settings::CONFIG_ACTORS, &json!([Actors::Invitee]).to_string());
 
         let registry: ProtocolRegistry = ProtocolRegistry::init();
 

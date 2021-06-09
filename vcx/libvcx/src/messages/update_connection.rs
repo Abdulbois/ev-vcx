@@ -1,11 +1,11 @@
-use messages::*;
-use messages::message_type::MessageTypes;
-use settings;
-use utils::httpclient;
-use error::prelude::*;
-use utils::httpclient::AgencyMock;
-use utils::constants::DELETE_CONNECTION_RESPONSE;
-use settings::ProtocolTypes;
+use crate::messages::*;
+use crate::messages::message_type::MessageTypes;
+use crate::settings;
+use crate::utils::httpclient;
+use crate::error::prelude::*;
+use crate::utils::httpclient::AgencyMock;
+use crate::utils::constants::DELETE_CONNECTION_RESPONSE;
+use crate::settings::ProtocolTypes;
 
 #[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -170,7 +170,7 @@ impl GeneralMessage for DeleteConnectionBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use utils::devsetup::SetupDefaults;
+    use crate::utils::devsetup::SetupDefaults;
 
     #[test]
     fn test_deserialize_delete_connection_payload() {

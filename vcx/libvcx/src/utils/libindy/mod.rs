@@ -15,7 +15,7 @@ pub mod error_codes;
 pub mod mysql_wallet;
 
 use std::sync::Mutex;
-use settings;
+use crate::settings;
 
 lazy_static! {
     static ref LIBINDY_MOCK: Mutex<LibindyMock> = Mutex::new(LibindyMock::default());
@@ -43,13 +43,13 @@ impl LibindyMock {
 pub mod tests {
     use super::*;
     use futures::Future;
-    use utils::devsetup::*;
-    use settings;
+    use crate::utils::devsetup::*;
+    use crate::settings;
 
     // TODO:  Is used for Aries tests...try to remove and use one of devsetup's
     pub mod test_setup {
         use super::*;
-        use indy;
+        use crate::indy;
         use rand::Rng;
 
         pub const TRUSTEE_SEED: &'static str = "000000000000000000000000Trustee1";

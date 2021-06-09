@@ -3,28 +3,28 @@ use crate::object_cache::Handle;
 use crate::connection::Connections;
 use std::mem::take;
 use std::collections::HashMap;
-use api::VcxStateType;
-use messages;
-use settings;
-use messages::{RemoteMessageType, MessageStatusCode, GeneralMessage};
-use messages::payload::{Payloads, PayloadKinds};
-use messages::thread::Thread;
-use messages::get_message::get_ref_msg;
-use utils::error;
-use utils::libindy::{payments, anoncreds};
-use utils::constants::CRED_MSG;
-use utils::openssl::encode;
-use utils::libindy::payments::PaymentTxn;
-use utils::qualifier;
-use object_cache::ObjectCache;
-use error::prelude::*;
+use crate::api::VcxStateType;
+use crate::messages;
+use crate::settings;
+use crate::messages::{RemoteMessageType, MessageStatusCode, GeneralMessage};
+use crate::messages::payload::{Payloads, PayloadKinds};
+use crate::messages::thread::Thread;
+use crate::messages::get_message::get_ref_msg;
+use crate::utils::error;
+use crate::utils::libindy::{payments, anoncreds};
+use crate::utils::constants::CRED_MSG;
+use crate::utils::openssl::encode;
+use crate::utils::libindy::payments::PaymentTxn;
+use crate::utils::qualifier;
+use crate::object_cache::ObjectCache;
+use crate::error::prelude::*;
 use std::convert::TryInto;
 
-use v3::handlers::issuance::Issuer;
-use utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
-use messages::issuance::credential_offer::CredentialOffer;
-use messages::issuance::credential::CredentialMessage;
-use messages::issuance::credential_request::CredentialRequest;
+use crate::v3::handlers::issuance::Issuer;
+use crate::utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
+use crate::messages::issuance::credential_offer::CredentialOffer;
+use crate::messages::issuance::credential::CredentialMessage;
+use crate::messages::issuance::credential_request::CredentialRequest;
 
 lazy_static! {
     static ref ISSUER_CREDENTIAL_MAP: ObjectCache<IssuerCredentials> = Default::default();
@@ -490,7 +490,7 @@ impl IssuerCredential {
 
     fn generate_payment_info(&mut self) -> VcxResult<Option<PaymentInfo>> {
         if self.price > 0 {
-            let address: String = ::utils::libindy::payments::create_address(None)?;
+            let address: String = crate::utils::libindy::payments::create_address(None)?;
             self.payment_address = Some(address.clone());
             Ok(Some(PaymentInfo {
                 payment_required: "one-time".to_string(),
@@ -870,11 +870,11 @@ pub fn from_string(credential_data: &str) -> VcxResult<Handle<IssuerCredentials>
 pub mod tests {
     use super::*;
     use serde_json::Value;
-    use settings;
-    use connection::tests::build_test_connection;
-    use messages::issuance::credential_request::CredentialRequest;
+    use crate::settings;
+    use crate::connection::tests::build_test_connection;
+    use crate::messages::issuance::credential_request::CredentialRequest;
     #[allow(unused_imports)]
-    use utils::{constants::*,
+    use crate::utils::{constants::*,
                 libindy::{LibindyMock,
                           anoncreds::{libindy_create_and_store_credential_def,
                                       libindy_issuer_create_credential_offer,
@@ -882,10 +882,10 @@ pub mod tests {
                           wallet::get_wallet_handle, wallet},
                 get_temp_dir_path,
     };
-    use utils::devsetup::*;
-    use utils::httpclient::AgencyMock;
-    use credential_def::tests::create_cred_def_fake;
-    use messages::issuance::credential_offer::parse_json_offer;
+    use crate::utils::devsetup::*;
+    use crate::utils::httpclient::AgencyMock;
+    use crate::credential_def::tests::create_cred_def_fake;
+    use crate::messages::issuance::credential_offer::parse_json_offer;
 
     static DEFAULT_CREDENTIAL_NAME: &str = "Credential";
     static DEFAULT_CREDENTIAL_ID: &str = "defaultCredentialId";
@@ -967,7 +967,7 @@ pub mod tests {
     pub fn create_pending_issuer_credential() -> IssuerCredential {
         let credential_req: CredentialRequest = serde_json::from_str(CREDENTIAL_REQ_STRING).unwrap();
         let (credential_offer, _) = parse_json_offer(CREDENTIAL_OFFER_JSON).unwrap();
-        let connection_handle = Some(::connection::tests::build_test_connection());
+        let connection_handle = Some(crate::connection::tests::build_test_connection());
         let mut credential: IssuerCredential = IssuerCredential {
             source_id: "test_has_pending_credential_request".to_owned(),
             schema_seq_no: 32,
@@ -1002,9 +1002,9 @@ pub mod tests {
         credential
     }
 
-    pub fn create_full_issuer_credential() -> (IssuerCredential, ::credential::Credential) {
+    pub fn create_full_issuer_credential() -> (IssuerCredential, crate::credential::Credential) {
         let issuer_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-        let (_, cred_def_handle) = ::credential_def::tests::create_cred_def_real(true);
+        let (_, cred_def_handle) = crate::credential_def::tests::create_cred_def_real(true);
         let cred_def_id = cred_def_handle.get_cred_def_id().unwrap();
         let rev_reg_id = cred_def_handle.get_rev_reg_id().unwrap();
         let tails_file = cred_def_handle.get_tails_file().unwrap();
@@ -1055,7 +1055,7 @@ pub mod tests {
         let payload = serde_json::to_string(&payload).unwrap();
 
         issuer_credential.credential_offer = Some(issuer_credential.generate_credential_offer().unwrap());
-        let credential = ::credential::tests::create_credential(&payload);
+        let credential = crate::credential::tests::create_credential(&payload);
         issuer_credential.credential_request = Some(credential.build_credential_request(&issuer_credential.issuer_did, &their_did).unwrap());
         (issuer_credential, credential)
     }
@@ -1266,7 +1266,7 @@ pub mod tests {
     fn test_encoding() {
         let _setup = SetupMocks::init();
 
-        let issuer_credential_handle = issuer_credential_create(::credential_def::tests::create_cred_def_fake(),
+        let issuer_credential_handle = issuer_credential_create(crate::credential_def::tests::create_cred_def_fake(),
                                                                 "IssuerCredentialName".to_string(),
                                                                 "000000000000000000000000Issuer02".to_string(),
                                                                 "CredentialNameHere".to_string(),
@@ -1274,7 +1274,7 @@ pub mod tests {
                                                                 1).unwrap();
         issuer_credential_handle.get_encoded_attributes().unwrap_err();
 
-        let issuer_credential_handle = issuer_credential_create(::credential_def::tests::create_cred_def_fake(),
+        let issuer_credential_handle = issuer_credential_create(crate::credential_def::tests::create_cred_def_fake(),
                                                                 "IssuerCredentialName".to_string(),
                                                                 "000000000000000000000000Issuer02".to_string(),
                                                                 "CredentialNameHere".to_string(),

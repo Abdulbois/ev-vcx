@@ -1,12 +1,12 @@
 use libc::c_char;
-use utils::cstring::CStringUtils;
-use utils::error;
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
 use crate::object_cache::Handle;
 use crate::proof::Proofs;
 use crate::proof;
 use std::ptr;
-use utils::threadpool::spawn;
-use error::prelude::*;
+use crate::utils::threadpool::spawn;
+use crate::error::prelude::*;
 use indy_sys::CommandHandle;
 
 use crate::connection::Connections;
@@ -982,11 +982,11 @@ mod tests {
     use super::*;
     use std::ffi::CString;
     use std::ptr;
-    use proof;
-    use api::{ProofStateType, return_types, VcxStateType};
-    use utils::constants::*;
-    use utils::devsetup::*;
-    use connection::tests::build_test_connection;
+    use crate::proof;
+    use crate::api::{ProofStateType, return_types, VcxStateType};
+    use crate::utils::constants::*;
+    use crate::utils::devsetup::*;
+    use crate::connection::tests::build_test_connection;
     use crate::disclosed_proof;
 
     const REV_INT: *const c_char = concat!(r#"{"support_revocation":false}"#, "\0").as_ptr().cast();

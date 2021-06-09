@@ -2,19 +2,19 @@ extern crate serde_json;
 
 use std::collections::HashMap;
 use std::sync::RwLock;
-use utils::{get_temp_dir_path, error};
+use crate::utils::{get_temp_dir_path, error};
 use std::path::Path;
-use messages::validation;
+use crate::messages::validation;
 use serde_json::Value;
 use strum::IntoEnumIterator;
 use std::borrow::Borrow;
 use reqwest::Url;
 
-use error::prelude::*;
-use utils::file::read_file;
+use crate::error::prelude::*;
+use crate::utils::file::read_file;
 use indy_sys::INVALID_WALLET_HANDLE;
 #[cfg(all(feature="mysql"))]
-use utils::libindy::mysql_wallet::{init_mysql_wallet as do_init_mysql_wallet};
+use crate::utils::libindy::mysql_wallet::{init_mysql_wallet as do_init_mysql_wallet};
 
 pub static CONFIG_POOL_NAME: &str = "pool_name";
 pub static CONFIG_PROTOCOL_TYPE: &str = "protocol_type";
@@ -238,7 +238,7 @@ pub fn validate_config(config: &HashMap<String, String>) -> VcxResult<u32> {
     debug!("validating config");
 
     //Mandatory parameters
-    if ::utils::libindy::wallet::get_wallet_handle() == INVALID_WALLET_HANDLE && config.get(CONFIG_WALLET_KEY).is_none() {
+    if crate::utils::libindy::wallet::get_wallet_handle() == INVALID_WALLET_HANDLE && config.get(CONFIG_WALLET_KEY).is_none() {
         return Err(VcxError::from(VcxErrorKind::MissingWalletKey));
     }
 
@@ -619,7 +619,7 @@ pub fn clear_config() {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use utils::devsetup::{TempFile, SetupDefaults};
+    use crate::utils::devsetup::{TempFile, SetupDefaults};
 
     fn _institution_name() -> String {
         "enterprise".to_string()

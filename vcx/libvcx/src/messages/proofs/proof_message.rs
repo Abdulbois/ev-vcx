@@ -1,7 +1,7 @@
 use serde_json;
 use serde_json::Value;
-use error::prelude::*;
-use api::VcxStateType;
+use crate::error::prelude::*;
+use crate::api::VcxStateType;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct ProofMessage {
@@ -98,13 +98,13 @@ pub fn get_credential_info(proof: &str) -> VcxResult<Vec<CredInfo>> {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use ::utils::constants::{SCHEMA_ID, CRED_DEF_ID, REV_REG_ID};
-    use utils::devsetup::*;
+    use crate::utils::constants::{SCHEMA_ID, CRED_DEF_ID, REV_REG_ID};
+    use crate::utils::devsetup::*;
 
     pub fn create_default_proof() -> ProofMessage {
         let mut proof = ProofMessage::new();
-        proof.libindy_proof = ::utils::constants::INDY_PROOF_JSON.to_string();
-        proof.from_did = Some(::settings::get_config_value(::settings::CONFIG_INSTITUTION_DID).unwrap());
+        proof.libindy_proof = crate::utils::constants::INDY_PROOF_JSON.to_string();
+        proof.from_did = Some(crate::settings::get_config_value(crate::settings::CONFIG_INSTITUTION_DID).unwrap());
         proof
     }
 
@@ -113,7 +113,7 @@ pub mod tests {
         let _setup = SetupMocks::init();
 
         let offer = create_default_proof();
-        assert_eq!(offer.from_did, Some(::settings::get_config_value(::settings::CONFIG_INSTITUTION_DID).unwrap()));
+        assert_eq!(offer.from_did, Some(crate::settings::get_config_value(crate::settings::CONFIG_INSTITUTION_DID).unwrap()));
     }
 
     #[test]

@@ -1,8 +1,8 @@
-use v3::messages::proof_presentation::presentation_proposal::PresentationProposal;
-use v3::messages::proof_presentation::presentation::Presentation;
-use v3::messages::error::ProblemReport;
-use v3::messages::a2a::A2AMessage;
-use v3::messages::proof_presentation::presentation_request::PresentationRequestData;
+use crate::v3::messages::proof_presentation::presentation_proposal::PresentationProposal;
+use crate::v3::messages::proof_presentation::presentation::Presentation;
+use crate::v3::messages::error::ProblemReport;
+use crate::v3::messages::a2a::A2AMessage;
+use crate::v3::messages::proof_presentation::presentation_request::PresentationRequestData;
 
 use crate::connection::Connections;
 use crate::object_cache::Handle;

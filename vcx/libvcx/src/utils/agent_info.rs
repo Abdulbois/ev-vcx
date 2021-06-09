@@ -1,7 +1,7 @@
-use settings;
-use error::{VcxResult, VcxErrorKind, VcxError};
-use utils::option_util::get_or_err;
-use settings::{ProtocolTypes, get_config_value, CONFIG_REMOTE_TO_SDK_DID, CONFIG_REMOTE_TO_SDK_VERKEY, CONFIG_AGENCY_DID, CONFIG_AGENCY_VERKEY};
+use crate::settings;
+use crate::error::{VcxResult, VcxErrorKind, VcxError};
+use crate::utils::option_util::get_or_err;
+use crate::settings::{ProtocolTypes, get_config_value, CONFIG_REMOTE_TO_SDK_DID, CONFIG_REMOTE_TO_SDK_VERKEY, CONFIG_AGENCY_DID, CONFIG_AGENCY_VERKEY};
 
 use crate::{connection::Connections, object_cache::Handle};
 

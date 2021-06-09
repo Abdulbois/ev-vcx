@@ -1,19 +1,19 @@
-use error::prelude::*;
+use crate::error::prelude::*;
 use std::convert::TryInto;
 
 use crate::connection::Connections;
 use crate::object_cache::Handle;
 
-use messages::proofs::proof_request::ProofRequestMessage;
-use messages::proofs::proof_message::ProofMessage;
+use crate::messages::proofs::proof_request::ProofRequestMessage;
+use crate::messages::proofs::proof_message::ProofMessage;
 
-use v3::messages::proof_presentation::presentation_request::*;
-use v3::messages::proof_presentation::presentation::Presentation;
-use v3::handlers::proof_presentation::verifier::states::VerifierSM;
-use v3::handlers::proof_presentation::verifier::messages::VerifierMessages;
-use v3::messages::a2a::A2AMessage;
-use v3::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
-use v3::messages::error::ProblemReport;
+use crate::v3::messages::proof_presentation::presentation_request::*;
+use crate::v3::messages::proof_presentation::presentation::Presentation;
+use crate::v3::handlers::proof_presentation::verifier::states::VerifierSM;
+use crate::v3::handlers::proof_presentation::verifier::messages::VerifierMessages;
+use crate::v3::messages::a2a::A2AMessage;
+use crate::v3::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
+use crate::v3::messages::error::ProblemReport;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Verifier {

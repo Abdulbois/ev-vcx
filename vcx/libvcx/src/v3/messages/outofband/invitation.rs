@@ -1,7 +1,7 @@
-use v3::messages::a2a::{A2AMessage, MessageId};
-use v3::messages::attachment::{Attachments, AttachmentId};
-use v3::messages::connection::did_doc::Service;
-use error::prelude::*;
+use crate::v3::messages::a2a::{A2AMessage, MessageId};
+use crate::v3::messages::attachment::{Attachments, AttachmentId};
+use crate::v3::messages::connection::did_doc::Service;
+use crate::error::prelude::*;
 
 const SUPPORTED_HANDSHAKE_PROTOCOL: &str = "connections/1.0";
 
@@ -144,7 +144,7 @@ a2a_message!(Invitation, OutOfBandInvitation);
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::connection::did_doc::tests::*;
+    use crate::v3::messages::connection::did_doc::tests::*;
 
     fn _attachment() -> ::serde_json::Value { json!({"request": {}}) }
 

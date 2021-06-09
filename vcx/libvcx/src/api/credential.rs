@@ -1,11 +1,11 @@
 use serde_json;
 use libc::c_char;
-use utils::cstring::CStringUtils;
-use utils::error;
-use credential;
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
+use crate::credential;
 use std::ptr;
-use utils::threadpool::spawn;
-use error::prelude::*;
+use crate::utils::threadpool::spawn;
+use crate::error::prelude::*;
 use indy_sys::CommandHandle;
 
 use crate::connection::Connections;
@@ -1063,17 +1063,17 @@ mod tests {
 
     use super::*;
     use std::ffi::CString;
-    use connection;
-    use api::VcxStateType;
+    use crate::connection;
+    use crate::api::VcxStateType;
     use crate::api::return_types;
     use serde_json::Value;
-    use utils::constants::{DEFAULT_SERIALIZED_CREDENTIAL, FULL_CREDENTIAL_SERIALIZED, PENDING_OBJECT_SERIALIZE_VERSION};
-    use utils::devsetup::*;
-    use utils::httpclient::AgencyMock;
+    use crate::utils::constants::{DEFAULT_SERIALIZED_CREDENTIAL, FULL_CREDENTIAL_SERIALIZED, PENDING_OBJECT_SERIALIZE_VERSION};
+    use crate::utils::devsetup::*;
+    use crate::utils::httpclient::AgencyMock;
 
-    use ::credential::tests::BAD_CREDENTIAL_OFFER;
-    use utils::constants;
-    use messages::issuance::credential_request::CredentialRequest;
+    use crate::credential::tests::BAD_CREDENTIAL_OFFER;
+    use crate::utils::constants;
+    use crate::messages::issuance::credential_request::CredentialRequest;
 
     fn _vcx_credential_create_with_offer_c_closure(offer: &str) -> Result<Handle<Credentials>, u32> {
         let (h, cb, r) = return_types::return_u32_crdh();
@@ -1134,7 +1134,7 @@ mod tests {
     fn test_vcx_credential_send_request() {
         let _setup = SetupMocks::init();
 
-        let handle = credential::credential_create_with_offer("test_send_request", ::utils::constants::CREDENTIAL_OFFER_JSON).unwrap();
+        let handle = credential::credential_create_with_offer("test_send_request", crate::utils::constants::CREDENTIAL_OFFER_JSON).unwrap();
         assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateRequestReceived as u32);
 
         let connection_handle = connection::tests::build_test_connection();
@@ -1148,7 +1148,7 @@ mod tests {
     fn test_vcx_credential_get_new_offers() {
         let _setup = SetupMocks::init();
 
-        let cxn = ::connection::tests::build_test_connection();
+        let cxn = crate::connection::tests::build_test_connection();
 
         let (h, cb, r) = return_types::return_u32_str();
         assert_eq!(vcx_credential_get_offers(h,
@@ -1162,7 +1162,7 @@ mod tests {
     fn test_vcx_credential_create() {
         let _setup = SetupMocks::init();
 
-        let cxn = ::connection::tests::build_test_connection();
+        let cxn = crate::connection::tests::build_test_connection();
 
         let (h, cb, r) = return_types::return_u32_crdh_str();
         assert_eq!(vcx_credential_create_with_msgid(h,
@@ -1188,11 +1188,11 @@ mod tests {
     fn test_vcx_credential_update_state() {
         let _setup = SetupMocks::init();
 
-        let cxn = ::connection::tests::build_test_connection();
+        let cxn = crate::connection::tests::build_test_connection();
 
         let handle = credential::from_string(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
 
-        AgencyMock::set_next_response(::utils::constants::NEW_CREDENTIAL_OFFER_RESPONSE);
+        AgencyMock::set_next_response(crate::utils::constants::NEW_CREDENTIAL_OFFER_RESPONSE);
 
         let (h, cb, r) = return_types::return_u32_u32();
         assert_eq!(vcx_credential_update_state(h, handle, Some(cb)), error::SUCCESS.code_num);
@@ -1207,14 +1207,14 @@ mod tests {
     fn test_vcx_credential_get_request_msg() {
         let _setup = SetupMocks::init();
 
-        let cxn = ::connection::tests::build_test_connection();
+        let cxn = crate::connection::tests::build_test_connection();
 
         let my_pw_did = CString::new(cxn.get_pw_did().unwrap()).unwrap();
         let their_pw_did = CString::new(cxn.get_their_pw_did().unwrap()).unwrap();
 
         let handle = credential::from_string(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
 
-        AgencyMock::set_next_response(::utils::constants::NEW_CREDENTIAL_OFFER_RESPONSE);
+        AgencyMock::set_next_response(crate::utils::constants::NEW_CREDENTIAL_OFFER_RESPONSE);
 
         let (h, cb, r) = return_types::return_u32_u32();
         assert_eq!(vcx_credential_update_state(h, handle, Some(cb)), error::SUCCESS.code_num);
@@ -1254,7 +1254,7 @@ mod tests {
     fn test_get_payment_txn() {
         let _setup = SetupMocks::init();
 
-        let handle = credential::from_string(::utils::constants::FULL_CREDENTIAL_SERIALIZED).unwrap();
+        let handle = credential::from_string(crate::utils::constants::FULL_CREDENTIAL_SERIALIZED).unwrap();
 
         let (h, cb, r) = return_types::return_u32_str();
         vcx_credential_get_payment_txn(h, handle, Some(cb));

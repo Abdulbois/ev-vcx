@@ -1,10 +1,10 @@
-use settings;
-use messages::*;
-use messages::message_type::MessageTypes;
-use utils::{httpclient, constants};
-use error::prelude::*;
-use settings::ProtocolTypes;
-use utils::httpclient::AgencyMock;
+use crate::settings;
+use crate::messages::*;
+use crate::messages::message_type::MessageTypes;
+use crate::utils::{httpclient, constants};
+use crate::error::prelude::*;
+use crate::settings::ProtocolTypes;
+use crate::utils::httpclient::AgencyMock;
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -129,11 +129,11 @@ impl CreateKeyBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use utils::constants::{MY1_SEED, MY2_SEED, MY3_SEED, CREATE_KEYS_V2_RESPONSE};
-    use utils::constants::CREATE_KEYS_RESPONSE;
-    use utils::libindy::signus::create_and_store_my_did;
-    use messages::create_keys;
-    use utils::devsetup::*;
+    use crate::utils::constants::{MY1_SEED, MY2_SEED, MY3_SEED, CREATE_KEYS_V2_RESPONSE};
+    use crate::utils::constants::CREATE_KEYS_RESPONSE;
+    use crate::utils::libindy::signus::create_and_store_my_did;
+    use crate::messages::create_keys;
+    use crate::utils::devsetup::*;
 
     #[test]
     fn test_create_key_set_values() {

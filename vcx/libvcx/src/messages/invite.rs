@@ -1,12 +1,12 @@
-use error::prelude::*;
-use messages::*;
-use messages::message_type::{MessageTypes, MessageTypeV1, MessageTypeV2};
-use messages::thread::Thread;
-use settings;
-use utils::httpclient;
-use utils::constants::*;
-use utils::uuid::uuid;
-use utils::httpclient::AgencyMock;
+use crate::error::prelude::*;
+use crate::messages::*;
+use crate::messages::message_type::{MessageTypes, MessageTypeV1, MessageTypeV2};
+use crate::messages::thread::Thread;
+use crate::settings;
+use crate::utils::httpclient;
+use crate::utils::constants::*;
+use crate::utils::uuid::uuid;
+use crate::utils::httpclient::AgencyMock;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct SendInviteMessageDetails {
@@ -329,7 +329,7 @@ impl SendInviteBuilder {
 
     pub fn generate_signature(&mut self) -> VcxResult<()> {
         let signature = format!("{}{}", self.payload.key_dlg_proof.agent_did, self.payload.key_dlg_proof.agent_delegated_key);
-        let signature = ::utils::libindy::crypto::sign(&self.to_vk, signature.as_bytes())?;
+        let signature = crate::utils::libindy::crypto::sign(&self.to_vk, signature.as_bytes())?;
         let signature = base64::encode(&signature);
         self.payload.key_dlg_proof.signature = signature;
         Ok(())
@@ -801,7 +801,7 @@ impl GeneralMessage for RedirectConnectionBuilder {
 #[serde(rename_all = "camelCase")]
 pub struct Payload {
     #[serde(rename = "@type")]
-    msg_type: ::messages::payload::PayloadTypes,
+    msg_type: crate::messages::payload::PayloadTypes,
     #[serde(rename = "@msg")]
     pub msg: Vec<i8>,
 }
@@ -820,10 +820,10 @@ pub struct RedirectionDetails {
 
 #[cfg(test)]
 mod tests {
-    use messages::send_invite;
-    use utils::libindy::signus::create_and_store_my_did;
+    use crate::messages::send_invite;
+    use crate::utils::libindy::signus::create_and_store_my_did;
     use super::*;
-    use utils::devsetup::*;
+    use crate::utils::devsetup::*;
 
     #[test]
     fn test_send_invite_set_values_and_post() {

@@ -1,11 +1,11 @@
-use settings;
-use messages::*;
-use messages::message_type::MessageTypes;
-use utils::httpclient;
-use utils::constants::*;
-use error::prelude::*;
-use utils::httpclient::AgencyMock;
-use settings::ProtocolTypes;
+use crate::settings;
+use crate::messages::*;
+use crate::messages::message_type::MessageTypes;
+use crate::utils::httpclient;
+use crate::utils::constants::*;
+use crate::error::prelude::*;
+use crate::utils::httpclient::AgencyMock;
+use crate::settings::ProtocolTypes;
 
 #[derive(Debug)]
 pub struct UpdateProfileDataBuilder {
@@ -151,9 +151,9 @@ impl UpdateProfileDataBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use messages::update_data;
-    use utils::libindy::signus::create_and_store_my_did;
-    use utils::devsetup::*;
+    use crate::messages::update_data;
+    use crate::utils::libindy::signus::create_and_store_my_did;
+    use crate::utils::devsetup::*;
 
     #[test]
     fn test_update_data_post() {

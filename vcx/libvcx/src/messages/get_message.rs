@@ -1,17 +1,17 @@
-use settings;
-use messages::message_type::{MessageTypes, MessageTypeV2};
-use messages::*;
-use messages::payload::{Payloads, PayloadTypes, PayloadKinds, PayloadV1, PayloadV2};
-use utils::{httpclient, constants};
-use error::prelude::*;
-use settings::ProtocolTypes;
-use utils::httpclient::AgencyMock;
-use messages::issuance::credential_offer::set_cred_offer_ref_message;
-use messages::proofs::proof_request::set_proof_req_ref_message;
-use messages::issuance::credential_request::set_cred_req_ref_message;
-use v3::messages::a2a::A2AMessage as AriesA2AMessage;
-use v3::utils::encryption_envelope::EncryptionEnvelope;
-use messages::issuance::credential_offer::CredentialOffer;
+use crate::settings;
+use crate::messages::message_type::{MessageTypes, MessageTypeV2};
+use crate::messages::*;
+use crate::messages::payload::{Payloads, PayloadTypes, PayloadKinds, PayloadV1, PayloadV2};
+use crate::utils::{httpclient, constants};
+use crate::error::prelude::*;
+use crate::settings::ProtocolTypes;
+use crate::utils::httpclient::AgencyMock;
+use crate::messages::issuance::credential_offer::set_cred_offer_ref_message;
+use crate::messages::proofs::proof_request::set_proof_req_ref_message;
+use crate::messages::issuance::credential_request::set_cred_req_ref_message;
+use crate::v3::messages::a2a::A2AMessage as AriesA2AMessage;
+use crate::v3::utils::encryption_envelope::EncryptionEnvelope;
+use crate::messages::issuance::credential_offer::CredentialOffer;
 use std::convert::TryInto;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -218,7 +218,7 @@ impl GetMessagesBuilder {
         msgs
             .into_iter()
             .map(|connection| {
-                ::utils::libindy::signus::get_local_verkey(&connection.pairwise_did)
+                crate::utils::libindy::signus::get_local_verkey(&connection.pairwise_did)
                     .map(|vk|  {
                         let msgs = connection.msgs.iter().map(|message| message.decrypt(&vk)).collect();
                         MessageByConnection {
@@ -347,7 +347,7 @@ impl Message {
                             .map(|(type_, payload)|
                                 Payloads::PayloadV2(PayloadV2 {
                                     type_,
-                                    id: ::utils::uuid::uuid(),
+                                    id: crate::utils::uuid::uuid(),
                                     msg: payload,
                                     thread: Default::default(),
                                 })
@@ -429,7 +429,7 @@ impl Message {
         Ok(())
     }
 
-    fn _decrypt_v3_message(&self) -> VcxResult<::messages::payload::PayloadV1> {
+    fn _decrypt_v3_message(&self) -> VcxResult<crate::messages::payload::PayloadV1> {
         trace!("_decrypt_v3_message >>>");
 
         let a2a_message = EncryptionEnvelope::open(self.payload()?)?;
@@ -586,7 +586,7 @@ pub fn download_messages(pairwise_dids: Option<Vec<String>>, status_codes: Optio
             .uid(uids)?
             .status_codes(status_codes)?
             .pairwise_dids(pairwise_dids)?
-            .version(&Some(::settings::get_protocol_type()))?
+            .version(&Some(crate::settings::get_protocol_type()))?
             .download_messages()?;
 
     debug!("Agency: received messages: {:?}", secret!(response));
@@ -604,10 +604,10 @@ pub fn download_agent_messages(status_codes: Option<Vec<String>>, uids: Option<V
 
     let response =
         get_messages()
-            .to(&::settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_DID)?)?
-            .to_vk(&::settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_VERKEY)?)?
-            .agent_did(&::settings::get_config_value(settings::CONFIG_REMOTE_TO_SDK_DID)?)?
-            .agent_vk(&::settings::get_config_value(settings::CONFIG_REMOTE_TO_SDK_VERKEY)?)?
+            .to(&crate::settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_DID)?)?
+            .to_vk(&crate::settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_VERKEY)?)?
+            .agent_did(&crate::settings::get_config_value(settings::CONFIG_REMOTE_TO_SDK_DID)?)?
+            .agent_vk(&crate::settings::get_config_value(settings::CONFIG_REMOTE_TO_SDK_VERKEY)?)?
             .uid(uids)?
             .status_codes(status_codes)?
             .send_secure()?;
@@ -626,7 +626,7 @@ pub fn download_message(uid: String) -> VcxResult<Message> {
     let mut messages: Vec<Message> =
         get_messages()
             .uid(Some(vec![uid.clone()]))?
-            .version(&Some(::settings::get_protocol_type()))?
+            .version(&Some(crate::settings::get_protocol_type()))?
             .download_messages()?
             .into_iter()
             .flat_map(|msgs_by_connection| msgs_by_connection.msgs)
@@ -653,12 +653,12 @@ pub fn download_message(uid: String) -> VcxResult<Message> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use utils::constants::{GET_MESSAGES_RESPONSE, GET_ALL_MESSAGES_RESPONSE};
+    use crate::utils::constants::{GET_MESSAGES_RESPONSE, GET_ALL_MESSAGES_RESPONSE};
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     use std::thread;
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     use std::time::Duration;
-    use utils::devsetup::*;
+    use crate::utils::devsetup::*;
 
     #[test]
     fn test_parse_get_messages_response() {
@@ -685,7 +685,7 @@ mod tests {
         let all_messages = download_agent_messages(None, None).unwrap();
         assert_eq!(all_messages.len(), 0);
 
-        let _wallet_backup = ::wallet_backup::create_wallet_backup("123", ::settings::DEFAULT_WALLET_KEY).unwrap();
+        let _wallet_backup = crate::wallet_backup::create_wallet_backup("123", crate::settings::DEFAULT_WALLET_KEY).unwrap();
 
         thread::sleep(Duration::from_millis(2000));
         let all_messages = download_agent_messages(None, None).unwrap();
@@ -702,12 +702,12 @@ mod tests {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
         let institution_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-        let (_faber, alice) = ::connection::tests::create_connected_connections();
+        let (_faber, alice) = crate::connection::tests::create_connected_connections();
 
-        let (_, cred_def_handle) = ::credential_def::tests::create_cred_def_real(false);
+        let (_, cred_def_handle) = crate::credential_def::tests::create_cred_def_real(false);
 
         let credential_data = r#"{"address1": ["123 Main St"], "address2": ["Suite 3"], "city": ["Draper"], "state": ["UT"], "zip": ["84000"]}"#;
-        let credential_offer = ::issuer_credential::issuer_credential_create(cred_def_handle,
+        let credential_offer = crate::issuer_credential::issuer_credential_create(cred_def_handle,
                                                                              "1".to_string(),
                                                                              institution_did.clone(),
                                                                              "credential_name".to_string(),
@@ -721,7 +721,7 @@ mod tests {
         let hello_uid = alice.send_generic_message("hello", &json!({"msg_type":"hello", "msg_title": "hello", "ref_msg_id": null}).to_string()).unwrap();
 
         // AS CONSUMER GET MESSAGES
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
 
         thread::sleep(Duration::from_millis(3000));
 
@@ -755,14 +755,14 @@ mod tests {
     fn test_download_message() {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
-        let (_faber, alice) = ::connection::tests::create_connected_connections();
+        let (_faber, alice) = crate::connection::tests::create_connected_connections();
 
         let message = "hello";
         let message_options = json!({"msg_type":"hello", "msg_title": "hello", "ref_msg_id": null}).to_string();
         let hello_uid = alice.send_generic_message(message, &message_options).unwrap();
 
         // AS CONSUMER GET MESSAGE
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
 
         thread::sleep(Duration::from_secs(5));
         // download hello message

@@ -1,8 +1,8 @@
-use settings;
-use messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, parse_message_from_response, prepare_message_for_agent_v2};
-use messages::message_type::{ MessageTypes };
-use error::{VcxResult, VcxErrorKind, VcxError};
-use utils::httpclient;
+use crate::settings;
+use crate::messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, parse_message_from_response, prepare_message_for_agent_v2};
+use crate::messages::message_type::{ MessageTypes };
+use crate::error::{VcxResult, VcxErrorKind, VcxError};
+use crate::utils::httpclient;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RetrieveDeadDrop {
@@ -119,22 +119,22 @@ pub struct RetrievedDeadDropResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use messages::{retrieve_dead_drop};
-    use wallet_backup::tests::init_backup;
-    use utils::libindy::signus::create_and_store_my_did;
-    use wallet_backup::WalletBackup;
-    use utils::libindy::crypto::sign;
+    use crate::messages::{retrieve_dead_drop};
+    use crate::wallet_backup::tests::init_backup;
+    use crate::utils::libindy::signus::create_and_store_my_did;
+    use crate::wallet_backup::WalletBackup;
+    use crate::utils::libindy::crypto::sign;
     use rand::Rng;
-    use utils::devsetup::*;
+    use crate::utils::devsetup::*;
 
     #[cfg(feature = "wallet_backup")]
     #[test]
     fn test_dead_drop_retrieve() {
         let _setup = SetupLibraryWalletPoolZeroFees::init();
 
-        let (_, agent_vk) = create_and_store_my_did(Some(::utils::constants::MY2_SEED), None).unwrap();
-        let (_, my_vk) = create_and_store_my_did(Some(::utils::constants::MY1_SEED), None).unwrap();
-        let (_, agency_vk) = create_and_store_my_did(Some(::utils::constants::MY3_SEED), None).unwrap();
+        let (_, agent_vk) = create_and_store_my_did(Some(crate::utils::constants::MY2_SEED), None).unwrap();
+        let (_, my_vk) = create_and_store_my_did(Some(crate::utils::constants::MY1_SEED), None).unwrap();
+        let (_, agency_vk) = create_and_store_my_did(Some(crate::utils::constants::MY3_SEED), None).unwrap();
 
         settings::set_config_value(settings::CONFIG_AGENCY_VERKEY, &agency_vk);
         settings::set_config_value(settings::CONFIG_REMOTE_TO_SDK_VERKEY, &agent_vk);

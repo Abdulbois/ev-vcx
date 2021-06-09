@@ -1,14 +1,14 @@
 use crate::object_cache::Handle;
 use crate::connection::Connections;
 use libc::c_char;
-use utils::cstring::CStringUtils;
-use utils::error;
-use utils::threadpool::spawn;
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
+use crate::utils::threadpool::spawn;
 use std::ptr;
-use connection::*;
-use error::prelude::*;
+use crate::connection::*;
+use crate::error::prelude::*;
 use indy_sys::CommandHandle;
-use v3::messages::invite_action::invite::InviteActionData;
+use crate::v3::messages::invite_action::invite::InviteActionData;
 
 /*
     Tha API represents a pairwise connection with another identity owner.
@@ -1194,12 +1194,12 @@ pub extern fn vcx_connection_sign_data(command_handle: CommandHandle,
     };
 
     spawn(move || {
-        match ::utils::libindy::crypto::sign(&vk, &data_raw) {
+        match crate::utils::libindy::crypto::sign(&vk, &data_raw) {
             Ok(x) => {
                 trace!("vcx_connection_sign_data_cb(command_handle: {}, connection_handle: {}, rc: {}, signature: {:?})",
                        command_handle, connection_handle, error::SUCCESS.as_str(), x);
 
-                let (signature_raw, signature_len) = ::utils::cstring::vec_to_pointer(&x);
+                let (signature_raw, signature_len) = crate::utils::cstring::vec_to_pointer(&x);
                 cb(command_handle, error::SUCCESS.code_num, signature_raw, signature_len);
             }
             Err(e) => {
@@ -1268,7 +1268,7 @@ pub extern fn vcx_connection_verify_signature(command_handle: CommandHandle,
     };
 
     spawn(move || {
-        match ::utils::libindy::crypto::verify(&vk, &data_raw, &signature_raw) {
+        match crate::utils::libindy::crypto::verify(&vk, &data_raw, &signature_raw) {
             Ok(x) => {
                 trace!("vcx_connection_verify_signature_cb(command_handle: {}, rc: {}, valid: {})",
                        command_handle, error::SUCCESS.as_str(), x);
@@ -1810,13 +1810,13 @@ mod tests {
     use super::*;
     use std::ffi::CString;
     use std::ptr;
-    use connection::tests::build_test_connection;
-    use utils::error;
-    use api::{return_types, VcxStateType};
-    use utils::constants::{GET_MESSAGES_RESPONSE, INVITE_ACCEPTED_RESPONSE};
-    use utils::error::SUCCESS;
-    use utils::devsetup::*;
-    use utils::httpclient::AgencyMock;
+    use crate::connection::tests::build_test_connection;
+    use crate::utils::error;
+    use crate::api::{return_types, VcxStateType};
+    use crate::utils::constants::{GET_MESSAGES_RESPONSE, INVITE_ACCEPTED_RESPONSE};
+    use crate::utils::error::SUCCESS;
+    use crate::utils::devsetup::*;
+    use crate::utils::httpclient::AgencyMock;
 
     const EMPTY_JSON: *const c_char = "{}\0".as_ptr().cast();
     #[test]
@@ -1952,7 +1952,7 @@ mod tests {
     fn test_vcx_connection_deserialize_succeeds() {
         let _setup = SetupMocks::init();
 
-        let string = ::utils::constants::DEFAULT_CONNECTION;
+        let string = crate::utils::constants::DEFAULT_CONNECTION;
         let data = CString::new(string).unwrap();
         let (h, cb, r) = return_types::return_u32_cxnh();
         let err = vcx_connection_deserialize(h,
@@ -2012,7 +2012,7 @@ mod tests {
     fn test_sign() {
         let _setup = SetupMocks::init();
 
-        let connection_handle = ::connection::tests::build_test_connection();
+        let connection_handle = crate::connection::tests::build_test_connection();
 
         let msg = "My message\0";
         let msg_len = msg.len() - 1;
@@ -2030,7 +2030,7 @@ mod tests {
     fn test_verify_signature() {
         let _setup = SetupMocks::init();
 
-        let connection_handle = ::connection::tests::build_test_connection();
+        let connection_handle = crate::connection::tests::build_test_connection();
 
         let msg = "My message\0";
         let msg_len = msg.len() - 1;

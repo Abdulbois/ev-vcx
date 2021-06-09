@@ -1,4 +1,4 @@
-use indy::IndyError;
+use crate::indy::IndyError;
 use crate::error::prelude::{VcxError, VcxErrorKind};
 
 impl From<IndyError> for VcxError {
@@ -47,8 +47,8 @@ pub fn map_indy_error_code(error_code: u32) -> u32 {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use indy::ErrorCode;
-    use utils::devsetup::SetupDefaults;
+    use crate::indy::ErrorCode;
+    use crate::utils::devsetup::SetupDefaults;
 
     #[test]
     fn test_invalid_param_err() {

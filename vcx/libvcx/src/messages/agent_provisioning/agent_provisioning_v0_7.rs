@@ -1,15 +1,15 @@
-use messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, parse_response_from_agency, prepare_forward_message};
-use utils::libindy::{wallet, crypto};
-use error::prelude::*;
-use messages::agent_utils::{parse_config, set_config_values, configure_wallet, get_final_config};
+use crate::messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, parse_response_from_agency, prepare_forward_message};
+use crate::utils::libindy::{wallet, crypto};
+use crate::error::prelude::*;
+use crate::messages::agent_utils::{parse_config, set_config_values, configure_wallet, get_final_config};
 use serde_json::from_str;
-use messages::message_type::MessageTypes;
-use messages::thread::Thread;
-use utils::uuid::uuid;
-use settings;
-use utils::httpclient;
-use settings::ProtocolTypes;
-use messages::token_provisioning::token_provisioning::VALID_SIGNATURE_ALGORITHMS;
+use crate::messages::message_type::MessageTypes;
+use crate::messages::thread::Thread;
+use crate::utils::uuid::uuid;
+use crate::settings;
+use crate::utils::httpclient;
+use crate::settings::ProtocolTypes;
+use crate::messages::token_provisioning::token_provisioning::VALID_SIGNATURE_ALGORITHMS;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ProvisionToken {
@@ -175,13 +175,13 @@ pub fn provisioning_v0_7_pack_for_agency(message: &A2AMessage, from_vk: &str) ->
 #[cfg(all(test, feature = "agency", feature = "pool_tests"))]
 mod tests {
     use super::*;
-    use settings;
-    use utils::constants;
-    use utils::devsetup::{C_AGENCY_DID, C_AGENCY_VERKEY, C_AGENCY_ENDPOINT, cleanup_indy_env, sign_provision_token};
-    use utils::plugins::init_plugin;
+    use crate::settings;
+    use crate::utils::constants;
+    use crate::utils::devsetup::{C_AGENCY_DID, C_AGENCY_VERKEY, C_AGENCY_ENDPOINT, cleanup_indy_env, sign_provision_token};
+    use crate::utils::plugins::init_plugin;
 
     fn get_provisioning_inputs(time: Option<String>, seed: Option<String>) -> (String, String, String) {
-        let enterprise_wallet_name = format!("{}_{}", ::utils::constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
+        let enterprise_wallet_name = format!("{}_{}", crate::utils::constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
         wallet::delete_wallet(&enterprise_wallet_name, None, None, None).err();
 
         let id = "id";
@@ -191,9 +191,9 @@ mod tests {
         let seed = seed.unwrap_or("000000000000000000000000Trustee1".to_string());
         println!("Time: {:?}", time);
         wallet::init_wallet(&enterprise_wallet_name, None, None, None).unwrap();
-        let keys = ::utils::libindy::crypto::create_key(Some(&seed)).unwrap();
+        let keys = crate::utils::libindy::crypto::create_key(Some(&seed)).unwrap();
         let encoded_val = sign_provision_token(&keys, &nonce, &time, &id, &sponsor_id);
-        let seed1 = ::utils::devsetup::create_new_seed();
+        let seed1 = crate::utils::devsetup::create_new_seed();
         wallet::close_wallet().err();
         wallet::delete_wallet(&enterprise_wallet_name, None, None, None).err();
 
@@ -228,7 +228,7 @@ mod tests {
     #[test]
     fn test_agent_provisioning_0_7() {
         cleanup_indy_env();
-        init_plugin(::settings::DEFAULT_PAYMENT_PLUGIN, ::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
+        init_plugin(crate::settings::DEFAULT_PAYMENT_PLUGIN, crate::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
         let (wallet_name, config, token) = get_provisioning_inputs(None, None);
         let _enterprise_config = provision(&config, &token).unwrap();
@@ -240,7 +240,7 @@ mod tests {
     #[test]
     fn test_agent_provisioning_0_7_fails_with_expired_time() {
         cleanup_indy_env();
-        init_plugin(::settings::DEFAULT_PAYMENT_PLUGIN, ::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
+        init_plugin(crate::settings::DEFAULT_PAYMENT_PLUGIN, crate::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
         let new_time = "2020-03-20T13:00:00+00:00";
         let (wallet_name, config, token) = get_provisioning_inputs(Some(new_time.to_string()), None);
@@ -253,7 +253,7 @@ mod tests {
     #[test]
     fn test_agent_provisioning_0_7_fails_with_invalid_sig() {
         cleanup_indy_env();
-        init_plugin(::settings::DEFAULT_PAYMENT_PLUGIN, ::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
+        init_plugin(crate::settings::DEFAULT_PAYMENT_PLUGIN, crate::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
         let (wallet_name, config, token) = get_provisioning_inputs(None, Some("000000000000000000000000Truste22".to_string()));
         assert!(provision(&config, &token).is_err());

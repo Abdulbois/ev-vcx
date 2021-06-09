@@ -1,14 +1,14 @@
 use libc::c_char;
-use utils::cstring::CStringUtils;
-use utils::error;
-use utils::libindy::payments::{pay_a_payee, get_wallet_token_info, create_address, sign_with_address, verify_with_address};
-use utils::libindy::wallet::{export, import, get_wallet_handle};
-use utils::libindy::wallet;
-use utils::threadpool::spawn;
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
+use crate::utils::libindy::payments::{pay_a_payee, get_wallet_token_info, create_address, sign_with_address, verify_with_address};
+use crate::utils::libindy::wallet::{export, import, get_wallet_handle};
+use crate::utils::libindy::wallet;
+use crate::utils::threadpool::spawn;
 use std::thread;
 use std::ptr::null;
-use error::prelude::*;
-use indy::{CommandHandle, SearchHandle, WalletHandle};
+use crate::error::prelude::*;
+use crate::indy::{CommandHandle, SearchHandle, WalletHandle};
 
 const EMPTY_CSTR: *const c_char = "\0".as_ptr().cast();
 
@@ -142,7 +142,7 @@ pub extern fn vcx_wallet_sign_with_address(command_handle: CommandHandle,
                 trace!("vcx_wallet_sign_with_address_cb(command_handle: {}, rc: {}, signature: {:?})",
                        command_handle, error::SUCCESS.as_str(), signature);
 
-                let (signature_raw, signature_len) = ::utils::cstring::vec_to_pointer(&signature);
+                let (signature_raw, signature_len) = crate::utils::cstring::vec_to_pointer(&signature);
 
                 cb(command_handle, error::SUCCESS.code_num, signature_raw, signature_len);
             }
@@ -664,7 +664,7 @@ pub  extern fn vcx_wallet_open_search(command_handle: CommandHandle,
 
     check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
 
-    use utils::constants::DEFAULT_SEARCH_HANDLE;
+    use crate::utils::constants::DEFAULT_SEARCH_HANDLE;
     spawn(move || {
         cb(command_handle, error::SUCCESS.code_num, DEFAULT_SEARCH_HANDLE as i32);
         Ok(())
@@ -707,7 +707,7 @@ pub  extern fn vcx_wallet_search_next_records(command_handle: CommandHandle,
            command_handle, wallet_search_handle);
 
     spawn(move || {
-        use utils::constants::DEFAULT_SEARCH_RECORD;
+        use crate::utils::constants::DEFAULT_SEARCH_RECORD;
         let msg = CStringUtils::string_to_cstring(DEFAULT_SEARCH_RECORD.to_string());
         cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
         Ok(())
@@ -891,14 +891,14 @@ pub mod tests {
     extern crate serde_json;
 
     use super::*;
-    use api::return_types;
+    use crate::api::return_types;
     use std::ptr;
     use std::ffi::CString;
-    use utils::libindy::wallet::{delete_wallet, init_wallet};
+    use crate::utils::libindy::wallet::{delete_wallet, init_wallet};
     #[cfg(feature = "pool_tests")]
-    use utils::libindy::payments::build_test_address;
-    use utils::devsetup::*;
-    use settings;
+    use crate::utils::libindy::payments::build_test_address;
+    use crate::utils::devsetup::*;
+    use crate::settings;
 
     const ADDRESS: *const c_char = "address\0".as_ptr().cast();
     const MSG: &[u8] = "message\0".as_bytes();
@@ -1030,7 +1030,7 @@ pub mod tests {
 
         let recipient = CStringUtils::string_to_cstring(build_test_address("2ZrAm5Jc3sP4NAXMQbaWzDxEa12xxJW3VgWjbbPtMPQCoznJyS"));
         println!("sending payment to {:?}", recipient);
-        let balance = ::utils::libindy::payments::get_wallet_token_info().unwrap().get_balance();
+        let balance = crate::utils::libindy::payments::get_wallet_token_info().unwrap().get_balance();
         let tokens = 5;
         let tokens_cstr = CString::new(tokens.to_string()).unwrap();
         let (h, cb, r) = return_types::return_u32_str();
@@ -1041,7 +1041,7 @@ pub mod tests {
                                           Some(cb)),
                    error::SUCCESS.code_num);
         r.recv_medium().unwrap();
-        let new_balance = ::utils::libindy::payments::get_wallet_token_info().unwrap().get_balance();
+        let new_balance = crate::utils::libindy::payments::get_wallet_token_info().unwrap().get_balance();
         assert_eq!(balance - tokens, new_balance);
     }
 

@@ -1,6 +1,6 @@
 use serde_json;
 
-use utils::libindy::wallet::{add_record, get_record, update_record_value};
+use crate::utils::libindy::wallet::{add_record, get_record, update_record_value};
 
 static CACHE_TYPE: &str = "cache";
 static REV_REG_CACHE_PREFIX: &str = "rev_reg:";
@@ -80,7 +80,7 @@ pub fn set_rev_reg_cache(rev_reg_id: &str, cache: &RevRegCache) {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use utils::devsetup::SetupLibraryWallet;
+    use crate::utils::devsetup::SetupLibraryWallet;
 
     fn _rev_reg_id() -> &'static str {
         "test-id"

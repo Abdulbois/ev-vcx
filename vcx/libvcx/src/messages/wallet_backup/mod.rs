@@ -2,9 +2,9 @@ pub mod backup_init;
 pub mod backup;
 pub mod restore;
 
-use messages::get_message::{Message, download_agent_messages};
-use error::prelude::*;
-use messages::RemoteMessageType;
+use crate::messages::get_message::{Message, download_agent_messages};
+use crate::error::prelude::*;
+use crate::messages::RemoteMessageType;
 
 pub fn received_expected_message(message: Option<Message>, expected_type: RemoteMessageType) -> VcxResult<bool> {
     // Todo: If multiple responses have the same type, how to know which one corresponds to the request?? MSG_ID??

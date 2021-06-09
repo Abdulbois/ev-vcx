@@ -1,17 +1,17 @@
-use error::prelude::*;
-use utils::libindy::anoncreds;
+use crate::error::prelude::*;
+use crate::utils::libindy::anoncreds;
 use std::convert::TryInto;
 
-use v3::handlers::proof_presentation::prover::states::ProverSM;
-use v3::handlers::proof_presentation::prover::messages::ProverMessages;
-use v3::messages::a2a::A2AMessage;
-use v3::messages::proof_presentation::presentation_proposal::{PresentationPreview, PresentationProposal};
-use v3::messages::proof_presentation::presentation_request::PresentationRequest;
+use crate::v3::handlers::proof_presentation::prover::states::ProverSM;
+use crate::v3::handlers::proof_presentation::prover::messages::ProverMessages;
+use crate::v3::messages::a2a::A2AMessage;
+use crate::v3::messages::proof_presentation::presentation_proposal::{PresentationPreview, PresentationProposal};
+use crate::v3::messages::proof_presentation::presentation_request::PresentationRequest;
 
-use messages::proofs::proof_message::ProofMessage;
+use crate::messages::proofs::proof_message::ProofMessage;
 
-use v3::messages::proof_presentation::presentation::Presentation;
-use v3::messages::error::ProblemReport;
+use crate::v3::messages::proof_presentation::presentation::Presentation;
+use crate::v3::messages::error::ProblemReport;
 
 use crate::connection::Connections;
 use crate::object_cache::Handle;

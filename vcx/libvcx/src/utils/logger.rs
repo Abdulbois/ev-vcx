@@ -18,10 +18,10 @@ use std::ffi::CString;
 #[allow(unused_imports)]
 #[cfg(target_os = "android")]
 use self::android_logger::Filter;
-use utils::cstring::CStringUtils;
-use error::prelude::*;
+use crate::utils::cstring::CStringUtils;
+use crate::error::prelude::*;
 
-use utils::libindy;
+use crate::utils::libindy;
 
 #[cfg(debug_assertions)]
 const DEFAULT_MAX_LEVEL: LevelFilter = LevelFilter::Trace;

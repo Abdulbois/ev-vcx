@@ -1,14 +1,14 @@
-use v3::messages::a2a::{MessageId, A2AMessage};
-use v3::messages::attachment::{Attachments, AttachmentId};
-use v3::messages::ack::PleaseAck;
-use error::{VcxError, VcxResult, VcxErrorKind};
-use messages::thread::Thread;
-use messages::payload::PayloadKinds;
+use crate::v3::messages::a2a::{MessageId, A2AMessage};
+use crate::v3::messages::attachment::{Attachments, AttachmentId};
+use crate::v3::messages::ack::PleaseAck;
+use crate::error::{VcxError, VcxResult, VcxErrorKind};
+use crate::messages::thread::Thread;
+use crate::messages::payload::PayloadKinds;
 use std::convert::TryInto;
-use messages::issuance::credential::CredentialMessage;
-use v3::messages::issuance::credential_offer::CredentialOffer;
-use utils::libindy::types::CredentialOffer as IndyCredentialOffer;
-use utils::libindy::types::Credential as IndyCredential;
+use crate::messages::issuance::credential::CredentialMessage;
+use crate::v3::messages::issuance::credential_offer::CredentialOffer;
+use crate::utils::libindy::types::CredentialOffer as IndyCredentialOffer;
+use crate::utils::libindy::types::Credential as IndyCredential;
 
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Default)]
@@ -117,8 +117,8 @@ impl TryInto<CredentialMessage> for Credential {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::issuance::credential_offer::tests::{thread, thread_id, _credential_offer};
-    use v3::messages::issuance::CredentialValue;
+    use crate::v3::messages::issuance::credential_offer::tests::{thread, thread_id, _credential_offer};
+    use crate::v3::messages::issuance::CredentialValue;
 
     fn _attachment() -> ::serde_json::Value {
         json!({

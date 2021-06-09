@@ -1,14 +1,14 @@
-use settings;
-use api::VcxStateType;
-use messages::*;
-use messages::message_type::MessageTypes;
-use messages::payload::{Payloads, PayloadKinds};
-use messages::thread::Thread;
-use utils::{httpclient, constants};
-use utils::uuid::uuid;
-use error::prelude::*;
-use utils::agent_info::get_agent_info;
-use utils::httpclient::AgencyMock;
+use crate::settings;
+use crate::api::VcxStateType;
+use crate::messages::*;
+use crate::messages::message_type::MessageTypes;
+use crate::messages::payload::{Payloads, PayloadKinds};
+use crate::messages::thread::Thread;
+use crate::utils::{httpclient, constants};
+use crate::utils::uuid::uuid;
+use crate::error::prelude::*;
+use crate::utils::agent_info::get_agent_info;
+use crate::utils::httpclient::AgencyMock;
 
 use crate::connection::Connections;
 use crate::object_cache::Handle;
@@ -255,8 +255,8 @@ pub fn send_generic_message(connection_handle: Handle<Connections>, msg: &str, m
 #[cfg(test)]
 mod tests {
     use super::*;
-    use utils::constants::SEND_MESSAGE_RESPONSE;
-    use utils::devsetup::*;
+    use crate::utils::constants::SEND_MESSAGE_RESPONSE;
+    use crate::utils::devsetup::*;
 
     #[test]
     fn test_msgpack() {
@@ -297,7 +297,7 @@ mod tests {
     fn test_parse_send_message_bad_response() {
         let _setup = SetupMocks::init();
 
-        let result = SendMessageBuilder::create().parse_response(::utils::constants::UPDATE_PROFILE_RESPONSE.to_vec());
+        let result = SendMessageBuilder::create().parse_response(crate::utils::constants::UPDATE_PROFILE_RESPONSE.to_vec());
         assert!(result.is_err());
     }
 
@@ -329,11 +329,11 @@ mod tests {
     fn test_send_generic_message() {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
-        let (_faber, alice) = ::connection::tests::create_connected_connections();
+        let (_faber, alice) = crate::connection::tests::create_connected_connections();
 
         send_generic_message(alice, "this is the message", &json!({"msg_type":"type", "msg_title": "title", "ref_msg_id":null}).to_string()).unwrap();
 
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
         let _all_messages = get_message::download_messages(None, None, None).unwrap();
     }
 
@@ -343,16 +343,16 @@ mod tests {
     fn test_send_message_and_download_response() {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
-        let (faber, alice) = ::connection::tests::create_connected_connections();
+        let (faber, alice) = crate::connection::tests::create_connected_connections();
 
         let msg_id = send_generic_message(alice, "this is the message", &json!({"msg_type":"type", "msg_title": "title", "ref_msg_id":null}).to_string()).unwrap();
 
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
         let msg1 = get_message::download_messages(None, None, Some(vec![msg_id.clone()])).unwrap();
         println!("{}", serde_json::to_string(&msg1).unwrap());
         let msg_id_response = send_generic_message(faber, "this is the response", &json!({"msg_type":"response type", "msg_title": "test response", "ref_msg_id":msg_id}).to_string()).unwrap();
 
-        ::utils::devsetup::set_institution();
+        crate::utils::devsetup::set_institution();
         let msg1 = get_message::download_messages(None, None, Some(vec![msg_id.clone()])).unwrap();
         println!("{}", serde_json::to_string(&msg1).unwrap());
 
@@ -368,7 +368,7 @@ mod tests {
     fn test_send_generic_message_fails_with_invalid_connection() {
         let _setup = SetupMocks::init();
 
-        let handle = ::connection::tests::build_test_connection();
+        let handle = crate::connection::tests::build_test_connection();
 
         let err = send_generic_message(handle, "this is the message", &json!({"msg_type":"type", "msg_title": "title", "ref_msg_id":null}).to_string()).unwrap_err();
         assert_eq!(err.kind(), VcxErrorKind::NotReady);

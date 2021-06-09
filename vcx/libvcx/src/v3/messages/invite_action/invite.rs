@@ -1,5 +1,5 @@
-use v3::messages::a2a::{MessageId, A2AMessage};
-use v3::messages::ack::PleaseAck;
+use crate::v3::messages::a2a::{MessageId, A2AMessage};
+use crate::v3::messages::ack::PleaseAck;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Invite {

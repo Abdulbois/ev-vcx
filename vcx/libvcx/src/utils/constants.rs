@@ -9,10 +9,10 @@ pub static SCHEMA_DATA: &str = r#"{"id":"1","name":"gvt","version":"1.0","attrNa
 pub static SCHEMAS_JSON: &str = r#"{"seqNo":22,"dest":"2hoqvcwupRTUNkXn6ArYzs","data":{"name":"gvt","version":"1.0","attr_names":["address1","address2","zip","city","state"]}}"#;
 pub static SCHEMA_WITH_VERSION: &str = r#"{"data":{"data":["name","dob"],"name":"TestSchema-546716196","payment_txn":{"amount":2,"credit":false,"inputs":["pay:null:1_ceAXEYIC68WAwI3"],"outputs":[{"amount":998,"extra":null,"recipient":"pay:null:wxfQyJUZJfCijhW"}]},"schema_id":"V4SGRU86Z58d6TV7PBUe6f:2:TestSchema-546716196:0.0.0","sequence_num":0,"source_id":"Test Source ID","version":"0.0.0"},"version":"1.0"}"#;
 pub static DEFAULT_SERIALIZE_VERSION: &str = "1.0";
-pub static DEFAULT_REQ_CONNECTION_VERSION: ::settings::ProtocolTypes = ::settings::ProtocolTypes::V2;
-pub static DEFAULT_ACK_CONNECTION_VERSION: ::settings::ProtocolTypes = ::settings::ProtocolTypes::V2;
-pub static DEFAULT_CREATE_KEYS_VERSION: ::settings::ProtocolTypes = ::settings::ProtocolTypes::V2;
-pub static DEFAULT_GET_MSG_VERSION: ::settings::ProtocolTypes = ::settings::ProtocolTypes::V2;
+pub static DEFAULT_REQ_CONNECTION_VERSION: crate::settings::ProtocolTypes = crate::settings::ProtocolTypes::V2;
+pub static DEFAULT_ACK_CONNECTION_VERSION: crate::settings::ProtocolTypes = crate::settings::ProtocolTypes::V2;
+pub static DEFAULT_CREATE_KEYS_VERSION: crate::settings::ProtocolTypes = crate::settings::ProtocolTypes::V2;
+pub static DEFAULT_GET_MSG_VERSION: crate::settings::ProtocolTypes = crate::settings::ProtocolTypes::V2;
 pub static V1_OBJECT_SERIALIZE_VERSION: &str = "1.0";
 pub static V3_OBJECT_SERIALIZE_VERSION: &str = "2.0";
 pub static PENDING_OBJECT_SERIALIZE_VERSION: &str = "3.0";
@@ -183,7 +183,7 @@ pub static REV_REG_JSON: &str = r#"{"ver":"1.0","value":{"accum":"2 0204F2D2B1F2
 pub static TEST_TAILS_FILE: &str = r#"tails_file"#;
 pub static REQUEST_WITH_ENDORSER: &str = r#"{"seqNo":344,"reqId":1522866729726860308,"identifier":"VsKV7grR1BUE29mG2Fm2kX","txnTime":1516284381,"type":"101","endorser":"V4SGRU86Z58d6TV7PBUe6f"}"#;
 pub fn rev_def_json() -> String {
-    use utils::get_temp_dir_path;
+    use crate::utils::get_temp_dir_path;
     json!({
         "ver":"1.0",
         "id":"V4SGRU86Z58d6TV7PBUe6f:4:V4SGRU86Z58d6TV7PBUe6f:3:CL:1281:tag1:CL_ACCUM:tag1",

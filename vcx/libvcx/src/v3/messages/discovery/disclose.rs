@@ -1,6 +1,6 @@
-use messages::thread::Thread;
-use settings::Actors;
-use v3::messages::a2a::{MessageId, A2AMessage};
+use crate::messages::thread::Thread;
+use crate::settings::Actors;
+use crate::v3::messages::a2a::{MessageId, A2AMessage};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Disclose {
@@ -45,7 +45,7 @@ impl Disclose {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::connection::response::tests::*;
+    use crate::v3::messages::connection::response::tests::*;
 
     fn _protocol_descriptor() -> ProtocolDescriptor {
         ProtocolDescriptor { pid: String::from("did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/"), roles: None }

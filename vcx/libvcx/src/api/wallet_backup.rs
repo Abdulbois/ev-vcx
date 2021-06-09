@@ -1,11 +1,11 @@
 use libc::c_char;
-use utils::cstring::CStringUtils;
-use utils::error;
-use utils::threadpool::spawn;
-use error::prelude::*;
-use wallet_backup::{WalletBackup, create_wallet_backup, from_string, restore_wallet};
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
+use crate::utils::threadpool::spawn;
+use crate::error::prelude::*;
+use crate::wallet_backup::{WalletBackup, create_wallet_backup, from_string, restore_wallet};
 use crate::object_cache::Handle;
-use messages::get_message::Message;
+use crate::messages::get_message::Message;
 use std::ptr;
 use indy_sys::CommandHandle;
 
@@ -332,13 +332,13 @@ pub extern fn vcx_wallet_backup_restore(command_handle: u32,
 mod tests {
     use super::*;
     use std::ffi::CString;
-    use utils::error;
+    use crate::utils::error;
     use std::time::Duration;
     use crate::api::return_types;
     use std::ptr;
     use serde_json::Value;
-    use wallet_backup;
-    use utils::devsetup::SetupMocks;
+    use crate::wallet_backup;
+    use crate::utils::devsetup::SetupMocks;
 
     const PW: *const c_char = "pass_phrae\0".as_ptr().cast();
     const TEST_CREATE: *const c_char = "test_create\0".as_ptr().cast();
@@ -404,7 +404,7 @@ mod tests {
                                                Some(cb)), error::SUCCESS.code_num);
         let s = r.recv_with(Duration::from_secs(2)).unwrap().unwrap();
         let j: Value = serde_json::from_str(&s).unwrap();
-        assert_eq!(j["version"], ::utils::constants::DEFAULT_SERIALIZE_VERSION);
+        assert_eq!(j["version"], crate::utils::constants::DEFAULT_SERIALIZE_VERSION);
 
         let (h, cb, r) = return_types::return_u32_wh();
         let cstr = CString::new(s).unwrap();
@@ -428,12 +428,12 @@ mod tests {
                                  Some(cb));
         let wallet_handle = r.recv_long().unwrap();
 
-        ::utils::httpclient::AgencyMock::set_next_response(&[]);
+        crate::utils::httpclient::AgencyMock::set_next_response(&[]);
         let (h, cb, r) = return_types::return_u32_u32();
         assert_eq!(vcx_wallet_backup_update_state(h,
                                                   wallet_handle,
                                                   Some(cb)), error::SUCCESS.code_num);
         let state = r.recv_long().unwrap();
-        assert_eq!(state, ::api::WalletBackupState::InitRequested as u32)
+        assert_eq!(state, crate::api::WalletBackupState::InitRequested as u32)
     }
 }

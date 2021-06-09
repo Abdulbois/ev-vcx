@@ -1,7 +1,7 @@
-use messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, parse_message_from_response, prepare_message_for_agent_v2};
-use messages::message_type::{ MessageTypes };
-use error::{VcxResult, VcxErrorKind, VcxError};
-use utils::httpclient;
+use crate::messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, parse_message_from_response, prepare_message_for_agent_v2};
+use crate::messages::message_type::{ MessageTypes };
+use crate::error::{VcxResult, VcxErrorKind, VcxError};
+use crate::utils::httpclient;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BackupRestore {
@@ -94,15 +94,15 @@ pub struct BackupRestored {
 #[cfg(feature = "wallet_backup")]
 #[cfg(test)]
 mod tests {
-    use settings;
-    use messages::wallet_backup_restore;
-    use utils::libindy::signus::create_and_store_my_did;
-    use wallet_backup::tests::{init_backup, TestBackupData, backup_wallet_utils, RECORD_VALUE, RECORD_TYPE, ID, PATH};
+    use crate::settings;
+    use crate::messages::wallet_backup_restore;
+    use crate::utils::libindy::signus::create_and_store_my_did;
+    use crate::wallet_backup::tests::{init_backup, TestBackupData, backup_wallet_utils, RECORD_VALUE, RECORD_TYPE, ID, PATH};
     use std::fs::File;
-    use utils::libindy::wallet;
+    use crate::utils::libindy::wallet;
     use std::io::Write;
-    use utils::devsetup::{SetupLibraryWalletPoolZeroFees, SetupLibraryAgencyV2NewProvisioning, SetupDefaults};
-    use utils::libindy::wallet::delete_wallet;
+    use crate::utils::devsetup::{SetupLibraryWalletPoolZeroFees, SetupLibraryAgencyV2NewProvisioning, SetupDefaults};
+    use crate::utils::libindy::wallet::delete_wallet;
 
     pub fn restore_wallet_utils(encrypted_wallet: &[u8], wb: &TestBackupData) -> serde_json::Value {
         let wallet_name = "restored_wallet";
@@ -138,8 +138,8 @@ mod tests {
     fn test_backup_restore() {
         let _setup = SetupLibraryWalletPoolZeroFees::init();
 
-        let (agent_did, agent_vk) = create_and_store_my_did(Some(::utils::constants::MY2_SEED), None).unwrap();
-        let (_, my_vk) = create_and_store_my_did(Some(::utils::constants::MY1_SEED), None).unwrap();
+        let (agent_did, agent_vk) = create_and_store_my_did(Some(crate::utils::constants::MY2_SEED), None).unwrap();
+        let (_, my_vk) = create_and_store_my_did(Some(crate::utils::constants::MY1_SEED), None).unwrap();
         settings::set_config_value(settings::CONFIG_SDK_TO_REMOTE_VERKEY, &my_vk);
 
         let msg = wallet_backup_restore()
@@ -158,7 +158,7 @@ mod tests {
     fn test_backup_restore_no_backup_real() {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
 
         let wb = init_backup();
 
@@ -180,7 +180,7 @@ mod tests {
         {
             let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
-            ::utils::devsetup::set_consumer();
+            crate::utils::devsetup::set_consumer();
             wb = backup_wallet_utils();
 
             let backup = wallet_backup_restore()

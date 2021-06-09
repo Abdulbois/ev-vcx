@@ -1,4 +1,4 @@
-use error::prelude::*;
+use crate::error::prelude::*;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default)]
 pub struct Forward {
@@ -23,7 +23,7 @@ impl Forward {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::ack::tests::*;
+    use crate::v3::messages::ack::tests::*;
 
     fn _to() -> String {
         String::from("GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL")

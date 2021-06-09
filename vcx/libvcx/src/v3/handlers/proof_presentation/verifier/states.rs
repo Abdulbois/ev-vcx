@@ -1,20 +1,20 @@
-use api::VcxStateType;
+use crate::api::VcxStateType;
 
-use v3::handlers::proof_presentation::verifier::messages::VerifierMessages;
-use v3::messages::a2a::A2AMessage;
-use v3::messages::proof_presentation::presentation_request::{PresentationRequest, PresentationRequestData};
-use v3::messages::proof_presentation::presentation::Presentation;
-use v3::messages::proof_presentation::presentation_ack::PresentationAck;
-use v3::messages::error::{ProblemReport, ProblemReportCodes};
-use v3::messages::status::Status;
-use proof::Proof;
+use crate::v3::handlers::proof_presentation::verifier::messages::VerifierMessages;
+use crate::v3::messages::a2a::A2AMessage;
+use crate::v3::messages::proof_presentation::presentation_request::{PresentationRequest, PresentationRequestData};
+use crate::v3::messages::proof_presentation::presentation::Presentation;
+use crate::v3::messages::proof_presentation::presentation_ack::PresentationAck;
+use crate::v3::messages::error::{ProblemReport, ProblemReportCodes};
+use crate::v3::messages::status::Status;
+use crate::proof::Proof;
 
 use std::collections::HashMap;
-use error::prelude::*;
-use v3::handlers::connection::types::CompletedConnection;
-use messages::thread::Thread;
-use v3::handlers::connection::agent::AgentInfo;
-use v3::messages::proof_presentation::presentation_proposal::PresentationProposal;
+use crate::error::prelude::*;
+use crate::v3::handlers::connection::types::CompletedConnection;
+use crate::messages::thread::Thread;
+use crate::v3::handlers::connection::agent::AgentInfo;
+use crate::v3::messages::proof_presentation::presentation_proposal::PresentationProposal;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct VerifierSM {
@@ -722,14 +722,14 @@ impl VerifierSM {
 pub mod test {
     use super::*;
 
-    use utils::devsetup::SetupAriesMocks;
-    use v3::handlers::connection::tests::mock_connection;
-    use v3::test::source_id;
-    use v3::messages::proof_presentation::presentation_request::tests::_presentation_request;
-    use v3::messages::proof_presentation::presentation_request::tests::_presentation_request_data;
-    use v3::messages::proof_presentation::presentation::tests::_presentation;
-    use v3::messages::proof_presentation::presentation_proposal::tests::_presentation_proposal;
-    use v3::messages::proof_presentation::test::{_ack, _problem_report};
+    use crate::utils::devsetup::SetupAriesMocks;
+    use crate::v3::handlers::connection::tests::mock_connection;
+    use crate::v3::test::source_id;
+    use crate::v3::messages::proof_presentation::presentation_request::tests::_presentation_request;
+    use crate::v3::messages::proof_presentation::presentation_request::tests::_presentation_request_data;
+    use crate::v3::messages::proof_presentation::presentation::tests::_presentation;
+    use crate::v3::messages::proof_presentation::presentation_proposal::tests::_presentation_proposal;
+    use crate::v3::messages::proof_presentation::test::{_ack, _problem_report};
 
     pub fn _verifier_sm() -> VerifierSM {
         VerifierSM::new(_presentation_request_data(), source_id())

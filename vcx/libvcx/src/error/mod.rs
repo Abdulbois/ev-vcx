@@ -6,8 +6,8 @@ use std::ptr;
 use failure::{Context, Backtrace, Fail};
 use libc::c_char;
 
-use utils::error;
-use utils::cstring::CStringUtils;
+use crate::utils::error;
+use crate::utils::cstring::CStringUtils;
 
 pub mod agency_error;
 
@@ -300,7 +300,7 @@ pub fn err_msg<D>(kind: VcxErrorKind, msg: D) -> VcxError
 
 impl From<VcxErrorKind> for VcxError {
     fn from(kind: VcxErrorKind) -> VcxError {
-        VcxError::from_msg(kind, ::utils::error::error_message(kind.into()))
+        VcxError::from_msg(kind, crate::utils::error::error_message(kind.into()))
     }
 }
 
