@@ -1,15 +1,12 @@
-extern crate vcx;
 extern crate indyrs as indy;
-extern crate libc;
 #[macro_use]
 extern crate log;
-extern crate futures;
 
-use self::libc::{c_void, c_char};
+use libc::{c_void, c_char};
 use std::ptr::null;
 use vcx::api::logger::*;
 use vcx::utils::logger::{LOGGER_STATE, LoggerState};
-use crate::indy::wallet;
+use indy::wallet;
 use vcx::utils::cstring::CStringUtils;
 use vcx::api::logger::vcx_set_logger;
 

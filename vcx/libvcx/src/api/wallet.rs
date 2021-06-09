@@ -888,8 +888,6 @@ pub extern fn vcx_wallet_set_handle(handle: WalletHandle) -> WalletHandle {
 
 #[cfg(test)]
 pub mod tests {
-    extern crate serde_json;
-
     use super::*;
     use crate::api::return_types;
     use std::ptr;

@@ -1,8 +1,5 @@
-extern crate tokio_threadpool;
-extern crate futures;
-
-use self::tokio_threadpool::{Builder, ThreadPool};
-use self::futures::Future;
+use tokio_threadpool::{Builder, ThreadPool};
+use futures::Future;
 
 use std::sync::Once;
 use std::sync::Mutex;

@@ -1,4 +1,3 @@
-use serde_json;
 use libc::c_char;
 use crate::utils::cstring::CStringUtils;
 use crate::schema::CreateSchema;
@@ -516,9 +515,6 @@ pub extern fn vcx_schema_get_state(command_handle: CommandHandle,
 
 #[cfg(test)]
 mod tests {
-    extern crate serde_json;
-    extern crate rand;
-
     use super::*;
     #[allow(unused_imports)]
     use rand::Rng;

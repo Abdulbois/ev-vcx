@@ -1050,8 +1050,6 @@ pub extern fn vcx_disclosed_proof_release(handle: Handle<DisclosedProofs>) -> u3
 
 #[cfg(test)]
 mod tests {
-    extern crate serde_json;
-
     use super::*;
     use std::ffi::CString;
     use crate::connection;

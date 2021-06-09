@@ -1,5 +1,3 @@
-extern crate serde_json;
-
 use std::collections::HashMap;
 use std::sync::RwLock;
 use crate::utils::{get_temp_dir_path, error};

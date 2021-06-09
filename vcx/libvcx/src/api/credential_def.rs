@@ -1,4 +1,3 @@
-use serde_json;
 use crate::object_cache::Handle;
 use crate::credential_def::CredentialDef;
 use libc::c_char;
@@ -592,8 +591,6 @@ pub extern fn vcx_credentialdef_get_state(command_handle: CommandHandle,
 
 #[cfg(test)]
 mod tests {
-    extern crate serde_json;
-
     use super::*;
     use std::ffi::CString;
     use crate::settings;

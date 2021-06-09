@@ -1,4 +1,3 @@
-use serde_json;
 use libc::c_char;
 use crate::utils::cstring::CStringUtils;
 use crate::utils::error;
@@ -1059,8 +1058,6 @@ pub extern fn vcx_credential_get_problem_report(command_handle: CommandHandle,
 
 #[cfg(test)]
 mod tests {
-    extern crate serde_json;
-
     use super::*;
     use std::ffi::CString;
     use crate::connection;

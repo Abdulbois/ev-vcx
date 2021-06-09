@@ -1,8 +1,5 @@
-extern crate rust_base58;
-extern crate openssl;
-
-use self::openssl::bn::BigNum;
-use self::rust_base58::FromBase58;
+use openssl::bn::BigNum;
+use rust_base58::FromBase58;
 use crate::utils::qualifier;
 use reqwest::Url;
 use crate::error::prelude::*;

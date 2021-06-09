@@ -1,11 +1,7 @@
-extern crate vcx;
-extern crate libc;
-extern crate serde_json;
-
 use std::ptr;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use self::libc::c_char;
+use libc::c_char;
 use std::thread;
 use std::time::Duration;
 use std::ffi::CString;

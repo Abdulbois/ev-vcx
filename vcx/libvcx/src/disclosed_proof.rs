@@ -1,7 +1,5 @@
-use serde_json;
 use serde_json::Value;
 use std::collections::HashMap;
-use time;
 use std::convert::TryInto;
 use std::mem::take;
 use crate::connection::Connections;
@@ -1088,8 +1086,6 @@ pub fn get_proof_request_messages(connection_handle: Handle<Connections>, match_
 
 #[cfg(test)]
 mod tests {
-    extern crate serde_json;
-
     use super::*;
     use crate::connection;
     use serde_json::Value;

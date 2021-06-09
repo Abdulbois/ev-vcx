@@ -3,48 +3,19 @@
 //this is needed for some large json macro invocations
 #![recursion_limit = "128"]
 extern crate serde;
-extern crate rand;
-extern crate reqwest;
-extern crate openssl;
-extern crate hex;
 extern crate indyrs as indy;
-extern crate futures;
 
+// keep these as `extern` for global macros
 #[macro_use]
 extern crate log;
-
-extern crate libc;
-
 #[macro_use]
 extern crate serde_derive;
-
 #[macro_use]
 extern crate serde_json;
-
 #[macro_use]
 extern crate lazy_static;
-
-extern crate time;
-
-extern crate regex;
-
-extern crate uuid;
-
-extern crate failure;
-
-extern crate rmp_serde;
-extern crate indy_sys;
-
-extern crate base64;
-
-extern crate strum;
 #[macro_use]
 extern crate strum_macros;
-
-extern crate chrono;
-extern crate sha2;
-extern crate dashmap;
-extern crate rust_base58;
 
 #[macro_use]
 pub mod utils;
