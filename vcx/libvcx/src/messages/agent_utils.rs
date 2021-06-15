@@ -323,7 +323,7 @@ fn onboarding_v1(my_did: &str, my_vk: &str, agency_did: &str) -> VcxResult<(Stri
 
     /* STEP 1 - CONNECT */
     trace!("Sending CONNECT message");
-    AgencyMock::set_next_response(constants::CONNECTED_RESPONSE.to_vec());
+    AgencyMock::set_next_response(constants::CONNECTED_RESPONSE);
 
     let message = A2AMessage::Version1(
         A2AMessageV1::Connect(Connect::build(my_did, my_vk))
@@ -332,7 +332,7 @@ fn onboarding_v1(my_did: &str, my_vk: &str, agency_did: &str) -> VcxResult<(Stri
     let mut response = send_message_to_agency(&message, agency_did)?;
 
     let ConnectResponse { from_vk: agency_pw_vk, from_did: agency_pw_did, .. } =
-        match response.remove(0) {
+        match response.swap_remove(0) {
             A2AMessage::Version1(A2AMessageV1::ConnectResponse(resp)) => resp,
             _ => return Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of ConnectResponse"))
         };
@@ -341,7 +341,7 @@ fn onboarding_v1(my_did: &str, my_vk: &str, agency_did: &str) -> VcxResult<(Stri
 
     /* STEP 2 - REGISTER */
     trace!("Sending REGISTER message");
-    AgencyMock::set_next_response(constants::REGISTER_RESPONSE.to_vec());
+    AgencyMock::set_next_response(constants::REGISTER_RESPONSE);
 
     let message = A2AMessage::Version1(
         A2AMessageV1::SignUp(SignUp::build())
@@ -350,14 +350,14 @@ fn onboarding_v1(my_did: &str, my_vk: &str, agency_did: &str) -> VcxResult<(Stri
     let mut response = send_message_to_agency(&message, &agency_pw_did)?;
 
     let _response: SignUpResponse =
-        match response.remove(0) {
+        match response.swap_remove(0) {
             A2AMessage::Version1(A2AMessageV1::SignUpResponse(resp)) => resp,
             _ => return Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of SignUpResponse"))
         };
 
     /* STEP 3 - CREATE AGENT */
     trace!("Sending CREATE_AGENT message");
-    AgencyMock::set_next_response(constants::AGENT_CREATED.to_vec());
+    AgencyMock::set_next_response(constants::AGENT_CREATED);
 
     let message = A2AMessage::Version1(
         A2AMessageV1::CreateAgent(CreateAgent::build())
@@ -366,7 +366,7 @@ fn onboarding_v1(my_did: &str, my_vk: &str, agency_did: &str) -> VcxResult<(Stri
     let mut response = send_message_to_agency(&message, &agency_pw_did)?;
 
     let response: CreateAgentResponse =
-        match response.remove(0) {
+        match response.swap_remove(0) {
             A2AMessage::Version1(A2AMessageV1::CreateAgentResponse(resp)) => resp,
             _ => return Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of CreateAgentResponse"))
         };
@@ -435,7 +435,7 @@ fn onboarding_v2(my_did: &str, my_vk: &str, agency_did: &str) -> VcxResult<(Stri
     let mut response = send_message_to_agency(&message, &agency_pw_did)?;
 
     let _response: SignUpResponse =
-        match response.remove(0) {
+        match response.swap_remove(0) {
             A2AMessage::Version2(A2AMessageV2::SignUpResponse(resp)) => resp,
             _ => return Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of SignUpResponse"))
         };
@@ -449,7 +449,7 @@ fn onboarding_v2(my_did: &str, my_vk: &str, agency_did: &str) -> VcxResult<(Stri
     let mut response = send_message_to_agency(&message, &agency_pw_did)?;
 
     let response: CreateAgentResponse =
-        match response.remove(0) {
+        match response.swap_remove(0) {
             A2AMessage::Version2(A2AMessageV2::CreateAgentResponse(resp)) => resp,
             _ => return Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of CreateAgentResponse"))
         };
@@ -477,7 +477,7 @@ pub fn update_agent_info(com_method: ComMethod) -> VcxResult<()> {
 fn update_agent_info_v1(to_did: &str, com_method: ComMethod) -> VcxResult<()> {
     trace!("Updating agent information V1");
 
-    AgencyMock::set_next_response(constants::REGISTER_RESPONSE.to_vec());
+    AgencyMock::set_next_response(constants::REGISTER_RESPONSE);
 
     let message = A2AMessage::Version1(
         A2AMessageV1::UpdateComMethod(

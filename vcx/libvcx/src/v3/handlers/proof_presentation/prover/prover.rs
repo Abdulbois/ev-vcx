@@ -187,10 +187,10 @@ impl Prover {
                 self.step(ProverMessages::ProposePresentation((connection_handle, presentation_preview)))
             }
             (None, None) => {
-                return Err(VcxError::from_msg(VcxErrorKind::InvalidOption, "Either `reason` or `proposal` parameter must be specified."));
+                return Err(VcxError::from_msg(VcxErrorKind::IncompatibleParameters, "Either `reason` or `proposal` parameter must be specified."));
             }
             (Some(_), Some(_)) => {
-                return Err(VcxError::from_msg(VcxErrorKind::InvalidOption, "Only one of `reason` or `proposal` parameters must be specified."));
+                return Err(VcxError::from_msg(VcxErrorKind::IncompatibleParameters, "Only one of `reason` or `proposal` parameters must be specified."));
             }
         }
     }
