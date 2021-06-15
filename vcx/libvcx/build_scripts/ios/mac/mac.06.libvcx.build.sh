@@ -56,12 +56,6 @@ for target in ${targets[*]}
 do
     if [ "${target}" = "aarch64-apple-ios" ]; then
         target_arch="arm64"
-    elif [ "${target}" = "armv7-apple-ios" ]; then
-        target_arch="armv7"
-    elif [ "${target}" = "armv7s-apple-ios" ]; then
-        target_arch="armv7s"
-    elif [ "${target}" = "i386-apple-ios" ]; then
-        target_arch="i386"
     elif [ "${target}" = "x86_64-apple-ios" ]; then
         target_arch="x86_64"
     fi
@@ -78,10 +72,14 @@ do
         mv ${libindy_dir}/${target_arch}/libindy_libtool.a ${libindy_dir}/${target_arch}/libindy.a
     fi
 
-    export OPENSSL_LIB_DIR=$WORK_DIR/OpenSSL-for-iPhone/lib/${target_arch}
+    
     export IOS_SODIUM_LIB=$WORK_DIR/libzmq-ios/libsodium-ios/dist/ios/lib/${target_arch}
     export IOS_ZMQ_LIB=$WORK_DIR/libzmq-ios/dist/ios/lib/${target_arch}
     export LIBINDY_DIR=${libindy_dir}/${target_arch}
+
+    export OPENSSL_LIB_DIR=${WORK_DIR}/OpenSSL-for-iPhone/lib/
+    export OPENSSL_INCLUDE_DIR=${WORK_DIR}/OpenSSL-for-iPhone/include/
+    export OPENSSL_DIR=${WORK_DIR}/OpenSSL-for-iPhone/bin
 
     cargo build --target "${target}" --release --no-default-features --features "ci"
     to_combine="${to_combine} ./target/${target}/release/libvcx.a"
@@ -89,8 +87,5 @@ do
 done
 mkdir -p ./target/universal/release
 lipo -create $to_combine -o ./target/universal/release/libvcx.a
-
-# echo "Copying iOS target folder into directory: $(abspath "${BUILD_CACHE}")"
-# cp -rfp ./target ${BUILD_CACHE}
 
 export OPENSSL_LIB_DIR=$OPENSSL_LIB_DIR_DARWIN
