@@ -27,15 +27,16 @@ setup_env() {
 
     cd ${SCRIPTS_PATH}
 
+    mkdir -p "${BASE_DIR}/.macosbuild"
+    cp -rf ~/OpenSSL-for-iPhone "${BASE_DIR}/.macosbuild"
+    cp -rf ~/libzmq-ios "${BASE_DIR}/.macosbuild"
+    cp -rf ~/combine-libs "${BASE_DIR}/.macosbuild"
+
     ./mac.01.libindy.setup.sh ${RUST_VERSION}
     ./mac.02.libindy.env.sh
-    ./mac.03.libindy.build.sh
-    #./mac.04.libvcx.setup.sh
+    ./mac.03.libindy.build.sh nodebug "${IOS_TARGETS}" cleanbuild
     ./mac.05.libvcx.env.sh
 
-    cp -rf ~/OpenSSL-for-iPhone ${BASE_DIR}/.macosbuild
-    cp -rf ~/libzmq-ios ${BASE_DIR}/.macosbuild
-    cp -rf ~/combine-libs ${BASE_DIR}/.macosbuild
 }
 
 check_params() {
@@ -46,6 +47,7 @@ check_params() {
         exit 1
     fi
 }
+
 set_ios_platforms() {
    export IOS_ARCHS="$1"
    export IOS_TARGETS="$2"
@@ -53,13 +55,13 @@ set_ios_platforms() {
 
 clear_previous_builds() {
     # clear previous builds from jenkins machine
-    if [ ! -z "$(ls -A /Users/jenkins/IOSBuilds/libvcxpartial/)" ]; then
-       echo "deleting old libvcxpartial builds"
-       rm /Users/jenkins/IOSBuilds/libvcxpartial/*
+    if [ ! -z "$(ls -A /Users/jenkins/IOSBuilds/libvcxarm64/)" ]; then
+       echo "deleting old libvcxarm64 builds"
+       rm /Users/jenkins/IOSBuilds/libvcxarm64/*
     fi
-    if [ ! -z "$(ls -A /Users/jenkins/IOSBuilds/libvcxall/)" ]; then
-       echo "deleting old libvcxall builds"
-       rm /Users/jenkins/IOSBuilds/libvcxall/*
+    if [ ! -z "$(ls -A /Users/jenkins/IOSBuilds/libvcxx86_64/)" ]; then
+       echo "deleting old libvcxx86_64 builds"
+       rm /Users/jenkins/IOSBuilds/libvcxx86_64/*
     fi
 }
 
@@ -81,11 +83,21 @@ build_cocoapod() {
 
 VCX_VERSION=''
 vcx_version VCX_VERSION
-set_ios_platforms "arm64,x86_64" "aarch64-apple-ios,x86_64-apple-ios"
+
+# Build only for arm64
+set_ios_platforms "arm64" "aarch64-apple-ios"
 setup_env $@
 clear_previous_builds
 build_vcx ${IOS_TARGETS}
-build_cocoapod libvcxall ${IOS_ARCHS} ${VCX_VERSION}
+build_cocoapod libvcxarm64 ${IOS_ARCHS} ${VCX_VERSION}
 
-set_ios_platforms "arm64" "aarch64-apple-ios"
-build_cocoapod libvcxpartial ${IOS_ARCHS} ${VCX_VERSION}
+# reset directory
+cd ../../../../../
+echo $PWD
+
+# Build for x86_64 arch separately
+set_ios_platforms "x86_64" "x86_64-apple-ios"
+setup_env $@
+clear_previous_builds
+build_vcx ${IOS_TARGETS}
+build_cocoapod libvcxx86_64 ${IOS_ARCHS} ${VCX_VERSION}

@@ -19,7 +19,6 @@ if [ "$#" -gt 0 ]; then
     fi
 
     if [ -d $WORK_DIR/vcx-indy-sdk ]; then
-        #rm -rf $WORK_DIR/vcx-indy-sdk
         cd $WORK_DIR/vcx-indy-sdk
     else
         git clone https://github.com/hyperledger/indy-sdk.git $WORK_DIR/vcx-indy-sdk
@@ -33,8 +32,6 @@ if [ "$#" -gt 0 ]; then
         git clean -fd
         git pull
         git checkout `cat $SHA_HASH_DIR/libindy.commit.sha1.hash.txt`
-        #cd $WORK_DIR/vcx-indy-sdk
-        #git checkout tags/v1.3.0
     else
         git checkout -- libindy/Cargo.toml
         git checkout -- libnullpay/Cargo.toml
@@ -72,9 +69,26 @@ if [ "$#" -gt 0 ]; then
         # cargo update
     fi
 
-    cargo lipo --release --targets="${IOS_TARGETS}"
+    if [ ! -f "$WORK_DIR/OpenSSL-for-iPhone/lib/libssl_universal.a" ]; then
+        mv ${WORK_DIR}/OpenSSL-for-iPhone/lib/libssl.a ${WORK_DIR}/OpenSSL-for-iPhone/lib/libssl_universal.a
+        mv ${WORK_DIR}/OpenSSL-for-iPhone/lib/libcrypto.a ${WORK_DIR}/OpenSSL-for-iPhone/lib/libcrypto_universal.a
+    fi
+
+    ARCH="arm64"
+    if [ "$IOS_TARGETS" = "x86_64-apple-ios" ]; then
+        ARCH="x86_64"
+    fi
+
+    mv ${WORK_DIR}/OpenSSL-for-iPhone/lib/${ARCH}/libssl.a ${WORK_DIR}/OpenSSL-for-iPhone/lib/libssl.a
+    mv ${WORK_DIR}/OpenSSL-for-iPhone/lib/${ARCH}/libcrypto.a ${WORK_DIR}/OpenSSL-for-iPhone/lib/libcrypto.a
+
+    export OPENSSL_LIB_DIR=${WORK_DIR}/OpenSSL-for-iPhone/lib/
+    export OPENSSL_INCLUDE_DIR=${WORK_DIR}/OpenSSL-for-iPhone/include/
+    export OPENSSL_DIR=${WORK_DIR}/OpenSSL-for-iPhone/bin
+
+    cargo lipo --release --targets "${IOS_TARGETS}"
     mkdir -p ${BUILD_CACHE}/libindy/${LIBINDY_VERSION}
-    cp $WORK_DIR/vcx-indy-sdk/libindy/target/universal/release/libindy.a ${BUILD_CACHE}/libindy/${LIBINDY_VERSION}/libindy.a
+    cp ${WORK_DIR}/vcx-indy-sdk/libindy/target/universal/release/libindy.a ${BUILD_CACHE}/libindy/${LIBINDY_VERSION}/libindy.a
     for hfile in $(find ${WORK_DIR}/vcx-indy-sdk/libindy -name "*.h")
     do
         cp ${hfile} ${BUILD_CACHE}/libindy/${LIBINDY_VERSION}
@@ -94,38 +108,37 @@ else
         rm ${LIBINDY_VERSION}-${LIBINDY_FILE}
     fi
 
+fi
 
-    #########################################################################################################################
-    # Now setup libsovtoken
-    #########################################################################################################################
+#########################################################################################################################
+# Now setup libsovtoken
+#########################################################################################################################
 
-    if [ -e ${BUILD_CACHE}/libsovtoken-ios/${LIBSOVTOKEN_VERSION}/libsovtoken/universal/libsovtoken.a ]; then
-        echo "libsovtoken build for ios already exist"
-    else
-        mkdir -p ${BUILD_CACHE}/libsovtoken-ios/${LIBSOVTOKEN_VERSION}
-        cd ${BUILD_CACHE}/libsovtoken-ios/${LIBSOVTOKEN_VERSION}
-        curl --insecure -o ${LIBSOVTOKEN_VERSION}-${LIBSOVTOKEN_FILE} ${LIBSOVTOKEN_IOS_BUILD_URL}
-        unzip ${LIBSOVTOKEN_VERSION}-${LIBSOVTOKEN_FILE}
-        # Deletes extra folders that we don't need
-        rm -rf __MACOSX
-        rm ${LIBSOVTOKEN_VERSION}-${LIBSOVTOKEN_FILE}
-    fi
+if [ -e ${BUILD_CACHE}/libsovtoken-ios/${LIBSOVTOKEN_VERSION}/libsovtoken/universal/libsovtoken.a ]; then
+    echo "libsovtoken build for ios already exist"
+else
+    mkdir -p ${BUILD_CACHE}/libsovtoken-ios/${LIBSOVTOKEN_VERSION}
+    cd ${BUILD_CACHE}/libsovtoken-ios/${LIBSOVTOKEN_VERSION}
+    curl --insecure -o ${LIBSOVTOKEN_VERSION}-${LIBSOVTOKEN_FILE} ${LIBSOVTOKEN_IOS_BUILD_URL}
+    unzip ${LIBSOVTOKEN_VERSION}-${LIBSOVTOKEN_FILE}
+    # Deletes extra folders that we don't need
+    rm -rf __MACOSX
+    rm ${LIBSOVTOKEN_VERSION}-${LIBSOVTOKEN_FILE}
+fi
 
-    #########################################################################################################################
-    # Now setup libnullpay
-    #########################################################################################################################
+#########################################################################################################################
+# Now setup libnullpay
+#########################################################################################################################
 
-    if [ -e ${BUILD_CACHE}/libnullpay/${LIBNULLPAY_VERSION}/libnullpay.a ]; then
-        echo "libnullpay build for ios already exist"
-    else
-        mkdir -p ${BUILD_CACHE}/libnullpay/${LIBNULLPAY_VERSION}
-        cd ${BUILD_CACHE}/libnullpay/${LIBNULLPAY_VERSION}
-        curl -o ${LIBNULLPAY_VERSION}-${LIBNULLPAY_FILE} $LIBNULLPAY_IOS_BUILD_URL
-        tar -xvzf ${LIBNULLPAY_VERSION}-${LIBNULLPAY_FILE}
+if [ -e ${BUILD_CACHE}/libnullpay/${LIBNULLPAY_VERSION}/libnullpay.a ]; then
+    echo "libnullpay build for ios already exist"
+else
+    mkdir -p ${BUILD_CACHE}/libnullpay/${LIBNULLPAY_VERSION}
+    cd ${BUILD_CACHE}/libnullpay/${LIBNULLPAY_VERSION}
+    curl -o ${LIBNULLPAY_VERSION}-${LIBNULLPAY_FILE} $LIBNULLPAY_IOS_BUILD_URL
+    tar -xvzf ${LIBNULLPAY_VERSION}-${LIBNULLPAY_FILE}
 
-        # Deletes extra folders that we don't need
-        rm -rf __MACOSX
-        rm ${LIBNULLPAY_VERSION}-${LIBNULLPAY_FILE}
-    fi
-
+    # Deletes extra folders that we don't need
+    rm -rf __MACOSX
+    rm ${LIBNULLPAY_VERSION}-${LIBNULLPAY_FILE}
 fi
