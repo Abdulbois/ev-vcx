@@ -127,6 +127,7 @@ impl_error! {
     INVALID_PROVISION_TOKEN: 1107 => "Token provided by sponsor is invalid",
     INVALID_DID_DOC: 1108 => "The format of DIDDoc is invalid",
     MESSAGE_IS_OUT_OF_THREAD: 1109 => "The format of DIDDoc is invalid",
+    INCOMPATIBLE_PARAMETERS: 1111 => "Passed a combination of incompatible parameters",
 }
 
 /// Returns the corresponding message for the provided error code _without_ a null terminator
