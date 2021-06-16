@@ -3,6 +3,7 @@ use messages::thread::Thread;
 use v3::messages::committedanswer::question::{Question, QuestionResponse};
 use error::VcxResult;
 use utils::libindy::crypto;
+#[cfg(any(not(test)))]
 use chrono::Utc;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -67,6 +68,16 @@ impl Default for Answer {
 }
 
 impl Default for ResponseSignature {
+    #[cfg(all(test))]
+    fn default() -> ResponseSignature {
+        ResponseSignature {
+            signature: Default::default(),
+            sig_data: Default::default(),
+            timestamp: "111".to_string()
+        }
+    }
+
+    #[cfg(any(not(test)))]
     fn default() -> ResponseSignature {
         ResponseSignature {
             signature: Default::default(),
@@ -106,7 +117,7 @@ pub mod tests {
 
         assert_eq!(_answer(), answer);
 
-        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/committedanswer/1.0/answer","response.@sig":{"sig_data":"","signature":"","timestamp":""},"~thread":{"received_orders":{},"sender_order":0,"thid":"test_id"}}"#;
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/committedanswer/1.0/answer","response.@sig":{"sig_data":"","signature":"","timestamp":"111"},"~thread":{"received_orders":{},"sender_order":0,"thid":"test_id"}}"#;
         assert_eq!(expected, json!(answer.to_a2a_message()).to_string());
     }
 }
