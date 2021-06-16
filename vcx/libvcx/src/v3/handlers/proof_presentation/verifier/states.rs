@@ -27,7 +27,7 @@ impl VerifierSM {
         VerifierSM {
             source_id,
             state: VerifierState::Initiated(
-                InitialState { presentation_request_data: presentation_request}
+                InitialState { presentation_request_data: presentation_request }
             ),
         }
     }
@@ -50,9 +50,9 @@ impl VerifierSM {
                 PresentationProposalReceivedState {
                     presentation_proposal,
                     connection: None,
-                    thread
+                    thread,
                 }
-            )
+            ),
         }
     }
 }
@@ -150,7 +150,7 @@ impl From<(PresentationRequestPreparedState, PresentationProposal, Thread)> for 
         PresentationProposalReceivedState {
             presentation_proposal: proposal,
             connection: state.connection,
-            thread
+            thread,
         }
     }
 }
@@ -387,7 +387,7 @@ impl VerifierSM {
             VerifierState::Initiated(state) => {
                 match message {
                     VerifierMessages::SendPresentationRequest(connection_handle) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
 
                         let presentation_request: PresentationRequestData =
                             state.presentation_request_data.clone()
@@ -396,6 +396,7 @@ impl VerifierSM {
                         let presentation_request =
                             PresentationRequest::create()
                                 .set_comment(presentation_request.name.clone())
+                                .set_service(connection.service()?)
                                 .set_request_presentations_attach(&presentation_request)?;
 
                         let thread = Thread::new()
@@ -423,13 +424,16 @@ impl VerifierSM {
             VerifierState::PresentationRequestPrepared(state) => {
                 match message {
                     VerifierMessages::SetConnection(connection_handle) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
                         VerifierState::PresentationRequestPrepared((state, connection).into())
                     }
                     VerifierMessages::SendPresentationRequest(connection_handle) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
 
-                        let presentation_request = state.presentation_request.clone();
+
+                        let presentation_request =
+                            state.presentation_request.clone()
+                                .set_service(connection.service()?);
 
                         let thread = Thread::new()
                             .set_thid(presentation_request.id.to_string())
@@ -510,7 +514,7 @@ impl VerifierSM {
                                         .set_thread(thread.clone());
 
                                 state.connection.data.send_message(&problem_report.to_a2a_message(), &state.connection.agent)?;
-                                return Err(err)
+                                return Err(err);
                             }
                         }
                     }
@@ -534,10 +538,11 @@ impl VerifierSM {
             VerifierState::PresentationProposalReceived(state) => {
                 match message {
                     VerifierMessages::RequestPresentation(connection_handle, presentation_request_data) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
 
                         let thread = state.thread.clone()
                             .update_received_order(&connection.data.did_doc.id)
+                            .set_opt_pthid(connection.data.thread.pthid.clone())
                             .increment_sender_order();
 
                         let presentation_request: PresentationRequestData =
@@ -548,7 +553,34 @@ impl VerifierSM {
                             PresentationRequest::create()
                                 .set_comment(presentation_request.name.clone())
                                 .set_request_presentations_attach(&presentation_request)?
-                                .set_thread(thread.clone());
+                                .set_thread(thread.clone())
+                                .set_service(connection.service()?);
+
+                        connection.data.send_message(&presentation_request.to_a2a_message(), &connection.agent)?;
+                        VerifierState::PresentationRequestSent((state, presentation_request, connection, thread).into())
+                    }
+                    VerifierMessages::SendPresentationRequest(connection_handle) => {
+                        let connection = connection_handle.get_completed_connection()?;
+
+                        let thread = state.thread.clone()
+                            .update_received_order(&connection.data.did_doc.id)
+                            .set_opt_pthid(connection.data.thread.pthid.clone())
+                            .increment_sender_order();
+
+                        let presentation_request =
+                            PresentationRequestData::create()
+                                .set_name(state.presentation_proposal.comment.clone().unwrap_or_default())
+                                .set_requested_attributes_value(state.presentation_proposal.to_proof_request_requested_attributes())
+                                .set_requested_predicates_value(state.presentation_proposal.to_proof_request_requested_predicates())
+                                .set_nonce()?
+                                .set_format_version_for_did(&connection.agent.pw_did, &connection.data.did_doc.id)?;
+
+                        let presentation_request =
+                            PresentationRequest::create()
+                                .set_comment(presentation_request.name.clone())
+                                .set_request_presentations_attach(&presentation_request)?
+                                .set_thread(thread.clone())
+                                .set_service(connection.service()?);
 
                         connection.data.send_message(&presentation_request.to_a2a_message(), &connection.agent)?;
                         VerifierState::PresentationRequestSent((state, presentation_request, connection, thread).into())
@@ -617,11 +649,11 @@ impl VerifierSM {
         match self.state {
             VerifierState::Initiated(ref state) => Ok(&state.presentation_request_data),
             VerifierState::PresentationRequestPrepared(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                                                            format!("Verifier object {} in state {} not ready to get Presentation Request Data message", self.source_id, self.state()))),
+                                                                                    format!("Verifier object {} in state {} not ready to get Presentation Request Data message", self.source_id, self.state()))),
             VerifierState::PresentationRequestSent(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
                                                                                 format!("Verifier object {} in state {} not ready to get Presentation Request Data message", self.source_id, self.state()))),
             VerifierState::PresentationProposalReceived(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                                                format!("Verifier object {} in state {} not ready to get Presentation Request Data message", self.source_id, self.state()))),
+                                                                                     format!("Verifier object {} in state {} not ready to get Presentation Request Data message", self.source_id, self.state()))),
             VerifierState::Finished(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
                                                                  format!("Verifier object {} in state {} not ready to get Presentation Request Data message", self.source_id, self.state()))),
         }
@@ -632,7 +664,7 @@ impl VerifierSM {
             VerifierState::Initiated(_) => Err(VcxError::from_msg(VcxErrorKind::InvalidState, "Could not get Presentation Request message. VerifierSM is not in appropriate state.")),
             VerifierState::PresentationRequestPrepared(ref state) => Ok(state.presentation_request.clone()),
             VerifierState::PresentationProposalReceived(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                                                format!("Verifier object {} in state {} not ready to get Presentation Request Data message", self.source_id, self.state()))),
+                                                                                     format!("Verifier object {} in state {} not ready to get Presentation Request Data message", self.source_id, self.state()))),
             VerifierState::PresentationRequestSent(ref state) => Ok(state.presentation_request.clone()),
             VerifierState::Finished(ref state) => Ok(state.presentation_request.clone()),
         }
@@ -647,7 +679,7 @@ impl VerifierSM {
             VerifierState::PresentationRequestSent(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
                                                                                 format!("Verifier object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
             VerifierState::PresentationProposalReceived(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                                                format!("Verifier object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
+                                                                                     format!("Verifier object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
             VerifierState::Finished(ref state) => {
                 state.presentation.clone()
                     .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Verifier object state: `presentation` not found", self.source_id)))
@@ -662,10 +694,10 @@ impl VerifierSM {
             VerifierState::PresentationRequestPrepared(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
                                                                                     format!("Verifier object {} in state {} not ready to get Presentation proposal message", self.source_id, self.state()))),
             VerifierState::PresentationRequestSent(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                                  format!("Verifier object {} in state {} not ready to get Presentation proposal message", self.source_id, self.state()))),
+                                                                                format!("Verifier object {} in state {} not ready to get Presentation proposal message", self.source_id, self.state()))),
             VerifierState::PresentationProposalReceived(ref state) => Ok(state.presentation_proposal.clone()),
             VerifierState::Finished(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                                  format!("Verifier object {} in state {} not ready to get Presentation proposal message", self.source_id, self.state()))),
+                                                                 format!("Verifier object {} in state {} not ready to get Presentation proposal message", self.source_id, self.state()))),
         }
     }
 

@@ -46,6 +46,8 @@ pub enum VcxErrorKind {
     AlreadyInitialized,
     #[fail(display = "Action is not supported")]
     ActionNotSupported,
+    #[fail(display = "Passed a combination of incompatible parameters")]
+    IncompatibleParameters,
 
     // Connection
     #[fail(display = "Could not store Connection object into the Object Cache")]
@@ -259,15 +261,12 @@ impl Fail for VcxError {
 
 impl fmt::Display for VcxError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut first = true;
-
-        for cause in Fail::iter_chain(&self.inner) {
-            if first {
-                first = false;
-                writeln!(f, "Error: {}", cause)?;
-            } else {
-                writeln!(f, "  Caused by: {}", cause)?;
-            }
+        let mut causes = <dyn Fail>::iter_chain(&self.inner);
+        if let Some(first_cause) = causes.next() {
+            writeln!(f, "Error: {}", first_cause)?;
+        }
+        for cause in causes {
+            writeln!(f, "  Caused by: {}", cause)?;
         }
 
         Ok(())
@@ -303,7 +302,7 @@ pub fn err_msg<D>(kind: VcxErrorKind, msg: D) -> VcxError
 
 impl From<VcxErrorKind> for VcxError {
     fn from(kind: VcxErrorKind) -> VcxError {
-        VcxError::from_msg(kind, ::utils::error::error_message(&kind.clone().into()))
+        VcxError::from_msg(kind, ::utils::error::error_message(kind.into()))
     }
 }
 
@@ -404,6 +403,7 @@ impl From<VcxErrorKind> for u32 {
             VcxErrorKind::InvalidAgencyRequest => error::INVALID_AGENCY_REQUEST.code_num,
             VcxErrorKind::MissingBackupKey => error::MISSING_BACKUP_KEY.code_num,
             VcxErrorKind::ActionNotSupported => error::ACTION_NOT_SUPPORTED.code_num,
+            VcxErrorKind::IncompatibleParameters => error::INCOMPATIBLE_PARAMETERS.code_num,
             VcxErrorKind::Common(num) => num,
             VcxErrorKind::LibndyError(num) => num,
             VcxErrorKind::CreateWalletBackup => error::CREATE_WALLET_BACKUP.code_num,
@@ -461,7 +461,7 @@ pub fn set_current_error(err: &VcxError) {
         let error_json = json!({
             "error": err.kind().to_string(),
             "message": err.to_string(),
-            "cause": Fail::find_root_cause(err).to_string(),
+            "cause": <dyn Fail>::find_root_cause(err).to_string(),
             "backtrace": err.backtrace().map(|bt| bt.to_string())
         }).to_string();
         error.replace(Some(CStringUtils::string_to_cstring(error_json)));

@@ -194,8 +194,8 @@ pub fn list_addresses() -> VcxResult<Vec<String>> {
 }
 
 fn is_valid_address(address: &str, method: &str) -> bool {
-    let prefix = format!("pay:{}", method);
-    address.starts_with(&prefix)
+    static PAY: &str = "pay:";
+    address.starts_with(PAY) && address[PAY.len()..].starts_with(method)
 }
 
 pub fn get_wallet_token_info() -> VcxResult<WalletInfo> {
@@ -212,7 +212,7 @@ pub fn get_wallet_token_info() -> VcxResult<WalletInfo> {
             debug!("getting address info for {}", address);
             let info = get_address_info(&address)?;
 
-            for utxo in info.utxo.iter() { balance += utxo.amount as u64; }
+            balance += _address_balance(&info.utxo);
 
             wallet_info.push(info);
         } else {
@@ -277,7 +277,7 @@ pub fn send_transaction(req: &str, txn_action: (&str, &str, &str, Option<&str>, 
     }
 }
 
-fn _serialize_inputs_and_outputs(inputs: &Vec<String>, outputs: &Vec<Output>) -> VcxResult<(String, String)> {
+fn _serialize_inputs_and_outputs(inputs: &[String], outputs: &[Output]) -> VcxResult<(String, String)> {
     let inputs = ::serde_json::to_string(inputs)
         .to_vcx(VcxErrorKind::SerializationError, "Cannot serialize inputs")?;
     let outputs = ::serde_json::to_string(outputs)
@@ -291,7 +291,7 @@ fn _submit_request(req: &str) -> VcxResult<String> {
     libindy_sign_and_submit_request(&did, req)
 }
 
-fn _submit_request_with_fees(req: &str, inputs: &Vec<String>, outputs: &Vec<Output>) -> VcxResult<(String, String)> {
+fn _submit_request_with_fees(req: &str, inputs: &[String], outputs: &[Output]) -> VcxResult<(String, String)> {
     let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID)?;
 
     let (inputs, outputs) = _serialize_inputs_and_outputs(inputs, outputs)?;
@@ -428,8 +428,8 @@ fn get_requester_info(requester_info_json: Option<String>) -> VcxResult<String> 
     Ok(res)
 }
 
-fn _address_balance(address: &Vec<UTXO>) -> u64 {
-    address.iter().fold(0, |balance, utxo| balance + utxo.amount)
+fn _address_balance(address: &[UTXO]) -> u64 {
+    address.iter().map(|utxo| utxo.amount).sum()
 }
 
 pub fn inputs(cost: u64) -> VcxResult<(u64, Vec<String>, String)> {

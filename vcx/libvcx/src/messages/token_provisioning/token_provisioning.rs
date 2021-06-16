@@ -6,6 +6,7 @@ use utils::httpclient;
 use settings::ProtocolTypes;
 use settings::ProtocolTypes::V2;
 
+pub static VALID_SIGNATURE_ALGORITHMS: [&'static str; 2] = ["SafetyNet", "DeviceCheck"];
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TokenRequest {
@@ -94,12 +95,12 @@ impl TokenRequestBuilder {
         prepare_message_for_agency(&message, &agency_did, &ProtocolTypes::V3)
     }
 
-    fn parse_response(&self, response: &Vec<u8>) -> VcxResult<String> {
+    fn parse_response(&self, response: &[u8]) -> VcxResult<String> {
         trace!("TokenRequestBuilder::parse_response >>>");
 
-        let mut response = parse_response_from_agency(response, &ProtocolTypes::V2)?;
+        let response = parse_response_from_agency(response, &ProtocolTypes::V2)?;
 
-        match response.remove(0) {
+        match response.first().ok_or_else(|| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "No agency responses"))? {
             A2AMessage::Version1(_) => {
                 Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response expected to be of version 2"))
             },
@@ -128,7 +129,7 @@ pub fn provision(my_config: Config, sponsee_id: &str, sponsor_id: &str, com_meth
     Ok(token)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "agency", feature = "pool_tests"))]
 mod tests {
     use super::*;
     use settings;
@@ -138,8 +139,6 @@ mod tests {
     use utils::libindy::wallet::delete_wallet;
     use messages::agent_utils::parse_config;
 
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
     #[test]
     fn test_token_provisioning() {
         cleanup_indy_env();

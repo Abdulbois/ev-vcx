@@ -33,29 +33,7 @@ public class UtilsApi extends VcxJava.API {
     /**
      * Provision an agent in the agency, populate configuration and wallet for this agent.
      *
-     * @param  config         provisioning configuration.
-     *       {
-     *         protocol_type: String
-     *         agency_url: String,
-     *         pub agency_did: String,
-     *         agency_verkey: String,
-     *         wallet_name: Option(String),
-     *         wallet_key: String,
-     *         wallet_type: Option(String),
-     *         agent_seed: Option(String),
-     *         enterprise_seed: Option(String),
-     *         wallet_key_derivation: Option(String),
-     *         name: Option(String),
-     *         logo: Option(String),
-     *         path: Option(String),
-     *         storage_config: Option(String),
-     *         storage_credentials: Option(String),
-     *         pool_config: Option(String),
-     *         did_method: Option(String),
-     *         communication_method: Option(String),
-     *         webhook_url: Option(String),
-     *         use_latest_protocols: Option(String),
-     *      }
+     * @param  config         Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
      *
      * @return                populated config that can be used for library initialization.
      */
@@ -71,29 +49,7 @@ public class UtilsApi extends VcxJava.API {
     /**
      * Provision an agent in the agency, populate configuration and wallet for this agent.
      *
-     * @param  conf           provisioning configuration.
-     *       {
-     *         protocol_type: String
-     *         agency_url: String,
-     *         pub agency_did: String,
-     *         agency_verkey: String,
-     *         wallet_name: Option(String),
-     *         wallet_key: String,
-     *         wallet_type: Option(String),
-     *         agent_seed: Option(String),
-     *         enterprise_seed: Option(String),
-     *         wallet_key_derivation: Option(String),
-     *         name: Option(String),
-     *         logo: Option(String),
-     *         path: Option(String),
-     *         storage_config: Option(String),
-     *         storage_credentials: Option(String),
-     *         pool_config: Option(String),
-     *         did_method: Option(String),
-     *         communication_method: Option(String),
-     *         webhook_url: Option(String),
-     *         use_latest_protocols: Option(String),
-     *      }
+     * @param  conf           Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
      *
      * @return                populated config that can be used for library initialization.
      *
@@ -114,39 +70,19 @@ public class UtilsApi extends VcxJava.API {
     /**
      * Provision an agent in the agency, populate configuration and wallet for this agent.
      *
-     * @param  config           provisioning configuration.
-     *       {
-     *         protocol_type: String
-     *         agency_url: String,
-     *         pub agency_did: String,
-     *         agency_verkey: String,
-     *         wallet_name: Option(String),
-     *         wallet_key: String,
-     *         wallet_type: Option(String),
-     *         agent_seed: Option(String),
-     *         enterprise_seed: Option(String),
-     *         wallet_key_derivation: Option(String),
-     *         name: Option(String),
-     *         logo: Option(String),
-     *         path: Option(String),
-     *         storage_config: Option(String),
-     *         storage_credentials: Option(String),
-     *         pool_config: Option(String),
-     *         did_method: Option(String),
-     *         communication_method: Option(String),
-     *         webhook_url: Option(String),
-     *         use_latest_protocols: Option(String),
-     *      }
+     * @param  config         Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
      * @param  token          provisioning token.
      *      {
      *          This can be a push notification endpoint to contact the sponsee or
      *          an id that the sponsor uses to reference the sponsee in its backend system
-     *          "sponsee_id": String,
-     *          "sponsor_id": String, //Persistent Id of the Enterprise sponsoring the provisioning
+     *          "sponseeId": String,
+     *          "sponsorId": String, //Persistent Id of the Enterprise sponsoring the provisioning
      *          "nonce": String,
      *          "timestamp": String,
      *          "sig": String, // Base64Encoded(sig(nonce + timestamp + id))
-     *          "sponsor_vk": String,
+     *          "sponsorVerKey": String,
+     *          "attestationAlgorithm": Optional[String], // device attestation signature algorithm. Can be one of: SafetyNet | DeviceCheck
+     *          "attestationData": Optional[String], // device attestation signature matching to specified algorithm
      *        }
      *
      * @return                populated config that can be used for library initialization.
@@ -164,6 +100,32 @@ public class UtilsApi extends VcxJava.API {
         return result;
     }
 
+    /**
+     * Provision an agent in the agency, populate configuration and wallet for this agent.
+     *
+     * @param  conf           Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+     *
+     * @return                populated config that can be used for library initialization.
+     *
+     * @throws VcxException   If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> vcxAgentProvisionWithTokenAsync(String config, String token) throws VcxException {
+        ParamGuard.notNullOrWhiteSpace(config, "config");
+        ParamGuard.notNullOrWhiteSpace(token, "token");
+
+        CompletableFuture<String> future = new CompletableFuture<String>();
+        logger.debug("vcxAgentProvisionWithTokenAsync() called with: config = [****], token = [****]");
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_provision_agent_with_token_async(
+                commandHandle,
+                config,
+                token,
+                provAsyncCB);
+        checkResult(result);
+        return future;
+    }
+
     private static Callback vcxGetProvisionTokenCB = new Callback() {
         @SuppressWarnings({"unused", "unchecked"})
         public void callback(int commandHandle, int err, String token) {
@@ -177,43 +139,23 @@ public class UtilsApi extends VcxJava.API {
     };
 
     /**
-     * Get Provisioning token
+     * Get token that can be used for provisioning an agent
+     * NOTE: Can be used only for Evernym's applications
      *
      * @param  config           provisioning configuration.
      * {
      *     vcx_config: VcxConfig // Same config passed to agent provision
-     *     {
-     *           protocol_type: String
-     *           agency_url: String,
-     *           pub agency_did: String,
-     *           agency_verkey: String,
-     *           wallet_name: Option(String),
-     *           wallet_key: String,
-     *           wallet_type: Option(String),
-     *           agent_seed: Option(String),
-     *           enterprise_seed: Option(String),
-     *           wallet_key_derivation: Option(String),
-     *           name: Option(String),
-     *           logo: Option(String),
-     *           path: Option(String),
-     *           storage_config: Option(String),
-     *           storage_credentials: Option(String),
-     *           pool_config: Option(String),
-     *           did_method: Option(String),
-     *           communication_method: Option(String),
-     *           webhook_url: Option(String),
-     *           use_latest_protocols: Option(String),
-     *     }
+     *                           // See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
      *     sponsee_id: String,
      *     sponsor_id: String,
      *     com_method: {
-     *         type: u32 // 1 means push notifcation, its the only one registered
+     *         type: u32 // 1 means push notifications, 4 means forward to sponsor app
      *         id: String,
      *         value: String,
-     *     }
+     *     },
      * }
      *
-     * @return                provisioning token
+     * @return                provisioning token as JSON
      *
      * @throws VcxException   If an exception occurred in Libvcx library.
      *
@@ -505,6 +447,13 @@ public class UtilsApi extends VcxJava.API {
         LibVcx.api.vcx_set_next_agency_response(messageIndex);
     }
 
+     /**
+      * Set the pool handle before calling vcx_init_minimal.
+      *
+      * @param  handle               pool handle that libvcx should use
+      *
+      * @throws VcxException   If an exception occurred in Libvcx library.
+      */
     public static void setPoolHandle(int handle) {
         LibVcx.api.vcx_pool_set_handle(handle);
     }
@@ -654,6 +603,45 @@ public class UtilsApi extends VcxJava.API {
         int result = LibVcx.api.vcx_health_check(
                 commandHandle,
                 vcxFetchPublicEntitiesCb);
+        checkResult(result);
+        return future;
+    }
+
+    private static Callback vcxCreatePairwiseAgentCB = new Callback() {
+        @SuppressWarnings({"unused", "unchecked"})
+        public void callback(int commandHandle, int err, String agentInfo) {
+            logger.debug("callback() called with: commandHandle = [" + commandHandle + "], err = [" + err + "], agentInfo = [****]");
+            CompletableFuture<String> future = (CompletableFuture<String>) removeFuture(commandHandle);
+            if (!checkCallback(future, err)) return;
+            String result = agentInfo;
+            future.complete(result);
+        }
+    };
+
+    /**
+     * Create pairwise agent which can be later used for connection establishing.
+     *
+     * You can pass `agent_info` into `vcx_connection_connect` function as field of `connection_options` JSON parameter.
+     * The passed Pairwise Agent will be used for connection establishing instead of creation a new one.
+     *
+     * @return   Agent info as JSON string:
+     *     {
+     *         "pw_did": string,
+     *         "pw_vk": string,
+     *         "agent_did": string,
+     *         "agent_vk": string,
+     *     }
+     * @throws VcxException   If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> vcxCreatePairwiseAgent() throws VcxException {
+        logger.debug("vcxCreatePairwiseAgent() called");
+        CompletableFuture<String> future = new CompletableFuture<String>();
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_create_pairwise_agent(
+                commandHandle,
+                vcxCreatePairwiseAgentCB
+        );
         checkResult(result);
         return future;
     }

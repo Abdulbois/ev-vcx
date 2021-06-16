@@ -3,12 +3,13 @@ use serde_json::Value;
 use std::collections::HashMap;
 use time;
 use std::convert::TryInto;
+use std::mem::take;
+use crate::connection::Connections;
 
-use object_cache::ObjectCache;
+use object_cache::{ObjectCache, Handle};
 use api::VcxStateType;
 use error::prelude::*;
 
-use connection;
 use messages::{
     self,
     GeneralMessage,
@@ -47,7 +48,7 @@ lazy_static! {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "version", content = "data")]
-enum DisclosedProofs {
+pub enum DisclosedProofs {
     #[serde(rename = "3.0")]
     Pending(DisclosedProof),
     #[serde(rename = "1.0")]
@@ -339,7 +340,7 @@ impl DisclosedProof {
         Ok(credentials)
     }
 
-    pub fn build_schemas_json(credentials_identifiers: &Vec<CredInfo>) -> VcxResult<String> {
+    pub fn build_schemas_json(credentials_identifiers: &[CredInfo]) -> VcxResult<String> {
         trace!("build_schemas_json >>> credentials_identifiers: {:?}", secret!(credentials_identifiers));
         debug!("DisclosedProof: Getting schemas for proof generation");
 
@@ -362,7 +363,7 @@ impl DisclosedProof {
         Ok(rtn.to_string())
     }
 
-    pub fn build_cred_def_json(credentials_identifiers: &Vec<CredInfo>) -> VcxResult<String> {
+    pub fn build_cred_def_json(credentials_identifiers: &[CredInfo]) -> VcxResult<String> {
         trace!("build_cred_def_json >>> credentials_identifiers: {:?}", secret!(credentials_identifiers));
         debug!("DisclosedProof: Getting credential definitions for proof generation");
 
@@ -385,7 +386,7 @@ impl DisclosedProof {
         Ok(rtn.to_string())
     }
 
-    pub fn build_requested_credentials_json(credentials_identifiers: &Vec<CredInfo>,
+    pub fn build_requested_credentials_json(credentials_identifiers: &[CredInfo],
                                             self_attested_attrs: &str,
                                             proof_req: &ProofRequestData) -> VcxResult<String> {
         trace!("build_requested_credentials_json >>> credentials_identifiers: {:?}, self_attested_attrs: {:?}, proof_req: {:?}",
@@ -514,7 +515,7 @@ impl DisclosedProof {
         Ok(ref_msg_uid.to_string())
     }
 
-    fn send_proof(&mut self, connection_handle: u32) -> VcxResult<u32> {
+    fn send_proof(&mut self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
         trace!("DisclosedProof::send_proof >>> connection_handle: {}", connection_handle);
 
         debug!("DisclosedProof {}: Sending proof", self.source_id);
@@ -562,7 +563,7 @@ impl DisclosedProof {
         Ok(msg)
     }
 
-    fn reject_proof(&mut self, connection_handle: u32) -> VcxResult<u32> {
+    fn reject_proof(&mut self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
         trace!("DisclosedProof::reject_proof >>> connection_handle: {}", connection_handle);
         debug!("DisclosedProof {}: Rejecting proof", self.source_id);
 
@@ -667,7 +668,7 @@ fn create_proof_v1(source_id: &str, proof_req: &str) -> VcxResult<DisclosedProof
     Ok(DisclosedProofs::V1(proof))
 }
 
-pub fn create_proof(source_id: &str, proof_req: &str) -> VcxResult<u32> {
+pub fn create_proof(source_id: &str, proof_req: &str) -> VcxResult<Handle<DisclosedProofs>> {
     trace!("create_proof >>> source_id: {}, proof_req: {}", source_id, secret!(proof_req));
     debug!("creating disclosed proof with id: {}", source_id);
 
@@ -687,13 +688,13 @@ pub fn create_proof(source_id: &str, proof_req: &str) -> VcxResult<u32> {
     Ok(handle)
 }
 
-pub fn create_proof_with_msgid(source_id: &str, connection_handle: u32, msg_id: &str) -> VcxResult<(u32, String)> {
+pub fn create_proof_with_msgid(source_id: &str, connection_handle: Handle<Connections>, msg_id: &str) -> VcxResult<(Handle<DisclosedProofs>, String)> {
     trace!("create_proof_with_msgid >>> source_id: {}, proof_req: {}", source_id, msg_id);
     debug!("creating disclosed proof with message id: {}", source_id);
 
     let proof_request = get_proof_request(connection_handle, &msg_id)?;
 
-    let proof = if connection::is_v3_connection(connection_handle)? {
+    let proof = if connection_handle.is_v3_connection()? {
         create_proof_v3(source_id, &proof_request)?
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidConnectionHandle, format!("Connection can not be used for Proprietary Issuance protocol")))?
     } else {
@@ -708,7 +709,7 @@ pub fn create_proof_with_msgid(source_id: &str, connection_handle: u32, msg_id: 
     Ok((handle, proof_request))
 }
 
-pub fn create_proposal(source_id: &str, proposal: String, comment: String) -> VcxResult<u32> {
+pub fn create_proposal(source_id: &str, proposal: String, comment: String) -> VcxResult<Handle<DisclosedProofs>> {
     trace!("create_proposal >>> source_id: {}, proposal: {}, comment: {}",
            source_id, secret!(proposal), comment);
     debug!("creating disclosed proof proposal with id: {}", source_id);
@@ -730,252 +731,279 @@ pub fn create_proposal(source_id: &str, proposal: String, comment: String) -> Vc
     Ok(handle)
 }
 
-pub fn get_state(handle: u32) -> VcxResult<u32> {
-    HANDLE_MAP.get(handle, |obj| {
-        match obj {
-            DisclosedProofs::Pending(ref obj) => Ok(obj.get_state()),
-            DisclosedProofs::V1(ref obj) => Ok(obj.get_state()),
-            DisclosedProofs::V3(ref obj) => Ok(obj.state())
-        }
-    }).map_err(handle_err)
-}
+impl Handle<DisclosedProofs> {
 
-pub fn update_state(handle: u32, message: Option<String>) -> VcxResult<u32> {
-    HANDLE_MAP.get_mut(handle, |obj| {
-        match obj {
-            DisclosedProofs::Pending(obj) => {
-                // update_state is just the same as get_state for disclosed_proof
-                Ok(obj.get_state())
+    pub fn get_state(self) -> VcxResult<u32> {
+        HANDLE_MAP.get(self, |obj| {
+            match obj {
+                DisclosedProofs::Pending(obj) => Ok(obj.get_state()),
+                DisclosedProofs::V1(obj) => Ok(obj.get_state()),
+                DisclosedProofs::V3(obj) => Ok(obj.state())
             }
-            DisclosedProofs::V1(obj) => {
-                // update_state is just the same as get_state for disclosed_proof
-                Ok(obj.get_state())
+        }).map_err(handle_err)
+    }
+
+    pub fn update_state(self, message: Option<String>) -> VcxResult<u32> {
+        HANDLE_MAP.get_mut(self, |obj| {
+            match obj {
+                DisclosedProofs::Pending(obj) => {
+                    // update_state is just the same as get_state for disclosed_proof
+                    Ok(obj.get_state())
+                }
+                DisclosedProofs::V1(obj) => {
+                    // update_state is just the same as get_state for disclosed_proof
+                    Ok(obj.get_state())
+                }
+                DisclosedProofs::V3(obj) => {
+                    obj.update_state(message.as_ref().map(String::as_str))?;
+                    Ok(obj.state())
+                }
             }
-            DisclosedProofs::V3(ref mut obj) => {
-                obj.update_state(message.as_ref().map(String::as_str))?;
-                Ok(obj.state())
+        }).map_err(handle_err)
+    }
+
+    pub fn to_string(self) -> VcxResult<String> {
+        HANDLE_MAP.get(self, |obj| {
+            serde_json::to_string(obj)
+                .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize DisclosedProof object. Err: {:?}", err)))
+        }).map_err(handle_err)
+    }
+
+    pub fn release(self) -> VcxResult<()> {
+        HANDLE_MAP.release(self).map_err(handle_err)
+    }
+
+    pub fn generate_proof_msg(self) -> VcxResult<String> {
+        HANDLE_MAP.get(self, |obj| {
+            match obj {
+                DisclosedProofs::Pending(obj) => obj.generate_proof_msg(),
+                DisclosedProofs::V1(obj) => obj.generate_proof_msg(),
+                DisclosedProofs::V3(obj) => obj.generate_presentation_msg()
             }
-        }
-    }).map_err(handle_err)
-}
+        }).map_err(handle_err)
+    }
 
-pub fn to_string(handle: u32) -> VcxResult<String> {
-    HANDLE_MAP.get(handle, |obj| {
-        serde_json::to_string(obj)
-            .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize DisclosedProof object. Err: {:?}", err)))
-    }).map_err(handle_err)
-}
+    pub fn send_proof(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
+        HANDLE_MAP.get_mut(self, |proof| {
+            let new_proof = match proof {
+                DisclosedProofs::Pending(obj) => {
+                    // if Aries connection is established --> Convert DisclosedProofs object to Aries presentation
+                    // if connection handle is 0 --> ephemeral Aries proof
+                    if connection_handle.is_v3_connection()? || connection_handle == 0 {
+                        debug!("Convert pending proof into aries proof");
 
-pub fn from_string(proof_data: &str) -> VcxResult<u32> {
-    let proof: DisclosedProofs = serde_json::from_str(proof_data)
-        .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot parse DisclosedProofs state object from JSON string. Err: {:?}", err)))?;
+                        let proof_request = take(&mut obj.proof_request)
+                            .ok_or(VcxError::from_msg(VcxErrorKind::NotReady,
+                                    format!("Disclosed Proof object {} in state {} not ready to get Proof Request message", obj.source_id, obj.state as u32)))?;
 
-    HANDLE_MAP.add(proof)
-}
+                        let proof = take(&mut obj.proof)
+                            .ok_or(VcxError::from_msg(VcxErrorKind::NotReady,
+                                    format!("Disclosed Proof object {} in state {} not ready to get Proof message", obj.source_id, obj.state as u32)))?;
 
-pub fn release(handle: u32) -> VcxResult<()> {
-    HANDLE_MAP.release(handle).map_err(handle_err)
+                        let mut prover = Prover::create(&obj.get_source_id(), proof_request.try_into()?)?;
+                        prover.set_presentation(proof.try_into()?)?;
+                        prover.send_presentation(connection_handle)?;
+
+                        DisclosedProofs::V3(prover)
+                    } else { // else --> Convert DisclosedProofs object to Proprietary proof object
+                        obj.send_proof(connection_handle)?;
+                        DisclosedProofs::V1(take(obj))
+                    }
+                }
+                DisclosedProofs::V1(obj) => {
+                    obj.send_proof(connection_handle)?;
+                    DisclosedProofs::V1(take(obj))
+                }
+                DisclosedProofs::V3(obj) => {
+                    obj.send_presentation(connection_handle)?;
+                    DisclosedProofs::V3(obj.clone())
+                }
+            };
+            *proof = new_proof;
+            Ok(error::SUCCESS.code_num)
+        }).map_err(handle_err)
+    }
+
+    pub fn send_proposal(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
+        HANDLE_MAP.get_mut(self, |proof| {
+            let new_proof = match proof {
+                DisclosedProofs::Pending(_obj) => {
+                    Err(VcxError::from(VcxErrorKind::ActionNotSupported))
+                }
+                DisclosedProofs::V1(_) => {
+                    Err(VcxError::from(VcxErrorKind::ActionNotSupported))
+                }
+                DisclosedProofs::V3(obj) => {
+                    obj.send_proposal(connection_handle)?;
+                    // TODO: avoid cloning
+                    Ok(DisclosedProofs::V3(obj.clone()))
+                }
+            }?;
+            *proof = new_proof;
+            Ok(error::SUCCESS.code_num)
+        }).map_err(handle_err)
+    }
+
+    pub fn generate_reject_proof_msg(self) -> VcxResult<String> {
+        HANDLE_MAP.get_mut(self, |obj| {
+            match obj {
+                DisclosedProofs::Pending(obj) => obj.generate_reject_proof_msg(),
+                DisclosedProofs::V1(obj) => obj.generate_reject_proof_msg(),
+                DisclosedProofs::V3(_) => {
+                    Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries DiscloseProof type doesn't support this action: `generate_reject_proof_msg`."))
+                }
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn reject_proof(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
+        HANDLE_MAP.get_mut(self, |proof| {
+            let new_proof = match proof {
+                DisclosedProofs::Pending(obj) => {
+                    // if Aries connection is established --> Convert DisclosedProofs object to Aries presentation
+                    if connection_handle.is_v3_connection()? {
+                        debug!("Convert pending proof into aries proof");
+
+                        let proof_request = take(&mut obj.proof_request)
+                            .ok_or(VcxError::from_msg(VcxErrorKind::NotReady,
+                                    format!("Disclosed Proof object {} in state {} not ready to get Proof Request message", obj.source_id, obj.state as u32)))?;
+
+                        let mut prover = Prover::create(&obj.get_source_id(), proof_request.try_into()?)?;
+                        prover.decline_presentation_request(connection_handle, Some(String::from("Presentation Request was rejected")), None)?;
+                        DisclosedProofs::V3(prover)
+                    } else { // else --> Convert DisclosedProofs object to Proprietary proof object
+                        obj.reject_proof(connection_handle)?;
+                        DisclosedProofs::V1(take(obj))
+                    }
+                }
+                DisclosedProofs::V1(obj) => {
+                    obj.reject_proof(connection_handle)?;
+                    DisclosedProofs::V1(take(obj))
+                }
+                DisclosedProofs::V3(obj) => {
+                    obj.decline_presentation_request(connection_handle, Some(String::from("Presentation Request was rejected")), None)?;
+                    // TODO: avoid cloning
+                    DisclosedProofs::V3(obj.clone())
+                }
+            };
+            *proof = new_proof;
+            Ok(error::SUCCESS.code_num)
+        }).map_err(handle_err)
+    }
+
+    pub fn generate_proof(self, credentials: String, self_attested_attrs: String) -> VcxResult<u32> {
+        HANDLE_MAP.get_mut(self, move |obj| {
+            match obj {
+                DisclosedProofs::Pending(obj) => {
+                    obj.generate_proof(&credentials, &self_attested_attrs)
+                }
+                DisclosedProofs::V1(obj) => {
+                    obj.generate_proof(&credentials, &self_attested_attrs)
+                }
+                DisclosedProofs::V3(obj) => {
+                    obj.generate_presentation(credentials, self_attested_attrs)?;
+                    Ok(error::SUCCESS.code_num)
+                }
+            }
+        })
+        .map(|_| error::SUCCESS.code_num)
+            .map_err(handle_err)
+    }
+
+    pub fn decline_presentation_request(self, connection_handle: Handle<Connections>, reason: Option<String>, proposal: Option<String>) -> VcxResult<u32> {
+        HANDLE_MAP.get_mut(self, move |proof| {
+            let new_proof = match proof {
+                DisclosedProofs::Pending(obj) => {
+                    // if Aries connection is established --> Convert DisclosedProofs object to Aries presentation
+                    if connection_handle.is_v3_connection()? {
+                        debug!("Convert pending proof into aries proof");
+
+                        let proof_request = obj.proof_request.clone()
+                            .ok_or(VcxError::from_msg(VcxErrorKind::NotReady,
+                                    format!("Disclosed Proof object {} in state {} not ready to get Proof Request message", obj.source_id, obj.state as u32)))?;
+
+                        let mut prover = Prover::create(&obj.get_source_id(), proof_request.try_into()?)?;
+                        prover.decline_presentation_request(connection_handle, reason.clone(), proposal.clone())?;
+                        DisclosedProofs::V3(prover)
+                    } else { // else --> Convert DisclosedProofs object to Proprietary proof object
+                        obj.reject_proof(connection_handle)?;
+                        DisclosedProofs::V1(take(obj))
+                    }
+                }
+                DisclosedProofs::V1(obj) => {
+                    obj.reject_proof(connection_handle)?;
+                    DisclosedProofs::V1(take(obj))
+                }
+                DisclosedProofs::V3(obj) => {
+                    obj.decline_presentation_request(connection_handle, reason, proposal)?;
+                    // TODO: avoid cloning
+                    DisclosedProofs::V3(obj.clone())
+                }
+            };
+            *proof = new_proof;
+            Ok(error::SUCCESS.code_num)
+        })
+        .map(|_| error::SUCCESS.code_num)
+            .map_err(handle_err)
+    }
+
+    pub fn retrieve_credentials(self) -> VcxResult<String> {
+        HANDLE_MAP.get_mut(self, |obj| {
+            match obj {
+                DisclosedProofs::Pending(obj) => obj.retrieve_credentials(),
+                DisclosedProofs::V1(obj) => obj.retrieve_credentials(),
+                DisclosedProofs::V3(obj) => obj.retrieve_credentials()
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn is_valid_handle(self) -> bool {
+        HANDLE_MAP.has_handle(self)
+    }
+
+    //TODO one function with credential
+    pub fn get_source_id(self) -> VcxResult<String> {
+        HANDLE_MAP.get(self, |obj| {
+            match obj {
+                DisclosedProofs::Pending(obj) => Ok(obj.get_source_id()),
+                DisclosedProofs::V1(obj) => Ok(obj.get_source_id()),
+                DisclosedProofs::V3(obj) => Ok(obj.get_source_id())
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn get_problem_report_message(self) -> VcxResult<String> {
+        HANDLE_MAP.get(self, |proof| {
+            match proof {
+                DisclosedProofs::Pending(_) | DisclosedProofs::V1(_) => {
+                    Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Proprietary Proof type doesn't support this action: `get_problem_report_message`."))
+                }
+                DisclosedProofs::V3(obj) => {
+                    obj.get_problem_report_message()
+                }
+            }
+        }).map_err(handle_err)
+    }
 }
 
 pub fn release_all() {
     HANDLE_MAP.drain().ok();
 }
 
-pub fn generate_proof_msg(handle: u32) -> VcxResult<String> {
-    HANDLE_MAP.get(handle, |obj| {
-        match obj {
-            DisclosedProofs::Pending(ref obj) => obj.generate_proof_msg(),
-            DisclosedProofs::V1(ref obj) => obj.generate_proof_msg(),
-            DisclosedProofs::V3(ref obj) => obj.generate_presentation_msg()
-        }
-    }).map_err(handle_err)
+
+pub fn from_string(proof_data: &str) -> VcxResult<Handle<DisclosedProofs>> {
+    let proof: DisclosedProofs = serde_json::from_str(proof_data)
+        .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot parse DisclosedProofs state object from JSON string. Err: {:?}", err)))?;
+
+    HANDLE_MAP.add(proof)
 }
 
-pub fn send_proof(handle: u32, connection_handle: u32) -> VcxResult<u32> {
-    HANDLE_MAP.get_mut(handle, |proof| {
-        let new_proof = match proof {
-            DisclosedProofs::Pending(ref mut obj) => {
-                // if Aries connection is established --> Convert DisclosedProofs object to Aries presentation
-                // if connection handle is 0 --> ephemeral Aries proof
-                if ::connection::is_v3_connection(connection_handle)? || connection_handle == 0 {
-                    debug!("Convert pending proof into aries proof");
 
-                    let proof_request = obj.proof_request.clone()
-                        .ok_or(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                  format!("Disclosed Proof object {} in state {} not ready to get Proof Request message", obj.source_id, obj.state as u32)))?;
-
-                    let proof = obj.proof.clone()
-                        .ok_or(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                  format!("Disclosed Proof object {} in state {} not ready to get Proof message", obj.source_id, obj.state as u32)))?;
-
-                    let mut prover = Prover::create(&obj.get_source_id(), proof_request.try_into()?)?;
-                    prover.set_presentation(proof.try_into()?)?;
-                    prover.send_presentation(connection_handle)?;
-
-                    DisclosedProofs::V3(prover)
-                } else { // else --> Convert DisclosedProofs object to Proprietary proof object
-                    obj.send_proof(connection_handle)?;
-                    DisclosedProofs::V1(obj.clone())
-                }
-            }
-            DisclosedProofs::V1(ref mut obj) => {
-                obj.send_proof(connection_handle)?;
-                DisclosedProofs::V1(obj.clone())
-            }
-            DisclosedProofs::V3(ref mut obj) => {
-                obj.send_presentation(connection_handle)?;
-                DisclosedProofs::V3(obj.clone())
-            }
-        };
-        *proof = new_proof;
-        Ok(error::SUCCESS.code_num)
-    }).map_err(handle_err)
-}
-
-pub fn send_proposal(handle: u32, connection_handle: u32) -> VcxResult<u32> {
-    HANDLE_MAP.get_mut(handle, |proof| {
-        let new_proof = match proof {
-            DisclosedProofs::Pending(ref mut _obj) => {
-                Err(VcxError::from(VcxErrorKind::ActionNotSupported))
-            }
-            DisclosedProofs::V1(ref mut _obj) => {
-                Err(VcxError::from(VcxErrorKind::ActionNotSupported))
-            }
-            DisclosedProofs::V3(ref mut obj) => {
-                obj.send_proposal(connection_handle)?;
-                Ok(DisclosedProofs::V3(obj.clone()))
-            }
-        }?;
-        *proof = new_proof;
-        Ok(error::SUCCESS.code_num)
-    }).map_err(handle_err)
-}
-
-pub fn generate_reject_proof_msg(handle: u32) -> VcxResult<String> {
-    HANDLE_MAP.get_mut(handle, |obj| {
-        match obj {
-            DisclosedProofs::Pending(ref mut obj) => {
-                obj.generate_reject_proof_msg()
-            }
-            DisclosedProofs::V1(ref mut obj) => {
-                obj.generate_reject_proof_msg()
-            }
-            DisclosedProofs::V3(_) => {
-                Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries DiscloseProof type doesn't support this action: `generate_reject_proof_msg`."))
-            }
-        }
-    }).map_err(handle_err)
-}
-
-pub fn reject_proof(handle: u32, connection_handle: u32) -> VcxResult<u32> {
-    HANDLE_MAP.get_mut(handle, |proof| {
-        let new_proof = match proof {
-            DisclosedProofs::Pending(ref mut obj) => {
-                // if Aries connection is established --> Convert DisclosedProofs object to Aries presentation
-                if ::connection::is_v3_connection(connection_handle)? {
-                    debug!("Convert pending proof into aries proof");
-
-                    let proof_request = obj.proof_request.clone()
-                        .ok_or(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                  format!("Disclosed Proof object {} in state {} not ready to get Proof Request message", obj.source_id, obj.state as u32)))?;
-
-                    let mut prover = Prover::create(&obj.get_source_id(), proof_request.try_into()?)?;
-                    prover.decline_presentation_request(connection_handle, Some(String::from("Presentation Request was rejected")), None)?;
-                    DisclosedProofs::V3(prover)
-                } else { // else --> Convert DisclosedProofs object to Proprietary proof object
-                    obj.reject_proof(connection_handle)?;
-                    DisclosedProofs::V1(obj.clone())
-                }
-            }
-            DisclosedProofs::V1(ref mut obj) => {
-                obj.reject_proof(connection_handle)?;
-                DisclosedProofs::V1(obj.clone())
-            }
-            DisclosedProofs::V3(ref mut obj) => {
-                obj.decline_presentation_request(connection_handle, Some(String::from("Presentation Request was rejected")), None)?;
-                DisclosedProofs::V3(obj.clone())
-            }
-        };
-        *proof = new_proof;
-        Ok(error::SUCCESS.code_num)
-    }).map_err(handle_err)
-}
-
-pub fn generate_proof(handle: u32, credentials: String, self_attested_attrs: String) -> VcxResult<u32> {
-    HANDLE_MAP.get_mut(handle, |obj| {
-        match obj {
-            DisclosedProofs::Pending(ref mut obj) => {
-                obj.generate_proof(&credentials, &self_attested_attrs)
-            }
-            DisclosedProofs::V1(ref mut obj) => {
-                obj.generate_proof(&credentials, &self_attested_attrs)
-            }
-            DisclosedProofs::V3(ref mut obj) => {
-                obj.generate_presentation(credentials.clone(), self_attested_attrs.clone())?;
-                Ok(error::SUCCESS.code_num)
-            }
-        }
-    })
-        .map(|_| error::SUCCESS.code_num)
-        .map_err(handle_err)
-}
-
-pub fn decline_presentation_request(handle: u32, connection_handle: u32, reason: Option<String>, proposal: Option<String>) -> VcxResult<u32> {
-    HANDLE_MAP.get_mut(handle, |proof| {
-        let new_proof = match proof {
-            DisclosedProofs::Pending(ref mut obj) => {
-                // if Aries connection is established --> Convert DisclosedProofs object to Aries presentation
-                if ::connection::is_v3_connection(connection_handle)? {
-                    debug!("Convert pending proof into aries proof");
-
-                    let proof_request = obj.proof_request.clone()
-                        .ok_or(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                  format!("Disclosed Proof object {} in state {} not ready to get Proof Request message", obj.source_id, obj.state as u32)))?;
-
-                    let mut prover = Prover::create(&obj.get_source_id(), proof_request.try_into()?)?;
-                    prover.decline_presentation_request(connection_handle, reason.clone(), proposal.clone())?;
-                    DisclosedProofs::V3(prover)
-                } else { // else --> Convert DisclosedProofs object to Proprietary proof object
-                    obj.reject_proof(connection_handle)?;
-                    DisclosedProofs::V1(obj.clone())
-                }
-            }
-            DisclosedProofs::V1(ref mut obj) => {
-                obj.reject_proof(connection_handle)?;
-                DisclosedProofs::V1(obj.clone())
-            }
-            DisclosedProofs::V3(ref mut obj) => {
-                obj.decline_presentation_request(connection_handle, reason.clone(), proposal.clone())?;
-                DisclosedProofs::V3(obj.clone())
-            }
-        };
-        *proof = new_proof;
-        Ok(error::SUCCESS.code_num)
-    })
-        .map(|_| error::SUCCESS.code_num)
-        .map_err(handle_err)
-}
-
-pub fn retrieve_credentials(handle: u32) -> VcxResult<String> {
-    HANDLE_MAP.get_mut(handle, |obj| {
-        match obj {
-            DisclosedProofs::Pending(ref obj) => obj.retrieve_credentials(),
-            DisclosedProofs::V1(ref obj) => obj.retrieve_credentials(),
-            DisclosedProofs::V3(ref obj) => obj.retrieve_credentials()
-        }
-    }).map_err(handle_err)
-}
-
-pub fn is_valid_handle(handle: u32) -> bool {
-    HANDLE_MAP.has_handle(handle)
-}
-
-//TODO one function with credential
-fn get_proof_request(connection_handle: u32, msg_id: &str) -> VcxResult<String> {
+fn get_proof_request(connection_handle: Handle<Connections>, msg_id: &str) -> VcxResult<String> {
     trace!("get_proof_request >>> connection_handle: {}, msg_id: {}", connection_handle, msg_id);
     debug!("DisclosedProof: getting proof request with id: {}", msg_id);
 
-    if connection::is_v3_connection(connection_handle)? {
+    if connection_handle.is_v3_connection()? {
         let presentation_request = Prover::get_presentation_request(connection_handle, msg_id)?;
         return serde_json::to_string_pretty(&presentation_request)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot serialize Proof Request. Err: {}", err)));
@@ -983,7 +1011,7 @@ fn get_proof_request(connection_handle: u32, msg_id: &str) -> VcxResult<String> 
 
     let agent_info = get_agent_info()?.pw_info(connection_handle)?;
 
-    AgencyMock::set_next_response(NEW_PROOF_REQUEST_RESPONSE.to_vec());
+    AgencyMock::set_next_response(NEW_PROOF_REQUEST_RESPONSE);
 
     let message = messages::get_message::get_connection_messages(&agent_info.my_pw_did()?,
                                                                  &agent_info.my_pw_vk()?,
@@ -1008,11 +1036,11 @@ fn get_proof_request(connection_handle: u32, msg_id: &str) -> VcxResult<String> 
 }
 
 //TODO one function with credential
-pub fn get_proof_request_messages(connection_handle: u32, match_name: Option<&str>) -> VcxResult<String> {
+pub fn get_proof_request_messages(connection_handle: Handle<Connections>, match_name: Option<&str>) -> VcxResult<String> {
     trace!("get_proof_request_messages >>> connection_handle: {}, match_name: {:?}", connection_handle, match_name);
     debug!("DisclosedProof: getting all proof request messages for connection {}", connection_handle);
 
-    if connection::is_v3_connection(connection_handle)? {
+    if connection_handle.is_v3_connection()? {
         let presentation_requests = Prover::get_presentation_request_messages(connection_handle, match_name)?;
 
         let msgs: Vec<ProofRequestMessage> = presentation_requests
@@ -1026,7 +1054,7 @@ pub fn get_proof_request_messages(connection_handle: u32, match_name: Option<&st
             });
     }
 
-    AgencyMock::set_next_response(NEW_PROOF_REQUEST_RESPONSE.to_vec());
+    AgencyMock::set_next_response(NEW_PROOF_REQUEST_RESPONSE);
 
     let agent_info = get_agent_info()?.pw_info(connection_handle)?;
 
@@ -1058,34 +1086,12 @@ pub fn get_proof_request_messages(connection_handle: u32, match_name: Option<&st
     Ok(proof_requests)
 }
 
-pub fn get_source_id(handle: u32) -> VcxResult<String> {
-    HANDLE_MAP.get(handle, |obj| {
-        match obj {
-            DisclosedProofs::Pending(obj) => Ok(obj.get_source_id()),
-            DisclosedProofs::V1(obj) => Ok(obj.get_source_id()),
-            DisclosedProofs::V3(ref obj) => Ok(obj.get_source_id())
-        }
-    }).map_err(handle_err)
-}
-
-pub fn get_problem_report_message(handle: u32) -> VcxResult<String> {
-    HANDLE_MAP.get(handle, |proof| {
-        match proof {
-            DisclosedProofs::Pending(ref _obj) | DisclosedProofs::V1(ref _obj) => {
-                Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Proprietary Proof type doesn't support this action: `get_problem_report_message`."))
-            }
-            DisclosedProofs::V3(ref obj) => {
-                obj.get_problem_report_message()
-            }
-        }
-    }).map_err(handle_err)
-}
-
 #[cfg(test)]
 mod tests {
     extern crate serde_json;
 
     use super::*;
+    use connection;
     use serde_json::Value;
     use utils::{
         constants::{ADDRESS_CRED_ID, LICENCE_CRED_ID, ADDRESS_SCHEMA_ID,
@@ -1113,7 +1119,7 @@ mod tests {
         serde_json::from_str(&proof_req).unwrap()
     }
 
-    fn _get_proof_request_messages(connection_h: u32) -> String {
+    fn _get_proof_request_messages(connection_h: Handle<Connections>) -> String {
         let requests = get_proof_request_messages(connection_h, None).unwrap();
         let requests: Value = serde_json::from_str(&requests).unwrap();
         let requests = serde_json::to_string(&requests[0]).unwrap();
@@ -1143,10 +1149,10 @@ mod tests {
         let request = _get_proof_request_messages(connection_h);
 
         let handle = create_proof("TEST_CREDENTIAL", &request).unwrap();
-        assert_eq!(VcxStateType::VcxStateRequestReceived as u32, get_state(handle).unwrap());
+        assert_eq!(VcxStateType::VcxStateRequestReceived as u32, handle.get_state().unwrap());
 
-        send_proof(handle, connection_h).unwrap();
-        assert_eq!(VcxStateType::VcxStateAccepted as u32, get_state(handle).unwrap());
+        handle.send_proof(connection_h).unwrap();
+        assert_eq!(VcxStateType::VcxStateAccepted as u32, handle.get_state().unwrap());
     }
 
     #[test]
@@ -1158,10 +1164,10 @@ mod tests {
         let request = _get_proof_request_messages(connection_h);
 
         let handle = create_proof("TEST_CREDENTIAL", &request).unwrap();
-        assert_eq!(VcxStateType::VcxStateRequestReceived as u32, get_state(handle).unwrap());
+        assert_eq!(VcxStateType::VcxStateRequestReceived as u32, handle.get_state().unwrap());
 
-        reject_proof(handle, connection_h).unwrap();
-        assert_eq!(VcxStateType::VcxStateRejected as u32, get_state(handle).unwrap());
+        handle.reject_proof(connection_h).unwrap();
+        assert_eq!(VcxStateType::VcxStateRejected as u32, handle.get_state().unwrap());
     }
 
     #[test]
@@ -1187,7 +1193,7 @@ mod tests {
         assert_eq!(VcxStateType::VcxStateNone as u32, proof.get_state());
 
         let handle = create_proof("id", ::utils::constants::PROOF_REQUEST_JSON).unwrap();
-        assert_eq!(VcxStateType::VcxStateRequestReceived as u32, get_state(handle).unwrap())
+        assert_eq!(VcxStateType::VcxStateRequestReceived as u32, handle.get_state().unwrap())
     }
 
     #[test]
@@ -1196,7 +1202,7 @@ mod tests {
 
         let handle = create_proof("id", ::utils::constants::PROOF_REQUEST_JSON).unwrap();
 
-        let serialized = to_string(handle).unwrap();
+        let serialized = handle.to_string().unwrap();
         let j: Value = serde_json::from_str(&serialized).unwrap();
         assert_eq!(j["version"], ::utils::constants::PENDING_OBJECT_SERIALIZE_VERSION);
 
@@ -1217,7 +1223,7 @@ mod tests {
 
         let handle = create_proof("id", ::utils::constants::PROOF_REQUEST_JSON).unwrap();
 
-        let serialized = to_string(handle).unwrap();
+        let serialized = handle.to_string().unwrap();
         let p = DisclosedProof::from_str(&serialized).unwrap();
         assert_eq!(p.proof_request.unwrap().proof_request_data.requested_attributes.get("attr1_referent").unwrap().self_attest_allowed, Some(true))
     }
@@ -1226,7 +1232,7 @@ mod tests {
     fn test_find_schemas() {
         let _setup = SetupMocks::init();
 
-        assert_eq!(DisclosedProof::build_schemas_json(&Vec::new()).unwrap(), "{}".to_string());
+        assert_eq!(DisclosedProof::build_schemas_json(&[]).unwrap(), "{}");
 
         let cred1 = CredInfo {
             requested_attr: "height_1".to_string(),

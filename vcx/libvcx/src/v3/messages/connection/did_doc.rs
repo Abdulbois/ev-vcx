@@ -2,8 +2,9 @@ use v3::messages::connection::invite::Invitation;
 use v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
 
 use error::prelude::*;
-use url::Url;
+use reqwest::Url;
 use messages::validation::validate_verkey;
+use rust_base58::{FromBase58, ToBase58};
 
 pub const CONTEXT: &str = "https://w3id.org/did/v1";
 pub const KEY_TYPE: &str = "Ed25519VerificationKey2018";
@@ -324,6 +325,35 @@ impl Service {
         self.recipient_keys = recipient_keys;
         self
     }
+
+    // extract key from did:key as per method spec: https://w3c-ccg.github.io/did-method-key/
+    fn extract_key_from_did_key(key: &str) -> VcxResult<String> {
+        debug!("Extracting public key from key reference: {}", key);
+        let mut split = key.split(&['#', ':'][..]);
+        let identifier = split.nth(2)
+            .ok_or_else(|| VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
+                                              format!("Invalid Service Key: key format unrecognized: {}.`", key)))?;
+        let decoded = identifier[1..].from_base58()
+            .map_err(|_| VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
+                                                          format!("Invalid Service Key: unable to decode key body: {}.`", key)))?;
+        // Only ed25519 public keys are currently supported
+        if decoded[0] == 0xED {
+            // for ed25519, multicodec should be 1 byte long. Dropping this should yield the raw key bytes
+            Ok(decoded[1..].to_base58())
+        } else{
+            Err(VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
+                                   format!("Invalid Service Key: Multicodec identifier is either not supported or not recognized. Expected: 0xED, Found: {}.`", decoded[0])))
+        }
+    }
+
+    pub fn transform_did_keys_to_naked_keys(keys: &mut [String]) -> VcxResult<()> {
+        for key in keys.iter_mut() {
+            if key.starts_with("did:key"){
+                *key = Service::extract_key_from_did_key(key)?
+            }
+        }
+        Ok(())
+    }
 }
 
 impl From<Invitation> for DidDoc {
@@ -351,7 +381,7 @@ impl From<DidDoc> for Invitation {
 impl From<Service> for DidDoc {
     fn from(service: Service) -> DidDoc {
         let mut did_doc: DidDoc = DidDoc::default();
-        did_doc.set_service_endpoint(service.service_endpoint.clone());
+        did_doc.set_service_endpoint(service.service_endpoint);
         did_doc.set_keys(service.recipient_keys, service.routing_keys);
         did_doc
     }
@@ -368,8 +398,8 @@ impl From<Service> for Invitation {
 }
 
 impl From<OutofbandInvitation> for DidDoc {
-    fn from(invite: OutofbandInvitation) -> DidDoc {
-        DidDoc::from(invite.service.clone().remove(0))
+    fn from(mut invite: OutofbandInvitation) -> DidDoc {
+        DidDoc::from(invite.service.swap_remove(0))
     }
 }
 
@@ -391,6 +421,12 @@ pub mod tests {
         String::from("3LYuxJBJkngDbvJj4zjx13DBUdZ2P96eNybwd2n9L9AU")
     }
 
+    pub fn _did_key_1() -> String { String::from("did:key:z2Dfi5HdkgAk7Afquv9NLeZVAWFxiWUvPGFFwnZ3w5wjGei")}
+
+    pub fn _did_key_2() -> String { String::from("did:key:z2Dh54TGydgWjp4fF5kXcQvAkxk1GW7WKbS8nrBEJaGSHuo")}
+
+    pub fn _did_key_3() -> String { String::from("did:key:z2DSkckbFLUuySLnTtiuapCrMJnhg4cwTq413g1cLz3itVr")}
+
     pub fn _id() -> String {
         String::from("VsKV7grR1BUE29mG2Fm2kX")
     }
@@ -403,9 +439,15 @@ pub mod tests {
         vec![_key_1()]
     }
 
+    pub fn _recipient_did_keys() -> Vec<String> {
+        vec![_did_key_1()]
+    }
+
     pub fn _routing_keys() -> Vec<String> {
         vec![_key_2(), _key_3()]
     }
+
+    pub fn _routing_did_keys() -> Vec<String> { vec![_did_key_2(), _did_key_3()]}
 
     pub fn _key_reference_1() -> String {
         DidDoc::_build_key_reference(&_id(), "1")
@@ -431,6 +473,17 @@ pub mod tests {
             recipient_keys: _recipient_keys(),
             service_endpoint: _service_endpoint(),
             routing_keys: _routing_keys(),
+        }
+    }
+
+    pub fn _service_did_formatted() -> Service {
+        Service {
+            id: _id(),
+            type_: "".to_string(),
+            priority: 0,
+            recipient_keys: _recipient_did_keys(),
+            service_endpoint: _service_endpoint(),
+            routing_keys: _routing_did_keys(),
         }
     }
 
@@ -469,6 +522,20 @@ pub mod tests {
                 routing_keys: vec![_key_2(), _key_3()],
                 ..Default::default()
             }],
+        }
+    }
+
+    pub fn _did_doc_didkey_formatted() -> DidDoc {
+        DidDoc {
+            context: String::from(CONTEXT),
+            id: _id(),
+            public_key: vec![
+                Ed25519PublicKey { id: _key_reference_1(), type_: KEY_TYPE.to_string(), controller: _id(), public_key_base_58: _key_1() },
+            ],
+            authentication: vec![
+                Authentication { type_: KEY_AUTHENTICATION_TYPE.to_string(), public_key: _key_reference_1() }
+            ],
+            service: vec![_service_did_formatted()],
         }
     }
 
@@ -637,4 +704,17 @@ pub mod tests {
 
         assert_eq!(did_doc, DidDoc::from(_invitation()))
     }
+
+    #[test]
+    fn test_transform_did_key_to_did_works() {
+        let mut test_keys = _recipient_did_keys();
+        Service::transform_did_keys_to_naked_keys(&mut test_keys).unwrap();
+        assert_eq!(_key_1(), test_keys[0])
+    }
+
+    #[test]
+    fn test_extract_key_from_did_key_works() {
+        assert_eq!(_key_1(), Service::extract_key_from_did_key(&_did_key_1()).unwrap())
+    }
+
 }

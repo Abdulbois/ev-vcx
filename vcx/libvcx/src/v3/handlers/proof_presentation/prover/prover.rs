@@ -7,12 +7,14 @@ use v3::handlers::proof_presentation::prover::messages::ProverMessages;
 use v3::messages::a2a::A2AMessage;
 use v3::messages::proof_presentation::presentation_proposal::{PresentationPreview, PresentationProposal};
 use v3::messages::proof_presentation::presentation_request::PresentationRequest;
-use connection;
 
 use messages::proofs::proof_message::ProofMessage;
 
 use v3::messages::proof_presentation::presentation::Presentation;
 use v3::messages::error::ProblemReport;
+
+use crate::connection::Connections;
+use crate::object_cache::Handle;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Prover {
@@ -69,13 +71,13 @@ impl Prover {
         self.step(ProverMessages::SetPresentation(presentation))
     }
 
-    pub fn send_presentation(&mut self, connection_handle: u32) -> VcxResult<()> {
+    pub fn send_presentation(&mut self, connection_handle: Handle<Connections>) -> VcxResult<()> {
         trace!("Prover::send_presentation >>>");
         debug!("Prover {}: Sending presentation", self.get_source_id());
         self.step(ProverMessages::SendPresentation(connection_handle))
     }
 
-    pub fn send_proposal(&mut self, connection_handle: u32) -> VcxResult<()> {
+    pub fn send_proposal(&mut self, connection_handle: Handle<Connections>) -> VcxResult<()> {
         trace!("Prover::send_proposal >>>");
         debug!("Prover {}: Sending proposal", self.get_source_id());
         self.step(ProverMessages::SendProposal(connection_handle))
@@ -102,7 +104,7 @@ impl Prover {
         let messages = agent_info.get_messages()?;
         if let Some((uid, message)) = self.prover_sm.find_message_to_handle(messages) {
             self.handle_message(message.into())?;
-            agent_info.update_message_status(uid)?;
+            agent_info.update_message_status(uid, None)?;
         };
 
         Ok(())
@@ -126,11 +128,11 @@ impl Prover {
         self.step(message)
     }
 
-    pub fn get_presentation_request(connection_handle: u32, msg_id: &str) -> VcxResult<PresentationRequest> {
+    pub fn get_presentation_request(connection_handle: Handle<Connections>, msg_id: &str) -> VcxResult<PresentationRequest> {
         trace!("Prover::get_presentation_request >>> connection_handle: {:?}, msg_id: {:?}", connection_handle, msg_id);
         debug!("Prover: Getting presentation request {} from the agent", msg_id);
 
-        let message = connection::get_message_by_id(connection_handle, msg_id.to_string())?;
+        let message = connection_handle.get_message_by_id(msg_id.to_string())?;
 
         let presentation_request: PresentationRequest = match message {
             A2AMessage::PresentationRequest(presentation_request) => presentation_request,
@@ -143,22 +145,22 @@ impl Prover {
         Ok(presentation_request)
     }
 
-    pub fn get_presentation_request_messages(connection_handle: u32, match_name: Option<&str>) -> VcxResult<Vec<PresentationRequest>> {
+    pub fn get_presentation_request_messages(connection_handle: Handle<Connections>, match_name: Option<&str>) -> VcxResult<Vec<PresentationRequest>> {
         trace!("Prover::get_presentation_request_messages >>> connection_handle: {:?}, match_name: {:?}", connection_handle, secret!(match_name));
         debug!("prover: Getting all presentation requests from the agent");
 
-        let presentation_requests: Vec<PresentationRequest> =
-            connection::get_messages(connection_handle)?
-                .into_iter()
-                .filter_map(|(_, message)| {
-                    match message {
-                        A2AMessage::PresentationRequest(presentation_request) => {
-                            Some(presentation_request)
-                        }
-                        _ => None,
+        let presentation_requests: Vec<PresentationRequest> = connection_handle
+            .get_messages()?
+            .into_iter()
+            .filter_map(|(_, message)| {
+                match message {
+                    A2AMessage::PresentationRequest(presentation_request) => {
+                        Some(presentation_request)
                     }
-                })
-                .collect();
+                    _ => None,
+                }
+            })
+            .collect();
 
         Ok(presentation_requests)
     }
@@ -170,7 +172,7 @@ impl Prover {
         Ok(())
     }
 
-    pub fn decline_presentation_request(&mut self, connection_handle: u32, reason: Option<String>, proposal: Option<String>) -> VcxResult<()> {
+    pub fn decline_presentation_request(&mut self, connection_handle: Handle<Connections>, reason: Option<String>, proposal: Option<String>) -> VcxResult<()> {
         trace!("Prover::decline_presentation_request >>> connection_handle: {}, reason: {:?}, proposal: {:?}", connection_handle, secret!(reason), secret!(proposal));
         debug!("Prover {}: Declining presentation request", self.get_source_id());
 
@@ -185,10 +187,10 @@ impl Prover {
                 self.step(ProverMessages::ProposePresentation((connection_handle, presentation_preview)))
             }
             (None, None) => {
-                return Err(VcxError::from_msg(VcxErrorKind::InvalidOption, "Either `reason` or `proposal` parameter must be specified."));
+                return Err(VcxError::from_msg(VcxErrorKind::IncompatibleParameters, "Either `reason` or `proposal` parameter must be specified."));
             }
             (Some(_), Some(_)) => {
-                return Err(VcxError::from_msg(VcxErrorKind::InvalidOption, "Only one of `reason` or `proposal` parameters must be specified."));
+                return Err(VcxError::from_msg(VcxErrorKind::IncompatibleParameters, "Only one of `reason` or `proposal` parameters must be specified."));
             }
         }
     }

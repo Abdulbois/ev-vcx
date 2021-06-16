@@ -306,6 +306,8 @@ public class VcxException extends Exception {
                 return new ConnectionDoesNotExistException();
             case INVALID_PROOF_PROPOSAL:
                 return new InvalidProofProposalException();
+            case INCOMPATIBLE_PARAMETERS:
+                return new IncompatibleParametersException();
             case UNIDENTIFIED_ERROR_CODE:
                 String message = String.format("An unmapped error with the code '%s' was returned by the SDK.", sdkErrorCode);
                 return new VcxException(message, sdkErrorCode);

@@ -12,42 +12,23 @@ use indy_sys::CommandHandle;
 use utils::httpclient::AgencyMock;
 use utils::constants::*;
 use messages::agent_utils::{ComMethod, Config};
+use v3::handlers::connection::agent::AgentInfo;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
 ///
 /// #Params
-/// config: configuration
-///  {
-///    protocol_type: String
-///    agency_url: String,
-///    pub agency_did: String,
-///    agency_verkey: String,
-///    wallet_name: Option<String>,
-///    wallet_key: String,
-///    wallet_type: Option<String>,
-///    agent_seed: Option<String>,
-///    enterprise_seed: Option<String>,
-///    wallet_key_derivation: Option<String>,
-///    name: Option<String>,
-///    logo: Option<String>,
-///    path: Option<String>,
-///    storage_config: Option<String>,
-///    storage_credentials: Option<String>,
-///    pool_config: Option<String>,
-///    did_method: Option<String>,
-///    communication_method: Option<String>,
-///    webhook_url: Option<String>,
-///    use_latest_protocols: Option<String>,
-/// }
+/// config: Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
 /// token: {
 ///          This can be a push notification endpoint to contact the sponsee or
 ///          an id that the sponsor uses to reference the sponsee in its backend system
-///          "sponsee_id": String,
-///          "sponsor_id": String, //Persistent Id of the Enterprise sponsoring the provisioning
+///          "sponseeId": String,
+///          "sponsorId": String, //Persistent Id of the Enterprise sponsoring the provisioning
 ///          "nonce": String,
 ///          "timestamp": String,
 ///          "sig": String, // Base64Encoded(sig(nonce + timestamp + id))
-///          "sponsor_vk": String,
+///          "sponsorVerKey": String,
+///          "attestationAlgorithm": Optional<String>, // device attestation signature algorithm. Can be one of: SafetyNet | DeviceCheck
+///          "attestationData": Optional<String>, // device attestation signature matching to specified algorithm
 ///        }
 ///
 /// #Returns
@@ -85,16 +66,69 @@ pub extern fn vcx_provision_agent_with_token(config: *const c_char, token: *cons
             debug!("Provision Agent Successful");
             let msg = CStringUtils::string_to_cstring(s);
 
+            // TODO: this is a memory leak
             msg.into_raw()
         }
     }
 }
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
+///
+/// #Params
+/// config: Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+/// token: {
+///          This can be a push notification endpoint to contact the sponsee or
+///          an id that the sponsor uses to reference the sponsee in its backend system
+///          "sponseeId": String,
+///          "sponsorId": String, //Persistent Id of the Enterprise sponsoring the provisioning
+///          "nonce": String,
+///          "timestamp": String,
+///          "sig": String, // Base64Encoded(sig(nonce + timestamp + id))
+///          "sponsorVerKey": String,
+///          "attestationAlgorithm": Optional<String>, // device attestation signature algorithm. Can be one of: SafetyNet | DeviceCheck
+///          "attestationData": Optional<String>, // device attestation signature matching to specified algorithm
+///        }
+///
+/// cb: Callback that provides configuration as JSON string or error status
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_provision_agent_with_token_async(command_handle: CommandHandle,
+                                                   config: *const c_char,
+                                                   token: *const c_char,
+                                                   cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, _config: *const c_char)>) -> u32 {
+    info!("vcx_provision_agent_with_token_async >>>");
+
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+    check_useful_c_str!(config, VcxErrorKind::InvalidOption);
+    check_useful_c_str!(token, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_provision_agent_with_token_async(config: {}, token: {})", secret!(config), secret!(token));
+
+    thread::spawn(move || {
+        match messages::agent_provisioning::agent_provisioning_v0_7::provision(&config, &token) {
+            Err(e) => {
+                error!("vcx_provision_agent_with_token_async_cb(command_handle: {}, rc: {}, config: NULL", command_handle, e);
+                cb(command_handle, e.into(), ptr::null_mut());
+            }
+            Ok(config) => {
+                trace!("vcx_provision_agent_with_token_async_cb(command_handle: {}, rc: {}, config: {})",
+                       command_handle, error::SUCCESS.as_str(), secret!(config));
+                let cconfig = CStringUtils::string_to_cstring(config);
+                cb(command_handle, 0, cconfig.as_ptr());
+            }
+        }
+    });
+
+    error::SUCCESS.code_num
+}
+
+/// Provision an agent in the agency, populate configuration and wallet for this agent.
 /// NOTE: for asynchronous call use vcx_agent_provision_async
 ///
 /// #Params
-/// config: configuration
+/// config: Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
 ///
 /// #Returns
 /// Configuration (wallet also populated), on error returns NULL
@@ -123,6 +157,7 @@ pub extern fn vcx_provision_agent(config: *const c_char) -> *mut c_char {
             debug!("Provision Agent Successful");
             let msg = CStringUtils::string_to_cstring(s);
 
+            // TODO: this is a memory leak
             msg.into_raw()
         }
     }
@@ -134,12 +169,12 @@ pub extern fn vcx_provision_agent(config: *const c_char) -> *mut c_char {
 /// #Params
 /// command_handle: command handle to map callback to user context.
 ///
-/// config: configuration
+/// config: Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
 ///
 /// cb: Callback that provides configuration or error status
 ///
 /// #Returns
-/// Configuration (wallet also populated), on error returns NULL
+/// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_agent_provision_async(command_handle: CommandHandle,
                                         config: *const c_char,
@@ -160,7 +195,7 @@ pub extern fn vcx_agent_provision_async(command_handle: CommandHandle,
             }
             Ok(s) => {
                 trace!("vcx_agent_provision_async_cb(command_handle: {}, rc: {}, config: {})",
-                       command_handle, error::SUCCESS.message, secret!(s));
+                       command_handle, error::SUCCESS.as_str(), secret!(s));
                 let msg = CStringUtils::string_to_cstring(s);
                 cb(command_handle, 0, msg.as_ptr());
             }
@@ -170,7 +205,8 @@ pub extern fn vcx_agent_provision_async(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Update information on the agent (ie, comm method and type)
+/// Get token which can be used for provisioning an agent
+/// NOTE: Can be used only for Evernym's applications
 ///
 /// #Params
 /// command_handle: command handle to map callback to user context.
@@ -178,37 +214,17 @@ pub extern fn vcx_agent_provision_async(command_handle: CommandHandle,
 /// config:
 /// {
 ///     vcx_config: VcxConfig // Same config passed to agent provision
-///     {
-///           protocol_type: String
-///           agency_url: String,
-///           pub agency_did: String,
-///           agency_verkey: String,
-///           wallet_name: Option<String>,
-///           wallet_key: String,
-///           wallet_type: Option<String>,
-///           agent_seed: Option<String>,
-///           enterprise_seed: Option<String>,
-///           wallet_key_derivation: Option<String>,
-///           name: Option<String>,
-///           logo: Option<String>,
-///           path: Option<String>,
-///           storage_config: Option<String>,
-///           storage_credentials: Option<String>,
-///           pool_config: Option<String>,
-///           did_method: Option<String>,
-///           communication_method: Option<String>,
-///           webhook_url: Option<String>,
-///           use_latest_protocols: Option<String>,
-///     }
+///                           // See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
 ///     sponsee_id: String,
 ///     sponsor_id: String,
 ///     com_method: {
-///         type: u32 // 1 means push notifcation, its the only one registered
+///         type: u32 // 1 means push notifications, 4 means forward to sponsor app
 ///         id: String,
 ///         value: String,
-///     }
-///     # Example com_method -> "{"type": 1,"id":"123","value":"FCM:Value"}"
+///     },
 /// }
+///
+/// # Example com_method -> "{"type": 1,"id":"123","value":"FCM:Value"}"
 ///
 /// cb: Callback that provides provision token or error status
 ///
@@ -266,7 +282,7 @@ pub extern fn vcx_get_provision_token(command_handle: CommandHandle,
         match messages::token_provisioning::token_provisioning::provision(vcx_config, &sponsee_id, &sponsor_id, com_method) {
             Ok(token) => {
                 trace!("vcx_get_provision_token_cb(command_handle: {}, rc: {}, token: {})",
-                       command_handle, error::SUCCESS.message, secret!(token));
+                       command_handle, error::SUCCESS.as_str(), secret!(token));
                 let token_ = CStringUtils::string_to_cstring(token);
                 cb(command_handle, 0, token_.as_ptr());
             }
@@ -289,7 +305,7 @@ pub extern fn vcx_get_provision_token(command_handle: CommandHandle,
 ///
 /// json: updated configuration
 ///     {
-///         "id": "string", 1 means push notifications, its the only one registered
+///         "id": "string", 1 means push notifications, 4 means forward
 ///         "type": Optional(int), notifications type (1 is used by default).
 ///         "value": "string",
 ///     }
@@ -323,7 +339,7 @@ pub extern fn vcx_agent_update_info(command_handle: CommandHandle,
         match messages::agent_utils::update_agent_info(com_method) {
             Ok(()) => {
                 trace!("vcx_agent_update_info_cb(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
                 cb(command_handle, error::SUCCESS.code_num);
             }
             Err(e) => {
@@ -363,7 +379,7 @@ pub extern fn vcx_ledger_get_fees(command_handle: CommandHandle,
         match ::utils::libindy::payments::get_ledger_fees() {
             Ok(x) => {
                 trace!("vcx_ledger_get_fees_cb(command_handle: {}, rc: {}, fees: {})",
-                       command_handle, error::SUCCESS.message, x);
+                       command_handle, error::SUCCESS.as_str(), x);
 
                 let msg = CStringUtils::string_to_cstring(x);
                 cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
@@ -387,16 +403,16 @@ pub extern fn vcx_set_next_agency_response(message_index: u32) {
     info!("vcx_set_next_agency_response >>>");
 
     let message = match message_index {
-        1 => CREATE_KEYS_RESPONSE.to_vec(),
-        2 => UPDATE_PROFILE_RESPONSE.to_vec(),
-        3 => GET_MESSAGES_RESPONSE.to_vec(),
-        4 => UPDATE_CREDENTIAL_RESPONSE.to_vec(),
-        5 => UPDATE_PROOF_RESPONSE.to_vec(),
-        6 => CREDENTIAL_REQ_RESPONSE.to_vec(),
-        7 => PROOF_RESPONSE.to_vec(),
-        8 => CREDENTIAL_RESPONSE.to_vec(),
-        9 => GET_MESSAGES_INVITE_ACCEPTED_RESPONSE.to_vec(),
-        _ => Vec::new(),
+        1 => &CREATE_KEYS_RESPONSE[..],
+        2 => &UPDATE_PROFILE_RESPONSE[..],
+        3 => &GET_MESSAGES_RESPONSE[..],
+        4 => &UPDATE_CREDENTIAL_RESPONSE[..],
+        5 => &UPDATE_PROOF_RESPONSE[..],
+        6 => &CREDENTIAL_REQ_RESPONSE[..],
+        7 => &PROOF_RESPONSE[..],
+        8 => &CREDENTIAL_RESPONSE[..],
+        9 => &GET_MESSAGES_INVITE_ACCEPTED_RESPONSE[..],
+        _ => &[],
     };
 
     AgencyMock::set_next_response(message);
@@ -427,18 +443,16 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
 
     let message_status = if !message_status.is_null() {
         check_useful_c_str!(message_status, VcxErrorKind::InvalidOption);
-        let v: Vec<&str> = message_status.split(',').collect();
-        let v = v.iter().map(|s| s.to_string()).collect::<Vec<String>>();
-        Some(v.to_owned())
+        let v = message_status.split(',').map(|s| s.to_string()).collect::<Vec<String>>();
+        Some(v)
     } else {
         None
     };
 
     let uids = if !uids.is_null() {
         check_useful_c_str!(uids, VcxErrorKind::InvalidOption);
-        let v: Vec<&str> = uids.split(',').collect();
-        let v = v.iter().map(|s| s.to_string()).collect::<Vec<String>>();
-        Some(v.to_owned())
+        let v = uids.split(',').map(|s| s.to_string()).collect::<Vec<String>>();
+        Some(v)
     } else {
         None
     };
@@ -452,7 +466,7 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
                 match serde_json::to_string(&x) {
                     Ok(x) => {
                         trace!("vcx_download_agent_messages(command_handle: {}, rc: {}, messages: {})",
-                               command_handle, error::SUCCESS.message, secret!(x));
+                               command_handle, error::SUCCESS.as_str(), secret!(x));
 
                         let msg = CStringUtils::string_to_cstring(x);
                         cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
@@ -557,7 +571,7 @@ pub extern fn vcx_messages_download(command_handle: CommandHandle,
                 match serde_json::to_string(&x) {
                     Ok(x) => {
                         trace!("vcx_messages_download_cb(command_handle: {}, rc: {}, messages: {})",
-                               command_handle, error::SUCCESS.message, secret!(x));
+                               command_handle, error::SUCCESS.as_str(), secret!(x));
 
                         let msg = CStringUtils::string_to_cstring(x);
                         cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
@@ -616,7 +630,7 @@ pub extern fn vcx_download_message(command_handle: CommandHandle,
         match ::messages::get_message::download_message(uid) {
             Ok(message) => {
                 trace!("vcx_download_message_cb(command_handle: {}, rc: {}, message: {:?})",
-                       command_handle, error::SUCCESS.message, secret!(message));
+                       command_handle, error::SUCCESS.as_str(), secret!(message));
 
                 let message_json = json!(message).to_string();
                 let msg = CStringUtils::string_to_cstring(message_json);
@@ -675,7 +689,7 @@ pub extern fn vcx_messages_update_status(command_handle: CommandHandle,
         match ::messages::update_message::update_agency_messages(&message_status, &msg_json) {
             Ok(()) => {
                 trace!("vcx_messages_set_status_cb(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
 
                 cb(command_handle, error::SUCCESS.code_num);
             }
@@ -703,8 +717,7 @@ pub extern fn vcx_messages_update_status(command_handle: CommandHandle,
 /// Error code as u32
 #[no_mangle]
 pub extern fn vcx_pool_set_handle(handle: i32) -> i32 {
-    if handle <= 0 { ::utils::libindy::pool::set_pool_handle(None); }
-    else { ::utils::libindy::pool::set_pool_handle(Some(handle)); }
+    ::utils::libindy::pool::set_pool_handle(handle);
 
     handle
 }
@@ -745,7 +758,7 @@ pub extern fn vcx_get_request_price(command_handle: CommandHandle,
         match payments::get_request_price(action_json, requester_info_json) {
             Ok(x) => {
                 trace!(target: "vcx", "vcx_get_request_price(command_handle: {}, rc: {}, handle: {})",
-                       command_handle, error::SUCCESS.message, x);
+                       command_handle, error::SUCCESS.as_str(), x);
                 cb(command_handle, error::SUCCESS.code_num, x);
             }
             Err(x) => {
@@ -786,7 +799,7 @@ pub extern fn vcx_endorse_transaction(command_handle: CommandHandle,
         match ::utils::libindy::ledger::endorse_transaction(&transaction) {
             Ok(()) => {
                 trace!("vcx_endorse_transaction(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
 
                 cb(command_handle, error::SUCCESS.code_num);
             }
@@ -835,7 +848,7 @@ pub extern fn vcx_fetch_public_entities(command_handle: CommandHandle,
         match ::utils::libindy::anoncreds::fetch_public_entities() {
             Ok(()) => {
                 trace!("vcx_fetch_public_entities_cb(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
 
                 cb(command_handle, error::SUCCESS.code_num);
             }
@@ -875,7 +888,7 @@ pub extern fn vcx_health_check(command_handle: CommandHandle,
         match ::utils::health_check::health_check() {
             Ok(()) => {
                 trace!("vcx_health_check_cb(command_handle: {}, rc: {})",
-                       command_handle, error::SUCCESS.message);
+                       command_handle, error::SUCCESS.as_str());
 
                 cb(command_handle, error::SUCCESS.code_num);
             }
@@ -891,36 +904,88 @@ pub extern fn vcx_health_check(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
+/// Create pairwise agent which can be later used for connection establishing.
+///
+/// You can pass `agent_info` into `vcx_connection_connect` function as field of `connection_options` JSON parameter.
+/// The passed Pairwise Agent will be used for connection establishing instead of creation a new one.
+///
+/// #params
+///
+/// command_handle: command handle to map callback to user context.
+///
+/// cb: Callback that provides agent info as JSON string:
+///     {
+///         "pw_did": string,
+///         "pw_vk": string,
+///         "agent_did": string,
+///         "agent_vk": string,
+///     }
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_create_pairwise_agent(command_handle: CommandHandle,
+                                        cb: Option<extern fn(xcommand_handle: CommandHandle,
+                                                             err: u32,
+                                                             agent_info: *const c_char)>) -> u32 {
+    info!("vcx_create_pairwise_agent >>>");
+
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_create_pairwise_agent(command_handle: {})", command_handle);
+
+    spawn(move || {
+        match AgentInfo::create_agent() {
+            Ok(agent_info) => {
+                trace!("vcx_create_pairwise_agent_cb(command_handle: {}, rc: {}, message: {:?})",
+                       command_handle, error::SUCCESS.as_str(), secret!(agent_info));
+
+                let agent_info_json = json!(agent_info).to_string();
+                let result = CStringUtils::string_to_cstring(agent_info_json);
+                cb(command_handle, error::SUCCESS.code_num, result.as_ptr());
+            }
+            Err(e) => {
+                warn!("vcx_create_pairwise_agent_cb(command_handle: {}, rc: {})",
+                      command_handle, e);
+                cb(command_handle, e.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::ffi::CString;
-    use api::return_types_u32;
+    use api::return_types;
     use utils::devsetup::*;
     use utils::httpclient::AgencyMock;
     use utils::constants::REGISTER_RESPONSE;
-    use utils::timeout::TimeoutUtils;
 
     static CONFIG: &'static str = r#"{"agency_url":"https://enym-eagency.pdev.evernym.com","agency_did":"Ab8TvZa3Q19VNkQVzAWVL7","agency_verkey":"5LXaR43B1aQyeh94VBP8LG1Sgvjk7aNfqiksBCSjwqbf","wallet_name":"test_provision_agent","agent_seed":null,"enterprise_seed":null,"wallet_key":"key"}"#;
+    const CONFIG_CSTR: *const c_char = concat!(r#"{"agency_url":"https://enym-eagency.pdev.evernym.com","agency_did":"Ab8TvZa3Q19VNkQVzAWVL7","agency_verkey":"5LXaR43B1aQyeh94VBP8LG1Sgvjk7aNfqiksBCSjwqbf","wallet_name":"test_provision_agent","agent_seed":null,"enterprise_seed":null,"wallet_key":"key"}"#, "\0").as_ptr().cast();
 
     fn _vcx_agent_provision_async_c_closure(config: &str) -> Result<Option<String>, u32> {
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        let rc = vcx_agent_provision_async(cb.command_handle,
-                                           CString::new(config).unwrap().into_raw(),
-                                           Some(cb.get_callback()));
+        let (h, cb, r) = return_types::return_u32_str();
+        let config = CString::new(config).unwrap();
+        let rc = vcx_agent_provision_async(h,
+                                           config.as_ptr(),
+                                           Some(cb));
         if rc != error::SUCCESS.code_num {
             return Err(rc);
         }
-        cb.receive(TimeoutUtils::some_short())
+        r.recv_short()
     }
 
     #[test]
     fn test_provision_agent() {
         let _setup = SetupMocks::init();
 
-        let c_json = CString::new(CONFIG).unwrap().into_raw();
-
-        let result = vcx_provision_agent(c_json);
+        let result = vcx_provision_agent(CONFIG_CSTR);
 
         let result = CStringUtils::c_str_to_string(result).unwrap().unwrap();
         let _config: serde_json::Value = serde_json::from_str(&result).unwrap();
@@ -936,10 +1001,10 @@ mod tests {
             "com_method": {"id":"123","value":"FCM:Value"}
         });
 
-        let c_json = CString::new(config.to_string()).unwrap().into_raw();
+        let c_json = CString::new(config.to_string()).unwrap();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        let rc = vcx_get_provision_token(cb.command_handle, c_json, Some(cb.get_callback()));
+        let (h, cb, _r) = return_types::return_u32_str();
+        let rc = vcx_get_provision_token(h, c_json.as_ptr(), Some(cb));
         assert_eq!(rc, error::INVALID_CONFIGURATION.code_num)
     }
 
@@ -955,12 +1020,12 @@ mod tests {
             "com_method": {"type": 1, "id":"123","value":"FCM:Value"}
         });
 
-        let c_json = CString::new(config.to_string()).unwrap().into_raw();
+        let c_json = CString::new(config.to_string()).unwrap();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        let rc = vcx_get_provision_token(cb.command_handle, c_json, Some(cb.get_callback()));
+        let (h, cb, r) = return_types::return_u32_str();
+        let rc = vcx_get_provision_token(h, c_json.as_ptr(), Some(cb));
         assert_eq!(rc, error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
@@ -1002,39 +1067,36 @@ mod tests {
     fn test_update_agent_info() {
         let _setup = SetupMocks::init();
 
-        let json_string = r#"{"id":"123","value":"value"}"#;
-        let c_json = CString::new(json_string).unwrap().into_raw();
+        let c_json = concat!(r#"{"id":"123","value":"value"}"#, "\0").as_ptr().cast();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        let _result = vcx_agent_update_info(cb.command_handle, c_json, Some(cb.get_callback()));
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        let (h, cb, r) = return_types::return_u32();
+        let _result = vcx_agent_update_info(h, c_json, Some(cb));
+        r.recv_medium().unwrap();
     }
 
     #[test]
     fn test_update_agent_info_with_type() {
         let _setup = SetupMocks::init();
 
-        let json_string = r#"{"id":"123","value":"value", "type":1}"#;
-        let c_json = CString::new(json_string).unwrap().into_raw();
+        let c_json = concat!(r#"{"id":"123","value":"value", "type":1}"#, "\0").as_ptr().cast();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        let _result = vcx_agent_update_info(cb.command_handle, c_json, Some(cb.get_callback()));
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        let (h, cb, r) = return_types::return_u32();
+        let _result = vcx_agent_update_info(h, c_json, Some(cb));
+        r.recv_medium().unwrap();
     }
 
     #[test]
     fn test_update_agent_fails() {
         let _setup = SetupMocks::init();
 
-        AgencyMock::set_next_response(REGISTER_RESPONSE.to_vec()); //set response garbage
+        AgencyMock::set_next_response(REGISTER_RESPONSE); //set response garbage
 
-        let json_string = r#"{"id":"123"}"#;
-        let c_json = CString::new(json_string).unwrap().into_raw();
+        let c_json = concat!(r#"{"id":"123"}"#, "\0").as_ptr().cast();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_agent_update_info(cb.command_handle,
+        let (h, cb, _r) = return_types::return_u32();
+        assert_eq!(vcx_agent_update_info(h,
                                          c_json,
-                                         Some(cb.get_callback())),
+                                         Some(cb)),
                    error::INVALID_JSON.code_num);
     }
 
@@ -1042,9 +1104,9 @@ mod tests {
     fn test_get_ledger_fees() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_ledger_get_fees(cb.command_handle,
-                                       Some(cb.get_callback())),
+        let (h, cb, _r) = return_types::return_u32_str();
+        assert_eq!(vcx_ledger_get_fees(h,
+                                       Some(cb)),
                    error::SUCCESS.code_num);
     }
 
@@ -1052,51 +1114,51 @@ mod tests {
     fn test_messages_download() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_messages_download(cb.command_handle, ptr::null_mut(), ptr::null_mut(), ptr::null_mut(), Some(cb.get_callback())), error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_messages_download(h, ptr::null_mut(), ptr::null_mut(), ptr::null_mut(), Some(cb)), error::SUCCESS.code_num);
+        r.recv_medium().unwrap();
     }
 
     #[test]
     fn test_messages_update_status() {
         let _setup = SetupMocks::init();
 
-        let status = CString::new("MS-103").unwrap().into_raw();
-        let json = CString::new(r#"[{"pairwiseDID":"QSrw8hebcvQxiwBETmAaRs","uids":["mgrmngq"]}]"#).unwrap().into_raw();
+        let status = "MS-103\0".as_ptr().cast();
+        let json = concat!(r#"[{"pairwiseDID":"QSrw8hebcvQxiwBETmAaRs","uids":["mgrmngq"]}]"#, "\0").as_ptr().cast();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_messages_update_status(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_messages_update_status(h,
                                               status,
                                               json,
-                                              Some(cb.get_callback())),
+                                              Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
     #[cfg(feature = "agency")]
     #[cfg(feature = "pool_tests")]
     fn test_health_check() {
-        let _setup = SetupLibraryAgencyV1ZeroFees::init();
+        let _setup = SetupLibraryAgencyV2ZeroFeesNewProvisioning::init();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
+        let (h, cb, r) = return_types::return_u32();
         assert_eq!(
-            vcx_health_check(cb.command_handle, Some(cb.get_callback())),
+            vcx_health_check(h, Some(cb)),
             error::SUCCESS.code_num
         );
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
     fn test_health_check_failure() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
+        let (h, cb, r) = return_types::return_u32();
         assert_eq!(
-            vcx_health_check(cb.command_handle, Some(cb.get_callback())),
+            vcx_health_check(h, Some(cb)),
             error::SUCCESS.code_num
         );
-        cb.receive(TimeoutUtils::some_medium()).unwrap_err();
+        r.recv_medium().unwrap_err();
     }
 }
 

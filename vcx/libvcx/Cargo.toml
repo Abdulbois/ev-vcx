@@ -1,7 +1,7 @@
 [package]
 
 name = "libvcx"
-version = "0.11.2"
+version = "0.12.0"
 authors = ["Hyperledger Indy Contributors <hyperledger-indy@lists.hyperledger.org>"]
 publish = false
 description = "This is the official SDK for Evernym's VCX"
@@ -14,7 +14,7 @@ crate-type = ["staticlib","rlib", "cdylib"]
 
 [features]
 #default = []
-default = ["pool_tests", "agency", "wallet_backup"]
+default = [] #FIXME: return "pool_tests", "agency", "wallet_backup" features
 too_long_request = [] # These tests are waiting for the agency fixes regarding the length of request
 #default = ["pool_tests","agency"]
 #default = ["pool_tests","agency_v2"]
@@ -41,15 +41,14 @@ rand = "0.3"
 serde = "1.0.97"
 serde_json = "1.0.40"
 serde_derive = "1.0.97"
-url = "1.5.1"
 reqwest = "0.9.5"
 regex = "1.1.0"
 rust-base58 = "0.0.4"
 rmp-serde = "0.13.7"
 base64 = "0.8.0"
-openssl = "0.10"
+openssl = "0.10.34"
+openssl-sys = "0.9.63"
 hex = "0.3.2"
-num-traits = "0.2.0"
 indy = { version = "1.15.0", path = "../../wrappers/rust/" }
 indy-sys = { version = "1.15.0", path = "../../wrappers/rust/indy-sys/" }
 tokio-threadpool = "0.1.6"
@@ -67,11 +66,7 @@ dashmap = "3.11.10"
 android_logger = "0.5"
 
 [build-dependencies]
-serde = "1.0"
-json = "*"
 toml = "0.4"
-serde_json = "1.0"
-serde_derive = "1.0"
 
 [package.metadata.deb]
 maintainer = "Evernym, Inc."
@@ -99,11 +94,11 @@ maintainer-scripts = "./scripts"
 
 [package.metadata.deb.variants.libvcx-xenial]
 name = "libvcx"
-provides = "libvcx (= 0.11.2)"
+provides = "libvcx (= 0.12.0)"
 
 [package.metadata.deb.variants.libvcx-bionic]
 name = "libvcx"
-provides = "libvcx (= 0.11.2)"
+provides = "libvcx (= 0.12.0)"
 
 [profile.release]
 debug = true

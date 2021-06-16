@@ -10,6 +10,9 @@ export async function provisionAgent (configAgent: string, options: IInitVCXOpti
   /**
    * Provision an agent in the agency, populate configuration and wallet for this agent.
    *
+   * Params:
+   *  configAgent - Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+   *
    * Example:
    * ```
    * enterpriseConfig = {
@@ -52,6 +55,10 @@ export async function provisionAgentWithToken (configAgent: string, token: strin
   /**
    * Provision an agent in the agency, populate configuration and wallet for this agent.
    *
+   * Params:
+   *  configAgent - Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+   *  token -       Provisioning token provided by sponsor
+   *
    * Example:
    * ```
    * enterpriseConfig = {
@@ -68,12 +75,14 @@ export async function provisionAgentWithToken (configAgent: string, token: strin
 
     /**   Token Example:
     *    {
-    *       "id": string,
-    *       "sponsor": string, //name of enterprise sponsoring the provisioning
+    *       "sponseeId": string,
+    *       "sponsorId": string, //name of enterprise sponsoring the provisioning
     *       "nonce": string,
     *       "timestamp": string,
     *       "sig": string, // base64encoded(sig(nonce + timestamp + id))
-    *       "sponsor_vk": string,
+    *       "sponsorVerKey": string,
+    *       "attestationAlgorithm": Optional<string>, // device attestation signature algorithm. Can be one of: SafetyNet | DeviceCheck
+    *       "attestationData": Optional<string>, // device attestation signature matching to specified algorithm
     *     }
     **/
   try {
@@ -101,22 +110,77 @@ export async function provisionAgentWithToken (configAgent: string, token: strin
   }
 }
 
+export async function provisionAgentWithTokenAsync (configAgent: string, token: string, options: IInitVCXOptions = {}): Promise<string> {
+  /**
+   * Provision an agent in the agency, populate configuration and wallet for this agent.
+   *
+   * Params:
+   *  configAgent - Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+   *  token -       Provisioning token provided by sponsor
+   *
+   * Example:
+   * ```
+   * configAgent = {
+   *     'agency_url': 'https://enym-eagency.pdev.evernym.com',
+   *     'agency_did': 'YRuVCckY6vfZfX9kcQZe3u',
+   *     'agency_verkey': "J8Yct6FwmarXjrE2khZesUXRVVSVczSoa9sFaGe6AD2v",
+   *     'wallet_name': 'LIBVCX_SDK_WALLET',
+   *     'agent_seed': '00000000000000000000000001234561',
+   *     'enterprise_seed': '000000000000000000000000Trustee1',
+   *     'wallet_key': '1234'
+   *  }
+   * token =
+   *    {
+   *       "sponseeId": string,
+   *       "sponsorId": string, //name of enterprise sponsoring the provisioning
+   *       "nonce": string,
+   *       "timestamp": string,
+   *       "sig": string, // base64encoded(sig(nonce + timestamp + id))
+   *       "sponsorVerKey": string,
+   *       "attestationAlgorithm": Optional<string>, // device attestation signature algorithm. Can be one of: SafetyNet | DeviceCheck
+   *       "attestationData": Optional<string>, // device attestation signature matching to specified algorithm
+   *     }
+   **/
+  try {
+    initRustAPI(options.libVCXPath)
+    return await createFFICallbackPromise<string>(
+      (resolve, reject, cb) => {
+        const rc = rustAPI().vcx_provision_agent_with_token_async(0, configAgent, token, cb)
+        if (rc) {
+          reject(rc)
+        }
+      },
+      (resolve, reject) => Callback(
+        'void',
+        ['uint32','uint32','string'],
+        (xhandle: number, err: number, config: string) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(config)
+        })
+)
+} catch (err) {
+throw new VCXInternalError(err)
+  }
+}
+
 export async function getProvisionToken (config: string, options: IInitVCXOptions = {}): Promise<string> {
   /**
-   * Get Provisioning Token
-   * Config Example:
+   * Get token that can be used for provisioning an agent
+   * NOTE: Can be used only for Evernym's applications
+   * Config:
    * {
-   *   'vcx_config': {
-   *      'agency_url': 'https://enym-eagency.pdev.evernym.com',
-   *       'agency_did': 'YRuVCckY6vfZfX9kcQZe3u',
-   *       'agency_verkey': "J8Yct6FwmarXjrE2khZesUXRVVSVczSoa9sFaGe6AD2v",
-   *       'wallet_name': 'LIBVCX_SDK_WALLET',
-   *       'agent_seed': '00000000000000000000000001234561',
-   *       'enterprise_seed': '000000000000000000000000Trustee1',
-   *       'wallet_key': '1234'
+   *     vcx_config: VcxConfig // Same config passed to agent provision
+   *                           // See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+   *     sponsee_id: String,
+   *     sponsor_id: String,
+   *     com_method: {
+   *         type: u32 // 1 means push notifications, 4 means forward to sponsor app
+   *         id: String,
+   *         value: String,
    *     },
-   *    'source_id': "123",
-   *    'com_method': {'type': 1,'id':'123','value':'FCM:Value'}
    * }
    */
   try {
@@ -467,6 +531,37 @@ export async function healthCheck (): Promise<void> {
             return
           }
           resolve()
+        })
+    )
+  } catch (err) {
+    throw new VCXInternalError(err)
+  }
+}
+
+export async function createPairwiseAgent(): Promise<string> {
+  /**
+   *  Create pairwise agent which can be later used for connection establishing.
+   *
+   *  You can pass `agent_info` into `vcx_connection_connect` function as field of `connection_options` JSON parameter.
+   *  The passed Pairwise Agent will be used for connection establishing instead of creation a new one.
+   */
+  try {
+    return await createFFICallbackPromise<string>(
+      (resolve, reject, cb) => {
+        const rc = rustAPI().vcx_create_pairwise_agent(0, cb)
+        if (rc) {
+          reject(rc)
+        }
+      },
+      (resolve, reject) => Callback(
+        'void',
+        ['uint32','uint32','string'],
+        (xhandle: number, err: number, agentInfo: string) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(agentInfo)
         })
     )
   } catch (err) {

@@ -9,6 +9,10 @@ from vcx.common import do_call, create_cb, do_call_sync
 async def vcx_agent_provision(config: str) -> None:
     """
     Provision an agent in the agency, populate configuration and wallet for this agent.
+
+   Params:
+     config - Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+
     Example:
     import json
     enterprise_config = {
@@ -39,9 +43,14 @@ async def vcx_agent_provision(config: str) -> None:
     logger.debug("vcx_agent_provision completed")
     return result.decode()
 
-async def vcx_provision_agent_with_token(config: str, token: str) -> None:
+async def vcx_provision_agent_with_token(config: str, token: str) -> str:
     """
     Provision an agent in the agency, populate configuration and wallet for this agent.
+
+    Params:
+     config - Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+     token  -  Provisioning token provided by sponsor
+
     Example:
     enterprise_config = {
         'agency_url': 'http://localhost:8080',
@@ -60,8 +69,7 @@ async def vcx_provision_agent_with_token(config: str, token: str) -> None:
       "sig": String, // Base64Encoded(sig(nonce + timestamp + id))
       "sponsor_vk": String,
     }
-    vcx_config = await vcx_agent_provision(json.dumps(enterprise_config))
-    :param config: JSON configuration
+
     :return: Configuration for vcx_init call.
     """
     logger = logging.getLogger(__name__)
@@ -76,24 +84,72 @@ async def vcx_provision_agent_with_token(config: str, token: str) -> None:
     logger.debug("vcx_provision_agent_with_token completed")
     return result.decode()
 
+async def vcx_provision_agent_with_token_async(config: str, token: str) -> str:
+    """
+    Provision an agent in the agency, populate configuration and wallet for this agent.
+
+    Params:
+     config - Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+     token  -  Provisioning token provided by sponsor
+
+    Example:
+    enterprise_config = {
+        'agency_url': 'http://localhost:8080',
+        'agency_did': 'VsKV7grR1BUE29mG2Fm2kX',
+        'agency_verkey': "Hezce2UWMZ3wUhVkh2LfKSs8nDzWwzs2Win7EzNN3YaR",
+        'wallet_name': 'LIBVCX_SDK_WALLET',
+        'agent_seed': '00000000000000000000000001234561',
+        'enterprise_seed': '000000000000000000000000Trustee1',
+        'wallet_key': '1234'
+    }
+    token = {
+      "id": String,
+      "sponsor": String, //Name of Enterprise sponsoring the provisioning
+      "nonce": String,
+      "timestamp": String,
+      "sig": String, // Base64Encoded(sig(nonce + timestamp + id))
+      "sponsor_vk": String,
+    }
+
+    :return: Configuration for vcx_init call.
+    """
+    logger = logging.getLogger(__name__)
+
+    if not hasattr(vcx_provision_agent_with_token_async, "cb"):
+        logger.debug("vcx_provision_agent_with_token_async: Creating callback")
+        vcx_provision_agent_with_token_async.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
+
+    c_config = c_char_p(config.encode('utf-8'))
+    c_token = c_char_p(token.encode('utf-8'))
+
+    result = await do_call('vcx_provision_agent_with_token_async',
+                           c_config,
+                           c_token,
+                           vcx_provision_agent_with_token_async.cb)
+
+    logger.debug("vcx_provision_agent_with_token_async completed")
+    return result.decode()
+
 async def vcx_get_provision_token(config: str) -> str:
     """
-    Get token used in vcx_provision_agent_with_token
+    Get token which can be used for provisioning an agent
+    NOTE: Can be used only for Evernym's applications
+
     :param config:
-      {
-        'vcx_config': {
-          'agency_url': 'https://enym-eagency.pdev.evernym.com',
-          'agency_did': 'YRuVCckY6vfZfX9kcQZe3u',
-          'agency_verkey': "J8Yct6FwmarXjrE2khZesUXRVVSVczSoa9sFaGe6AD2v",
-          'wallet_name': 'LIBVCX_SDK_WALLET',
-          'agent_seed': '00000000000000000000000001234561',
-          'enterprise_seed': '000000000000000000000000Trustee1',
-          'wallet_key': '1234'
-        },
-        'source_id': "123",
-        'com_method': {'type': 1,'id':'123','value':'FCM:Value'}
-      }
-    :return: provisioning token
+     {
+         vcx_config: VcxConfig // Same config passed to agent provision
+                               // See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+         sponsee_id: String,
+         sponsor_id: String,
+         com_method: {
+             type: u32 // 1 means push notifications, 4 means forward to sponsor app
+             id: String,
+             value: String,
+         },
+         algorithm: Optional[String], // signature algorithm. Can be one of: SafetyNet | DeviceCheck
+         signature: Optional[String], // signature matching to specified algorithm
+     }
+    :return: provisioning token as JSON
     """
     logger = logging.getLogger(__name__)
 
@@ -435,3 +491,36 @@ async def vcx_health_check() -> None:
 
     logger.debug("vcx_health_check completed")
     return result
+    
+    
+async def vcx_create_pairwise_agent() -> str:
+    """
+    Create pairwise agent which can be later used for connection establishing.
+
+    You can pass `agent_info` into `vcx_connection_connect` function as field of `connection_options` JSON parameter.
+    The passed Pairwise Agent will be used for connection establishing instead of creation a new one.
+
+    :param status: optional, comma separated - query for messages with the specified status.
+                                     Possible statuses:
+                                     MS-101 - Created
+                                     MS-102 - Sent
+                                     MS-103 - Received
+                                     MS-104 - Accepted
+                                     MS-105 - Rejected
+                                     MS-106 - Reviewed
+    :param uids: optional, comma separated - query for messages with the specified uids
+    :param pw_dids: optional, comma separated - DID's pointing to specific connection
+    :return: message
+        [{"pairwiseDID":"did","msgs":[{"statusCode":"MS-106","payload":null,"senderDID":"","uid":"6BDkgc3z0E","type":"aries","refMsgId":null,"deliveryDetails":[],"decryptedPayload":"{"@msg":".....","@type":{"fmt":"json","name":"aries","ver":"1.0"}}"}]}]
+    """
+    logger = logging.getLogger(__name__)
+
+    if not hasattr(vcx_create_pairwise_agent, "cb"):
+        logger.debug("vcx_create_pairwise_agent: Creating callback")
+        vcx_create_pairwise_agent.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
+
+    result = await do_call('vcx_create_pairwise_agent',
+                           vcx_create_pairwise_agent.cb)
+
+    logger.debug("vcx_create_pairwise_agent completed")
+    return result.decode()

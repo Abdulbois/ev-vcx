@@ -12,9 +12,12 @@ use v3::messages::issuance::credential::Credential;
 use v3::messages::issuance::credential_offer::CredentialOffer;
 use v3::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
 
-use connection;
+use crate::connection::Connections;
+use crate::credential_def::CredentialDef;
 use utils::libindy::anoncreds::prover_get_credential;
 use v3::messages::error::ProblemReport;
+
+use crate::object_cache::Handle;
 
 // Issuer
 
@@ -24,14 +27,14 @@ pub struct Issuer {
 }
 
 impl Issuer {
-    pub fn create(cred_def_handle: u32, credential_data: &str, source_id: &str, credential_name: &str) -> VcxResult<Issuer> {
+    pub fn create(cred_def_handle: Handle<CredentialDef>, credential_data: &str, source_id: &str, credential_name: &str) -> VcxResult<Issuer> {
         trace!("Issuer::issuer_create_credential >>> cred_def_handle: {:?}, credential_data: {:?}, source_id: {:?}",
                cred_def_handle, secret!(credential_data), source_id);
         debug!("Issuer {}: Creating credential Issuer state object", source_id);
 
-        let cred_def_id = ::credential_def::get_cred_def_id(cred_def_handle)?;
-        let rev_reg_id = ::credential_def::get_rev_reg_id(cred_def_handle)?;
-        let tails_file = ::credential_def::get_tails_file(cred_def_handle)?;
+        let cred_def_id = cred_def_handle.get_cred_def_id()?;
+        let rev_reg_id = cred_def_handle.get_rev_reg_id()?;
+        let tails_file = cred_def_handle.get_tails_file()?;
         let issuer_sm = IssuerSM::new(&cred_def_id, credential_data, rev_reg_id, tails_file, source_id, credential_name);
         Ok(Issuer { issuer_sm })
     }
@@ -45,12 +48,12 @@ impl Issuer {
         Ok(Issuer { issuer_sm })
     }
 
-    pub fn send_credential_offer(&mut self, connection_handle: u32) -> VcxResult<()> {
+    pub fn send_credential_offer(&mut self, connection_handle: Handle<Connections>) -> VcxResult<()> {
         debug!("Issuer {}: Sending credential offer", self.get_source_id()?);
         self.step(CredentialIssuanceMessage::CredentialInit(connection_handle))
     }
 
-    pub fn send_credential(&mut self, connection_handle: u32) -> VcxResult<()> {
+    pub fn send_credential(&mut self, connection_handle: Handle<Connections>) -> VcxResult<()> {
         debug!("Issuer {}: Sending credential", self.get_source_id()?);
         self.step(CredentialIssuanceMessage::CredentialSend(connection_handle))
     }
@@ -122,13 +125,13 @@ impl Holder {
         Ok(Holder { holder_sm })
     }
 
-    pub fn send_request(&mut self, connection_handle: u32) -> VcxResult<()> {
+    pub fn send_request(&mut self, connection_handle: Handle<Connections>) -> VcxResult<()> {
         trace!("Holder::send_request >>>");
         debug!("Holder {}: Sending credential request", self.get_source_id());
         self.step(CredentialIssuanceMessage::CredentialRequestSend(connection_handle))
     }
 
-    pub fn send_reject(&mut self, connection_handle: u32, comment: Option<String>) -> VcxResult<()> {
+    pub fn send_reject(&mut self, connection_handle: Handle<Connections>, comment: Option<String>) -> VcxResult<()> {
         trace!("Holder::send_reject >>> comment: {:?}", comment);
         debug!("Holder {}: Sending credential reject", self.get_source_id());
         self.step(CredentialIssuanceMessage::CredentialRejectSend((connection_handle, comment)))
@@ -187,10 +190,12 @@ impl Holder {
         debug!("Credential {}: Building presentation proposal", self.get_source_id());
 
         let (cred_id, _) = self.get_credential()?;
+        let credential_offer = self.get_credential_offer()?;
 
         let credential = prover_get_credential(&cred_id)?;
 
         let presentation_proposal = PresentationProposal::default()
+            .set_comment(credential_offer.comment.unwrap_or(String::from("Credential")))
             .set_presentation_preview(PresentationPreview::for_credential(&credential));
 
         trace!("Credential::get_presentation_proposal <<< presentation_proposal: {:?}", presentation_proposal);
@@ -210,11 +215,11 @@ impl Holder {
         Ok(())
     }
 
-    pub fn get_credential_offer_message(connection_handle: u32, msg_id: &str) -> VcxResult<CredentialOffer> {
+    pub fn get_credential_offer_message(connection_handle: Handle<Connections>, msg_id: &str) -> VcxResult<CredentialOffer> {
         trace!("Holder::get_credential_offer_message >>> connection_handle: {}, msg_id: {}", connection_handle, msg_id);
         debug!("Holder: Getting credential offer {} from the agent", msg_id);
 
-        let message = connection::get_message_by_id(connection_handle, msg_id.to_string())?;
+        let message = connection_handle.get_message_by_id(msg_id.to_string())?;
 
         let credential_offer: CredentialOffer = match message {
             A2AMessage::CredentialOffer(credential_offer) => credential_offer,
@@ -228,12 +233,12 @@ impl Holder {
         Ok(credential_offer)
     }
 
-    pub fn get_credential_offer_messages(conn_handle: u32) -> VcxResult<Vec<CredentialOffer>> {
+    pub fn get_credential_offer_messages(conn_handle: Handle<Connections>) -> VcxResult<Vec<CredentialOffer>> {
         trace!("Holder::get_credential_offer_messages >>>");
         debug!("Holder: Getting all credential offers from the agent");
 
-        let messages = connection::get_messages(conn_handle)?;
-        let msgs: Vec<CredentialOffer> = messages
+        let msgs = conn_handle
+            .get_messages()?
             .into_iter()
             .filter_map(|(_, a2a_message)| {
                 match a2a_message {

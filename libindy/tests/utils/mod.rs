@@ -65,9 +65,6 @@ macro_rules! inject_indy_dependencies {
         extern crate lazy_static;
 
         #[macro_use]
-        extern crate derivative;
-
-        #[macro_use]
         extern crate serde_derive;
 
         #[macro_use]

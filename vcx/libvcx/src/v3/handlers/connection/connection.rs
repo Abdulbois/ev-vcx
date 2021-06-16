@@ -11,6 +11,7 @@ use v3::messages::basic_message::message::BasicMessage;
 use v3::handlers::connection::types::{SideConnectionInfo, PairwiseConnectionInfo, CompletedConnection, OutofbandMeta, Invitations};
 use v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
 use v3::messages::questionanswer::question::{Question, QuestionResponse};
+use v3::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
 use v3::messages::invite_action::invite::InviteActionData;
 use v3::messages::invite_action::invite::{Invite as InviteForAction};
 use connection::ConnectionOptions;
@@ -61,11 +62,14 @@ impl Connection {
         Ok(connection)
     }
 
-    pub fn create_with_outofband_invite(source_id: &str, invitation: OutofbandInvitation) -> VcxResult<Connection> {
+    pub fn create_with_outofband_invite(source_id: &str, mut invitation: OutofbandInvitation) -> VcxResult<Connection> {
         trace!("Connection::create_with_outofband_invite >>> source_id: {}, invitation: {:?}", source_id, secret!(invitation));
         debug!("Connection {}: Creating Connection state object with out-of-band invite", source_id);
 
         invitation.validate()?;
+
+        // normalize service keys in case invitation is using did:key format
+        invitation.normalize_service_keys()?;
 
         let mut connection = Connection {
             connection_sm: DidExchangeSM::new(Actor::Invitee, source_id, None),
@@ -148,17 +152,18 @@ impl Connection {
         }
 
         let messages = self.get_messages()?;
+        let pw_did = self.agent_info().pw_did.clone();
 
         if let Some((uid, message)) = self.connection_sm.find_message_to_handle(messages) {
             self.handle_message(message.into())?;
-            self.agent_info().update_message_status(uid)?;
+            self.agent_info().update_message_status(uid, Some(pw_did))?;
         } else {
             if let Some(prev_agent_info) = self.connection_sm.prev_agent_info().cloned() {
                 let messages = prev_agent_info.get_messages()?;
 
                 if let Some((uid, message)) = self.connection_sm.find_message_to_handle(messages) {
                     self.handle_message(message.into())?;
-                    prev_agent_info.update_message_status(uid)?;
+                    prev_agent_info.update_message_status(uid, Some(pw_did))?;
                 }
             }
         };
@@ -173,7 +178,7 @@ impl Connection {
         trace!("Connection::update_message_status >>> uid: {:?}", uid);
         debug!("Connection {}: Updating message status as reviewed", self.source_id());
 
-        self.connection_sm.agent_info().update_message_status(uid)
+        self.connection_sm.agent_info().update_message_status(uid, None)
     }
 
     pub fn update_state_with_message(&mut self, message: &str) -> VcxResult<u32> {
@@ -219,6 +224,13 @@ impl Connection {
             .ok_or(VcxError::from_msg(VcxErrorKind::NotReady, "Cannot send message: Remote Connection DIDDoc is not set"))?;
 
         self.agent_info().send_message(message, &did_doc)
+    }
+
+    pub fn send_message_and_wait_result(message: &A2AMessage, did_doc: &DidDoc, sender_vk: &str) -> VcxResult<A2AMessage> {
+        trace!("Connection::send_message_and_wait_result >>> message: {:?}, did_doc: {:?}, sender_vk: {:?}",
+               secret!(message), secret!(did_doc), secret!(sender_vk));
+
+        AgentInfo::send_message_and_wait_result(message, did_doc, sender_vk)
     }
 
     pub fn send_message_to_self_endpoint(message: &A2AMessage, did_doc: &DidDoc) -> VcxResult<()> {
@@ -282,15 +294,32 @@ impl Connection {
         trace!("Connection::send_answer >>> question: {:?}, response: {:?}", secret!(question), secret!(response));
         debug!("Connection {}: Sending question answer message", self.source_id());
 
-        let question: Question = ::serde_json::from_str(&question)
-            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
-                                              format!("Could not parse Aries Question from message: {:?}. Err: {:?}", question, err)))?;
+        let parsed_question = ::serde_json::from_str::<Question>(&question);
+        let parser_response = ::serde_json::from_str::<QuestionResponse>(&response);
 
-        let response: QuestionResponse = ::serde_json::from_str(&response)
-            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
-                                              format!("Could not parse Aries Valid Question Response from message: {:?}. Err: {:?}", response, err)))?;
+        if let (Ok(question_), Ok(response_)) = (parsed_question, parser_response) {
+            self.handle_message(DidExchangeMessages::SendAnswer((question_, response_)))?;
+            return Ok(());
+        }
 
-        self.handle_message(DidExchangeMessages::SendAnswer((question, response)))
+        let parsed_question = ::serde_json::from_str::<CommittedQuestion>(&question);
+        let parser_response = ::serde_json::from_str::<CommittedQuestionResponse>(&response);
+
+        match (parsed_question, parser_response) {
+            (Ok(question_), Ok(response_)) => {
+                self.handle_message(DidExchangeMessages::SendCommittedAnswer((question_, response_)))
+            },
+            (Err(err), _) => {
+                Err(VcxError::from_msg(VcxErrorKind::InvalidJson,
+                                       format!("Could not parse Question from message: {:?}. Err: {:?}",
+                                               question, err)))
+            },
+            (_, Err(err)) => {
+                Err(VcxError::from_msg(VcxErrorKind::InvalidJson,
+                                       format!("Could not parse Question Response from message: {:?}. Err: {:?}",
+                                               question, err)))
+            }
+        }
     }
 
     pub fn send_invite_action(&mut self, data: InviteActionData) -> VcxResult<String> {

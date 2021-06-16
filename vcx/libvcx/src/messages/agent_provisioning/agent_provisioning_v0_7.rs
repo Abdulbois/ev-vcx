@@ -9,6 +9,7 @@ use utils::uuid::uuid;
 use settings;
 use utils::httpclient;
 use settings::ProtocolTypes;
+use messages::token_provisioning::token_provisioning::VALID_SIGNATURE_ALGORITHMS;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ProvisionToken {
@@ -21,6 +22,12 @@ pub struct ProvisionToken {
     sig: String,
     #[serde(rename = "sponsorVerKey")]
     sponsor_vk: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "attestationAlgorithm")]
+    attestation_algorithm: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "attestationData")]
+    attestation_data: Option<String>,
 }
 
 
@@ -59,6 +66,21 @@ pub struct ProblemReport {
     pub err: String,
 }
 
+impl ProvisionToken {
+    pub fn validate(&self) -> VcxResult<()> {
+        match (self.attestation_data.as_ref(), self.attestation_algorithm.as_ref()) {
+            (Some(_), None) | (None, Some(_)) => {
+                return Err(VcxError::from_msg(VcxErrorKind::InvalidConfiguration, "signature and algorithm must be either passed or skipped together"));
+            },
+            (Some(_), Some(algorithm)) if !VALID_SIGNATURE_ALGORITHMS.contains(&algorithm.as_str()) => {
+                return Err(VcxError::from_msg(VcxErrorKind::InvalidConfiguration,
+                                              format!("unexpected signature algorithm was passed: {:?}. expected: {:?}", algorithm, VALID_SIGNATURE_ALGORITHMS)));
+            }
+            _ => Ok(())
+        }
+    }
+}
+
 impl ProvisionAgent {
     pub fn build(token: Option<ProvisionToken>, keys: Option<RequesterKeys>) -> ProvisionAgent {
         ProvisionAgent {
@@ -76,6 +98,7 @@ pub fn provision(config: &str, token: &str) -> VcxResult<String> {
         VcxErrorKind::InvalidProvisioningToken,
         format!("Cannot parse config: {}", err)
     ))?;
+    token.validate()?;
 
     debug!("***Configuring Library");
     set_config_values(&my_config);
@@ -108,7 +131,7 @@ pub fn create_agent(my_did: &str, my_vk: &str, token: ProvisionToken) -> VcxResu
     let mut response = provisioning_v0_7_send_message_to_agency(&message, &my_vk)?;
 
     let response: AgentCreated =
-        match response.remove(0) {
+        match response.swap_remove(0) {
             A2AMessage::Version2(A2AMessageV2::AgentCreated(resp)) => resp,
             A2AMessage::Version2(A2AMessageV2::ProblemReport(resp)) => {
                 return Err(VcxError::from_msg(VcxErrorKind::InvalidProvisioningToken, format!("provisioning failed: {:?}", resp)))
@@ -149,7 +172,7 @@ pub fn provisioning_v0_7_pack_for_agency(message: &A2AMessage, from_vk: &str) ->
     Ok(forward)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "agency", feature = "pool_tests"))]
 mod tests {
     use super::*;
     use settings;
@@ -202,8 +225,6 @@ mod tests {
     }
 
     #[ignore]
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
     #[test]
     fn test_agent_provisioning_0_7() {
         cleanup_indy_env();
@@ -216,8 +237,6 @@ mod tests {
     }
 
     #[ignore]
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
     #[test]
     fn test_agent_provisioning_0_7_fails_with_expired_time() {
         cleanup_indy_env();
@@ -231,8 +250,6 @@ mod tests {
     }
 
     #[ignore]
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
     #[test]
     fn test_agent_provisioning_0_7_fails_with_invalid_sig() {
         cleanup_indy_env();

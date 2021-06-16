@@ -9,7 +9,7 @@ from vcx.api.connection import Connection
 source_id = '123'
 connection_options = '{"connection_type":"SMS","phone":"8019119191","use_public_did":true}'
 details = '{"connReqId":"njjmmdg","senderAgencyDetail":{"DID":"YRuVCckY6vfZfX9kcQZe3u","endpoint":"52.38.32.107:80/agency/msg","verKey":"J8Yct6FwmarXjrE2khZesUXRVVSVczSoa9sFaGe6AD2v"},"senderDetail":{"DID":"JZho9BzVAEk8jJ1hwrrDiZ","agentKeyDlgProof":{"agentDID":"JDF8UHPBTXigvtJWeeMJzx","agentDelegatedKey":"AP5SzUaHHhF5aLmyKHB3eTqUaREGKyVttwo5T4uwEkM4","signature":"JHSvITBMZiTEhpK61EDIWjQOLnJ8iGQ3FT1nfyxNNlxSngzp1eCRKnGC/RqEWgtot9M5rmTC8QkZTN05GGavBg=="},"logoUrl":"https://robohash.org/123","name":"Evernym","verKey":"AaEDsDychoytJyzk4SuzHMeQJGCtQhQHDitaic6gtiM1"},"statusCode":"MS-101","statusMsg":"message created","targetName":"there"}'
-outofband_invite = '{"@type":"https://didcomm.org/out-of-band/%VER/invitation","@id":"<idusedforcontextaspthid>","label":"FaberCollege","handshake_protocols":["https://didcomm.org/connections/1.0"],"service":[{"id":"#inline","type":"did-communication","recipientKeys":["did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH"],"routingKeys":[],"serviceEndpoint":"https://example.com:5000"}]}'
+outofband_invite = '{"@type":"https://didcomm.org/out-of-band/%VER/invitation","@id":"<idusedforcontextaspthid>","label":"FaberCollege","handshake_protocols":["https://didcomm.org/connections/1.0"],"service":[{"id":"#inline","type":"did-communication","recipientKeys":["did:key:z2DaR6DBCHc1bopEZ3D33P4arAm8vBeKvd1MrKw6Z7XQHSH"],"routingKeys":[],"serviceEndpoint":"https://example.com:5000"}]}' #did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH
 
 
 @pytest.mark.asyncio
@@ -264,4 +264,4 @@ async def test_send_answer():
         }
         answer = {"text": "Yes, it's me"}
         await connection.send_answer(json.dumps(question), json.dumps(answer))
-    assert ErrorCode.ActionNotSupported == e.value.error_code
+    assert ErrorCode.NotReady == e.value.error_code

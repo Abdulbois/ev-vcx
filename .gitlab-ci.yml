@@ -14,17 +14,17 @@ cache:
     - cache/
 
 variables:
-  staticLibVersion: "20190607"
-  rustVersion: "1.45.0"
-  libsovtokenVersion: "1.0.5"
-  libsovtokenVersionExtra: "15"
+  staticLibVersion: '20190607'
+  rustVersion: '1.45.0'
+  libsovtokenVersion: '1.0.5'
+  libsovtokenVersionExtra: '15'
   indyBranch: 'rc' # RPM stream
-  indySimpleVersion: "1.16.0" # RPM package name
-  indyFullVersion: "1.16.0-170" # RPM directory
-  indyFullDebVersion: "1.16.0~170" # DEB package name
-  androidSovtokenArtifact: "libsovtoken_1.0.5-201912281255-e39929e_all.zip"
-  iosSovtokenArtifact: "libsovtoken_1.0.5-201912281252-e39929e_all.zip"
-  msdkVersion: "1.4.1" # CHANGE_ME for every VCX stable release (0.11.2 VCX)
+  indySimpleVersion: '1.16.0' # RPM package name
+  indyFullVersion: '1.16.0-170' # RPM directory
+  indyFullDebVersion: '1.16.0~170' # DEB package name
+  androidSovtokenArtifact: 'libsovtoken_1.0.5-201912281255-e39929e_all.zip'
+  iosSovtokenArtifact: 'libsovtoken_1.0.5-201912281252-e39929e_all.zip'
+  msdkVersion: '1.4.1' # CHANGE_ME for every VCX stable release (0.11.2 VCX)
 
 ## - Anchors - ##
 .tags_micro:
@@ -47,54 +47,53 @@ variables:
   extends: .tags_micro
   image:
     name: gcr.io/kaniko-project/executor:debug-v0.16.0
-    entrypoint: [""]
+    entrypoint: ['']
   script:
     - if [ "$CI_COMMIT_REF_SLUG" == 'master' ] || [ "$CI_COMMIT_REF_SLUG" == 'stable' ]; then KANIKO_ARGS="--destination $CI_REGISTRY_IMAGE/${DOCKER_IMAGE_NAME}:latest $KANIKO_ARGS"; fi
     - echo "${KANIKO_ARGS}"
     - |
-        echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" \
-        > /kaniko/.docker/config.json
+      echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" \
+      > /kaniko/.docker/config.json
     - |
-        echo "-----BEGIN CERTIFICATE-----
-        MIIFJTCCAw2gAwIBAgIUMI0Z8YSLeRq8pZks40O3Dq2m8TIwDQYJKoZIhvcNAQEL
-        BQAwGjEYMBYGA1UEAxMPRXZlcm55bSBSb290IENBMB4XDTE3MTAxMTIwMTAxMFoX
-        DTQ3MTAwNDIwMTAzOVowGjEYMBYGA1UEAxMPRXZlcm55bSBSb290IENBMIICIjAN
-        BgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA1kjmtmMfLJfsqUNaco44N3brW8Vu
-        b02lAeEwbxc65mwfAG8kAjW7kYhI/fDXFOYXUvoa3Dg7bFeEatdIjHOahZssGM27
-        HsQZ4PfRhPE6HtXFszmDwXWuEekVxoyueTqL7ExnNZ+BRTXvPfm5nw1E7L3o3xHF
-        GSOtWFCyHfKd1LwMKzAVSjxlawEZnfk3WK3NxrC4UYMlQaDme7m3rCMfO+KBQk69
-        bFXsgn6/EihVeQ8T1+T8gogofzh5b4Z7kS6e6GMqotbGFg4agejkRVsIglSpaQLk
-        2Ztn/MP1dwgyvO4uvplB4sxZSC2FhhovlwPETmbKsnpj020+m0+YU4FPKwjroMiH
-        tP//YqiNKsLxtjhffW7XFToyy0qQttW5RMWnyx4MXs9Hwcy29gY1izeGMSzz3zV5
-        HG8JSJikuYbYiGJRVS0egovkVjja6lrVk0Q4Hm5pbw4l7LYCd6bkDLMsRaS1QnWs
-        9iz6XEf5SpIu1FuqHmlhj1ABehUyGIg5oC6egML3q78yk0mCW523qMFa9Kjnk871
-        mmXSCn3p/3DCrwWYfpcibxtVaKyJj6ISYIcl+Zu65Uzmhf+nj56x3gkNgEOva7JS
-        Xge+FxPxsaXBGyeSH09nNIoNmh/UucuzpNY2UyCpJuqXHtR5jaACSdsqNxG8tcDg
-        K9v98D/DFiShghECAwEAAaNjMGEwDgYDVR0PAQH/BAQDAgEGMA8GA1UdEwEB/wQF
-        MAMBAf8wHQYDVR0OBBYEFOrH4oUpB94gNDNqdGG92kdVZ3qkMB8GA1UdIwQYMBaA
-        FOrH4oUpB94gNDNqdGG92kdVZ3qkMA0GCSqGSIb3DQEBCwUAA4ICAQCwjN3ggZ98
-        BXT39fKkCX3FHb0++aFcIyMKWrcZIpYrl3GoZsNKZK4QNQ+uJOP8xmqgyrCoMfch
-        VIGPQ0RDN/IzqCLhc/U3pDmk2hXa3xTxD3gpCQZ6Bz04KlcLfZd5jzbI741bVDyF
-        a1n46bEyuqV4SsNJWI/FGokJCNcZH66njBQBaQAccZ7xB9vWU9yjIYtGQDDvSm6J
-        SC2knrQri0vv4QLUSc1LS6AlWWSQxcCpcdO+OzIFGsf5bVmYN6J4R3COY5NyQ+yn
-        pOSN2NOh5h3ZrYAxm3i4Il0orVLveVcTVDGeAgZUII4YLJi/01RHGqit3aCuApSh
-        bzFTZ5FldFss+JX9iAhqpFDbHLgae0F3QmYEnGilt/PzO4j23QJo3FZKeruQLH7P
-        L9aOgN6S2+Akbbm9YTc59yzU5TZMxANwTdaYFWFqk/8nKgZiBR1l8jnWTlWnm86A
-        qVssH3DLKwiYrWSOHRzGuN5BmPXxxtKQJlwAXt0wJE3puUkaJSRo7CJQ3QNMoKDe
-        OjzXc9WvkFIXr3Eui8UTiHB/WT7N4o8hmVN404akGfWE0YNwRVfWpjGdew6g0tZi
-        lFnjUUk49av67um43JHcinT5NFPuleZzkjaL/D8ueOrjXQDy05rwVdgmw9pXog4B
-        Tw6APXtEnjfD2H8HOpOX/7ef4gWK0O1Q7A==
-        -----END CERTIFICATE-----" >> /kaniko/ssl/certs/ca-certificates.crt
+      echo "-----BEGIN CERTIFICATE-----
+      MIIFJTCCAw2gAwIBAgIUMI0Z8YSLeRq8pZks40O3Dq2m8TIwDQYJKoZIhvcNAQEL
+      BQAwGjEYMBYGA1UEAxMPRXZlcm55bSBSb290IENBMB4XDTE3MTAxMTIwMTAxMFoX
+      DTQ3MTAwNDIwMTAzOVowGjEYMBYGA1UEAxMPRXZlcm55bSBSb290IENBMIICIjAN
+      BgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA1kjmtmMfLJfsqUNaco44N3brW8Vu
+      b02lAeEwbxc65mwfAG8kAjW7kYhI/fDXFOYXUvoa3Dg7bFeEatdIjHOahZssGM27
+      HsQZ4PfRhPE6HtXFszmDwXWuEekVxoyueTqL7ExnNZ+BRTXvPfm5nw1E7L3o3xHF
+      GSOtWFCyHfKd1LwMKzAVSjxlawEZnfk3WK3NxrC4UYMlQaDme7m3rCMfO+KBQk69
+      bFXsgn6/EihVeQ8T1+T8gogofzh5b4Z7kS6e6GMqotbGFg4agejkRVsIglSpaQLk
+      2Ztn/MP1dwgyvO4uvplB4sxZSC2FhhovlwPETmbKsnpj020+m0+YU4FPKwjroMiH
+      tP//YqiNKsLxtjhffW7XFToyy0qQttW5RMWnyx4MXs9Hwcy29gY1izeGMSzz3zV5
+      HG8JSJikuYbYiGJRVS0egovkVjja6lrVk0Q4Hm5pbw4l7LYCd6bkDLMsRaS1QnWs
+      9iz6XEf5SpIu1FuqHmlhj1ABehUyGIg5oC6egML3q78yk0mCW523qMFa9Kjnk871
+      mmXSCn3p/3DCrwWYfpcibxtVaKyJj6ISYIcl+Zu65Uzmhf+nj56x3gkNgEOva7JS
+      Xge+FxPxsaXBGyeSH09nNIoNmh/UucuzpNY2UyCpJuqXHtR5jaACSdsqNxG8tcDg
+      K9v98D/DFiShghECAwEAAaNjMGEwDgYDVR0PAQH/BAQDAgEGMA8GA1UdEwEB/wQF
+      MAMBAf8wHQYDVR0OBBYEFOrH4oUpB94gNDNqdGG92kdVZ3qkMB8GA1UdIwQYMBaA
+      FOrH4oUpB94gNDNqdGG92kdVZ3qkMA0GCSqGSIb3DQEBCwUAA4ICAQCwjN3ggZ98
+      BXT39fKkCX3FHb0++aFcIyMKWrcZIpYrl3GoZsNKZK4QNQ+uJOP8xmqgyrCoMfch
+      VIGPQ0RDN/IzqCLhc/U3pDmk2hXa3xTxD3gpCQZ6Bz04KlcLfZd5jzbI741bVDyF
+      a1n46bEyuqV4SsNJWI/FGokJCNcZH66njBQBaQAccZ7xB9vWU9yjIYtGQDDvSm6J
+      SC2knrQri0vv4QLUSc1LS6AlWWSQxcCpcdO+OzIFGsf5bVmYN6J4R3COY5NyQ+yn
+      pOSN2NOh5h3ZrYAxm3i4Il0orVLveVcTVDGeAgZUII4YLJi/01RHGqit3aCuApSh
+      bzFTZ5FldFss+JX9iAhqpFDbHLgae0F3QmYEnGilt/PzO4j23QJo3FZKeruQLH7P
+      L9aOgN6S2+Akbbm9YTc59yzU5TZMxANwTdaYFWFqk/8nKgZiBR1l8jnWTlWnm86A
+      qVssH3DLKwiYrWSOHRzGuN5BmPXxxtKQJlwAXt0wJE3puUkaJSRo7CJQ3QNMoKDe
+      OjzXc9WvkFIXr3Eui8UTiHB/WT7N4o8hmVN404akGfWE0YNwRVfWpjGdew6g0tZi
+      lFnjUUk49av67um43JHcinT5NFPuleZzkjaL/D8ueOrjXQDy05rwVdgmw9pXog4B
+      Tw6APXtEnjfD2H8HOpOX/7ef4gWK0O1Q7A==
+      -----END CERTIFICATE-----" >> /kaniko/ssl/certs/ca-certificates.crt
     - |
-        /kaniko/executor ${KANIKO_ARGS} --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/${DOCKERFILE_PATH} \
-        --destination $CI_REGISTRY_IMAGE/${DOCKER_IMAGE_NAME}:${CI_COMMIT_REF_SLUG}
-
+      /kaniko/executor ${KANIKO_ARGS} --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/${DOCKERFILE_PATH} \
+      --destination $CI_REGISTRY_IMAGE/${DOCKER_IMAGE_NAME}:${CI_COMMIT_REF_SLUG}
 
 ## - Jobs : dockerbuild-pre - ##
 .dockerbuild-vcx-libindy:
   extends: .kaniko_large
   variables:
-    KANIKO_ARGS: "--build-arg RUST_VER=${rustVersion} --build-arg LIBINDY_VER=${indyFullDebVersion} --build-arg LIBNULL_VER=${indyFullDebVersion} --build-arg LIBSOVTOKEN_VER=${libsovtokenVersion}"
+    KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion} --build-arg LIBINDY_VER=${indyFullDebVersion} --build-arg LIBNULL_VER=${indyFullDebVersion} --build-arg LIBSOVTOKEN_VER=${libsovtokenVersion}'
   only:
     refs:
       - master
@@ -140,7 +139,7 @@ dockerbuild-vcx-libindy-centos:
   variables:
     DOCKERFILE_PATH: vcx/ci/libindy-centos.dockerfile
     DOCKER_IMAGE_NAME: vcx-libindy-centos
-    KANIKO_ARGS: "--build-arg LIBINDY_VER=${indyFullVersion} --build-arg LIBINDY_SIMPLE_VER=${indySimpleVersion} --build-arg LIBINDY_BRANCH=${indyBranch} --build-arg RUST_VER=${rustVersion}"
+    KANIKO_ARGS: '--build-arg LIBINDY_VER=${indyFullVersion} --build-arg LIBINDY_SIMPLE_VER=${indySimpleVersion} --build-arg LIBINDY_BRANCH=${indyBranch} --build-arg RUST_VER=${rustVersion}'
   only:
     refs:
       - master
@@ -159,7 +158,7 @@ dockerbuild-vcx-android:
   variables:
     DOCKERFILE_PATH: vcx/wrappers/java/ci/android.dockerfile
     DOCKER_IMAGE_NAME: vcx-android
-    KANIKO_ARGS: "--build-arg RUST_VER=${rustVersion}"
+    KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion}'
   only:
     refs:
       - master
@@ -222,28 +221,27 @@ dockerbuild-vcx-java:
     - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/java.dockerfile
     - grep '^FROM' vcx/wrappers/java/ci/java.dockerfile
 
-
 ## - Jobs : Build - ##
 build-ios:
   #TODO: break tests out into another pipeline. parallelize architecture builds.
   stage: build
   tags:
     - macos
-    - mojave
-    - xcode10-1
+    - bigsur
+    - xcode-12-4
   artifacts:
     expire_in: 1 week
     paths:
-      - IOSBuilds/libvcxpartial/*.zip
-      - IOSBuilds/libvcxpartial/*.gz
-      - IOSBuilds/libvcxall/*.zip
-      - IOSBuilds/libvcxall/*.gz
+      - IOSBuilds/libvcxx86_64/*.zip
+      - IOSBuilds/libvcxx86_64/*.gz
+      - IOSBuilds/libvcxarm64/*.zip
+      - IOSBuilds/libvcxarm64/*.gz
   script:
     - curl -s https://repo.corp.evernym.com/filely/ios/vcx-build-static-libs_${staticLibVersion}.tar.gz | tar -C ~/ -xvzf -
     - which rustup-init || brew install rustup-init
     - echo | rustup-init
     - source ~/.bash_profile
-    - mkdir -p ~/IOSBuilds/libvcxpartial/ ~/IOSBuilds/libvcxall/
+    - mkdir -p ~/IOSBuilds/libvcxx86_64/ ~/IOSBuilds/libvcxarm64/
     - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
     - export vcxRevision=$(git rev-parse --short HEAD)
     - cd -
@@ -388,8 +386,8 @@ build-libvcx-ubuntu18-from-branch:
   stage: build
   image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
   variables:
-    MYSQL_DATABASE: "wallet"
-    MYSQL_ROOT_PASSWORD: "root"
+    MYSQL_DATABASE: 'wallet'
+    MYSQL_ROOT_PASSWORD: 'root'
     RUSTTESTFLAG: 'mysql'
     PACKAGE_TYPE: 'bionic'
   services:
@@ -405,8 +403,8 @@ build-libvcx-ubuntu18-from-latest:
   image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
   stage: build
   variables:
-    MYSQL_DATABASE: "wallet"
-    MYSQL_ROOT_PASSWORD: "root"
+    MYSQL_DATABASE: 'wallet'
+    MYSQL_ROOT_PASSWORD: 'root'
     RUSTTESTFLAG: 'mysql'
     PACKAGE_TYPE: 'bionic'
   services:
@@ -666,6 +664,34 @@ package-node-wrapper-from-latest:
     refs:
       - /^docker-.*/
 
+.package-react-native-wrapper:
+  extends: .tags_micro
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - output/*
+  script:
+    - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
+    - export vcxRevision=$(git rev-parse --short HEAD)
+    - vcx/wrappers/react-native/ci/package.sh ${vcxVersion}-${vcxRevision}
+package-react-native-wrapper-from-branch:
+  extends: .package-react-native-wrapper
+  stage: package
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
+  dependencies:
+    - build-libvcx-ubuntu18-from-branch
+  only:
+    refs:
+      - /^docker-.*/
+package-react-native-wrapper-from-latest:
+  extends: .package-react-native-wrapper
+  stage: package
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
+  dependencies:
+    - build-libvcx-ubuntu18-from-latest
+  except:
+    refs:
+      - /^docker-.*/
 
 ## - Jobs : Publish - ##
 publish-android:
@@ -700,10 +726,10 @@ publish-ios:
   script:
     #https://gitlab.com/gitlab-org/gitlab-ce/issues/27436
     - export KRAKEN_CREDENTIALS=${KRK_USERNAME}:${KRK_PASSWORD}
-    - find ./IOSBuilds/libvcxpartial/ -type f -name 'vcx.libvcxpartial_*_universal.zip' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
-    - find ./IOSBuilds/libvcxpartial/ -type f -name 'libvcx.a.libvcxpartial_*_universal.tar.gz' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
-    - find ./IOSBuilds/libvcxall/ -type f -name 'vcx.libvcxall_*_universal.zip' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
-    - find ./IOSBuilds/libvcxall/ -type f -name 'libvcx.a.libvcxall_*_universal.tar.gz' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
+    - find ./IOSBuilds/libvcxx86_64/ -type f -name 'vcx.libvcxx86_64_*_universal.zip' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
+    - find ./IOSBuilds/libvcxx86_64/ -type f -name 'libvcx.a.libvcxx86_64_*_universal.tar.gz' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
+    - find ./IOSBuilds/libvcxarm64/ -type f -name 'vcx.libvcxarm64_*_universal.zip' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
+    - find ./IOSBuilds/libvcxarm64/ -type f -name 'libvcx.a.libvcxarm64_*_universal.tar.gz' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
 
 publish-java-wrapper:
   stage: publish
@@ -741,14 +767,31 @@ publish-packages:
     - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" node-vcx-*.tgz https://kraken.corp.evernym.com/repo/npm/upload
     - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" python3-vcx-*.tar.gz https://kraken.corp.evernym.com/repo/portal_dev/upload
     - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" python3-vcx-*.tar.gz https://kraken.corp.evernym.com/repo/python/upload
+    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" evernym-react-native-sdk*.tgz https://kraken.corp.evernym.com/repo/portal_dev/upload
+    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" evernym-react-native-sdk*.tgz https://kraken.corp.evernym.com/repo/npm/upload
 
 publish-mobile-sdk:
   stage: publish
   image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
   extends: .tags_micro
-  only:
-    refs:
-      - master@dev/vcx/indy-sdk
-      - stable@dev/vcx/indy-sdk
+  rules:
+    - if: $CI_COMMIT_REF_SLUG == "stable" && $CI_PROJECT_PATH == "dev/vcx/indy-sdk"
+      variables:
+        msdkPackageVer: ${msdkVersion}
+    - if: $CI_COMMIT_REF_SLUG == "master" && $CI_PROJECT_PATH == "dev/vcx/indy-sdk"
+      variables:
+        msdkPackageVer: ${msdkVersion}-${CI_PIPELINE_ID}
   script:
-    - vcx/ci/scripts/githubArtifacts.py ${msdkVersion} vcx/wrappers/java/artifacts/aar/*.aar IOSBuilds/libvcx{partial,all}/vcx.libvcx*.zip
+#    - vcx/ci/scripts/githubArtifacts.py ${msdkVersion} vcx/wrappers/java/artifacts/aar/*.aar IOSBuilds/libvcx{partial,all}/vcx.libvcx*.zip output/evernym-react-native-sdk*.tgz
+    - >
+      find ./vcx/wrappers/java/artifacts/aar/ -name "*.aar" -exec
+      curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
+      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
+    - >
+      find ./IOSBuilds/libvcx{x86_64,arm64}/ -name "vcx.libvcx*.zip" -exec
+      curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
+      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
+    - >
+      find ./output/ -name "evernym-react-native-sdk*.tgz" -exec
+      curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
+      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;

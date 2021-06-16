@@ -36,7 +36,7 @@ impl Default for AgentInfo {
 }
 
 impl AgentInfo {
-    pub fn create_agent(&self) -> VcxResult<AgentInfo> {
+    pub fn create_agent() -> VcxResult<AgentInfo> {
         trace!("Agent::create_agent >>>");
         debug!("Agent: creating pairwise agent for connection");
 
@@ -78,12 +78,12 @@ impl AgentInfo {
         vec![self.pw_vk.to_string()]
     }
 
-    pub fn update_message_status(&self, uid: String) -> VcxResult<()> {
+    pub fn update_message_status(&self, uid: String, pw_did: Option<String>) -> VcxResult<()> {
         trace!("Agent::update_message_status_as_reviewed >>> uid: {:?}", uid);
         debug!("Agent: Updating message {:?} status on reviewed", uid);
 
         let messages_to_update = vec![UIDsByConn {
-            pairwise_did: self.pw_did.clone(),
+            pairwise_did: pw_did.unwrap_or(self.pw_did.clone()),
             uids: vec![uid],
         }];
 
@@ -169,6 +169,19 @@ impl AgentInfo {
         httpclient::post_message(&envelope.0, &did_doc.get_endpoint())?;
         trace!("Agent::send_message <<<");
         Ok(())
+    }
+
+    pub fn send_message_and_wait_result(message: &A2AMessage, did_doc: &DidDoc, sender_vk: &str) -> VcxResult<A2AMessage> {
+        trace!("Agent::send_message_and_wait_result >>> message: {:?}, did_doc: {:?}, sender_vk: {:?}",
+               secret!(message), secret!(did_doc), secret!(sender_vk));
+        debug!("Agent: Sending message on the remote endpoint and wait for result");
+
+        let envelope = EncryptionEnvelope::create(&message, Some(sender_vk), &did_doc)?;
+        let response = httpclient::post_message(&envelope.0, &did_doc.get_endpoint())?;
+        let message = EncryptionEnvelope::open(response)?;
+
+        trace!("Agent::send_message_and_wait_result <<< message: {:?}", secret!(message));
+        Ok(message)
     }
 
     pub fn send_message_anonymously(message: &A2AMessage, did_dod: &DidDoc) -> VcxResult<()> {

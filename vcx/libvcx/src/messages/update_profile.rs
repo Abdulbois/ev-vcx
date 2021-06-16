@@ -94,7 +94,7 @@ impl UpdateProfileDataBuilder {
     pub fn send_secure(&mut self) -> VcxResult<()> {
         trace!("UpdateProfileData::send_secure >>>");
 
-        AgencyMock::set_next_response(UPDATE_PROFILE_RESPONSE.to_vec());
+        AgencyMock::set_next_response(UPDATE_PROFILE_RESPONSE);
 
         let data = self.prepare_request()?;
 
@@ -138,9 +138,9 @@ impl UpdateProfileDataBuilder {
     fn parse_response(&self, response: Vec<u8>) -> VcxResult<()> {
         trace!("UpdateProfileData::parse_response >>>");
 
-        let mut response = parse_response_from_agency(&response, &self.version)?;
+        let response = parse_response_from_agency(&response, &self.version)?;
 
-        match response.remove(0) {
+        match response.first().ok_or_else(|| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "No agency responses"))? {
             A2AMessage::Version1(A2AMessageV1::UpdateConfigsResponse(_)) => Ok(()),
             A2AMessage::Version2(A2AMessageV2::UpdateConfigsResponse(_)) => Ok(()),
             _ => Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Agency response does not match any variant of UpdateConfigsResponse"))

@@ -5,7 +5,6 @@
 extern crate serde;
 extern crate rand;
 extern crate reqwest;
-extern crate url;
 extern crate openssl;
 extern crate hex;
 extern crate indyrs as indy;
@@ -45,6 +44,7 @@ extern crate strum_macros;
 extern crate chrono;
 extern crate sha2;
 extern crate dashmap;
+extern crate rust_base58;
 
 #[macro_use]
 pub mod utils;
@@ -71,6 +71,14 @@ pub mod v3;
 #[cfg(test)]
 mod tests {
 
+    use crate::credential_def::CredentialDef;
+    use crate::disclosed_proof::DisclosedProofs;
+    use crate::issuer_credential::IssuerCredentials;
+    use crate::object_cache::Handle;
+    use crate::connection::Connections;
+    use crate::credential::Credentials;
+    use crate::proof::Proofs;
+
     use super::*;
     use settings;
     use connection;
@@ -91,19 +99,16 @@ mod tests {
     };
     use utils::devsetup::*;
 
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
+    #[cfg(all(feature = "agency", feature = "pool_tests"))]
     #[test]
     fn test_delete_connection() {
-        let _setup = SetupLibraryAgencyV1ZeroFees::init();
+        let _setup = SetupLibraryAgencyV2ZeroFeesNewProvisioning::init();
 
         let alice = connection::create_connection("alice").unwrap();
-        connection::connect(alice, None).unwrap();
-        connection::delete_connection(alice).unwrap();
-        assert!(connection::release(alice).is_err());
+        alice.connect(None).unwrap();
+        alice.delete_connection().unwrap();
+        assert!(alice.release().is_err());
     }
-
-
 
     fn attr_names() -> (String, String, String, String, String) {
         let address1 = "Address1".to_string();
@@ -165,7 +170,7 @@ mod tests {
 
     }
 
-    fn send_cred_offer(did: &str, cred_def_handle: u32, connection: u32, credential_data: &str) -> u32 {
+    fn send_cred_offer(did: &str, cred_def_handle: Handle<CredentialDef>, connection: Handle<Connections>, credential_data: &str) -> Handle<IssuerCredentials> {
 
         let credential_offer = issuer_credential::issuer_credential_create(cred_def_handle,
                                                                            "1".to_string(),
@@ -174,54 +179,54 @@ mod tests {
                                                                            credential_data.to_string(),
                                                                            1).unwrap();
         println!("sending credential offer");
-        issuer_credential::send_credential_offer(credential_offer, connection).unwrap();
+        credential_offer.send_credential_offer(connection).unwrap();
         thread::sleep(Duration::from_millis(2000));
         credential_offer
     }
 
-    fn send_cred_req(connection: u32) -> u32 {
+    fn send_cred_req(connection: Handle<Connections>) -> Handle<Credentials> {
         set_consumer();
         let credential_offers = credential::get_credential_offer_messages(connection).unwrap();
         let offers: Value = serde_json::from_str(&credential_offers).unwrap();
         let offers = serde_json::to_string(&offers[0]).unwrap();
         let credential = credential::credential_create_with_offer("TEST_CREDENTIAL", &offers).unwrap();
-        assert_eq!(VcxStateType::VcxStateRequestReceived as u32, credential::get_state(credential).unwrap());
+        assert_eq!(VcxStateType::VcxStateRequestReceived as u32, credential.get_state().unwrap());
         println!("sending credential request");
-        credential::send_credential_request(credential, connection).unwrap();
+        credential.send_credential_request(connection).unwrap();
         thread::sleep(Duration::from_millis(2000));
         credential
     }
 
-    fn send_credential(issuer_handle: u32, connection: u32, credential_handle: u32) {
+    fn send_credential(issuer_handle: Handle<IssuerCredentials>, connection: Handle<Connections>, credential_handle: Handle<Credentials>) {
         set_institution();
-        issuer_credential::update_state(issuer_handle, None).unwrap();
-        assert_eq!(VcxStateType::VcxStateRequestReceived as u32, issuer_credential::get_state(issuer_handle).unwrap());
+        issuer_handle.update_state(None).unwrap();
+        assert_eq!(VcxStateType::VcxStateRequestReceived as u32, issuer_handle.get_state().unwrap());
         println!("sending credential");
-        issuer_credential::send_credential(issuer_handle, connection).unwrap();
+        issuer_handle.send_credential(connection).unwrap();
         thread::sleep(Duration::from_millis(2000));
         // AS CONSUMER STORE CREDENTIAL
         ::utils::devsetup::set_consumer();
-        credential::update_state(credential_handle, None).unwrap();
+        credential_handle.update_state(None).unwrap();
         thread::sleep(Duration::from_millis(2000));
         println!("storing credential");
-        credential::get_credential_id(credential_handle).unwrap();
-        assert_eq!(VcxStateType::VcxStateAccepted as u32, credential::get_state(credential_handle).unwrap());
+        credential_handle.get_credential_id().unwrap();
+        assert_eq!(VcxStateType::VcxStateAccepted as u32, credential_handle.get_state().unwrap());
     }
 
-    fn send_proof_request(connection_handle: u32, requested_attrs: &str, requested_preds: &str, revocation_interval: &str, log_msg: &str) -> (u32, String) {
+    fn send_proof_request(connection_handle: Handle<Connections>, requested_attrs: &str, requested_preds: &str, revocation_interval: &str, log_msg: &str) -> (Handle<Proofs>, String) {
         let proof_req_handle = proof::create_proof("1".to_string(),
                                                    requested_attrs.to_string(),
                                                    requested_preds.to_string(),
                                                    revocation_interval.to_string(),
                                                    "name".to_string()).unwrap();
         println!("sending proof request {}", log_msg);
-        proof::send_proof_request(proof_req_handle, connection_handle).unwrap();
-        let req_uuid = proof::get_proof_uuid(proof_req_handle).unwrap();
+        proof_req_handle.send_proof_request(connection_handle).unwrap();
+        let req_uuid = proof_req_handle.get_proof_uuid().unwrap();
         thread::sleep(Duration::from_millis(2000));
         (proof_req_handle, req_uuid)
     }
 
-    fn create_proof(connection_handle: u32, msg_uid: &str) -> u32 {
+    fn create_proof(connection_handle: Handle<Connections>, msg_uid: &str) -> Handle<DisclosedProofs> {
         set_consumer();
         let requests = disclosed_proof::get_proof_request_messages(connection_handle, None).unwrap();
         let requests: Value = serde_json::from_str(&requests).unwrap();
@@ -233,18 +238,18 @@ mod tests {
         disclosed_proof::create_proof(::utils::constants::DEFAULT_PROOF_NAME, &requests).unwrap()
     }
 
-    fn generate_and_send_proof(proof_handle: u32, connection_handle: u32, selected_credentials: Value) {
+    fn generate_and_send_proof(proof_handle: Handle<DisclosedProofs>, connection_handle: Handle<Connections>, selected_credentials: Value) {
         set_consumer();
-        disclosed_proof::generate_proof(proof_handle, selected_credentials.to_string(), "{}".to_string()).unwrap();
+        proof_handle.generate_proof(selected_credentials.to_string(), "{}".to_string()).unwrap();
         println!("sending proof");
-        disclosed_proof::send_proof(proof_handle, connection_handle).unwrap();
-        assert_eq!(VcxStateType::VcxStateAccepted as u32, disclosed_proof::get_state(proof_handle).unwrap());
+        proof_handle.send_proof(connection_handle).unwrap();
+        assert_eq!(VcxStateType::VcxStateAccepted as u32, proof_handle.get_state().unwrap());
         thread::sleep(Duration::from_millis(5000));
     }
 
-    fn default_selected_credentials(proof_handle: u32) -> Value {
+    fn default_selected_credentials(proof_handle: Handle<DisclosedProofs>) -> Value {
         println!("retrieving matching credentials");
-        let retrieved_credentials = disclosed_proof::retrieve_credentials(proof_handle).unwrap();
+        let retrieved_credentials = proof_handle.retrieve_credentials().unwrap();
         let matching_credentials: Value = serde_json::from_str(&retrieved_credentials).unwrap();
         let (address1, address2, city, state, zip) = attr_names();
         json!({
@@ -261,11 +266,11 @@ mod tests {
 
     }
 
-    fn revoke_credential(issuer_handle: u32, rev_reg_id: Option<String>) {
+    fn revoke_credential(issuer_handle: Handle<IssuerCredentials>, rev_reg_id: Option<String>) {
         // GET REV REG DELTA BEFORE REVOCATION
         let (_, delta, timestamp) = ::utils::libindy::anoncreds::get_rev_reg_delta_json(&rev_reg_id.clone().unwrap(), None, None).unwrap();
         println!("revoking credential");
-        ::issuer_credential::revoke_credential(issuer_handle).unwrap();
+        issuer_handle.revoke_credential().unwrap();
         let (_, delta_after_revoke, _) = ::utils::libindy::anoncreds::get_rev_reg_delta_json(&rev_reg_id.unwrap(), Some(timestamp + 1), None).unwrap();
         assert_ne!(delta, delta_after_revoke);
     }
@@ -309,7 +314,7 @@ mod tests {
 
         let proof_handle = create_proof(faber, &req_uuid);
         println!("retrieving matching credentials");
-        let retrieved_credentials = disclosed_proof::retrieve_credentials(proof_handle).unwrap();
+        let retrieved_credentials = proof_handle.retrieve_credentials().unwrap();
         let matching_credentials: Value = serde_json::from_str(&retrieved_credentials).unwrap();
         let mut credentials: Value = json!({"attrs":{}, "predicates":{}});
 
@@ -323,25 +328,23 @@ mod tests {
 
         // AS INSTITUTION VALIDATE PROOF
         set_institution();
-        proof::update_state(proof_req_handle, None).unwrap();
-        assert_eq!(proof::get_proof_state(proof_req_handle).unwrap(), ProofStateType::ProofValidated as u32);
+        proof_req_handle.update_state(None).unwrap();
+        assert_eq!(proof_req_handle.get_proof_state().unwrap(), ProofStateType::ProofValidated as u32);
         println!("proof validated!");
     }
 
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
+    #[cfg(all(feature = "agency", feature = "pool_tests"))]
     #[test]
     fn test_real_proof() {
-        let _setup = SetupLibraryAgencyV1ZeroFees::init(); // FIXME use SetupLibraryAgencyV2ZeroFeesNewProvisioning
+        let _setup = SetupLibraryAgencyV2ZeroFeesNewProvisioning::init();
 
         _real_proof_demo();
     }
 
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
+    #[cfg(all(feature = "agency", feature = "pool_tests"))]
     #[test]
     fn test_real_proof_with_revocation() {
-        let _setup = SetupLibraryAgencyV1ZeroFees::init();
+        let _setup = SetupLibraryAgencyV2ZeroFeesNewProvisioning::init();
 
         let institution_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
         let (faber, alice) = ::connection::tests::create_connected_connections();
@@ -377,8 +380,8 @@ mod tests {
 
         // AS INSTITUTION VALIDATE PROOF
         set_institution();
-        proof::update_state(proof_req_handle, None).unwrap();
-        assert_eq!(proof::get_proof_state(proof_req_handle).unwrap(), ProofStateType::ProofValidated as u32);
+        proof_req_handle.update_state(None).unwrap();
+        assert_eq!(proof_req_handle.get_proof_state().unwrap(), ProofStateType::ProofValidated as u32);
         println!("proof validated!");
         let _wallet = ::utils::libindy::payments::get_wallet_token_info().unwrap();
 
@@ -399,8 +402,8 @@ mod tests {
 
         // AS INSTITUTION VALIDATE REVOKED PROOF
         set_institution();
-        proof::update_state(proof_req_handle2, None).unwrap();
-        assert_eq!(proof::get_proof_state(proof_req_handle2).unwrap(), ProofStateType::ProofInvalid as u32);
+        proof_req_handle2.update_state(None).unwrap();
+        assert_eq!(proof_req_handle2.get_proof_state().unwrap(), ProofStateType::ProofInvalid as u32);
         println!("proof invalid - revoked!");
 
         // VERIFIER SENDS PROOF_REQ WITH INTERVAL BEFORE REVOCATION
@@ -414,13 +417,12 @@ mod tests {
 
         // AS INSTITUTION VALIDATE REVOKED PROOF - VALID
         set_institution();
-        proof::update_state(proof_req_handle3, None).unwrap();
-        assert_eq!(proof::get_proof_state(proof_req_handle3).unwrap(), ProofStateType::ProofValidated as u32);
+        proof_req_handle3.update_state(None).unwrap();
+        assert_eq!(proof_req_handle3.get_proof_state().unwrap(), ProofStateType::ProofValidated as u32);
         println!("proof valid for specified interval!");
     }
 
-    #[cfg(feature = "pool_tests")]
-    #[cfg(feature = "agency_v2")]
+    #[cfg(all(feature = "agency_v2", feature = "pool_tests"))]
     #[test]
     fn test_real_proof_for_protocol_type_v2() {
         let _setup = SetupLibraryAgencyV2::init();

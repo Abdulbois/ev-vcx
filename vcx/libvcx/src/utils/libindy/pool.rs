@@ -1,27 +1,45 @@
 use futures::Future;
 use indy::{pool, ErrorCode};
 
-use std::sync::RwLock;
-
 use settings;
+use std::sync::atomic::{AtomicI32, Ordering};
 use error::prelude::*;
 
-lazy_static! {
-    static ref POOL_HANDLE: RwLock<Option<i32>> = RwLock::new(None);
+mod handle {
+    use super::*;
+
+    // NOTE: we use `Ordering::Relaxed` because this is a glorified counter;
+    // we don't synchronize anything with this atomic type
+    static HANDLE: AtomicI32 = AtomicI32::new(0);
+
+    // NOTE: only positive values are considered valid handles
+    pub fn get() -> VcxResult<i32> {
+        let handle = HANDLE.load(Ordering::Relaxed);
+        if handle > 0 {
+            Ok(handle)
+        } else {
+            Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"))
+        }
+    }
+
+    // NOTE: it's okay to store invalid handles since we have to go through `get`
+    // to actually use the handle for anything, and we validate the handle there
+    pub fn set(handle: i32) {
+        HANDLE.store(handle, Ordering::Relaxed);
+    }
 }
 
-pub fn set_pool_handle(handle: Option<i32>) {
-    let mut h = POOL_HANDLE.write().unwrap();
-    *h = handle;
+pub fn set_pool_handle(handle: i32) {
+    handle::set(handle);
 }
 
 pub fn get_pool_handle() -> VcxResult<i32> {
-    POOL_HANDLE.read()
-        .or(Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened")))?
-        .ok_or(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"))
+    handle::get()
 }
 
-pub fn reset_pool_handle() { set_pool_handle(None); }
+pub fn reset_pool_handle() {
+    handle::set(0);
+}
 
 pub fn set_protocol_version() -> VcxResult<()> {
     pool::set_protocol_version(settings::get_protocol_version())
@@ -79,7 +97,7 @@ pub fn open_pool_ledger(pool_name: &str, config: Option<&str>) -> VcxResult<u32>
                 }
             })?;
 
-    set_pool_handle(Some(handle));
+    set_pool_handle(handle);
     Ok(handle as u32)
 }
 
@@ -125,7 +143,7 @@ pub fn delete(pool_name: &str) -> VcxResult<()> {
     trace!("delete >>> pool_name: {}", pool_name);
 
     if settings::indy_mocks_enabled() {
-        set_pool_handle(None);
+        reset_pool_handle();
         return Ok(());
     }
 

@@ -13,7 +13,7 @@ use v3::messages::outofband::handshake_reuse::HandshakeReuse;
 use v3::messages::outofband::handshake_reuse_accepted::HandshakeReuseAccepted;
 use v3::messages::questionanswer::question::{Question, QuestionResponse};
 use v3::messages::questionanswer::answer::Answer;
-use v3::messages::committedanswer::question::Question as CommitedQuestion;
+use v3::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
 use v3::messages::committedanswer::answer::Answer as CommitedAnswer;
 use v3::messages::invite_action::invite::{Invite as InviteForAction};
 use connection::ConnectionOptions;
@@ -40,7 +40,8 @@ pub enum DidExchangeMessages {
     QuestionReceived(Question),
     AnswerReceived(Answer),
     SendAnswer((Question, QuestionResponse)),
-    CommittedQuestionReceived(CommitedQuestion),
+    SendCommittedAnswer((CommittedQuestion, CommittedQuestionResponse)),
+    CommittedQuestionReceived(CommittedQuestion),
     CommittedAnswerReceived(CommitedAnswer),
     SendInviteAction(A2AMessage),
     InviteActionReceived(InviteForAction),

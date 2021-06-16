@@ -40,6 +40,7 @@ pub struct SetupLibraryAgencyV2; // init indy wallet, init pool, provision 2 age
 pub struct SetupLibraryAgencyV2ZeroFees; // init indy wallet, init pool, provision 2 agents. use protocol type 2.0, set zero fees
 
 //TODO: This will be removed once libvcx only supports provisioning 0.7
+pub struct SetupLibraryAgencyV2NewProvisioning; // init indy wallet, init pool, provision 2 agents. use protocol type 2.0, set zero fees
 pub struct SetupLibraryAgencyV2ZeroFeesNewProvisioning; // init indy wallet, init pool, provision 2 agents. use protocol type 2.0, set zero fees
 
 pub struct SetupConsumer; // init indy wallet, init pool, provision 1 consumer agent, use protocol type 1.0
@@ -255,6 +256,21 @@ impl Drop for SetupLibraryAgencyV1ZeroFees {
     }
 }
 
+impl SetupLibraryAgencyV2NewProvisioning {
+    pub fn init() -> SetupLibraryAgencyV2NewProvisioning {
+        setup();
+        setup_agency_env_new_protocol("2.0", false);
+        SetupLibraryAgencyV2NewProvisioning
+    }
+}
+
+impl Drop for SetupLibraryAgencyV2NewProvisioning {
+    fn drop(&mut self) {
+        cleanup_agency_env();
+        tear_down()
+    }
+}
+
 impl SetupLibraryAgencyV2ZeroFeesNewProvisioning {
     pub fn init() -> SetupLibraryAgencyV2ZeroFeesNewProvisioning {
         setup();
@@ -327,7 +343,7 @@ macro_rules! assert_match {
 
 use utils::constants;
 use utils::libindy::wallet;
-use object_cache::ObjectCache;
+use object_cache::{ObjectCache, Handle};
 
 use indy::WalletHandle;
 use utils::libindy::wallet::init_wallet;
@@ -336,8 +352,8 @@ use utils::libindy::pool::tests::{open_test_pool, delete_test_pool, create_test_
 use utils::file::write_file;
 use utils::logger::LibvcxDefaultLogger;
 
-static mut INSTITUTION_CONFIG: u32 = 0;
-static mut CONSUMER_CONFIG: u32 = 0;
+static mut INSTITUTION_CONFIG: Handle<String> = Handle::dummy();
+static mut CONSUMER_CONFIG: Handle<String> = Handle::dummy();
 
 lazy_static! {
     static ref CONFIG_STRING: ObjectCache<String> = Default::default();
@@ -401,9 +417,7 @@ pub const C_AGENCY_VERKEY: &'static str = "Bk9wFrud3rz8v3nAFKGib6sQs8zHWzZxfst7W
 // pub const C_AGENCY_DID: &'static str = "TGLBMTcW9fHdkSqown9jD8";
 // pub const C_AGENCY_VERKEY: &'static str = "FKGV9jKvorzKPtPJPNLZkYPkLhiS1VbxdvBgd1RjcQHR";
 
-lazy_static! {
-    static ref TEST_LOGGING_INIT: Once = Once::new();
-}
+static TEST_LOGGING_INIT: Once = Once::new();
 
 fn init_test_logging() {
     TEST_LOGGING_INIT.call_once(|| {

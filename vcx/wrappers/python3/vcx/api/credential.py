@@ -366,10 +366,13 @@ class Credential(VcxStateful):
         """
         self._release(Credential, 'vcx_credential_release')
 
-    async def send_request(self, connection: Connection, payment_handle: int):
+    async def send_request(self, connection: Optional[Connection], payment_handle: int):
         """
         Approves the credential offer and submits a credential request. The result will be a credential stored in the prover's wallet.
-        :param connection: connection to submit request from
+        :param connection: connection to send credential request
+                              Pass `null` in order to reply on ephemeral/connectionless credential offer
+                              Ephemeral/Connectionless Credential Offer contains `~server` decorator
+
         :param payment_handle: currently unused
         :return:
         Example:
@@ -383,7 +386,7 @@ class Credential(VcxStateful):
             Credential.send_request.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32))
 
         c_credential_handle = c_uint32(self.handle)
-        c_connection_handle = c_uint32(connection.handle)
+        c_connection_handle = c_uint32(connection.handle if connection else 0)
         c_payment = c_uint32(payment_handle)
 
         await do_call('vcx_credential_send_request',
@@ -425,7 +428,7 @@ class Credential(VcxStateful):
 
     async def get_credential(self):
         """
-        Retrieve information about a stored credential in user's wallet, 
+        Retrieve information about a stored credential in user's wallet,
         including credential id and the credential itself.
 
         :return:
@@ -536,10 +539,10 @@ class Credential(VcxStateful):
         """
         Build Presentation Proposal message for revealing Credential data.
 
-        Presentation Proposal is an optional message that can be sent by the Prover to the Verifier to 
+        Presentation Proposal is an optional message that can be sent by the Prover to the Verifier to
         initiate a Presentation Proof process.
 
-        Presentation Proposal Format: 
+        Presentation Proposal Format:
             https://github.com/hyperledger/aries-rfcs/tree/master/features/0037-present-proof#propose-presentation
 
         EXPERIMENTAL

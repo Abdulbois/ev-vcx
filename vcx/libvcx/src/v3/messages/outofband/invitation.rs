@@ -125,6 +125,18 @@ impl Invitation {
 
         Ok(())
     }
+
+    // ensure service keys are naked keys
+    pub fn normalize_service_keys(&mut self) -> VcxResult<()> {
+        for service in self.service.iter_mut() {
+            Service::transform_did_keys_to_naked_keys(&mut service.recipient_keys)?;
+            if !service.routing_keys.is_empty(){
+                Service::transform_did_keys_to_naked_keys(&mut service.routing_keys)?
+            }
+        }
+
+        Ok(())
+    }
 }
 
 a2a_message!(Invitation, OutOfBandInvitation);
@@ -158,6 +170,23 @@ pub mod tests {
             handshake_protocols: vec![_handshake_protocol()],
             request_attach: attachment,
             service: vec![_service()],
+            profile_url: None,
+            public_did: None
+        }
+    }
+
+    pub fn _invitation_did_formatted() -> Invitation {
+        let mut attachment = Attachments::new();
+        attachment.add_base64_encoded_json_attachment(AttachmentId::OutofbandRequest, _attachment()).unwrap();
+
+        Invitation {
+            id: MessageId::id(),
+            label: Some(_label()),
+            goal_code: Some(_goal_code()),
+            goal: Some(_goal()),
+            handshake_protocols: vec![_handshake_protocol()],
+            request_attach: attachment,
+            service: vec![_service_did_formatted()],
             profile_url: None,
             public_did: None
         }
@@ -254,5 +283,12 @@ pub mod tests {
         }).to_string();
 
         let _: Invitation = serde_json::from_str(&invite).unwrap();
+    }
+
+    #[test]
+    pub fn test_normalize_service_keys_works() {
+        let mut invitation = _invitation_did_formatted();
+        invitation.normalize_service_keys().unwrap();
+        assert_eq!(_service(), invitation.service[0])
     }
 }

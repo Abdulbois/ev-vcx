@@ -109,6 +109,14 @@ vcx_error_t vcx_agent_update_info(vcx_command_handle_t command_handle,
 ///                                             if agent info does not need to be updated, set `update_agent_info`=false
 ///         "use_public_did": Option<bool> - whether to use public DID for an establishing connection
 ///                                          default value for `use_public_did`=false
+///         "pairwise_agent_info": Optional<JSON object> - pairwise agent to use instead of creating a new one.
+///                                                        Can be received by calling `vcx_create_pairwise_agent` function.
+///                                                         {
+///                                                             "pw_did": string,
+///                                                             "pw_vk": string,
+///                                                             "agent_did": string,
+///                                                             "agent_vk": string,
+///                                                         }
 ///     }
 /// # Examples connection_options ->
 /// "{"connection_type":"SMS","phone":"123","use_public_did":true, "update_agent_info": Option<true>}"
@@ -595,12 +603,9 @@ vcx_error_t vcx_connection_send_reuse(vcx_u32_t command_handle,
                                       const char* invite,
                                       void (*cb)(vcx_command_handle_t, vcx_error_t));
 
-/// Send answer on received question message according to Aries question-answer protocol.
+/// Send answer on received question message according to Aries question-answer or committedanswer protocols.
 ///
-/// The related protocol can be found here: https://github.com/hyperledger/aries-rfcs/tree/master/features/0113-question-answer
-///
-/// Note that this function works in case `aries` communication method is used.
-///     In other cases it returns ActionNotSupported error.
+/// The related Aries question-answer protocol can be found here: https://github.com/hyperledger/aries-rfcs/tree/master/features/0113-question-answer
 ///
 /// #params
 ///
@@ -615,23 +620,48 @@ vcx_error_t vcx_connection_send_reuse(vcx_u32_t command_handle,
 /// cb: Callback that provides success or failure of request
 ///
 /// # Examples
-/// question ->
-///     {
-///         "@type": "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/questionanswer/1.0/question",
-///         "@id": "518be002-de8e-456e-b3d5-8fe472477a86",
-///         "question_text": "Alice, are you on the phone with Bob from Faber Bank right now?",
-///         "question_detail": "This is optional fine-print giving context to the question and its various answers.",
-///         "nonce": "<valid_nonce>",
-///         "signature_required": true,
-///         "valid_responses" : [
-///             {"text": "Yes, it's me"},
-///             {"text": "No, that's not me!"}],
-///         "~timing": {
-///             "expires_time": "2018-12-13T17:29:06+0000"
+/// Aries question-answer:
+///     question ->
+///         {
+///             "@type": "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/questionanswer/1.0/question",
+///             "@id": "518be002-de8e-456e-b3d5-8fe472477a86",
+///             "question_text": "Alice, are you on the phone with Bob from Faber Bank right now?",
+///             "question_detail": "This is optional fine-print giving context to the question and its various answers.",
+///             "nonce": "<valid_nonce>",
+///             "signature_required": true,
+///             "valid_responses" : [
+///                 {"text": "Yes, it's me"},
+///                 {"text": "No, that's not me!"}],
+///             "~timing": {
+///             "   expires_time": "2018-12-13T17:29:06+0000"
+///             }
 ///         }
-///     }
-/// answer ->
-///     {"text": "Yes, it's me"}
+///     answer ->
+///         {"text": "Yes, it's me"}
+/// committedanswer:
+///     question ->
+///         {
+///            '@type': 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/committedanswer/1.0/question',
+///            '@id': '518be002-de8e-456e-b3d5-8fe472477a86',
+///            'question_text': 'Alice, are you on the phone with Bob from Faber Bank right now?',
+///            'question_detail': 'This is optional fine-print giving context to the question and its various answers.',
+///            'valid_responses': [
+///                {'text': 'Yes, it is me', 'nonce': '<unique_identifier_a+2018-12-13T17:00:00+0000>'},
+///                {'text': 'No, that is not me!', 'nonce': '<unique_identifier_b+2018-12-13T17:00:00+0000'},
+///                {'text': 'Hi!', 'nonce': '<unique_identifier_c+2018-12-13T17:00:00+0000'}],
+///            '@timing': {
+///                'expires_time': future
+///            },
+///            'external_links': [
+///                {
+///                    'text': 'Some external link with so many characters that it can go outside of two lines range from here onwards',
+///                    'src': '1'},
+///                {
+///                    'src': 'Some external link with so many characters that it can go outside of two lines range from here onwards'},
+///            ]
+///        }
+///     answer ->
+///         {'text': 'Yes, it is me', 'nonce': '<unique_identifier_a+2018-12-13T17:00:00+0000>'}
 ///
 /// #Returns
 /// Error code as a u32
@@ -965,7 +995,9 @@ vcx_error_t vcx_credential_release(vcx_credential_handle_t handle);
 //
 // credential_handle: credential handle that was provided during creation. Used to identify credential object
 //
-// connection_handle: Connection handle that identifies pairwise connection
+/// connection_handle: Connection handle that identifies pairwise connection.
+///                    Pass `0` in order to reply on ephemeral/connectionless credential offer
+///                    Ephemeral/Connectionless Credential Offer contains `~server` decorator
 //
 // cb: Callback that provides error status of credential request
 //
@@ -1494,7 +1526,9 @@ vcx_error_t vcx_disclosed_proof_retrieve_credentials(vcx_command_handle_t comman
 //
 // proof_handle: proof handle that was provided duration creation.  Used to identify proof object.
 //
-// connection_handle: Connection handle that identifies pairwise connection
+/// connection_handle: Connection handle that identifies pairwise connection.
+///                    Pass `0` in order to reply on ephemeral/connectionless proof request
+///                    Ephemeral/Connectionless Proof Request contains `~server` decorator
 //
 // cb: Callback that provides error status of proof send request
 //
@@ -2393,18 +2427,56 @@ vcx_error_t vcx_proof_get_problem_report(vcx_command_handle_t command_handle,
 // Configuration (wallet also populated), on error returns NULL
 char *vcx_provision_agent(const char *json);
 
-// Provision an agent in the agency, populate configuration and wallet for this agent.
-//
-// #Params
-// config: configuration
-// token: provided by app sponsor
-//
-// #Returns
-// Configuration (wallet also populated), on error returns NULL
+/// Provision an agent in the agency, populate configuration and wallet for this agent.
+///
+/// #Params
+/// config: Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+/// token: {
+///          This can be a push notification endpoint to contact the sponsee or
+///          an id that the sponsor uses to reference the sponsee in its backend system
+///          "sponseeId": String,
+///          "sponsorId": String, //Persistent Id of the Enterprise sponsoring the provisioning
+///          "nonce": String,
+///          "timestamp": String,
+///          "sig": String, // Base64Encoded(sig(nonce + timestamp + id))
+///          "sponsorVerKey": String,
+///          "attestationAlgorithm": Optional<String>, // device attestation signature algorithm. Can be one of: SafetyNet | DeviceCheck
+///          "attestationData": Optional<String>, // device attestation signature matching to specified algorithm
+///        }
+///
+/// #Returns
+/// Configuration (wallet also populated), on error returns NULL
 vcx_error_t vcx_provision_agent_with_token(vcx_command_handle_t command_handle,
                                    const char *json,
                                    const char *token,
                                    void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Provision an agent in the agency, populate configuration and wallet for this agent.
+///
+/// #Params
+/// config: Configuration JSON. See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
+/// token: {
+///          This can be a push notification endpoint to contact the sponsee or
+///          an id that the sponsor uses to reference the sponsee in its backend system
+///          "sponseeId": String,
+///          "sponsorId": String, //Persistent Id of the Enterprise sponsoring the provisioning
+///          "nonce": String,
+///          "timestamp": String,
+///          "sig": String, // Base64Encoded(sig(nonce + timestamp + id))
+///          "sponsorVerKey": String,
+///          "attestationAlgorithm": Optional<String>, // device attestation signature algorithm. Can be one of: SafetyNet | DeviceCheck
+///          "attestationData": Optional<String>, // device attestation signature matching to specified algorithm
+///        }
+///
+/// cb: Callback that provides configuration as JSON string or error status
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_provision_agent_with_token_async(vcx_command_handle_t command_handle,
+                                                 const char *json,
+                                                 const char *token,
+                                                 void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
 
 vcx_error_t vcx_get_provision_token(vcx_command_handle_t command_handle, const char *config, void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
@@ -3241,6 +3313,28 @@ vcx_error_t vcx_endorse_transaction(vcx_u32_t command_handle,
 /// Error code as a u32
 vcx_error_t vcx_fetch_public_entities(vcx_u32_t command_handle,
                                       void (*cb)(vcx_command_handle_t, vcx_error_t));
+
+/// Create pairwise agent which can be later used for connection establishing.
+///
+/// You can pass `agent_info` into `vcx_connection_connect` function as field of `connection_options` JSON parameter.
+/// The passed Pairwise Agent will be used for connection establishing instead of creation a new one.
+///
+/// #params
+///
+/// command_handle: command handle to map callback to user context.
+///
+/// cb: Callback that provides agent info as JSON string:
+///     {
+///         "pw_did": string,
+///         "pw_vk": string,
+///         "agent_did": string,
+///         "agent_vk": string,
+///     }
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_create_pairwise_agent(vcx_command_handle_t command_handle,
+                                      void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
 #ifdef __cplusplus
 } // extern "C"

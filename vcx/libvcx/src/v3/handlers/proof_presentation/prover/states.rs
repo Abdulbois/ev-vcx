@@ -12,6 +12,9 @@ use v3::messages::status::Status;
 use std::collections::HashMap;
 use disclosed_proof::DisclosedProof;
 
+use crate::object_cache::Handle;
+use crate::connection::Connections;
+
 use error::prelude::*;
 use messages::thread::Thread;
 use v3::messages::ack::Ack;
@@ -459,7 +462,7 @@ impl ProverSM {
                         ProverState::Finished((state, thread, problem_report, Reason::Reject).into())
                     }
                     ProverMessages::ProposePresentation((connection_handle, preview)) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
                         let thread = thread.clone().update_received_order(&connection.data.did_doc.id);
                         let presentation_proposal = Self::_handle_presentation_proposal(&connection, preview, &state.presentation_request, &thread)?;
                         ProverState::ProposalSent((state, connection, presentation_proposal, thread).into())
@@ -477,11 +480,12 @@ impl ProverSM {
                             // ephemeral proof request
                             let thread = state.thread.clone();
                             let service = state.presentation_request.service.clone().unwrap().into();
-                            Connection::send_message_to_self_endpoint(&state.presentation.clone().to_a2a_message(), &service)?;
+                            let presentation = state.presentation.clone().reset_ack();
+                            Connection::send_message_to_self_endpoint(&presentation.to_a2a_message(), &service)?;
                             ProverState::Finished((state, thread).into())
                         } else {
                             // regular proof request
-                            let connection = ::connection::get_completed_connection(connection_handle)?;
+                            let connection = connection_handle.get_completed_connection()?;
                             let thread = state.thread.clone()
                                 .update_received_order(&connection.data.did_doc.id)
                                 .set_opt_pthid(connection.data.thread.pthid.clone());
@@ -498,7 +502,7 @@ impl ProverSM {
                         ProverState::Finished((state, thread, problem_report, Reason::Reject).into())
                     }
                     ProverMessages::ProposePresentation((connection_handle, preview)) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
                         let thread = state.thread.clone().update_received_order(&connection.data.did_doc.id);
                         let presentation_proposal = Self::_handle_presentation_proposal(&connection, preview, &state.presentation_request, &thread)?;
                         ProverState::Finished((state, thread, presentation_proposal, Reason::Reject).into())
@@ -512,7 +516,7 @@ impl ProverSM {
             ProverState::PresentationPreparationFailed(state) => {
                 match message {
                     ProverMessages::SendPresentation(connection_handle) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
                         let thread = state.thread.clone()
                             .update_received_order(&connection.data.did_doc.id);
                         let error_kind = state.error_kind
@@ -581,7 +585,7 @@ impl ProverSM {
             ProverState::ProposalPrepared(state) => {
                 match message {
                     ProverMessages::SendProposal(connection_handle) => {
-                        let connection = ::connection::get_completed_connection(connection_handle)?;
+                        let connection = connection_handle.get_completed_connection()?;
                         let thread = state.thread.clone().update_received_order(&connection.data.did_doc.id);
                         let presentation_proposal = state.presentation_proposal.clone();
 
@@ -624,7 +628,7 @@ impl ProverSM {
         Ok(ProverSM { source_id, state })
     }
 
-    fn _handle_reject_presentation_request(connection_handle: u32, reason: &str, presentation_request: &PresentationRequest, thread: &Thread) -> VcxResult<(ProblemReport, Thread)> {
+    fn _handle_reject_presentation_request(connection_handle: Handle<Connections>, reason: &str, presentation_request: &PresentationRequest, thread: &Thread) -> VcxResult<(ProblemReport, Thread)> {
         trace!("ProverSM::_handle_reject_presentation_request >>> reason: {:?}, presentation_request: {:?}", secret!(reason), secret!(presentation_request));
         debug!("Prover: Rejecting presentation request");
 
@@ -639,7 +643,7 @@ impl ProverSM {
             Connection::send_message_to_self_endpoint(&A2AMessage::PresentationReject(problem_report.clone()), &presentation_request.service.clone().unwrap().into())?;
         } else {
             // regular proof request
-            let connection = ::connection::get_completed_connection(connection_handle)?;
+            let connection = connection_handle.get_completed_connection()?;
             // we need to update thread and put it into problem report
             thread = thread.update_received_order(&connection.data.did_doc.id);
             problem_report = problem_report.set_thread(thread.clone());
@@ -967,7 +971,7 @@ pub mod test {
 
             let mut prover_sm = ProverSM::new(_presentation_request_with_service(), source_id());
             prover_sm = prover_sm.step(ProverMessages::PreparePresentation((_credentials(), _self_attested()))).unwrap();
-            prover_sm = prover_sm.step(ProverMessages::SendPresentation(0)).unwrap();
+            prover_sm = prover_sm.step(ProverMessages::SendPresentation(Handle::dummy())).unwrap();
 
             assert_match!(ProverState::Finished(_), prover_sm.state);
         }

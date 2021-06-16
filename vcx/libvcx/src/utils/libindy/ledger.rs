@@ -270,8 +270,8 @@ pub mod auth_rule {
         _send_auth_rules(submitter_did, &auth_rules)
     }
 
-    fn _send_auth_rules(submitter_did: &str, data: &Vec<AuthRule>) -> VcxResult<()> {
-        let data = serde_json::to_string(&data)
+    fn _send_auth_rules(submitter_did: &str, data: &[AuthRule]) -> VcxResult<()> {
+        let data = serde_json::to_string(data)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError,
                                               format!("Cannot serialize auth rules: {:?}", err)))?;
 
@@ -384,7 +384,7 @@ pub fn parse_response(response: &str) -> VcxResult<Response> {
 }
 
 pub fn libindy_get_schema(schema_id: &str) -> VcxResult<String> {
-    let pool_handle = get_pool_handle()?;
+    let pool_handle = get_pool_handle().unwrap_or(0);
     let wallet_handle = get_wallet_handle();
     let submitter_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID)?;
 
@@ -394,7 +394,7 @@ pub fn libindy_get_schema(schema_id: &str) -> VcxResult<String> {
 }
 
 pub fn libindy_get_cred_def(cred_def_id: &str) -> VcxResult<String> {
-    let pool_handle = get_pool_handle()?;
+    let pool_handle = get_pool_handle().unwrap_or(0);
     let wallet_handle = get_wallet_handle();
     let submitter_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID)?;
 
@@ -509,8 +509,8 @@ pub struct Request {
     pub endorser: Option<String>,
 }
 
-#[serde(tag = "op")]
 #[derive(Deserialize, Debug)]
+#[serde(tag = "op")]
 pub enum Response {
     #[serde(rename = "REQNACK")]
     ReqNACK(Reject),

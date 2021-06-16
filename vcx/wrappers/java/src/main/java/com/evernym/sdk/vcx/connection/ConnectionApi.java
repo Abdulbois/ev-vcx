@@ -443,42 +443,74 @@ public class ConnectionApi extends VcxJava.API {
 	 * Establishes connection between institution and its user.
 	 *
 	 * @param  connectionHandle  handle pointing to a Connection object.
-	 * @param  connectionType    details indicating if the connection will be established by text or QR Code.
-	 *                           "{"connection_type":"SMS","phone":"123","use_public_did":true}"
+	 * @param  connectionOptions: details about establishing connection
+	 *     {
+	 *         "connection_type": Option<"string"> - one of "SMS", "QR",
+	 *         "phone": "string": Option<"string"> - phone number in case "connection_type" is set into "SMS",
+	 *         "update_agent_info": Option<bool> - whether agent information needs to be updated.
+	 *                                             default value for `update_agent_info`=true
+	 *                                             if agent info does not need to be updated, set `update_agent_info`=false
+	 *         "use_public_did": Option<bool> - whether to use public DID for an establishing connection
+	 *                                          default value for `use_public_did`=false
+	 *         "pairwise_agent_info": Optional<JSON object> - pairwise agent to use instead of creating a new one.
+	 *                                                        Can be received by calling `vcx_create_pairwise_agent` function.
+	 *                                                         {
+	 *                                                             "pw_did": string,
+	 *                                                             "pw_vk": string,
+	 *                                                             "agent_did": string,
+	 *                                                             "agent_vk": string,
+	 *                                                         }
+	 *     }
 	 *
 	 * @return                   Connection Invite as JSON string.
 	 *
 	 * @throws VcxException      If an exception occurred in Libvcx library.
 	 */
 	@Deprecated
-	public static CompletableFuture<String> vcxAcceptInvitation(int connectionHandle, String connectionType) throws VcxException {
+	public static CompletableFuture<String> vcxAcceptInvitation(int connectionHandle, String connectionOptions) throws VcxException {
 		ParamGuard.notNull(connectionHandle, "connectionHandle");
-		ParamGuard.notNullOrWhiteSpace(connectionType, "connectionType");
-		return vcxConnectionConnect(connectionHandle, connectionType);
+		ParamGuard.notNullOrWhiteSpace(connectionOptions, "connectionOptions");
+		return vcxConnectionConnect(connectionHandle, connectionOptions);
 	}
 
 	/**
 	 * Establishes connection between institution and its user.
 	 *
 	 * @param  connectionHandle  handle pointing to a Connection object.
-	 * @param  connectionType    details indicating if the connection will be established by text or QR Code.
-	 *                           "{"connection_type":"SMS","phone":"123","use_public_did":true}"
+	 * @param  connectionOptions: details about establishing connection
+	 *     {
+	 *         "connection_type": Option<"string"> - one of "SMS", "QR",
+	 *         "phone": "string": Option<"string"> - phone number in case "connection_type" is set into "SMS",
+	 *         "update_agent_info": Option<bool> - whether agent information needs to be updated.
+	 *                                             default value for `update_agent_info`=true
+	 *                                             if agent info does not need to be updated, set `update_agent_info`=false
+	 *         "use_public_did": Option<bool> - whether to use public DID for an establishing connection
+	 *                                          default value for `use_public_did`=false
+	 *         "pairwise_agent_info": Optional<JSON object> - pairwise agent to use instead of creating a new one.
+	 *                                                        Can be received by calling `vcx_create_pairwise_agent` function.
+	 *                                                         {
+	 *                                                             "pw_did": string,
+	 *                                                             "pw_vk": string,
+	 *                                                             "agent_did": string,
+	 *                                                             "agent_vk": string,
+	 *                                                         }
+	 *     }
 	 *
 	 * @return                   Connection Invite as JSON string.
 	 *
 	 * @throws VcxException      If an exception occurred in Libvcx library.
 	 */
-	public static CompletableFuture<String> vcxConnectionConnect(int connectionHandle, String connectionType) throws VcxException {
+	public static CompletableFuture<String> vcxConnectionConnect(int connectionHandle, String connectionOptions) throws VcxException {
 		ParamGuard.notNull(connectionHandle, "connectionHandle");
-		ParamGuard.notNullOrWhiteSpace(connectionType, "connectionType");
-		logger.debug("vcxAcceptInvitation() called with: connectionHandle = [" + connectionHandle + "], connectionType = [****]");
+		ParamGuard.notNullOrWhiteSpace(connectionOptions, "connectionOptions");
+		logger.debug("vcxAcceptInvitation() called with: connectionHandle = [" + connectionHandle + "], connectionOptions = [****]");
 		CompletableFuture<String> future = new CompletableFuture<>();
 		int commandHandle = addFuture(future);
 
 		int result = LibVcx.api.vcx_connection_connect(
 				commandHandle,
 				connectionHandle,
-				connectionType,
+				connectionOptions,
 				vcxConnectionConnectCB
 		);
 		checkResult(result);
@@ -512,8 +544,24 @@ public class ConnectionApi extends VcxJava.API {
 	 *                              "{"targetName": "", "statusMsg": "message created", "connReqId": "mugIkrWeMr", "statusCode": "MS-101", "threadId": null, "senderAgencyDetail": {"endpoint": "http://localhost:8080", "verKey": "key", "DID": "did"}, "senderDetail": {"agentKeyDlgProof": {"agentDID": "8f6gqnT13GGMNPWDa2TRQ7", "agentDelegatedKey": "5B3pGBYjDeZYSNk9CXvgoeAAACe2BeujaAkipEC7Yyd1", "signature": "TgGSvZ6+/SynT3VxAZDOMWNbHpdsSl8zlOfPlcfm87CjPTmC/7Cyteep7U3m9Gw6ilu8SOOW59YR1rft+D8ZDg=="}, "publicDID": "7YLxxEfHRiZkCMVNii1RCy", "name": "Faber", "logoUrl": "http://robohash.org/234", "verKey": "CoYZMV6GrWqoG9ybfH3npwH3FnWPcHmpWYUF8n172FUx", "DID": "Ney2FxHT4rdEyy6EDCCtxZ"}}"
 	 *                          aries:
 	 *                              "{"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/invitation","label":"Alice","recipientKeys":["8HH5gYEeNc3z7PYXmd54d4x6qAfCNrqQqEB3nS7Zfu7K"],"serviceEndpoint":"https://example.com/endpoint","routingKeys":["8HH5gYEeNc3z7PYXmd54d4x6qAfCNrqQqEB3nS7Zfu7K"]}"
-	 * @param  connectionType    details indicating if the connection will be established by text or QR Code.
-	 *                           "{"connection_type":"SMS","phone":"123","use_public_did":true}"
+	 * @param  connectionOptions: details about establishing connection
+	 *     {
+	 *         "connection_type": Option<"string"> - one of "SMS", "QR",
+	 *         "phone": "string": Option<"string"> - phone number in case "connection_type" is set into "SMS",
+	 *         "update_agent_info": Option<bool> - whether agent information needs to be updated.
+	 *                                             default value for `update_agent_info`=true
+	 *                                             if agent info does not need to be updated, set `update_agent_info`=false
+	 *         "use_public_did": Option<bool> - whether to use public DID for an establishing connection
+	 *                                          default value for `use_public_did`=false
+	 *         "pairwise_agent_info": Optional<JSON object> - pairwise agent to use instead of creating a new one.
+	 *                                                        Can be received by calling `vcx_create_pairwise_agent` function.
+	 *                                                         {
+	 *                                                             "pw_did": string,
+	 *                                                             "pw_vk": string,
+	 *                                                             "agent_did": string,
+	 *                                                             "agent_vk": string,
+	 *                                                         }
+	 *     }
 	 *
 	 * @return               AcceptConnectionResult object containing:
 	 *                          - handle that should be used to perform actions with the Connection object.
@@ -523,11 +571,11 @@ public class ConnectionApi extends VcxJava.API {
 	 */
 	public static CompletableFuture<AcceptConnectionResult> vcxConnectionAcceptConnectionInvite(String invitationId,
 	                                                                                            String inviteDetails,
-	                                                                                            String connectionType) throws VcxException {
+	                                                                                            String connectionOptions) throws VcxException {
 		ParamGuard.notNull(invitationId, "invitationId");
 		ParamGuard.notNull(inviteDetails, "inviteDetails");
 		logger.debug("vcxConnectionAcceptConnectionInvite() called with: invitationId = [" + invitationId + "], " +
-				"inviteDetails = [****], connectionType = [****]");
+				"inviteDetails = [****], connectionOptions = [****]");
 		CompletableFuture<AcceptConnectionResult> future = new CompletableFuture<>();
 		int commandHandle = addFuture(future);
 
@@ -535,7 +583,7 @@ public class ConnectionApi extends VcxJava.API {
 				commandHandle,
 				invitationId,
 				inviteDetails,
-				connectionType,
+				connectionOptions,
 				vcxConnectionAcceptConnectionInviteCB
 		);
 		checkResult(result);
@@ -1145,32 +1193,56 @@ public class ConnectionApi extends VcxJava.API {
 	}
 
 	/**
-	 * Send answer on received question message according to Aries question-answer protocol.
-	 * <p>
-	 * Note that this function works in case `aries` communication method is used.
-	 * In other cases it returns ActionNotSupported error.
+	 * Send answer on received question message according to Aries question-answer or committedanswer protocols.
 	 *
 	 * @param  connectionHandle handle pointing to a Connection object to send answer message.
 	 * @param  question         A JSON string representing Question received via pairwise connection.
-	 *                          {
-	 *                              "@type": "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/questionanswer/1.0/question",
-	 *                              "@id": "518be002-de8e-456e-b3d5-8fe472477a86",
-	 *                              "question_text": "Alice, are you on the phone with Bob from Faber Bank right now?",
-	 *                              "question_detail": "This is optional fine-print giving context to the question and its various answers.",
-	 *                              "nonce": "<valid_nonce>",
-	 *                              "signature_required": true,
-	 *                              "valid_responses" : [
-	 *                                  {"text": "Yes, it's me"},
-	 *                                  {"text": "No, that's not me!"}],
-	 *                              "~timing": {
-	 *                                  "expires_time": "2018-12-13T17:29:06+0000"
+	 *                          Aries question-answer:   
+	 *                              {
+	 *                                  "@type": "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/questionanswer/1.0/question",
+	 *                                  "@id": "518be002-de8e-456e-b3d5-8fe472477a86",
+	 *                                  "question_text": "Alice, are you on the phone with Bob from Faber Bank right now?",
+	 *                                  "question_detail": "This is optional fine-print giving context to the question and its various answers.",
+	 *                                  "nonce": "<valid_nonce>",
+	 *                                  "signature_required": true,
+	 *                                  "valid_responses" : [
+	 *                                      {"text": "Yes, it's me"},
+	 *                                      {"text": "No, that's not me!"}],
+	 *                                  "~timing": {
+	 *                                      "expires_time": "2018-12-13T17:29:06+0000"
+	 *                                  }
 	 *                              }
-	 *                          }
+	 *                          committedanswer:
+	 *                              {
+	 *                                    '@type': 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/committedanswer/1.0/question',
+	 *                                    '@id': '518be002-de8e-456e-b3d5-8fe472477a86',
+	 *                                    'question_text': 'Alice, are you on the phone with Bob from Faber Bank right now?',
+	 *                                    'question_detail': 'This is optional fine-print giving context to the question and its various answers.',
+	 *                                    'valid_responses': [
+	 *                                        {'text': 'Yes, it is me', 'nonce': '<unique_identifier_a+2018-12-13T17:00:00+0000>'},
+	 *                                        {'text': 'No, that is not me!', 'nonce': '<unique_identifier_b+2018-12-13T17:00:00+0000'},
+	 *                                        {'text': 'Hi!', 'nonce': '<unique_identifier_c+2018-12-13T17:00:00+0000'}],
+	 *                                    '@timing': {
+	 *                                        'expires_time': future
+	 *                                    },
+	 *                                    'external_links': [
+	 *                                        {
+	 *                                            'text': 'Some external link with so many characters that it can go outside of two lines range from here onwards',
+	 *                                            'src': '1'},
+	 *                                        {
+	 *                                            'src': 'Some external link with so many characters that it can go outside of two lines range from here onwards'},
+	 *                                    ]
+	 *                              }
 	 * @param  answer           An answer to use which is a JSON string representing chosen `valid_response` option from Question message.
-	 *                          {
-	 *                              "text": "Yes, it's me"
-	 *                          }
-	 *
+	 *                          Aries question-answer:
+	 *                              {
+	 *                                  "text": "Yes, it's me"
+	 *                              }
+	 *                          committedanswer:
+	 *                              {
+	 *                                  'text': 'Yes, it is me',
+	 *                                  'nonce': '<unique_identifier_a+2018-12-13T17:00:00+0000>'
+	 *                              }
 	 * @return                 Sent message as JSON string.
 	 *
 	 * @throws VcxException     If an exception occurred in Libvcx library.

@@ -19,10 +19,10 @@ use v3::messages::outofband::handshake_reuse::HandshakeReuse;
 use v3::messages::outofband::handshake_reuse_accepted::HandshakeReuseAccepted;
 use v3::messages::questionanswer::question::{Question, QuestionResponse};
 use v3::messages::questionanswer::answer::Answer;
-use v3::messages::committedanswer::question::Question as CommittedQuestion;
+use v3::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
 use v3::messages::committedanswer::answer::Answer as CommittedAnswer;
 use v3::handlers::connection::types::{CompletedConnection, OutofbandMeta, Invitations};
-use v3::messages::invite_action::invite::{Invite as InviteForAction};
+use v3::messages::invite_action::invite::Invite as InviteForAction;
 
 use std::collections::HashMap;
 
@@ -120,6 +120,16 @@ pub struct CompleteState {
     pub protocols: Option<Vec<ProtocolDescriptor>>,
     #[serde(default)]
     pub thread: Thread,
+}
+
+impl CompleteState {
+    pub fn without_handshake(&self) -> bool {
+        if let Some(Invitations::OutofbandInvitation(invitation)) = self.invitation.as_ref() {
+            invitation.handshake_protocols.is_empty()
+        } else {
+            false
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -328,7 +338,6 @@ impl InitializedState {
                 ActorDidExchangeState::Inviter(DidExchangeState::Invited((self, invite).into()))
             }
             Some(outofband_meta) => {
-
                 let invite: OutofbandInvitation = OutofbandInvitation::create()
                     .set_label(label)
                     .set_opt_profile_url(profile_url)
@@ -369,7 +378,7 @@ impl InvitedState {
         let prev_agent_info = agent_info.clone();
 
         // provision a new pairwise agent
-        let new_agent_info: AgentInfo = agent_info.create_agent()?;
+        let new_agent_info: AgentInfo = AgentInfo::create_agent()?;
 
         let thread = Thread::new()
             .set_thid(request.id.to_string())
@@ -528,7 +537,7 @@ impl CompleteState {
                 DidExchangeState::Completed(self)
             }
             DidExchangeMessages::AnswerReceived(answer) => {
-                self.handle_answer(answer,  agent_info)?;
+                self.handle_answer(answer, agent_info)?;
                 DidExchangeState::Completed(self)
             }
             DidExchangeMessages::CommittedQuestionReceived(question) => {
@@ -541,6 +550,10 @@ impl CompleteState {
             }
             DidExchangeMessages::SendAnswer((question, response)) => {
                 self.handle_send_answer(question, response, agent_info)?;
+                DidExchangeState::Completed(self)
+            }
+            DidExchangeMessages::SendCommittedAnswer((question, response)) => {
+                self.handle_send_committed_answer(question, response, agent_info)?;
                 DidExchangeState::Completed(self)
             }
             DidExchangeMessages::SendInviteAction(data) => {
@@ -679,6 +692,24 @@ impl CompleteState {
         Ok(())
     }
 
+    fn handle_send_committed_answer(&self, question: CommittedQuestion, response: CommittedQuestionResponse, agent_info: &AgentInfo) -> VcxResult<()> {
+        trace!("CompleteState:handle_send_committed_answer >>> Question: {:?}, response: {:?}, agent_info: {:?}", secret!(question), secret!(response), secret!(agent_info));
+        debug!("sending committed answer message for connection");
+
+        let thread = Thread::new()
+            .set_thid(question.id.to_string())
+            .update_received_order(&self.did_doc.id);
+
+        let answer = CommittedAnswer::create()
+            .set_thread(thread)
+            .sign(&question, &response, &agent_info.pw_vk)?;
+
+        agent_info.send_message(&answer.to_a2a_message(), &self.did_doc).ok();
+
+        trace!("CompleteState:handle_send_committed_answer <<<");
+        Ok(())
+    }
+
     fn handle_answer(&self, answer: Answer, agent_info: &AgentInfo) -> VcxResult<()> {
         trace!("CompleteState:handle_answer >>> answer: {:?}, agent_info: {:?}", secret!(answer), secret!(agent_info));
         debug!("handling received connection question answer message");
@@ -687,7 +718,7 @@ impl CompleteState {
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, "Cannot handle Response: Remote Verkey not found"))?;
 
         match answer.verify(&remote_vk) {
-            Ok(()) => {},
+            Ok(()) => {}
             Err(_) => {
                 let thread = answer.thread.clone()
                     .increment_sender_order()
@@ -959,7 +990,10 @@ impl DidExchangeSM {
                     DidExchangeState::Initialized(state) => {
                         match message {
                             DidExchangeMessages::Connect(options) => {
-                                agent_info = agent_info.create_agent()?;
+                                agent_info = match options.pairwise_agent_info.as_ref() {
+                                    Some(pairwise_agent_info) => pairwise_agent_info.clone(),
+                                    None => AgentInfo::create_agent()?
+                                };
                                 state.prepare_invitation(&source_id, &agent_info, &options)?
                             }
                             message_ => {
@@ -988,7 +1022,7 @@ impl DidExchangeSM {
                                             .set_thread(thread.clone());
 
                                         agent_info.send_message(&problem_report.to_a2a_message(), &request.connection.did_doc).ok(); // IS is possible?
-                                        return Err(err)
+                                        return Err(err);
                                     }
                                 }
                             }
@@ -1016,7 +1050,7 @@ impl DidExchangeSM {
                                     }
                                     Err(err) => {
                                         state.send_problem_report(&agent_info, err.to_string())?;
-                                        return Err(err)
+                                        return Err(err);
                                     }
                                 }
                             }
@@ -1027,7 +1061,7 @@ impl DidExchangeSM {
                                     }
                                     Err(err) => {
                                         state.send_problem_report(&agent_info, err.to_string())?;
-                                        return Err(err)
+                                        return Err(err);
                                     }
                                 }
                             }
@@ -1058,7 +1092,7 @@ impl DidExchangeSM {
                                     }
                                     Err(err) => {
                                         state.send_problem_report(&agent_info, err.to_string())?;
-                                        return Err(err)
+                                        return Err(err);
                                     }
                                 }
                             }
@@ -1098,8 +1132,11 @@ impl DidExchangeSM {
                     }
                     DidExchangeState::Invited(state) => {
                         match message {
-                            DidExchangeMessages::Connect(_options) => {
-                                agent_info = agent_info.create_agent()?;
+                            DidExchangeMessages::Connect(options) => {
+                                agent_info = match options.pairwise_agent_info.as_ref() {
+                                    Some(pairwise_agent_info) => pairwise_agent_info.clone(),
+                                    None => AgentInfo::create_agent()?
+                                };
 
                                 let label = settings::get_config_value(settings::CONFIG_INSTITUTION_NAME).unwrap_or(source_id.to_string());
 
@@ -1144,7 +1181,7 @@ impl DidExchangeSM {
                                             .set_thread(thread.clone());
 
                                         agent_info.send_message(&problem_report.to_a2a_message(), &state.did_doc).ok();
-                                        return Err(err)
+                                        return Err(err);
                                     }
                                 }
                             }
@@ -1167,7 +1204,17 @@ impl DidExchangeSM {
                         ActorDidExchangeState::Invitee(DidExchangeState::Failed(state))
                     }
                     DidExchangeState::Completed(state) => {
-                        ActorDidExchangeState::Invitee(state.handle_message(message, &agent_info)?)
+                        if let DidExchangeMessages::Connect(options) = message {
+                            if state.without_handshake() {
+                                agent_info = match options.pairwise_agent_info.as_ref() {
+                                    Some(pairwise_agent_info) => pairwise_agent_info.clone(),
+                                    None => AgentInfo::create_agent()?
+                                };
+                            }
+                            ActorDidExchangeState::Invitee(DidExchangeState::Completed(state))
+                        } else {
+                            ActorDidExchangeState::Invitee(state.handle_message(message, &agent_info)?)
+                        }
                     }
                 }
             }
@@ -1202,7 +1249,6 @@ impl DidExchangeSM {
                     DidExchangeState::Responded(_) |
                     DidExchangeState::Completed(_) => None,
                     DidExchangeState::Failed(ref state) => state.error.as_ref(),
-
                 }
         }
     }

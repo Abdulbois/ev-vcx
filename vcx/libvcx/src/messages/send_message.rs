@@ -1,5 +1,4 @@
 use settings;
-use connection;
 use api::VcxStateType;
 use messages::*;
 use messages::message_type::MessageTypes;
@@ -10,6 +9,9 @@ use utils::uuid::uuid;
 use error::prelude::*;
 use utils::agent_info::get_agent_info;
 use utils::httpclient::AgencyMock;
+
+use crate::connection::Connections;
+use crate::object_cache::Handle;
 
 #[derive(Debug)]
 pub struct SendMessageBuilder {
@@ -98,7 +100,7 @@ impl SendMessageBuilder {
     pub fn send_secure(&mut self) -> VcxResult<SendResponse> {
         trace!("SendMessage::send >>>");
 
-        AgencyMock::set_next_response(constants::SEND_MESSAGE_RESPONSE.to_vec());
+        AgencyMock::set_next_response(constants::SEND_MESSAGE_RESPONSE);
 
         let data = self.prepare_request()?;
 
@@ -215,8 +217,8 @@ pub struct SendMessageOptions {
     pub ref_msg_id: Option<String>,
 }
 
-pub fn send_generic_message(connection_handle: u32, msg: &str, msg_options: &str) -> VcxResult<String> {
-    if connection::get_state(connection_handle) != VcxStateType::VcxStateAccepted as u32 {
+pub fn send_generic_message(connection_handle: Handle<Connections>, msg: &str, msg_options: &str) -> VcxResult<String> {
+    if connection_handle.get_state() != VcxStateType::VcxStateAccepted as u32 {
         return Err(VcxError::from_msg(VcxErrorKind::NotReady, "Connection is not completed yet. It cannot be used for message sending."));
     }
 
@@ -325,7 +327,7 @@ mod tests {
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_send_generic_message() {
-        let _setup = SetupLibraryAgencyV1::init();
+        let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
         let (_faber, alice) = ::connection::tests::create_connected_connections();
 
@@ -339,7 +341,7 @@ mod tests {
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_send_message_and_download_response() {
-        let _setup = SetupLibraryAgencyV1::init();
+        let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
         let (faber, alice) = ::connection::tests::create_connected_connections();
 

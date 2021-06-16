@@ -35,7 +35,7 @@ public class DisclosedProofApi extends VcxJava.API {
      * @param  sourceId             Institution's personal identification for the proof, should be unique.
      * @param  connectionHandle     handle pointing to a Connection object to query for Proof Request message.
      * @param  msgId                id of the message on Agency that contains the Proof Request.
-     *                              
+     *
      * @return                      handle that should be used to perform actions with the DisclosedProof object.
      *
      * @throws VcxException         If an exception occurred in Libvcx library.
@@ -280,7 +280,9 @@ public class DisclosedProofApi extends VcxJava.API {
      * Send a Proof to the connection, called after having received a proof request
      *
      * @param  proofHandle              handle pointing to a DisclosedProof object.
-     * @param  connectionHandle         handle pointing to a Connection object to use for sending message (pass 0 in case of ephemeral proof)..
+     * @param  connectionHandle         handle pointing to a Connection object.
+     *                                  Pass `0` in order to reply on ephemeral/connectionless proof request
+     *                                  Ephemeral/Connectionless Proof Request contains `~server` decorator
      *
      * @return                          void
      *

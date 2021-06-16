@@ -1189,7 +1189,7 @@ namespace Hyperledger.Indy.AnonCredsApi
         /// predicate_info: Describes requested attribute predicate
         ///     {
         ///         "name": attribute name, (case insensitive and ignore spaces)
-        ///         "p_type": predicate type (Currently >= only)
+        ///         "p_type": predicate type (">=", ">", "<=", "<")
         ///         "p_value": predicate value
         ///         "restrictions": Optional ['attr_filter'] // see below,
         ///                         // if specified, credential must satisfy to one of the given restriction.
@@ -1384,7 +1384,7 @@ namespace Hyperledger.Indy.AnonCredsApi
         /// predicate_info: Describes requested attribute predicate
         ///     {
         ///         "name": attribute name, (case insensitive and ignore spaces)
-        ///         "p_type": predicate type (Currently >= only)
+        ///         "p_type": predicate type (">=", ">", "<=", "<")
         ///         "p_value": predicate value
         ///         "restrictions": Optional ['attr_filter'] // see above,
         ///                         // if specified, credential must satisfy to one of the given restriction.

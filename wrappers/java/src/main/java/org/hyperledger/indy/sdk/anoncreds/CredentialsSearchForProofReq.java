@@ -88,7 +88,7 @@ public class CredentialsSearchForProofReq extends IndyJava.API implements AutoCl
 	 *     predicate_referent: Describes requested attribute predicate
 	 *     {
 	 *         "name": attribute name, (case insensitive and ignore spaces)
-	 *         "p_type": predicate type (Currently {@code ">=" } only)
+	 *         "p_type": predicate type (">=", ">", "<=", "<")
 	 *         "p_value": predicate value
 	 *         "restrictions": Optional[{wql query}],
 	 *                         // if specified, credential must satisfy to one of the given restriction.

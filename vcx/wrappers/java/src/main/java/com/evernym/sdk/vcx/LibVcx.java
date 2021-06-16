@@ -515,6 +515,11 @@ public abstract class LibVcx {
         public String vcx_provision_agent_with_token(String config, String token);
 
         /*
+         * Provision an agent in the agency, populate configuration and wallet for this agent.
+         * */
+        public int vcx_provision_agent_with_token_async(int command_handle, String config, String token,Callback cb);
+
+        /*
         * Update information on the agent (ie, comm method and type)
         * */
         public int vcx_get_provision_token(int command_handle, String config, Callback cb);
@@ -688,6 +693,12 @@ public abstract class LibVcx {
         * Endorse transaction to the ledger preserving an original author
         * */
         public int vcx_endorse_transaction(int command_handle, String transaction, Callback cb);
+
+
+        /*
+        * Create pairwise agent which can be later used for connection establishing.
+        * */
+        public int vcx_create_pairwise_agent(int command_handle, Callback cb);
 
         /**
          * The API represents a Holder side in credential issuance process.
