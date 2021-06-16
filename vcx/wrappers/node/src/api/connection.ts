@@ -912,13 +912,12 @@ export class Connection extends VCXBaseWithState<IConnectionData> {
   }
 
   /**
-   * Send answer on received question message according to Aries question-answer protocol.
+   * Send answer on received question message according to Aries question-answer or committedanswer protocols.
    *
-   * Note that this function works in case `aries` communication method is used.
-   *     In other cases it returns ActionNotSupported error.
    *
    * Example:
    * ```
+   * // Aries question-answer
    * const data = {
    *   question: {
    *     "@type": "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/questionanswer/1.0/question",
@@ -936,7 +935,33 @@ export class Connection extends VCXBaseWithState<IConnectionData> {
    *    "text": "Yes, it's me"
    *   }
    * }
-   * await connection.sendAnswer(invite)
+   * await connection.sendAnswer(data)
+   * 
+   * // committedanswer:
+   * const data = {
+   *   question: {
+  *      '@type': 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/committedanswer/1.0/question',
+  *      '@id': '518be002-de8e-456e-b3d5-8fe472477a86',
+  *      'question_text': 'Alice, are you on the phone with Bob from Faber Bank right now?',
+  *      'question_detail': 'This is optional fine-print giving context to the question and its various answers.',
+  *      'valid_responses': [
+  *         {'text': 'Yes, it is me', 'nonce': '<unique_identifier_a+2018-12-13T17:00:00+0000>'},
+  *         {'text': 'No, that is not me!', 'nonce': '<unique_identifier_b+2018-12-13T17:00:00+0000'},
+  *         {'text': 'Hi!', 'nonce': '<unique_identifier_c+2018-12-13T17:00:00+0000'}],
+  *      '@timing': {
+  *         'expires_time': future
+  *      },
+  *      'external_links': [
+  *         {
+  *             'text': 'Some external link with so many characters that it can go outside of two lines range from here onwards',
+  *             'src': '1'},
+  *         {
+  *             'src': 'Some external link with so many characters that it can go outside of two lines range from here onwards'},
+  *       ]
+  *    },
+   *   answer: {'text': 'Yes, it is me', 'nonce': '<unique_identifier_a+2018-12-13T17:00:00+0000>'}
+   * }
+   * await connection.sendAnswer(data)
    * ```
    */
   public async sendAnswer (data: IConnectionAnswerData): Promise<void> {

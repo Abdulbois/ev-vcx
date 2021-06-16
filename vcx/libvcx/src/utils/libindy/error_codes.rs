@@ -1,10 +1,5 @@
-extern crate num_traits;
-
-use self::num_traits::int::PrimInt;
-
 use indy::IndyError;
-use utils::error;
-use error::prelude::{VcxError, VcxErrorKind};
+use crate::error::prelude::{VcxError, VcxErrorKind};
 
 impl From<IndyError> for VcxError {
     fn from(error: IndyError) -> Self {
@@ -28,27 +23,10 @@ impl From<IndyError> for VcxError {
     }
 }
 
-pub fn map_indy_error<T, C: PrimInt>(rtn: T, error_code: C) -> Result<T, u32> {
-    if error_code == C::zero() {
-        return Ok(rtn);
-    }
-
-    Err(map_indy_error_code(error_code))
-}
-
-pub fn map_indy_error_code<C: PrimInt>(error_code: C) -> u32 {
-    let error_code = match error_code.to_u32() {
-        Some(n) => {
-            error!("MAPPING ERROR: {:?} -- {}", n, error::error_message(n));
-            n
-        }
-        None => return error::UNKNOWN_LIBINDY_ERROR.code_num
-    };
-
-    if error_code >= error::UNKNOWN_ERROR.code_num {
-        return error_code;
-    }
-
+// NOTE: only used by `return_type` for mocking
+#[cfg(test)]
+pub fn map_indy_error_code(error_code: u32) -> u32 {
+    use crate::utils::error;
     match error_code {
         100..=111 => error::INVALID_LIBINDY_PARAM.code_num,
         113 => error::LIBINDY_INVALID_STRUCTURE.code_num,
@@ -62,7 +40,7 @@ pub fn map_indy_error_code<C: PrimInt>(error_code: C) -> u32 {
         407 => error::CREDENTIAL_DEF_ALREADY_CREATED.code_num,
         600 => error::DID_ALREADY_EXISTS_IN_WALLET.code_num,
         702 => error::INSUFFICIENT_TOKEN_AMOUNT.code_num,
-        error_cde => error_cde
+        error_code => error_code,
     }
 }
 

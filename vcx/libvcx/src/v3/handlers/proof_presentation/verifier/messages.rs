@@ -4,15 +4,18 @@ use v3::messages::error::ProblemReport;
 use v3::messages::a2a::A2AMessage;
 use v3::messages::proof_presentation::presentation_request::PresentationRequestData;
 
+use crate::connection::Connections;
+use crate::object_cache::Handle;
+
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub enum VerifierMessages {
     PreparePresentationRequest(),
-    SetConnection(u32),
-    SendPresentationRequest(u32),
+    SetConnection(Handle<Connections>),
+    SendPresentationRequest(Handle<Connections>),
     PresentationReceived(Presentation),
     PresentationProposalReceived(PresentationProposal),
     PresentationRejectReceived(ProblemReport),
-    RequestPresentation(u32, PresentationRequestData),
+    RequestPresentation(Handle<Connections>, PresentationRequestData),
     Unknown
 }
 

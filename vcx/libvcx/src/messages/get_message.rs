@@ -676,9 +676,7 @@ mod tests {
         assert_eq!(result.len(), 1)
     }
 
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
-    #[cfg(feature = "wallet_backup")]
+    #[cfg(all(feature = "agency", feature = "pool_tests", feature = "wallet_backup"))]
     #[test]
     fn test_download_agent_messages() {
         let _setup = SetupConsumer::init();
@@ -698,8 +696,7 @@ mod tests {
         assert!(bad_req.is_err());
     }
 
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
+    #[cfg(all(feature = "agency", feature = "pool_tests"))]
     #[test]
     fn test_download_messages() {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
@@ -717,11 +714,11 @@ mod tests {
                                                                              credential_data.to_owned(),
                                                                              1).unwrap();
 
-        ::issuer_credential::send_credential_offer(credential_offer, alice).unwrap();
+        credential_offer.send_credential_offer(alice).unwrap();
 
         thread::sleep(Duration::from_millis(1000));
 
-        let hello_uid = ::connection::send_generic_message(alice, "hello", &json!({"msg_type":"hello", "msg_title": "hello", "ref_msg_id": null}).to_string()).unwrap();
+        let hello_uid = alice.send_generic_message("hello", &json!({"msg_type":"hello", "msg_title": "hello", "ref_msg_id": null}).to_string()).unwrap();
 
         // AS CONSUMER GET MESSAGES
         ::utils::devsetup::set_consumer();
@@ -753,8 +750,7 @@ mod tests {
         assert_eq!(bad_req.unwrap_err().kind(), VcxErrorKind::InvalidAgencyRequest);
     }
 
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
+    #[cfg(all(feature = "agency", feature = "pool_tests"))]
     #[test]
     fn test_download_message() {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
@@ -763,7 +759,7 @@ mod tests {
 
         let message = "hello";
         let message_options = json!({"msg_type":"hello", "msg_title": "hello", "ref_msg_id": null}).to_string();
-        let hello_uid = ::connection::send_generic_message(alice, message, &message_options).unwrap();
+        let hello_uid = alice.send_generic_message(message, &message_options).unwrap();
 
         // AS CONSUMER GET MESSAGE
         ::utils::devsetup::set_consumer();

@@ -650,21 +650,18 @@ pub fn attr_common_view(attr: &str) -> String {
 
 #[cfg(test)]
 pub mod tests {
+    use crate::object_cache::Handle;
+    use crate::credential_def::CredentialDef;
+
     use super::*;
     use utils::get_temp_dir_path;
-
-    extern crate serde_json;
-    extern crate rand;
 
     use rand::Rng;
     use settings;
     use utils::constants::*;
     use std::thread;
     use std::time::Duration;
-    #[cfg(feature = "pool_tests")]
-    use utils::constants::TEST_TAILS_FILE;
     use utils::devsetup::*;
-
 
     pub fn create_schema(attr_list: &str) -> (String, String) {
         let data = attr_list.to_string();
@@ -690,7 +687,7 @@ pub mod tests {
         (schema_id, schema_json)
     }
 
-    pub fn create_and_store_credential_def(attr_list: &str, support_rev: bool) -> (String, String, String, String, u32, Option<String>) {
+    pub fn create_and_store_credential_def(attr_list: &str, support_rev: bool) -> (String, String, String, String, Handle<CredentialDef>, Option<String>) {
         /* create schema */
         let (schema_id, schema_json) = create_and_write_test_schema(attr_list);
 
@@ -711,10 +708,10 @@ pub mod tests {
                                                                         revocation_details.to_string()).unwrap();
 
         thread::sleep(Duration::from_millis(1000));
-        let cred_def_id = ::credential_def::get_cred_def_id(handle).unwrap();
+        let cred_def_id = handle.get_cred_def_id().unwrap();
         thread::sleep(Duration::from_millis(1000));
         let (_, cred_def_json) = get_cred_def_json(&cred_def_id).unwrap();
-        let rev_reg_id = ::credential_def::get_rev_reg_id(handle).unwrap();
+        let rev_reg_id = handle.get_rev_reg_id().unwrap();
         (schema_id, schema_json, cred_def_id, cred_def_json, handle, rev_reg_id)
     }
 
@@ -918,209 +915,12 @@ pub mod tests {
         (schemas, cred_defs, proof_req, proof)
     }
 
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_prover_verify_proof() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        let (schemas, cred_defs, proof_req, proof) = create_proof();
-
-        let proof_validation = libindy_verifier_verify_proof(
-            &proof_req,
-            &proof,
-            &schemas,
-            &cred_defs,
-            "{}",
-            "{}",
-        ).unwrap();
-
-        assert!(proof_validation, true);
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_prover_verify_proof_with_predicate_success_case() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        let (schemas, cred_defs, proof_req, proof) = create_proof_with_predicate(true);
-
-        let proof_validation = libindy_verifier_verify_proof(
-            &proof_req,
-            &proof,
-            &schemas,
-            &cred_defs,
-            "{}",
-            "{}",
-        ).unwrap();
-
-        assert!(proof_validation, true);
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_prover_verify_proof_with_predicate_fail_case() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        let (schemas, cred_defs, proof_req, proof) = create_proof_with_predicate(false);
-
-        libindy_verifier_verify_proof(
-            &proof_req,
-            &proof,
-            &schemas,
-            &cred_defs,
-            "{}",
-            "{}",
-        ).unwrap_err();
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn tests_libindy_prover_get_credentials() {
-        let _setup = SetupLibraryWallet::init();
-
-        let proof_req = "{";
-        let result = libindy_prover_get_credentials_for_proof_req(&proof_req);
-        assert_eq!(result.unwrap_err().kind(), VcxErrorKind::InvalidProofRequest);
-
-        let proof_req = json!({
-           "nonce":"123432421212",
-           "name":"proof_req_1",
-           "version":"0.1",
-           "requested_attributes": json!({
-               "address1_1": json!({
-                   "name":"address1",
-               }),
-               "zip_2": json!({
-                   "name":"zip",
-               }),
-           }),
-           "requested_predicates": json!({}),
-        }).to_string();
-        let _result = libindy_prover_get_credentials_for_proof_req(&proof_req).unwrap();
-
-        let result_malformed_json = libindy_prover_get_credentials_for_proof_req("{}").unwrap_err();
-        assert_eq!(result_malformed_json.kind(), VcxErrorKind::InvalidProofRequest);
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_issuer_revoke_credential() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        let rc = libindy_issuer_revoke_credential(get_temp_dir_path(TEST_TAILS_FILE).to_str().unwrap(), "", "");
-        assert!(rc.is_err());
-
-        let (_, _, _, _, _, _, _, _, rev_reg_id, cred_rev_id)
-            = create_and_store_credential(::utils::constants::DEFAULT_SCHEMA_ATTRS, true);
-        let rc = ::utils::libindy::anoncreds::libindy_issuer_revoke_credential(get_temp_dir_path(TEST_TAILS_FILE).to_str().unwrap(), &rev_reg_id.unwrap(), &cred_rev_id.unwrap());
-
-        assert!(rc.is_ok());
-    }
-
     #[test]
     fn test_create_cred_def() {
         let _setup = SetupMocks::init();
 
         let (id, _) = generate_cred_def("did", SCHEMAS_JSON, "tag_1", None, Some(false)).unwrap();
         assert_eq!(id, CRED_DEF_ID);
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_create_cred_def_real() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        let (schema_id, _) = ::utils::libindy::anoncreds::tests::create_and_write_test_schema(::utils::constants::DEFAULT_SCHEMA_ATTRS);
-        let (_, schema_json) = get_schema_json(&schema_id).unwrap();
-        let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-
-        let (_, cred_def_json) = generate_cred_def(&did, &schema_json, "tag_1", None, Some(true)).unwrap();
-        publish_cred_def(&did, &cred_def_json).unwrap();
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_rev_reg_def_fails_for_cred_def_created_without_revocation() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        // Cred def is created with support_revocation=false,
-        // revoc_reg_def will fail in libindy because cred_Def doesn't have revocation keys
-        let (_, _, cred_def_id, _, _, _) = ::utils::libindy::anoncreds::tests::create_and_store_credential_def(::utils::constants::DEFAULT_SCHEMA_ATTRS, false);
-        let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-        let rc = generate_rev_reg(&did, &cred_def_id, get_temp_dir_path("path.txt").to_str().unwrap(), 2);
-
-        assert_eq!(rc.unwrap_err().kind(), VcxErrorKind::LibindyInvalidStructure);
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_create_rev_reg_def() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        let (schema_id, _) = ::utils::libindy::anoncreds::tests::create_and_write_test_schema(::utils::constants::DEFAULT_SCHEMA_ATTRS);
-        let (_, schema_json) = get_schema_json(&schema_id).unwrap();
-        let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-
-        let (cred_def_id, cred_def_json) = generate_cred_def(&did, &schema_json, "tag_1", None, Some(true)).unwrap();
-        publish_cred_def(&did, &cred_def_json).unwrap();
-        let (rev_reg_def_id, rev_reg_def_json, rev_reg_entry_json) = generate_rev_reg(&did, &cred_def_id, "tails.txt", 2).unwrap();
-        publish_rev_reg_def(&did, &rev_reg_def_json).unwrap();
-        publish_rev_reg_delta(&did, &rev_reg_def_id, &rev_reg_entry_json).unwrap();
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_get_rev_reg_def_json() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        let attrs = r#"["address1","address2","city","state","zip"]"#;
-        let (_, _, _, _, _, rev_reg_id) =
-            ::utils::libindy::anoncreds::tests::create_and_store_credential_def(attrs, true);
-
-        let rev_reg_id = rev_reg_id.unwrap();
-        let (id, _json) = get_rev_reg_def_json(&rev_reg_id).unwrap();
-        assert_eq!(id, rev_reg_id);
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_get_rev_reg_delta_json() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        let attrs = r#"["address1","address2","city","state","zip"]"#;
-        let (_, _, _, _, _, rev_reg_id) =
-            ::utils::libindy::anoncreds::tests::create_and_store_credential_def(attrs, true);
-        let rev_reg_id = rev_reg_id.unwrap();
-
-        let (id, _delta, _timestamp) = get_rev_reg_delta_json(&rev_reg_id, None, None).unwrap();
-        assert_eq!(id, rev_reg_id);
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_get_rev_reg() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        let attrs = r#"["address1","address2","city","state","zip"]"#;
-        let (_, _, _, _, _, rev_reg_id) =
-            ::utils::libindy::anoncreds::tests::create_and_store_credential_def(attrs, true);
-        let rev_reg_id = rev_reg_id.unwrap();
-
-        let (id, _rev_reg, _timestamp) = get_rev_reg(&rev_reg_id, time::get_time().sec as u64).unwrap();
-        assert_eq!(id, rev_reg_id);
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn from_pool_ledger_with_id() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        let (schema_id, _schema_json) = ::utils::libindy::anoncreds::tests::create_and_write_test_schema(::utils::constants::DEFAULT_SCHEMA_ATTRS);
-
-        let rc = get_schema_json(&schema_id);
-
-        let (_id, retrieved_schema) = rc.unwrap();
-        assert!(retrieved_schema.contains(&schema_id));
     }
 
     #[test]
@@ -1133,35 +933,224 @@ pub mod tests {
     }
 
     #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_revoke_credential() {
-        let _setup = SetupLibraryWalletPool::init();
+    mod pool_tests {
+        use super::*;
+        use utils::constants::TEST_TAILS_FILE;
 
-        let (_, _, _, _, _, _, _, _, rev_reg_id, cred_rev_id)
-            = ::utils::libindy::anoncreds::tests::create_and_store_credential(::utils::constants::DEFAULT_SCHEMA_ATTRS, true);
+        #[test]
+        fn test_prover_verify_proof() {
+            let _setup = SetupLibraryWalletPool::init();
 
-        let rev_reg_id = rev_reg_id.unwrap();
-        let (_, first_rev_reg_delta, first_timestamp) = get_rev_reg_delta_json(&rev_reg_id, None, None).unwrap();
-        let (_, test_same_delta, test_same_timestamp) = get_rev_reg_delta_json(&rev_reg_id, None, None).unwrap();
+            let (schemas, cred_defs, proof_req, proof) = create_proof();
 
-        assert_eq!(first_rev_reg_delta, test_same_delta);
-        assert_eq!(first_timestamp, test_same_timestamp);
+            let proof_validation = libindy_verifier_verify_proof(
+                &proof_req,
+                &proof,
+                &schemas,
+                &cred_defs,
+                "{}",
+                "{}",
+            ).unwrap();
 
-        let (payment, _revoked_rev_reg_delta) = revoke_credential(get_temp_dir_path(TEST_TAILS_FILE).to_str().unwrap(), &rev_reg_id, cred_rev_id.unwrap().as_str()).unwrap();
+            assert!(proof_validation);
+        }
 
-        // Delta should change after revocation
-        let (_, second_rev_reg_delta, _) = get_rev_reg_delta_json(&rev_reg_id, Some(first_timestamp + 1), None).unwrap();
+        #[test]
+        fn test_prover_verify_proof_with_predicate_success_case() {
+            let _setup = SetupLibraryWalletPool::init();
 
-        assert!(payment.is_some());
-        assert_ne!(first_rev_reg_delta, second_rev_reg_delta);
-    }
+            let (schemas, cred_defs, proof_req, proof) = create_proof_with_predicate(true);
 
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_fetch_public_entities() {
-        let _setup = SetupLibraryWalletPool::init();
+            let proof_validation = libindy_verifier_verify_proof(
+                &proof_req,
+                &proof,
+                &schemas,
+                &cred_defs,
+                "{}",
+                "{}",
+            ).unwrap();
 
-        let _ = create_and_store_credential(::utils::constants::DEFAULT_SCHEMA_ATTRS, false);
-        fetch_public_entities().unwrap();
+            assert!(proof_validation);
+        }
+
+        #[test]
+        fn test_prover_verify_proof_with_predicate_fail_case() {
+            let _setup = SetupLibraryWalletPool::init();
+
+            let (schemas, cred_defs, proof_req, proof) = create_proof_with_predicate(false);
+
+            libindy_verifier_verify_proof(
+                &proof_req,
+                &proof,
+                &schemas,
+                &cred_defs,
+                "{}",
+                "{}",
+            ).unwrap_err();
+        }
+
+        #[test]
+        fn tests_libindy_prover_get_credentials() {
+            let _setup = SetupLibraryWallet::init();
+
+            let proof_req = "{";
+            let result = libindy_prover_get_credentials_for_proof_req(&proof_req);
+            assert_eq!(result.unwrap_err().kind(), VcxErrorKind::InvalidProofRequest);
+
+            let proof_req = json!({
+                "nonce":"123432421212",
+                "name":"proof_req_1",
+                "version":"0.1",
+                "requested_attributes": json!({
+                    "address1_1": json!({
+                        "name":"address1",
+                    }),
+                    "zip_2": json!({
+                        "name":"zip",
+                    }),
+                }),
+                "requested_predicates": json!({}),
+            }).to_string();
+            let _result = libindy_prover_get_credentials_for_proof_req(&proof_req).unwrap();
+
+            let result_malformed_json = libindy_prover_get_credentials_for_proof_req("{}").unwrap_err();
+            assert_eq!(result_malformed_json.kind(), VcxErrorKind::InvalidProofRequest);
+        }
+
+        #[test]
+        fn test_issuer_revoke_credential() {
+            let _setup = SetupLibraryWalletPool::init();
+
+            let rc = libindy_issuer_revoke_credential(get_temp_dir_path(TEST_TAILS_FILE).to_str().unwrap(), "", "");
+            assert!(rc.is_err());
+
+            let (_, _, _, _, _, _, _, _, rev_reg_id, cred_rev_id)
+                = create_and_store_credential(::utils::constants::DEFAULT_SCHEMA_ATTRS, true);
+            let rc = ::utils::libindy::anoncreds::libindy_issuer_revoke_credential(get_temp_dir_path(TEST_TAILS_FILE).to_str().unwrap(), &rev_reg_id.unwrap(), &cred_rev_id.unwrap());
+
+            assert!(rc.is_ok());
+        }
+
+        #[test]
+        fn test_create_cred_def_real() {
+            let _setup = SetupLibraryWalletPool::init();
+
+            let (schema_id, _) = ::utils::libindy::anoncreds::tests::create_and_write_test_schema(::utils::constants::DEFAULT_SCHEMA_ATTRS);
+            let (_, schema_json) = get_schema_json(&schema_id).unwrap();
+            let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
+
+            let (_, cred_def_json) = generate_cred_def(&did, &schema_json, "tag_1", None, Some(true)).unwrap();
+            publish_cred_def(&did, &cred_def_json).unwrap();
+        }
+
+        #[test]
+        fn test_rev_reg_def_fails_for_cred_def_created_without_revocation() {
+            let _setup = SetupLibraryWalletPool::init();
+
+            // Cred def is created with support_revocation=false,
+            // revoc_reg_def will fail in libindy because cred_Def doesn't have revocation keys
+            let (_, _, cred_def_id, _, _, _) = ::utils::libindy::anoncreds::tests::create_and_store_credential_def(::utils::constants::DEFAULT_SCHEMA_ATTRS, false);
+            let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
+            let rc = generate_rev_reg(&did, &cred_def_id, get_temp_dir_path("path.txt").to_str().unwrap(), 2);
+
+            assert_eq!(rc.unwrap_err().kind(), VcxErrorKind::LibindyInvalidStructure);
+        }
+
+        #[test]
+        fn test_create_rev_reg_def() {
+            let _setup = SetupLibraryWalletPool::init();
+
+            let (schema_id, _) = ::utils::libindy::anoncreds::tests::create_and_write_test_schema(::utils::constants::DEFAULT_SCHEMA_ATTRS);
+            let (_, schema_json) = get_schema_json(&schema_id).unwrap();
+            let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
+
+            let (cred_def_id, cred_def_json) = generate_cred_def(&did, &schema_json, "tag_1", None, Some(true)).unwrap();
+            publish_cred_def(&did, &cred_def_json).unwrap();
+            let (rev_reg_def_id, rev_reg_def_json, rev_reg_entry_json) = generate_rev_reg(&did, &cred_def_id, "tails.txt", 2).unwrap();
+            publish_rev_reg_def(&did, &rev_reg_def_json).unwrap();
+            publish_rev_reg_delta(&did, &rev_reg_def_id, &rev_reg_entry_json).unwrap();
+        }
+
+        #[test]
+        fn test_get_rev_reg_def_json() {
+            let _setup = SetupLibraryWalletPool::init();
+
+            let attrs = r#"["address1","address2","city","state","zip"]"#;
+            let (_, _, _, _, _, rev_reg_id) =
+                ::utils::libindy::anoncreds::tests::create_and_store_credential_def(attrs, true);
+
+            let rev_reg_id = rev_reg_id.unwrap();
+            let (id, _json) = get_rev_reg_def_json(&rev_reg_id).unwrap();
+            assert_eq!(id, rev_reg_id);
+        }
+
+        #[test]
+        fn test_get_rev_reg_delta_json() {
+            let _setup = SetupLibraryWalletPool::init();
+
+            let attrs = r#"["address1","address2","city","state","zip"]"#;
+            let (_, _, _, _, _, rev_reg_id) =
+                ::utils::libindy::anoncreds::tests::create_and_store_credential_def(attrs, true);
+            let rev_reg_id = rev_reg_id.unwrap();
+
+            let (id, _delta, _timestamp) = get_rev_reg_delta_json(&rev_reg_id, None, None).unwrap();
+            assert_eq!(id, rev_reg_id);
+        }
+
+        #[test]
+        fn test_get_rev_reg() {
+            let _setup = SetupLibraryWalletPool::init();
+
+            let attrs = r#"["address1","address2","city","state","zip"]"#;
+            let (_, _, _, _, _, rev_reg_id) =
+                ::utils::libindy::anoncreds::tests::create_and_store_credential_def(attrs, true);
+            let rev_reg_id = rev_reg_id.unwrap();
+
+            let (id, _rev_reg, _timestamp) = get_rev_reg(&rev_reg_id, time::get_time().sec as u64).unwrap();
+            assert_eq!(id, rev_reg_id);
+        }
+
+        #[test]
+        fn from_pool_ledger_with_id() {
+            let _setup = SetupLibraryWalletPool::init();
+
+            let (schema_id, _schema_json) = ::utils::libindy::anoncreds::tests::create_and_write_test_schema(::utils::constants::DEFAULT_SCHEMA_ATTRS);
+
+            let rc = get_schema_json(&schema_id);
+
+            let (_id, retrieved_schema) = rc.unwrap();
+            assert!(retrieved_schema.contains(&schema_id));
+        }
+
+        #[test]
+        fn test_revoke_credential() {
+            let _setup = SetupLibraryWalletPool::init();
+
+            let (_, _, _, _, _, _, _, _, rev_reg_id, cred_rev_id)
+                = ::utils::libindy::anoncreds::tests::create_and_store_credential(::utils::constants::DEFAULT_SCHEMA_ATTRS, true);
+
+            let rev_reg_id = rev_reg_id.unwrap();
+            let (_, first_rev_reg_delta, first_timestamp) = get_rev_reg_delta_json(&rev_reg_id, None, None).unwrap();
+            let (_, test_same_delta, test_same_timestamp) = get_rev_reg_delta_json(&rev_reg_id, None, None).unwrap();
+
+            assert_eq!(first_rev_reg_delta, test_same_delta);
+            assert_eq!(first_timestamp, test_same_timestamp);
+
+            let (payment, _revoked_rev_reg_delta) = revoke_credential(get_temp_dir_path(TEST_TAILS_FILE).to_str().unwrap(), &rev_reg_id, cred_rev_id.unwrap().as_str()).unwrap();
+
+            // Delta should change after revocation
+            let (_, second_rev_reg_delta, _) = get_rev_reg_delta_json(&rev_reg_id, Some(first_timestamp + 1), None).unwrap();
+
+            assert!(payment.is_some());
+            assert_ne!(first_rev_reg_delta, second_rev_reg_delta);
+        }
+
+        #[test]
+        fn test_fetch_public_entities() {
+            let _setup = SetupLibraryWalletPool::init();
+
+            let _ = create_and_store_credential(::utils::constants::DEFAULT_SCHEMA_ATTRS, false);
+            fetch_public_entities().unwrap();
+        }
     }
 }

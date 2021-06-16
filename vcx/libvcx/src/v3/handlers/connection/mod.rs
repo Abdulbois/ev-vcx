@@ -10,8 +10,10 @@ pub mod tests {
     use v3::messages::connection::response::Response;
     use v3::messages::connection::did_doc::tests::_service_endpoint;
     use v3::messages::connection::request::tests::_request;
+    use crate::connection::Connections;
+    use crate::object_cache::Handle;
 
-    pub fn mock_connection() -> u32 {
+    pub fn mock_connection() -> Handle<Connections> {
         let key = "GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL".to_string();
         let invitation =
             Invitation::default()
@@ -19,7 +21,7 @@ pub mod tests {
 
         let connection_handle = ::connection::create_connection_with_invite("source_id", &json!(invitation).to_string()).unwrap();
 
-        ::connection::connect(connection_handle, None).unwrap();
+        connection_handle.connect(None).unwrap();
 
         let response =
             Response::default()
@@ -27,7 +29,7 @@ pub mod tests {
                 .set_keys(vec![key.to_string()], vec![])
                 .set_thread_id(&_request().id.0)
                 .encode(&key).unwrap();
-        ::connection::update_state(connection_handle, Some(json!(response.to_a2a_message()).to_string())).unwrap();
+        connection_handle.update_state(Some(json!(response.to_a2a_message()).to_string())).unwrap();
 
         connection_handle
     }
@@ -53,28 +55,25 @@ pub mod tests {
         fn test_create_connection_works() {
             _setup();
             let connection_handle = ::connection::create_connection(_source_id()).unwrap();
-            assert!(::connection::is_valid_handle(connection_handle));
-            assert_eq!(1, ::connection::get_state(connection_handle));
+            assert!(connection_handle.is_valid_handle());
+            assert_eq!(1, connection_handle.get_state());
         }
 
-        #[cfg(feature = "aries")]
         #[test]
         fn test_create_connection_with_invite_works() {
             _setup();
             let connection_handle = ::connection::create_connection_with_invite(_source_id(), &_invitation_json()).unwrap();
-            assert!(::connection::is_valid_handle(connection_handle));
-            assert_eq!(2, ::connection::get_state(connection_handle));
+            assert!(connection_handle.is_valid_handle());
+            assert_eq!(2, connection_handle.get_state());
         }
 
-        #[cfg(feature = "aries")]
         #[test]
         fn test_get_connection_state_works() {
             _setup();
             let connection_handle = ::connection::create_connection(_source_id()).unwrap();
-            assert_eq!(1, ::connection::get_state(connection_handle));
+            assert_eq!(1, connection_handle.get_state());
         }
 
-        #[cfg(feature = "aries")]
         #[test]
         fn test_connection_send_works() {
             _setup();
@@ -100,7 +99,7 @@ pub mod tests {
                 // Get Messages works
                 alice.activate();
 
-                let messages = ::connection::get_messages(alice.connection_handle).unwrap();
+                let messages = alice.connection_handle.get_messages().unwrap();
                 assert_eq!(1, messages.len());
 
                 uid = messages.keys().next().unwrap().clone();
@@ -118,7 +117,7 @@ pub mod tests {
             {
                 alice.activate();
 
-                let message = ::connection::get_message_by_id(alice.connection_handle, uid.clone()).unwrap();
+                let message = alice.connection_handle.get_message_by_id(uid.clone()).unwrap();
 
                 match message {
                     A2AMessage::Ack(ack) => assert_eq!(_ack(), ack),
@@ -130,7 +129,7 @@ pub mod tests {
             {
                 alice.activate();
                 alice.update_message_status(uid);
-                let messages = ::connection::get_messages(alice.connection_handle).unwrap();
+                let messages = alice.connection_handle.get_messages().unwrap();
                 assert_eq!(0, messages.len());
             }
 
@@ -139,11 +138,11 @@ pub mod tests {
                 faber.activate();
 
                 let basic_message = r#"Hi there"#;
-                ::connection::send_generic_message(faber.connection_handle, basic_message, "").unwrap();
+                faber.connection_handle.send_generic_message(basic_message, "").unwrap();
 
                 alice.activate();
 
-                let messages = ::connection::get_messages(alice.connection_handle).unwrap();
+                let messages = alice.connection_handle.get_messages().unwrap();
                 assert_eq!(1, messages.len());
 
                 let uid = messages.keys().next().unwrap().clone();
@@ -180,10 +179,10 @@ pub mod tests {
             {
                 faber.activate();
 
-                ::connection::get_pw_did(faber.connection_handle).unwrap();
-                ::connection::get_pw_verkey(faber.connection_handle).unwrap();
-                ::connection::get_their_pw_verkey(faber.connection_handle).unwrap();
-                ::connection::get_source_id(faber.connection_handle).unwrap();
+                faber.connection_handle.get_pw_did().unwrap();
+                faber.connection_handle.get_pw_verkey().unwrap();
+                faber.connection_handle.get_their_pw_verkey().unwrap();
+                faber.connection_handle.get_source_id().unwrap();
             }
         }
     }

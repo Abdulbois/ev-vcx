@@ -3,6 +3,7 @@ use serde_json::Value;
 use openssl;
 use openssl::bn::{BigNum, BigNumRef};
 
+use crate::connection::Connections;
 use settings;
 use api::{VcxStateType, ProofStateType};
 use messages;
@@ -15,7 +16,7 @@ use messages::proofs::proof_request::{ProofRequestMessage, ProofRequestVersion};
 use utils::error;
 use utils::constants::*;
 use utils::libindy::anoncreds;
-use object_cache::ObjectCache;
+use object_cache::{ObjectCache, Handle};
 use error::prelude::*;
 use utils::openssl::encode;
 use utils::qualifier;
@@ -31,7 +32,7 @@ lazy_static! {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "version", content = "data")]
-enum Proofs {
+pub enum Proofs {
     #[serde(rename = "3.0")]
     Pending(Proof),
     #[serde(rename = "1.0")]
@@ -378,7 +379,7 @@ impl Proof {
         Ok(proof_request)
     }
 
-    fn send_proof_request(&mut self, connection_handle: u32) -> VcxResult<u32> {
+    fn send_proof_request(&mut self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
         trace!("Proof::send_proof_request >>> connection_handle: {}", connection_handle);
         debug!("Proof {}: Snding proof request", self.source_id);
 
@@ -540,7 +541,7 @@ pub fn create_proof(source_id: String,
                     requested_attrs: String,
                     requested_predicates: String,
                     revocation_details: String,
-                    name: String) -> VcxResult<u32> {
+                    name: String) -> VcxResult<Handle<Proofs>> {
 //    // Initiate proof of new format -- redirect to v3 folder
 //    if settings::is_aries_protocol_set() {
 //        let verifier = Verifier::create(source_id, requested_attrs, requested_predicates, revocation_details, name)?;
@@ -555,9 +556,9 @@ pub fn create_proof(source_id: String,
     let proof = Proof::create(source_id, requested_attrs, requested_predicates, revocation_details, name)?;
 
     let handle = PROOF_MAP.add(Proofs::Pending(proof))
-        .or(Err(VcxError::from(VcxErrorKind::CreateProof)))?;
+        .map_err(|_| (VcxError::from(VcxErrorKind::CreateProof)))?;
 
-    debug!("created proof {} with handle {}", get_source_id(handle).unwrap_or_default(), handle);
+    debug!("created proof {} with handle {}", handle.get_source_id().unwrap_or_default(), handle);
     trace!("create_proof <<< handle: {:?}", handle);
 
     Ok(handle)
@@ -565,7 +566,7 @@ pub fn create_proof(source_id: String,
 
 pub fn create_proof_with_proposal(source_id: String,
                                   name: String,
-                                  presentation_proposal: String) -> VcxResult<u32> {
+                                  presentation_proposal: String) -> VcxResult<Handle<Proofs>> {
     debug!("create_proof >>> source_id: {}, name: {}, presentation_proposal: {}", source_id, secret!(name), secret!(presentation_proposal));
     debug!("creating proof state object with presentation proposal");
 
@@ -604,264 +605,272 @@ fn apply_agent_info(proof: &mut Proof, agent_info: &MyAgentInfo) {
     proof.agent_vk = agent_info.pw_agent_vk.clone();
 }
 
-pub fn is_valid_handle(handle: u32) -> bool {
-    PROOF_MAP.has_handle(handle)
-}
-
-pub fn update_state(handle: u32, message: Option<String>) -> VcxResult<u32> {
-    PROOF_MAP.get_mut(handle, |obj| {
-        match obj {
-            Proofs::Pending(ref mut obj) => {
-                obj.update_state(message.clone())
-                    .or_else(|_| Ok(obj.get_state()))
-            }
-            Proofs::V1(ref mut obj) => {
-                obj.update_state(message.clone())
-                    .or_else(|_| Ok(obj.get_state()))
-            }
-            Proofs::V3(ref mut obj) => {
-                obj.update_state(message.as_ref().map(String::as_str))
-            }
-        }
-    }).map_err(handle_err)
-}
-
-pub fn get_state(handle: u32) -> VcxResult<u32> {
-    PROOF_MAP.get(handle, |obj| {
-        match obj {
-            Proofs::Pending(ref obj) => Ok(obj.get_state()),
-            Proofs::V1(ref obj) => Ok(obj.get_state()),
-            Proofs::V3(ref obj) => Ok(obj.state())
-        }
-    }).map_err(handle_err)
-}
-
-pub fn get_proof_state(handle: u32) -> VcxResult<u32> {
-    PROOF_MAP.get(handle, |obj| {
-        match obj {
-            Proofs::Pending(ref obj) => Ok(obj.get_proof_state()),
-            Proofs::V1(ref obj) => Ok(obj.get_proof_state()),
-            Proofs::V3(ref obj) => Ok(obj.presentation_status())
-        }
-    }).map_err(handle_err)
-}
-
-pub fn release(handle: u32) -> VcxResult<()> {
-    PROOF_MAP.release(handle).map_err(handle_err)
-}
-
 pub fn release_all() {
     PROOF_MAP.drain().ok();
 }
 
-pub fn to_string(handle: u32) -> VcxResult<String> {
-    PROOF_MAP.get(handle, |obj| {
-        serde_json::to_string(obj)
-            .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize Proof object. Err: {:?}", err)))
-    }).map_err(handle_err)
-}
-
-pub fn get_source_id(handle: u32) -> VcxResult<String> {
-    PROOF_MAP.get(handle, |obj| {
-        match obj {
-            Proofs::Pending(ref obj) => Ok(obj.get_source_id()),
-            Proofs::V1(ref obj) => Ok(obj.get_source_id()),
-            Proofs::V3(ref obj) => Ok(obj.get_source_id())
-        }
-    }).map_err(handle_err)
-}
-
-pub fn from_string(proof_data: &str) -> VcxResult<u32> {
+pub fn from_string(proof_data: &str) -> VcxResult<Handle<Proofs>> {
     let proof: Proofs = serde_json::from_str(proof_data)
         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot parse Proofs object from JSON string. Err: {:?}", err)))?;
 
     PROOF_MAP.add(proof)
 }
+impl Handle<Proofs> {
 
-pub fn generate_proof_request_msg(handle: u32) -> VcxResult<String> {
-    PROOF_MAP.get_mut(handle, |obj| {
-        match obj {
-            Proofs::Pending(ref mut obj) => obj.generate_proof_request_msg(),
-            Proofs::V1(ref mut obj) => obj.generate_proof_request_msg(),
-            Proofs::V3(ref mut obj) => {
-                obj.generate_presentation_request()?;
-                obj.get_presentation_request()
+    pub fn is_valid_handle(self) -> bool {
+        PROOF_MAP.has_handle(self)
+    }
+
+    pub fn update_state(self, message: Option<String>) -> VcxResult<u32> {
+        PROOF_MAP.get_mut(self, |obj| {
+            match obj {
+                Proofs::Pending(obj) => {
+                    obj.update_state(message.clone())
+                        .or_else(|_| Ok(obj.get_state()))
+                }
+                Proofs::V1(obj) => {
+                    obj.update_state(message.clone())
+                        .or_else(|_| Ok(obj.get_state()))
+                }
+                Proofs::V3(obj) => {
+                    obj.update_state(message.as_ref().map(String::as_str))
+                }
             }
-        }
-    }).map_err(handle_err)
-}
+        }).map_err(handle_err)
+    }
 
-
-pub fn generate_request_attach(handle: u32) -> VcxResult<String> {
-    PROOF_MAP.get_mut(handle, |obj| {
-        let (proof, attach) = match obj {
-            Proofs::Pending(ref mut obj) => {
-                let revocation_details = serde_json::to_string(&obj.revocation_interval)
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize RevocationDetails. Err: {:?}", err)))?;
-
-                let mut verifier = Verifier::create(obj.source_id.to_string(),
-                                                    obj.requested_attrs.to_string(),
-                                                    obj.requested_predicates.to_string(),
-                                                    revocation_details,
-                                                    obj.name.to_string())?;
-
-                verifier.generate_presentation_request()?;
-                let attach = verifier.get_presentation_request_attach()?;
-                Ok((Proofs::V3(verifier), attach))
+    pub fn get_state(self) -> VcxResult<u32> {
+        PROOF_MAP.get(self, |obj| {
+            match obj {
+                Proofs::Pending(obj) => Ok(obj.get_state()),
+                Proofs::V1(obj) => Ok(obj.get_state()),
+                Proofs::V3(obj) => Ok(obj.state())
             }
-            Proofs::V1(_) => Err(VcxError::from_msg(VcxErrorKind::InvalidState, "It is suppose to be Pending or V3")),
-            Proofs::V3(ref mut obj) => {
-                obj.generate_presentation_request()?;
-                let attach = obj.get_presentation_request_attach()?;
-                Ok((Proofs::V3(obj.clone()), attach))
+        }).map_err(handle_err)
+    }
+
+    pub fn get_proof_state(self) -> VcxResult<u32> {
+        PROOF_MAP.get(self, |obj| {
+            match obj {
+                Proofs::Pending(obj) => Ok(obj.get_proof_state()),
+                Proofs::V1(obj) => Ok(obj.get_proof_state()),
+                Proofs::V3(obj) => Ok(obj.presentation_status())
             }
-        }?;
-        *obj = proof;
-        Ok(attach)
+        }).map_err(handle_err)
+    }
 
-    }).map_err(handle_err)
-}
+    pub fn release(self) -> VcxResult<()> {
+        PROOF_MAP.release(self).map_err(handle_err)
+    }
 
-pub fn get_presentation_proposal_request(handle: u32) -> VcxResult<String> {
-    PROOF_MAP.get(handle, |obj| {
-        match obj {
-            Proofs::Pending(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Proprietary Proof protocol doesn't support proposals.")),
-            Proofs::V1(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Proprietary Proof protocol doesn't support proposals.")),
-            Proofs::V3(obj) => obj.get_presentation_proposal_request()
-        }
-    }).map_err(handle_err)
-}
+    pub fn to_string(self) -> VcxResult<String> {
+        PROOF_MAP.get(self, |obj| {
+            serde_json::to_string(obj)
+                .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize Proof object. Err: {:?}", err)))
+        }).map_err(handle_err)
+    }
 
-pub fn send_proof_request(handle: u32, connection_handle: u32) -> VcxResult<u32> {
-    PROOF_MAP.get_mut(handle, |proof| {
-        let new_proof = match proof {
-            Proofs::Pending(ref mut obj) => {
-                // if Aries connection is established --> Convert Pending object to V3 Aries proof
-                if ::connection::is_v3_connection(connection_handle)? {
-                    debug!("converting pending proof into aries object");
+    pub fn get_source_id(self) -> VcxResult<String> {
+        PROOF_MAP.get(self, |obj| {
+            match obj {
+                Proofs::Pending(obj) => Ok(obj.get_source_id()),
+                Proofs::V1(obj) => Ok(obj.get_source_id()),
+                Proofs::V3(obj) => Ok(obj.get_source_id())
+            }
+        }).map_err(handle_err)
+    }
 
+
+    pub fn generate_proof_request_msg(self) -> VcxResult<String> {
+        PROOF_MAP.get_mut(self, |obj| {
+            match obj {
+                Proofs::Pending(obj) => obj.generate_proof_request_msg(),
+                Proofs::V1(obj) => obj.generate_proof_request_msg(),
+                Proofs::V3(obj) => {
+                    obj.generate_presentation_request()?;
+                    obj.get_presentation_request()
+                }
+            }
+        }).map_err(handle_err)
+    }
+
+
+    pub fn generate_request_attach(self) -> VcxResult<String> {
+        PROOF_MAP.get_mut(self, |obj| {
+            let (proof, attach) = match obj {
+                Proofs::Pending(obj) => {
                     let revocation_details = serde_json::to_string(&obj.revocation_interval)
                         .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize RevocationDetails. Err: {:?}", err)))?;
 
                     let mut verifier = Verifier::create(obj.source_id.to_string(),
-                                                        obj.requested_attrs.to_string(),
-                                                        obj.requested_predicates.to_string(),
-                                                        revocation_details,
-                                                        obj.name.to_string())?;
-                    verifier.send_presentation_request(connection_handle)?;
+                    obj.requested_attrs.to_string(),
+                    obj.requested_predicates.to_string(),
+                    revocation_details,
+                    obj.name.to_string())?;
 
-                    Proofs::V3(verifier)
-                } else { // else - Convert Pending object to V1 proof
+                    verifier.generate_presentation_request()?;
+                    let attach = verifier.get_presentation_request_attach()?;
+                    Ok((Proofs::V3(verifier), attach))
+                }
+                Proofs::V1(_) => Err(VcxError::from_msg(VcxErrorKind::InvalidState, "It is suppose to be Pending or V3")),
+                Proofs::V3(obj) => {
+                    obj.generate_presentation_request()?;
+                    let attach = obj.get_presentation_request_attach()?;
+                    // TODO: avoid cloning
+                    Ok((Proofs::V3(obj.clone()), attach))
+                }
+            }?;
+            *obj = proof;
+            Ok(attach)
+
+        }).map_err(handle_err)
+    }
+
+    pub fn get_presentation_proposal_request(self) -> VcxResult<String> {
+        PROOF_MAP.get(self, |obj| {
+            match obj {
+                Proofs::Pending(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Proprietary Proof protocol doesn't support proposals.")),
+                Proofs::V1(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Proprietary Proof protocol doesn't support proposals.")),
+                Proofs::V3(obj) => obj.get_presentation_proposal_request()
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn send_proof_request(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
+        PROOF_MAP.get_mut(self, |proof| {
+            let new_proof = match proof {
+                Proofs::Pending(obj) => {
+                    // if Aries connection is established --> Convert Pending object to V3 Aries proof
+                    if connection_handle.is_v3_connection()? {
+                        debug!("converting pending proof into aries object");
+
+                        let revocation_details = serde_json::to_string(&obj.revocation_interval)
+                            .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize RevocationDetails. Err: {:?}", err)))?;
+
+                        let mut verifier = Verifier::create(obj.source_id.to_string(),
+                        obj.requested_attrs.to_string(),
+                        obj.requested_predicates.to_string(),
+                        revocation_details,
+                        obj.name.to_string())?;
+                        verifier.send_presentation_request(connection_handle)?;
+
+                        Proofs::V3(verifier)
+                    } else { // else - Convert Pending object to V1 proof
+                        obj.send_proof_request(connection_handle)?;
+                        // TODO: avoid cloning
+                        Proofs::V1(obj.clone())
+                    }
+                }
+                Proofs::V1(obj) => {
                     obj.send_proof_request(connection_handle)?;
+                    // TODO: avoid cloning
                     Proofs::V1(obj.clone())
                 }
-            }
-            Proofs::V1(ref mut obj) => {
-                obj.send_proof_request(connection_handle)?;
-                Proofs::V1(obj.clone())
-            }
-            Proofs::V3(ref mut obj) => {
-                obj.send_presentation_request(connection_handle)?;
-                Proofs::V3(obj.clone())
-            }
-        };
-        *proof = new_proof;
-        Ok(error::SUCCESS.code_num)
-    }).map_err(handle_err)
-}
-
-pub fn request_proof(handle: u32,
-                     connection_handle: u32,
-                     requested_attrs: String,
-                     requested_predicates: String,
-                     revocation_details: String,
-                     name: String) -> VcxResult<u32> {
-    PROOF_MAP.get_mut(handle, |proof| {
-        let new_proof = match proof {
-            Proofs::Pending(ref obj) => {
-                // if Aries connection is established --> Convert Pending object to V3 Aries proof
-                if ::connection::is_v3_connection(connection_handle)? {
-                    debug!("converting pending proof into aries object");
-
-                    let revocation_interval = serde_json::to_string(&obj.revocation_interval)
-                        .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize RevocationDetails. Err: {:?}", err)))?;
-
-                    let mut verifier = Verifier::create(obj.source_id.to_string(),
-                                                        obj.requested_attrs.to_string(),
-                                                        obj.requested_predicates.to_string(),
-                                                        revocation_interval,
-                                                        obj.name.to_string())?;
-                    verifier.request_proof(connection_handle, requested_attrs.clone(), requested_predicates.clone(), revocation_details.clone(), name.clone())?;
-
-                    Ok(Proofs::V3(verifier))
-                } else { // else - Convert Pending object to V1 proof
-                    // obj.send_proof_request(connection_handle)?;
-                    // Proofs::V1(obj.clone())
-                    Err(VcxError::from(VcxErrorKind::InvalidProofHandle))
+                Proofs::V3(obj) => {
+                    obj.send_presentation_request(connection_handle)?;
+                    // TODO: avoid cloning
+                    Proofs::V3(obj.clone())
                 }
-            },
-            Proofs::V1(_) => Err(VcxError::from(VcxErrorKind::InvalidProofHandle)),
-            Proofs::V3(ref mut obj) => {
-                obj.request_proof(connection_handle, requested_attrs.clone(), requested_predicates.clone(), revocation_details.clone(), name.clone())?;
-                Ok(Proofs::V3(obj.clone()))
+            };
+            *proof = new_proof;
+            Ok(error::SUCCESS.code_num)
+        }).map_err(handle_err)
+    }
+
+    pub fn request_proof(self,
+        connection_handle: Handle<Connections>,
+        requested_attrs: String,
+        requested_predicates: String,
+        revocation_details: String,
+        name: String) -> VcxResult<u32> {
+        PROOF_MAP.get_mut(self, move |proof| {
+            let new_proof = match proof {
+                Proofs::Pending(obj) => {
+                    // if Aries connection is established --> Convert Pending object to V3 Aries proof
+                    if connection_handle.is_v3_connection()? {
+                        debug!("converting pending proof into aries object");
+
+                        let revocation_interval = serde_json::to_string(&obj.revocation_interval)
+                            .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize RevocationDetails. Err: {:?}", err)))?;
+
+                        let mut verifier = Verifier::create(obj.source_id.to_string(),
+                        obj.requested_attrs.to_string(),
+                        obj.requested_predicates.to_string(),
+                        revocation_interval,
+                        obj.name.to_string())?;
+                        verifier.request_proof(connection_handle, requested_attrs.clone(), requested_predicates.clone(), revocation_details.clone(), name.clone())?;
+
+                        Ok(Proofs::V3(verifier))
+                    } else { // else - Convert Pending object to V1 proof
+                        // obj.send_proof_request(connection_handle)?;
+                        // Proofs::V1(obj.clone())
+                        Err(VcxError::from(VcxErrorKind::InvalidProofHandle))
+                    }
+                },
+                Proofs::V1(_) => Err(VcxError::from(VcxErrorKind::InvalidProofHandle)),
+                Proofs::V3(obj) => {
+                    obj.request_proof(connection_handle, requested_attrs, requested_predicates, revocation_details, name)?;
+                    // TODO: avoid cloning
+                    Ok(Proofs::V3(obj.clone()))
+                }
+            }?;
+            *proof = new_proof;
+            Ok(error::SUCCESS.code_num)
+        }).map_err(handle_err)
+
+    }
+
+    pub fn get_proof_uuid(self) -> VcxResult<String> {
+        PROOF_MAP.get(self, |obj| {
+            match obj {
+                Proofs::Pending(obj) => Ok(obj.get_proof_uuid().clone()),
+                Proofs::V1(obj) => Ok(obj.get_proof_uuid().clone()),
+                Proofs::V3(_) => Err(VcxError::from(VcxErrorKind::InvalidProofHandle))
             }
-        }?;
-        *proof = new_proof;
-        Ok(error::SUCCESS.code_num)
-    }).map_err(handle_err)
+        }).map_err(handle_err)
+    }
 
-}
+    pub fn get_proof(self) -> VcxResult<String> {
+        PROOF_MAP.get(self, |obj| {
+            match obj {
+                Proofs::Pending(obj) => obj.get_proof(),
+                Proofs::V1(obj) => obj.get_proof(),
+                Proofs::V3(obj) => obj.get_presentation()
+            }
+        }).map_err(handle_err)
+    }
 
-pub fn get_proof_uuid(handle: u32) -> VcxResult<String> {
-    PROOF_MAP.get(handle, |obj| {
-        match obj {
-            Proofs::Pending(ref obj) => Ok(obj.get_proof_uuid().clone()),
-            Proofs::V1(ref obj) => Ok(obj.get_proof_uuid().clone()),
-            Proofs::V3(_) => Err(VcxError::from(VcxErrorKind::InvalidProofHandle))
-        }
-    }).map_err(handle_err)
+    pub fn set_connection(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
+        PROOF_MAP.get_mut(self, |obj| {
+            match obj {
+                Proofs::Pending(_) | Proofs::V1(_) =>
+                    Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Non-Aries Proofs type doesn't support this action: `set_connection`.")),
+                Proofs::V3(obj) => {
+                    obj.set_connection(connection_handle)?;
+                    Ok(error::SUCCESS.code_num)
+                }
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn get_problem_report_message(self) -> VcxResult<String> {
+        PROOF_MAP.get(self, |proof| {
+            match proof {
+                Proofs::Pending(_) | Proofs::V1(_) => {
+                    Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Proprietary Proof type doesn't support this action: `get_problem_report_message`."))
+                }
+                Proofs::V3(obj) => {
+                    obj.get_problem_report_message()
+                }
+            }
+        }).map_err(handle_err)
+    }
 }
 
 fn parse_proof_payload(payload: &str) -> VcxResult<ProofMessage> {
     let my_credential_req = ProofMessage::from_str(&payload)
         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot parse ProofMessage from JSON string. Err: {}", err)))?;
     Ok(my_credential_req)
-}
-
-pub fn get_proof(handle: u32) -> VcxResult<String> {
-    PROOF_MAP.get(handle, |obj| {
-        match obj {
-            Proofs::Pending(ref obj) => obj.get_proof(),
-            Proofs::V1(ref obj) => obj.get_proof(),
-            Proofs::V3(ref obj) => obj.get_presentation()
-        }
-    }).map_err(handle_err)
-}
-
-pub fn set_connection(handle: u32, connection_handle: u32) -> VcxResult<u32> {
-    PROOF_MAP.get_mut(handle, |obj| {
-        match obj {
-            Proofs::Pending(_) | Proofs::V1(_) =>
-                Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Non-Aries Proofs type doesn't support this action: `set_connection`.")),
-            Proofs::V3(ref mut obj) => {
-                obj.set_connection(connection_handle)?;
-                Ok(error::SUCCESS.code_num)
-            }
-        }
-    }).map_err(handle_err)
-}
-
-pub fn get_problem_report_message(handle: u32) -> VcxResult<String> {
-    PROOF_MAP.get(handle, |proof| {
-        match proof {
-            Proofs::Pending(ref _obj) | Proofs::V1(ref _obj) => {
-                Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Proprietary Proof type doesn't support this action: `get_problem_report_message`."))
-            }
-            Proofs::V3(ref obj) => {
-                obj.get_problem_report_message()
-            }
-        }
-    }).map_err(handle_err)
 }
 
 // TODO: This doesnt feel like it should be here (maybe utils?)
@@ -881,11 +890,10 @@ pub mod tests {
     use utils::libindy::pool;
     use utils::devsetup::*;
     use utils::httpclient::AgencyMock;
-    use connection;
     
     use v3::messages::proof_presentation::presentation_proposal::PresentationPreview;
 
-    fn default_agent_info(connection_handle: Option<u32>) -> MyAgentInfo {
+    fn default_agent_info(connection_handle: Option<Handle<Connections>>) -> MyAgentInfo {
         if let Some(h) = connection_handle { get_agent_info().unwrap().pw_info(h).unwrap() } else {
             MyAgentInfo {
                 my_pw_did: Some("GxtnGN6ypZYgEqcftSQFnC".to_string()),
@@ -904,7 +912,7 @@ pub mod tests {
         }
     }
 
-    pub fn create_default_proof(state: Option<VcxStateType>, proof_state: Option<ProofStateType>, connection_handle: Option<u32>) -> Proof {
+    pub fn create_default_proof(state: Option<VcxStateType>, proof_state: Option<ProofStateType>, connection_handle: Option<Handle<Connections>>) -> Proof {
         let agent_info = if let Some(h) = connection_handle {
             get_agent_info().unwrap().pw_info(h).unwrap()
         } else { default_agent_info(connection_handle) };
@@ -934,7 +942,7 @@ pub mod tests {
         proof
     }
 
-    fn create_boxed_proof(state: Option<VcxStateType>, proof_state: Option<ProofStateType>, connection_handle: Option<u32>) -> Box<Proof> {
+    fn create_boxed_proof(state: Option<VcxStateType>, proof_state: Option<ProofStateType>, connection_handle: Option<Handle<Connections>>) -> Box<Proof> {
         Box::new(create_default_proof(state, proof_state, connection_handle))
     }
 
@@ -988,7 +996,7 @@ pub mod tests {
                                   REQUESTED_PREDICATES.to_owned(),
                                   r#"{"support_revocation":false}"#.to_string(),
                                   "Optional".to_owned()).unwrap();
-        let proof_string = to_string(handle).unwrap();
+        let proof_string = handle.to_string().unwrap();
         let s: Value = serde_json::from_str(&proof_string).unwrap();
         assert_eq!(s["version"], PENDING_OBJECT_SERIALIZE_VERSION);
         assert!(!proof_string.is_empty());
@@ -1003,12 +1011,12 @@ pub mod tests {
                                   REQUESTED_PREDICATES.to_owned(),
                                   r#"{"support_revocation":false}"#.to_string(),
                                   "Optional".to_owned()).unwrap();
-        let proof_data = to_string(handle).unwrap();
+        let proof_data = handle.to_string().unwrap();
         let proof1: Proof = Proof::from_str(&proof_data).unwrap();
-        assert!(release(handle).is_ok());
+        assert!(handle.release().is_ok());
 
         let new_handle = from_string(&proof_data).unwrap();
-        let proof2: Proof = Proof::from_str(&to_string(new_handle).unwrap()).unwrap();
+        let proof2: Proof = Proof::from_str(&new_handle.to_string().unwrap()).unwrap();
         assert_eq!(proof1, proof2);
     }
 
@@ -1021,8 +1029,8 @@ pub mod tests {
                                   REQUESTED_PREDICATES.to_owned(),
                                   r#"{"support_revocation":false}"#.to_string(),
                                   "Optional".to_owned()).unwrap();
-        assert!(release(handle).is_ok());
-        assert!(!is_valid_handle(handle));
+        assert!(handle.release().is_ok());
+        assert!(!handle.is_valid_handle());
     }
 
     #[test]
@@ -1030,18 +1038,18 @@ pub mod tests {
         let _setup = SetupMocks::init();
 
         let connection_handle = build_test_connection();
-        connection::set_agent_verkey(connection_handle, VERKEY).unwrap();
-        connection::set_agent_did(connection_handle, DID).unwrap();
-        connection::set_their_pw_verkey(connection_handle, VERKEY).unwrap();
+        connection_handle.set_agent_verkey(VERKEY).unwrap();
+        connection_handle.set_agent_did(DID).unwrap();
+        connection_handle.set_their_pw_verkey(VERKEY).unwrap();
 
         let handle = create_proof("1".to_string(),
                                   REQUESTED_ATTRS.to_owned(),
                                   REQUESTED_PREDICATES.to_owned(),
                                   r#"{"support_revocation":false}"#.to_string(),
                                   "Optional".to_owned()).unwrap();
-        assert_eq!(send_proof_request(handle, connection_handle).unwrap(), error::SUCCESS.code_num);
-        assert_eq!(get_state(handle).unwrap(), VcxStateType::VcxStateOfferSent as u32);
-        assert_eq!(get_proof_uuid(handle).unwrap(), "ntc2ytb");
+        assert_eq!(handle.send_proof_request(connection_handle).unwrap(), error::SUCCESS.code_num);
+        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateOfferSent as u32);
+        assert_eq!(handle.get_proof_uuid().unwrap(), "ntc2ytb");
     }
 
 
@@ -1053,7 +1061,7 @@ pub mod tests {
         let _setup = SetupMocks::init();
 
         let connection_handle = build_test_connection();
-        connection::set_pw_did(connection_handle, "").unwrap();
+        connection_handle.set_pw_did("").unwrap();
 
         let handle = create_proof("1".to_string(),
                                   REQUESTED_ATTRS.to_owned(),
@@ -1061,7 +1069,7 @@ pub mod tests {
                                   r#"{"support_revocation":false}"#.to_string(),
                                   "Optional".to_owned()).unwrap();
 
-        assert!(send_proof_request(handle, connection_handle).is_err());
+        assert!(handle.send_proof_request(connection_handle).is_err());
     }
 
     #[test]
@@ -1073,8 +1081,8 @@ pub mod tests {
                                   REQUESTED_PREDICATES.to_owned(),
                                   r#"{"support_revocation":false}"#.to_string(),
                                   "Optional".to_owned()).unwrap();
-        assert!(is_valid_handle(handle));
-        assert!(get_proof(handle).is_err())
+        assert!(handle.is_valid_handle());
+        assert!(handle.get_proof().is_err())
     }
 
     #[test]
@@ -1276,11 +1284,11 @@ pub mod tests {
         let h4 = create_proof("1".to_string(), REQUESTED_ATTRS.to_owned(), REQUESTED_PREDICATES.to_owned(), r#"{"support_revocation":false}"#.to_string(), "Optional".to_owned()).unwrap();
         let h5 = create_proof("1".to_string(), REQUESTED_ATTRS.to_owned(), REQUESTED_PREDICATES.to_owned(), r#"{"support_revocation":false}"#.to_string(), "Optional".to_owned()).unwrap();
         release_all();
-        assert_eq!(release(h1).unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
-        assert_eq!(release(h2).unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
-        assert_eq!(release(h3).unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
-        assert_eq!(release(h4).unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
-        assert_eq!(release(h5).unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
+        assert_eq!(h1.release().unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
+        assert_eq!(h2.release().unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
+        assert_eq!(h3.release().unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
+        assert_eq!(h4.release().unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
+        assert_eq!(h5.release().unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
     }
 
     #[ignore]
@@ -1332,23 +1340,23 @@ pub mod tests {
         let _setup = SetupLibraryWallet::init();
 
         let connection_handle = build_test_connection();
-        connection::set_agent_verkey(connection_handle, VERKEY).unwrap();
-        connection::set_agent_did(connection_handle, DID).unwrap();
-        connection::set_their_pw_verkey(connection_handle, VERKEY).unwrap();
+        connection_handle.set_agent_verkey(VERKEY).unwrap();
+        connection_handle.set_agent_did(DID).unwrap();
+        connection_handle.set_their_pw_verkey(VERKEY).unwrap();
 
         let handle = create_proof("1".to_string(),
                                   REQUESTED_ATTRS.to_owned(),
                                   REQUESTED_PREDICATES.to_owned(),
                                   r#"{"support_revocation":false}"#.to_string(),
                                   "Optional".to_owned()).unwrap();
-        assert_eq!(send_proof_request(handle, connection_handle).unwrap_err().kind(), VcxErrorKind::TimeoutLibindy);
-        assert_eq!(get_state(handle).unwrap(), VcxStateType::VcxStateInitialized as u32);
-        assert_eq!(get_proof_uuid(handle).unwrap(), "");
+        assert_eq!(handle.send_proof_request(connection_handle).unwrap_err().kind(), VcxErrorKind::TimeoutLibindy);
+        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateInitialized as u32);
+        assert_eq!(handle.get_proof_uuid().unwrap(), "");
 
         // Retry sending proof request
-        assert_eq!(send_proof_request(handle, connection_handle).unwrap(), 0);
-        assert_eq!(get_state(handle).unwrap(), VcxStateType::VcxStateOfferSent as u32);
-        assert_eq!(get_proof_uuid(handle).unwrap(), "ntc2ytb");
+        assert_eq!(handle.send_proof_request( connection_handle).unwrap(), 0);
+        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateOfferSent as u32);
+        assert_eq!(handle.get_proof_uuid().unwrap(), "ntc2ytb");
     }
 
     #[test]
@@ -1385,7 +1393,7 @@ pub mod tests {
 
         let mut proof = create_boxed_proof(None, None, None);
 
-        let bad_handle = 100000;
+        let bad_handle = Handle::<Connections>::dummy();
         // TODO: Do something to guarantee that this handle is bad
         assert_eq!(proof.send_proof_request(bad_handle).unwrap_err().kind(), VcxErrorKind::NotReady);
         // TODO: Add test that returns a INVALID_PROOF_CREDENTIAL_DATA
@@ -1401,9 +1409,11 @@ pub mod tests {
                                 "my name".to_string()).unwrap_err().kind(), VcxErrorKind::InvalidAttributesStructure);
 
 
-        assert_eq!(to_string(bad_handle).unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
+        let bad_handle = Handle::<Proofs>::dummy();
 
-        assert_eq!(get_source_id(bad_handle).unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
+        assert_eq!(bad_handle.to_string().unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
+
+        assert_eq!(bad_handle.get_source_id().unwrap_err().kind(), VcxErrorKind::InvalidProofHandle);
 
         assert_eq!(from_string(empty).unwrap_err().kind(), VcxErrorKind::InvalidJson);
 

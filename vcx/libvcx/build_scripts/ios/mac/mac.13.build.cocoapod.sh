@@ -34,21 +34,19 @@ cd $VCX_SDK/vcx/wrappers/ios/vcx
 
 tar -czf ~/IOSBuilds/${COMBINED_LIB}/libvcx.a.${COMBINED_LIB}_${VCX_VERSION}_universal.tar.gz $VCX_SDK/vcx/wrappers/ios/vcx/lib/${COMBINED_LIB}.a
 cp -v lib/${COMBINED_LIB}.a lib/libvcx.a
-xcodebuild -project vcx.xcodeproj -scheme vcx -configuration Debug CONFIGURATION_BUILD_DIR=. clean
+xcodebuild -project vcx.xcodeproj -scheme vcx -configuration Debug -sdk iphonesimulator CONFIGURATION_BUILD_DIR=. clean
 
 rm -rf vcx.framework.previousbuild
 IPHONE_SDK=iphoneos
 for arch in ${archs[*]}
 do
     rm -rf vcx.framework
-    if [ "${arch}" = "i386" ] || [ "${arch}" = "x86_64" ]; then
-        # This sdk supports i386 and x86_64
+    if [ "${arch}" = "x86_64" ]; then
         IPHONE_SDK=iphonesimulator
-    elif [ "${arch}" = "armv7" ] || [ "${arch}" = "armv7s" ] || [ "${arch}" = "arm64" ]; then
-        # This sdk supports armv7, armv7s, and arm64
+    elif [ "${arch}" = "arm64" ]; then
         IPHONE_SDK=iphoneos
     fi
-    xcodebuild -project vcx.xcodeproj -scheme vcx -configuration Debug -arch ${arch} -sdk ${IPHONE_SDK} CONFIGURATION_BUILD_DIR=. build
+    xcodebuild -project vcx.xcodeproj -scheme vcx -configuration Release -arch ${arch} -sdk ${IPHONE_SDK} CONFIGURATION_BUILD_DIR=. build
 
     if [ -d "./vcx.framework.previousbuild" ]; then
         lipo -create -output combined.ios.vcx vcx.framework/vcx vcx.framework.previousbuild/vcx
@@ -61,9 +59,9 @@ done
 #export GEM_HOME=${HOME}/.gem
 #export PATH=${GEM_HOME}/bin:$PATH
 # Test the libvcx.a file if the ${IOS_ARCHS} contains i386 or x86_64
-if [[ "${IOS_ARCHS}" == *"i386"* ]] || [[ "${IOS_ARCHS}" == *"x86_64"* ]]; then
+if [[ "${IOS_ARCHS}" == *"x86_64"* ]]; then
     #xcodebuild -project vcx.xcodeproj -scheme vcx-demo -sdk iphonesimulator build-for-testing
-    xcodebuild -project vcx.xcodeproj -scheme vcx-demo -destination 'platform=iOS Simulator,name=iPhone 6s' test
+    xcodebuild -project vcx.xcodeproj -scheme vcx-demo -destination 'platform=iOS Simulator,name=iPhone 8' test
     ## Need to do:
     ## a) gem install cocoapods -- sudo may be needed
     #if [ -z "$(which pod)" ]; then

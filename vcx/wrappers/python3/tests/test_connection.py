@@ -264,4 +264,4 @@ async def test_send_answer():
         }
         answer = {"text": "Yes, it's me"}
         await connection.send_answer(json.dumps(question), json.dumps(answer))
-    assert ErrorCode.ActionNotSupported == e.value.error_code
+    assert ErrorCode.NotReady == e.value.error_code

@@ -169,7 +169,7 @@ impl IssuerSM {
                         .set_offers_attach(&cred_offer)?;
                     let cred_offer_msg = state_data.append_credential_preview(cred_offer_msg)?;
 
-                    let connection = ::connection::get_completed_connection(connection_handle)?;
+                    let connection = connection_handle.get_completed_connection()?;
 
                     let thread = Thread::new()
                         .set_thid(cred_offer_msg.id.to_string())
@@ -214,7 +214,7 @@ impl IssuerSM {
             },
             IssuerState::RequestReceived(state_data) => match cim {
                 CredentialIssuanceMessage::CredentialSend(connection_handle) => {
-                    let connection = ::connection::get_completed_connection(connection_handle)?;
+                    let connection = connection_handle.get_completed_connection()?;
 
                     let thread = state_data.thread.clone()
                         .increment_sender_order()

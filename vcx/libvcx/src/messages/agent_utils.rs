@@ -147,6 +147,9 @@ pub struct Config {
     communication_method: Option<String>,
     webhook_url: Option<String>,
     use_latest_protocols: Option<String>,
+    genesis_path: Option<String>,
+    institution_name: Option<String>,
+    institution_logo_url: Option<String>,
 }
 
 pub fn set_config_values(my_config: &Config) {
@@ -168,8 +171,13 @@ pub fn set_config_values(my_config: &Config) {
     settings::set_opt_config_value(settings::CONFIG_DID_METHOD, &my_config.did_method);
     settings::set_opt_config_value(settings::COMMUNICATION_METHOD, &my_config.communication_method);
     settings::set_opt_config_value(settings::CONFIG_WEBHOOK_URL, &my_config.webhook_url);
-    settings::set_opt_config_value(settings::CONFIG_INSTITUTION_NAME, &my_config.name);
-    settings::set_opt_config_value(settings::CONFIG_INSTITUTION_LOGO_URL, &my_config.logo);
+
+
+    let institution_name = my_config.name.as_ref().or(my_config.institution_name.as_ref());
+    let institution_logo_url = my_config.logo.as_ref().or(my_config.institution_logo_url.as_ref());
+
+    settings::set_opt_config_value(settings::CONFIG_INSTITUTION_NAME, &institution_name.map(String::from));
+    settings::set_opt_config_value(settings::CONFIG_INSTITUTION_LOGO_URL, &institution_logo_url.map(String::from));
 }
 
 fn _create_issuer_keys(my_did: &str, my_vk: &str, my_config: &Config) -> VcxResult<(String, String)> {
@@ -224,6 +232,11 @@ pub fn get_final_config(my_did: &str,
                          &Some(issuer_did.to_string()),
                          ProtocolTypes::V1)?;
 
+
+    let institution_name = my_config.name.as_ref().or(my_config.institution_name.as_ref());
+    let institution_logo_url = my_config.logo.as_ref().or(my_config.institution_logo_url.as_ref());
+    let genesis_path = my_config.path.as_ref().or(my_config.genesis_path.as_ref());
+
     let mut final_config = json!({
         "wallet_key": &my_config.wallet_key,
         "wallet_name": wallet_name,
@@ -236,9 +249,9 @@ pub fn get_final_config(my_did: &str,
         "institution_verkey": issuer_vk,
         "remote_to_sdk_did": agent_did,
         "remote_to_sdk_verkey": agent_vk,
-        "institution_name": get_or_default(&my_config.name, "<CHANGE_ME>"),
-        "institution_logo_url": get_or_default(&my_config.logo, "<CHANGE_ME>"),
-        "genesis_path": get_or_default(&my_config.path, "<CHANGE_ME>"),
+        "institution_name": get_or_default(&institution_name.map(String::from), "<CHANGE_ME>"),
+        "institution_logo_url": get_or_default(&institution_logo_url.map(String::from), "<CHANGE_ME>"),
+        "genesis_path": get_or_default(&genesis_path.map(String::from), "<CHANGE_ME>"),
         "protocol_type": &my_config.protocol_type,
     });
 
@@ -393,7 +406,7 @@ pub fn connect_v2(my_did: &str, my_vk: &str, agency_did: &str) -> VcxResult<(Str
     let mut response = send_message_to_agency(&message, agency_did)?;
 
     let ConnectResponse { from_vk: agency_pw_vk, from_did: agency_pw_did, .. } =
-        match response.swap_remove(0) {
+        match response.remove(0) {
             A2AMessage::Version2(A2AMessageV2::ConnectResponse(resp)) =>
                 resp,
             _ => return

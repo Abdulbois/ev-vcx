@@ -961,25 +961,24 @@ pub extern fn vcx_create_pairwise_agent(command_handle: CommandHandle,
 mod tests {
     use super::*;
     use std::ffi::CString;
-    use api::return_types_u32;
+    use api::return_types;
     use utils::devsetup::*;
     use utils::httpclient::AgencyMock;
     use utils::constants::REGISTER_RESPONSE;
-    use utils::timeout::TimeoutUtils;
 
     static CONFIG: &'static str = r#"{"agency_url":"https://enym-eagency.pdev.evernym.com","agency_did":"Ab8TvZa3Q19VNkQVzAWVL7","agency_verkey":"5LXaR43B1aQyeh94VBP8LG1Sgvjk7aNfqiksBCSjwqbf","wallet_name":"test_provision_agent","agent_seed":null,"enterprise_seed":null,"wallet_key":"key"}"#;
     const CONFIG_CSTR: *const c_char = concat!(r#"{"agency_url":"https://enym-eagency.pdev.evernym.com","agency_did":"Ab8TvZa3Q19VNkQVzAWVL7","agency_verkey":"5LXaR43B1aQyeh94VBP8LG1Sgvjk7aNfqiksBCSjwqbf","wallet_name":"test_provision_agent","agent_seed":null,"enterprise_seed":null,"wallet_key":"key"}"#, "\0").as_ptr().cast();
 
     fn _vcx_agent_provision_async_c_closure(config: &str) -> Result<Option<String>, u32> {
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
+        let (h, cb, r) = return_types::return_u32_str();
         let config = CString::new(config).unwrap();
-        let rc = vcx_agent_provision_async(cb.command_handle,
+        let rc = vcx_agent_provision_async(h,
                                            config.as_ptr(),
-                                           Some(cb.get_callback()));
+                                           Some(cb));
         if rc != error::SUCCESS.code_num {
             return Err(rc);
         }
-        cb.receive(TimeoutUtils::some_short())
+        r.recv_short()
     }
 
     #[test]
@@ -1004,8 +1003,8 @@ mod tests {
 
         let c_json = CString::new(config.to_string()).unwrap();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        let rc = vcx_get_provision_token(cb.command_handle, c_json.as_ptr(), Some(cb.get_callback()));
+        let (h, cb, _r) = return_types::return_u32_str();
+        let rc = vcx_get_provision_token(h, c_json.as_ptr(), Some(cb));
         assert_eq!(rc, error::INVALID_CONFIGURATION.code_num)
     }
 
@@ -1023,10 +1022,10 @@ mod tests {
 
         let c_json = CString::new(config.to_string()).unwrap();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        let rc = vcx_get_provision_token(cb.command_handle, c_json.as_ptr(), Some(cb.get_callback()));
+        let (h, cb, r) = return_types::return_u32_str();
+        let rc = vcx_get_provision_token(h, c_json.as_ptr(), Some(cb));
         assert_eq!(rc, error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
@@ -1070,9 +1069,9 @@ mod tests {
 
         let c_json = concat!(r#"{"id":"123","value":"value"}"#, "\0").as_ptr().cast();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        let _result = vcx_agent_update_info(cb.command_handle, c_json, Some(cb.get_callback()));
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        let (h, cb, r) = return_types::return_u32();
+        let _result = vcx_agent_update_info(h, c_json, Some(cb));
+        r.recv_medium().unwrap();
     }
 
     #[test]
@@ -1081,9 +1080,9 @@ mod tests {
 
         let c_json = concat!(r#"{"id":"123","value":"value", "type":1}"#, "\0").as_ptr().cast();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        let _result = vcx_agent_update_info(cb.command_handle, c_json, Some(cb.get_callback()));
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        let (h, cb, r) = return_types::return_u32();
+        let _result = vcx_agent_update_info(h, c_json, Some(cb));
+        r.recv_medium().unwrap();
     }
 
     #[test]
@@ -1094,10 +1093,10 @@ mod tests {
 
         let c_json = concat!(r#"{"id":"123"}"#, "\0").as_ptr().cast();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_agent_update_info(cb.command_handle,
+        let (h, cb, _r) = return_types::return_u32();
+        assert_eq!(vcx_agent_update_info(h,
                                          c_json,
-                                         Some(cb.get_callback())),
+                                         Some(cb)),
                    error::INVALID_JSON.code_num);
     }
 
@@ -1105,9 +1104,9 @@ mod tests {
     fn test_get_ledger_fees() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_ledger_get_fees(cb.command_handle,
-                                       Some(cb.get_callback())),
+        let (h, cb, _r) = return_types::return_u32_str();
+        assert_eq!(vcx_ledger_get_fees(h,
+                                       Some(cb)),
                    error::SUCCESS.code_num);
     }
 
@@ -1115,9 +1114,9 @@ mod tests {
     fn test_messages_download() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_messages_download(cb.command_handle, ptr::null_mut(), ptr::null_mut(), ptr::null_mut(), Some(cb.get_callback())), error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_messages_download(h, ptr::null_mut(), ptr::null_mut(), ptr::null_mut(), Some(cb)), error::SUCCESS.code_num);
+        r.recv_medium().unwrap();
     }
 
     #[test]
@@ -1127,13 +1126,13 @@ mod tests {
         let status = "MS-103\0".as_ptr().cast();
         let json = concat!(r#"[{"pairwiseDID":"QSrw8hebcvQxiwBETmAaRs","uids":["mgrmngq"]}]"#, "\0").as_ptr().cast();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_messages_update_status(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_messages_update_status(h,
                                               status,
                                               json,
-                                              Some(cb.get_callback())),
+                                              Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
@@ -1142,24 +1141,24 @@ mod tests {
     fn test_health_check() {
         let _setup = SetupLibraryAgencyV2ZeroFeesNewProvisioning::init();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
+        let (h, cb, r) = return_types::return_u32();
         assert_eq!(
-            vcx_health_check(cb.command_handle, Some(cb.get_callback())),
+            vcx_health_check(h, Some(cb)),
             error::SUCCESS.code_num
         );
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
     fn test_health_check_failure() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
+        let (h, cb, r) = return_types::return_u32();
         assert_eq!(
-            vcx_health_check(cb.command_handle, Some(cb.get_callback())),
+            vcx_health_check(h, Some(cb)),
             error::SUCCESS.code_num
         );
-        cb.receive(TimeoutUtils::some_medium()).unwrap_err();
+        r.recv_medium().unwrap_err();
     }
 }
 

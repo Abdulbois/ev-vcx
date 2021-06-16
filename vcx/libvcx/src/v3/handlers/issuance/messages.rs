@@ -6,19 +6,22 @@ use v3::messages::issuance::credential::Credential;
 use v3::messages::issuance::credential_ack::CredentialAck;
 use v3::messages::a2a::A2AMessage;
 
+use crate::connection::Connections;
+use crate::object_cache::Handle;
+
 
 #[derive(Debug, Clone)]
 pub enum CredentialIssuanceMessage {
-    CredentialInit(u32),
-    CredentialSend(u32),
+    CredentialInit(Handle<Connections>),
+    CredentialSend(Handle<Connections>),
     CredentialProposal(CredentialProposal),
     CredentialOffer(CredentialOffer),
-    CredentialRequestSend(u32),
+    CredentialRequestSend(Handle<Connections>),
     CredentialRequest(CredentialRequest),
     Credential(Credential),
     CredentialAck(CredentialAck),
     ProblemReport(ProblemReport),
-    CredentialRejectSend((u32, Option<String>)),
+    CredentialRejectSend((Handle<Connections>, Option<String>)),
     Unknown
 }
 

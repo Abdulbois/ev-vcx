@@ -1,5 +1,7 @@
-use ::{serde_json, credential_def};
-
+use crate::credential_def::CredentialDef;
+use crate::object_cache::Handle;
+use crate::connection::Connections;
+use std::mem::take;
 use std::collections::HashMap;
 use api::VcxStateType;
 use messages;
@@ -25,12 +27,12 @@ use messages::issuance::credential::CredentialMessage;
 use messages::issuance::credential_request::CredentialRequest;
 
 lazy_static! {
-    static ref ISSUER_CREDENTIAL_MAP: ObjectCache < IssuerCredentials > = Default::default();
+    static ref ISSUER_CREDENTIAL_MAP: ObjectCache<IssuerCredentials> = Default::default();
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "version", content = "data")]
-enum IssuerCredentials {
+pub enum IssuerCredentials {
     #[serde(rename = "3.0")]
     Pending(IssuerCredential),
     #[serde(rename = "1.0")]
@@ -39,7 +41,7 @@ enum IssuerCredentials {
     V3(Issuer),
 }
 
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize, Default)]
 pub struct IssuerCredential {
     source_id: String,
     credential_attributes: String,
@@ -52,7 +54,7 @@ pub struct IssuerCredential {
     credential_name: String,
     pub credential_id: String,
     pub cred_def_id: String,
-    pub cred_def_handle: u32,
+    pub cred_def_handle: Handle<CredentialDef>,
     ref_msg_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     rev_reg_id: Option<String>,
@@ -102,7 +104,7 @@ impl PaymentInfo {
 }
 
 impl IssuerCredential {
-    pub fn create(cred_def_handle: u32,
+    pub fn create(cred_def_handle: Handle<CredentialDef>,
                   source_id: String,
                   issuer_did: String,
                   credential_name: String,
@@ -112,10 +114,10 @@ impl IssuerCredential {
                cred_def_handle, source_id, secret!(issuer_did), secret!(credential_name), secret!(credential_data), price);
         debug!("IssuerCredential {}: Creating state object", source_id);
 
-        let cred_def_id = ::credential_def::get_cred_def_id(cred_def_handle)?;
-        let rev_reg_id = ::credential_def::get_rev_reg_id(cred_def_handle)?;
-        let tails_file = ::credential_def::get_tails_file(cred_def_handle)?;
-        let rev_reg_def_json = ::credential_def::get_rev_reg_def(cred_def_handle)?;
+        let cred_def_id = cred_def_handle.get_cred_def_id()?;
+        let rev_reg_id = cred_def_handle.get_rev_reg_id()?;
+        let tails_file = cred_def_handle.get_tails_file()?;
+        let rev_reg_def_json = cred_def_handle.get_rev_reg_def()?;
 
         let mut issuer_credential = IssuerCredential {
             credential_id: source_id.to_string(),
@@ -180,7 +182,7 @@ impl IssuerCredential {
         Ok(payload)
     }
 
-    fn send_credential_offer(&mut self, connection_handle: u32) -> VcxResult<u32> {
+    fn send_credential_offer(&mut self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
         trace!("IssuerCredential::send_credential_offer >>> connection_handle: {}", connection_handle);
         debug!("IssuerCredential {}: Sending credential offer", self.source_id);
 
@@ -242,7 +244,7 @@ impl IssuerCredential {
         Ok(data)
     }
 
-    fn send_credential(&mut self, connection_handle: u32) -> VcxResult<u32> {
+    fn send_credential(&mut self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
         trace!("IssuerCredential::send_credential >>> connection_handle: {}", connection_handle);
         debug!("IssuerCredential {}: Sending credential", self.source_id);
 
@@ -619,43 +621,13 @@ pub fn encode_attributes(attributes: &str) -> VcxResult<String> {
     Ok(attributes)
 }
 
-pub fn get_encoded_attributes(handle: u32) -> VcxResult<String> {
-    ISSUER_CREDENTIAL_MAP.get(handle, |obj| {
-        match obj {
-            IssuerCredentials::Pending(ref obj) => obj.create_attributes_encodings(),
-            IssuerCredentials::V1(ref obj) => obj.create_attributes_encodings(),
-            IssuerCredentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries IssuerCredential type doesn't support this action: `get_encoded_attributes`."))
-        }
-    }).map_err(handle_err)
-}
-
-pub fn get_offer_uid(handle: u32) -> VcxResult<String> {
-    ISSUER_CREDENTIAL_MAP.get(handle, |obj| {
-        match obj {
-            IssuerCredentials::Pending(ref obj) => Ok(obj.get_offer_uid().to_string()),
-            IssuerCredentials::V1(ref obj) => Ok(obj.get_offer_uid().to_string()),
-            IssuerCredentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries IssuerCredential type doesn't support this action: `get_offer_uid`."))
-        }
-    }).map_err(handle_err)
-}
-
-pub fn get_payment_txn(handle: u32) -> VcxResult<PaymentTxn> {
-    ISSUER_CREDENTIAL_MAP.get(handle, |obj| {
-        match obj {
-            IssuerCredentials::Pending(ref obj) => obj.get_payment_txn(),
-            IssuerCredentials::V1(ref obj) => obj.get_payment_txn(),
-            IssuerCredentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries IssuerCredential type doesn't support this action: `get_payment_txn`."))
-        }
-    }).map_err(handle_err)
-}
-
-pub fn issuer_credential_create(cred_def_handle: u32,
+pub fn issuer_credential_create(cred_def_handle: Handle<CredentialDef>,
                                 source_id: String,
                                 issuer_did: String,
                                 credential_name: String,
                                 credential_data: String,
-                                price: u64) -> VcxResult<u32> {
-    credential_def::check_is_published(cred_def_handle)?;
+                                price: u64) -> VcxResult<Handle<IssuerCredentials>> {
+    cred_def_handle.check_is_published()?;
 
     trace!("issuer_credential_create >>> cred_def_handle: {}, source_id: {}, issuer_did: {}, credential_name: {}, credential_data: {}, price: {}",
            cred_def_handle, source_id, secret!(issuer_did), secret!(credential_name), secret!(&credential_data), price);
@@ -670,152 +642,212 @@ pub fn issuer_credential_create(cred_def_handle: u32,
     let issuer_credential = IssuerCredential::create(cred_def_handle, source_id, issuer_did, credential_name, credential_data, price)?;
 
     let handle = ISSUER_CREDENTIAL_MAP.add(IssuerCredentials::Pending(issuer_credential))?;
-    debug!("created issuer_credential {} with handle {}", get_source_id(handle).unwrap_or_default(), handle);
+    debug!("created issuer_credential {} with handle {}", handle.get_source_id().unwrap_or_default(), handle);
     trace!("issuer_credential_create <<< handle: {:?}", handle);
 
     Ok(handle)
 }
 
-pub fn update_state(handle: u32, message: Option<String>) -> VcxResult<u32> {
-    ISSUER_CREDENTIAL_MAP.get_mut(handle, |obj| {
-        match obj {
-            IssuerCredentials::Pending(ref mut obj) => {
-                obj.update_state(message.clone())
-                    .or_else(|_| Ok(obj.get_state()))
+impl Handle<IssuerCredentials> {
+    pub fn get_encoded_attributes(self) -> VcxResult<String> {
+        ISSUER_CREDENTIAL_MAP.get(self, |obj| {
+            match obj {
+                IssuerCredentials::Pending(obj) => obj.create_attributes_encodings(),
+                IssuerCredentials::V1(obj) => obj.create_attributes_encodings(),
+                IssuerCredentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries IssuerCredential type doesn't support this action: `get_encoded_attributes`."))
             }
-            IssuerCredentials::V1(ref mut obj) => {
-                obj.update_state(message.clone())
-                    .or_else(|_| Ok(obj.get_state()))
-            }
-            IssuerCredentials::V3(ref mut obj) => {
-                obj.update_status(message.clone())
-            }
-        }
-    }).map_err(handle_err)
-}
+        }).map_err(handle_err)
+    }
 
-pub fn get_state(handle: u32) -> VcxResult<u32> {
-    ISSUER_CREDENTIAL_MAP.get(handle, |obj| {
-        match obj {
-            IssuerCredentials::Pending(ref obj) => Ok(obj.get_state()),
-            IssuerCredentials::V1(ref obj) => Ok(obj.get_state()),
-            IssuerCredentials::V3(ref obj) => obj.get_state(),
-        }
-    }).map_err(handle_err)
-}
+    pub fn get_offer_uid(self) -> VcxResult<String> {
+        ISSUER_CREDENTIAL_MAP.get(self, |obj| {
+            match obj {
+                IssuerCredentials::Pending(obj) => Ok(obj.get_offer_uid().to_string()),
+                IssuerCredentials::V1(obj) => Ok(obj.get_offer_uid().to_string()),
+                IssuerCredentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries IssuerCredential type doesn't support this action: `get_offer_uid`."))
+            }
+        }).map_err(handle_err)
+    }
 
-pub fn release(handle: u32) -> VcxResult<()> {
-    ISSUER_CREDENTIAL_MAP.release(handle).map_err(handle_err)
+    pub fn get_payment_txn(self) -> VcxResult<PaymentTxn> {
+        ISSUER_CREDENTIAL_MAP.get(self, |obj| {
+            match obj {
+                IssuerCredentials::Pending(obj) => obj.get_payment_txn(),
+                IssuerCredentials::V1(obj) => obj.get_payment_txn(),
+                IssuerCredentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries IssuerCredential type doesn't support this action: `get_payment_txn`."))
+            }
+        }).map_err(handle_err)
+    }
+
+
+    pub fn update_state(self, message: Option<String>) -> VcxResult<u32> {
+        ISSUER_CREDENTIAL_MAP.get_mut(self, move |obj| {
+            match obj {
+                IssuerCredentials::Pending(obj) => {
+                    obj.update_state(message)
+                        .or_else(|_| Ok(obj.get_state()))
+                }
+                IssuerCredentials::V1(obj) => {
+                    obj.update_state(message)
+                        .or_else(|_| Ok(obj.get_state()))
+                }
+                IssuerCredentials::V3(obj) => {
+                    obj.update_status(message)
+                }
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn get_state(self) -> VcxResult<u32> {
+        ISSUER_CREDENTIAL_MAP.get(self, |obj| {
+            match obj {
+                IssuerCredentials::Pending(obj) => Ok(obj.get_state()),
+                IssuerCredentials::V1(obj) => Ok(obj.get_state()),
+                IssuerCredentials::V3(obj) => obj.get_state(),
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn release(self) -> VcxResult<()> {
+        ISSUER_CREDENTIAL_MAP.release(self).map_err(handle_err)
+    }
+
+    pub fn is_valid_handle(self) -> bool {
+        ISSUER_CREDENTIAL_MAP.has_handle(self)
+    }
+
+    pub fn to_string(self) -> VcxResult<String> {
+        ISSUER_CREDENTIAL_MAP.get(self, |obj| {
+            serde_json::to_string(obj)
+                .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize IssuerCredential object. Err: {:?}", err)))
+        }).map_err(handle_err)
+    }
+
+    pub fn generate_credential_offer_msg(self) -> VcxResult<String> {
+        ISSUER_CREDENTIAL_MAP.get_mut(self, |obj| {
+            match obj {
+                IssuerCredentials::Pending(obj) => obj.generate_credential_offer_msg(),
+                IssuerCredentials::V1(obj) => obj.generate_credential_offer_msg(),
+                IssuerCredentials::V3(obj) =>  {
+                    let cred_offer = obj.get_credential_offer()?;
+                    let cred_offer: CredentialOffer = cred_offer.try_into()?;
+                    let cred_offer = json!(vec![cred_offer]).to_string();
+                    return Ok(cred_offer);
+                },
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn send_credential_offer(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
+        ISSUER_CREDENTIAL_MAP.get_mut(self, |credential| {
+            let new_credential = match credential {
+                IssuerCredentials::Pending(obj) => {
+                    // if Aries connection is established --> Convert Pending object to Aries credential
+                    if connection_handle.is_v3_connection()? {
+                        debug!("converting pending issuer credential into aries object");
+                        let mut issuer = Issuer::create_from_data(
+                            &obj.cred_def_id,
+                            obj.rev_reg_id.clone(),
+                            obj.tails_file.clone(),
+                            &obj.credential_attributes,
+                            &obj.source_id,
+                            &obj.credential_name)?;
+                        issuer.send_credential_offer(connection_handle)?;
+
+                        IssuerCredentials::V3(issuer)
+                    } else { // else - Convert Pending object to Proprietary credential
+                        obj.send_credential_offer(connection_handle)?;
+                        IssuerCredentials::V1(take(obj))
+                    }
+                }
+                IssuerCredentials::V1(obj) => {
+                    obj.send_credential_offer(connection_handle)?;
+                    IssuerCredentials::V1(take(obj))
+                }
+                IssuerCredentials::V3(obj) => {
+                    obj.send_credential_offer(connection_handle)?;
+                    // TODO: avoid cloning
+                    IssuerCredentials::V3(obj.clone())
+                }
+            };
+            *credential = new_credential;
+            Ok(error::SUCCESS.code_num)
+        }).map_err(handle_err)
+    }
+
+    pub fn generate_credential_msg(self, my_pw_did: &str) -> VcxResult<String> {
+        ISSUER_CREDENTIAL_MAP.get_mut(self, |obj| {
+            match obj {
+                IssuerCredentials::Pending(obj) => obj.generate_credential_msg(my_pw_did),
+                IssuerCredentials::V1(obj) => obj.generate_credential_msg(my_pw_did),
+                IssuerCredentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries IssuerCredential type doesn't support this action: `generate_credential_msg`.")) // TODO: implement
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn send_credential(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
+        ISSUER_CREDENTIAL_MAP.get_mut(self, |obj| {
+            match obj {
+                IssuerCredentials::Pending(obj) => {
+                    obj.send_credential(connection_handle)
+                }
+                IssuerCredentials::V1(obj) => {
+                    obj.send_credential(connection_handle)
+                }
+                IssuerCredentials::V3(obj) => {
+                    obj.send_credential(connection_handle)?;
+                    Ok(error::SUCCESS.code_num)
+                }
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn revoke_credential(self) -> VcxResult<()> {
+        ISSUER_CREDENTIAL_MAP.get_mut(self, |obj| {
+            match obj {
+                IssuerCredentials::Pending(obj) => obj.revoke_cred(),
+                IssuerCredentials::V1(obj) => obj.revoke_cred(),
+                IssuerCredentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries IssuerCredential type doesn't support this action: `revoke_credential`.")), // TODO: implement
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn get_credential_attributes(self) -> VcxResult<String> {
+        ISSUER_CREDENTIAL_MAP.get(self, |obj| {
+            match obj {
+                IssuerCredentials::Pending(obj) => Ok(obj.get_credential_attributes().to_string()),
+                IssuerCredentials::V1(obj) => Ok(obj.get_credential_attributes().to_string()),
+                IssuerCredentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries IssuerCredential type doesn't support this action: `get_credential_attributes`.")), // TODO: implement
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn get_source_id(self) -> VcxResult<String> {
+        ISSUER_CREDENTIAL_MAP.get(self, |obj| {
+            match obj {
+                IssuerCredentials::Pending(obj) => Ok(obj.get_source_id().to_string()),
+                IssuerCredentials::V1(obj) => Ok(obj.get_source_id().to_string()),
+                IssuerCredentials::V3(obj) => obj.get_source_id()
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn get_problem_report_message(self) -> VcxResult<String> {
+        ISSUER_CREDENTIAL_MAP.get(self, |obj| {
+            match obj {
+                IssuerCredentials::Pending(_) | IssuerCredentials::V1(_) => {
+                    Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Proprietary Issuer Credential type doesn't support this action: `get_problem_report_message`."))
+                }
+                IssuerCredentials::V3(obj) => {
+                    obj.get_problem_report_message()
+                }
+            }
+        }).map_err(handle_err)
+    }
 }
 
 pub fn release_all() {
     ISSUER_CREDENTIAL_MAP.drain().ok();
-}
-
-pub fn is_valid_handle(handle: u32) -> bool {
-    ISSUER_CREDENTIAL_MAP.has_handle(handle)
-}
-
-pub fn to_string(handle: u32) -> VcxResult<String> {
-    ISSUER_CREDENTIAL_MAP.get(handle, |obj| {
-        serde_json::to_string(obj)
-            .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize IssuerCredential object. Err: {:?}", err)))
-    }).map_err(handle_err)
-}
-
-pub fn from_string(credential_data: &str) -> VcxResult<u32> {
-    let issuer_credential: IssuerCredentials = serde_json::from_str(credential_data)
-        .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot parse IssuerCredential from JSON string. Err: {:?}", err)))?;
-
-    ISSUER_CREDENTIAL_MAP.add(issuer_credential)
-}
-
-pub fn generate_credential_offer_msg(handle: u32) -> VcxResult<String> {
-    ISSUER_CREDENTIAL_MAP.get_mut(handle, |obj| {
-        match obj {
-            IssuerCredentials::Pending(ref mut obj) => obj.generate_credential_offer_msg(),
-            IssuerCredentials::V1(ref mut obj) => obj.generate_credential_offer_msg(),
-            IssuerCredentials::V3(ref obj) =>  {
-                let cred_offer = obj.get_credential_offer()?;
-                let cred_offer: CredentialOffer = cred_offer.try_into()?;
-                let cred_offer = json!(vec![cred_offer]).to_string();
-                return Ok(cred_offer);
-            },
-        }
-    }).map_err(handle_err)
-}
-
-pub fn send_credential_offer(handle: u32, connection_handle: u32) -> VcxResult<u32> {
-    ISSUER_CREDENTIAL_MAP.get_mut(handle, |credential| {
-        let new_credential = match credential {
-            IssuerCredentials::Pending(ref mut obj) => {
-                // if Aries connection is established --> Convert Pending object to Aries credential
-                if ::connection::is_v3_connection(connection_handle)? {
-                    debug!("converting pending issuer credential into aries object");
-                    let mut issuer = Issuer::create_from_data(
-                        &obj.cred_def_id,
-                        obj.rev_reg_id.clone(),
-                        obj.tails_file.clone(),
-                        &obj.credential_attributes,
-                        &obj.source_id,
-                        &obj.credential_name)?;
-                    issuer.send_credential_offer(connection_handle)?;
-
-                    IssuerCredentials::V3(issuer)
-                } else { // else - Convert Pending object to Proprietary credential
-                    obj.send_credential_offer(connection_handle)?;
-                    IssuerCredentials::V1(obj.clone())
-                }
-            }
-            IssuerCredentials::V1(ref mut obj) => {
-                obj.send_credential_offer(connection_handle)?;
-                IssuerCredentials::V1(obj.clone())
-            }
-            IssuerCredentials::V3(ref mut obj) => {
-                obj.send_credential_offer(connection_handle)?;
-                IssuerCredentials::V3(obj.clone())
-            }
-        };
-        *credential = new_credential;
-        Ok(error::SUCCESS.code_num)
-    }).map_err(handle_err)
-}
-
-pub fn generate_credential_msg(handle: u32, my_pw_did: &str) -> VcxResult<String> {
-    ISSUER_CREDENTIAL_MAP.get_mut(handle, |obj| {
-        match obj {
-            IssuerCredentials::Pending(ref mut obj) => obj.generate_credential_msg(my_pw_did),
-            IssuerCredentials::V1(ref mut obj) => obj.generate_credential_msg(my_pw_did),
-            IssuerCredentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries IssuerCredential type doesn't support this action: `generate_credential_msg`.")) // TODO: implement
-        }
-    }).map_err(handle_err)
-}
-
-pub fn send_credential(handle: u32, connection_handle: u32) -> VcxResult<u32> {
-    ISSUER_CREDENTIAL_MAP.get_mut(handle, |obj| {
-        match obj {
-            IssuerCredentials::Pending(ref mut obj) => {
-                obj.send_credential(connection_handle)
-            }
-            IssuerCredentials::V1(ref mut obj) => {
-                obj.send_credential(connection_handle)
-            }
-            IssuerCredentials::V3(ref mut obj) => {
-                obj.send_credential(connection_handle)?;
-                Ok(error::SUCCESS.code_num)
-            }
-        }
-    }).map_err(handle_err)
-}
-
-pub fn revoke_credential(handle: u32) -> VcxResult<()> {
-    ISSUER_CREDENTIAL_MAP.get_mut(handle, |obj| {
-        match obj {
-            IssuerCredentials::Pending(ref mut obj) => obj.revoke_cred(),
-            IssuerCredentials::V1(ref mut obj) => obj.revoke_cred(),
-            IssuerCredentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries IssuerCredential type doesn't support this action: `revoke_credential`.")), // TODO: implement
-        }
-    }).map_err(handle_err)
 }
 
 pub fn convert_to_map(s: &str) -> VcxResult<serde_json::Map<String, serde_json::Value>> {
@@ -826,38 +858,13 @@ pub fn convert_to_map(s: &str) -> VcxResult<serde_json::Map<String, serde_json::
         })
 }
 
-pub fn get_credential_attributes(handle: u32) -> VcxResult<String> {
-    ISSUER_CREDENTIAL_MAP.get(handle, |obj| {
-        match obj {
-            IssuerCredentials::Pending(ref obj) => Ok(obj.get_credential_attributes().to_string()),
-            IssuerCredentials::V1(ref obj) => Ok(obj.get_credential_attributes().to_string()),
-            IssuerCredentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries IssuerCredential type doesn't support this action: `get_credential_attributes`.")), // TODO: implement
-        }
-    }).map_err(handle_err)
+pub fn from_string(credential_data: &str) -> VcxResult<Handle<IssuerCredentials>> {
+    let issuer_credential: IssuerCredentials = serde_json::from_str(credential_data)
+        .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot parse IssuerCredential from JSON string. Err: {:?}", err)))?;
+
+    ISSUER_CREDENTIAL_MAP.add(issuer_credential)
 }
 
-pub fn get_source_id(handle: u32) -> VcxResult<String> {
-    ISSUER_CREDENTIAL_MAP.get(handle, |obj| {
-        match obj {
-            IssuerCredentials::Pending(ref obj) => Ok(obj.get_source_id().to_string()),
-            IssuerCredentials::V1(ref obj) => Ok(obj.get_source_id().to_string()),
-            IssuerCredentials::V3(ref obj) => obj.get_source_id()
-        }
-    }).map_err(handle_err)
-}
-
-pub fn get_problem_report_message(handle: u32) -> VcxResult<String> {
-    ISSUER_CREDENTIAL_MAP.get(handle, |obj| {
-        match obj {
-            IssuerCredentials::Pending(ref _obj) | IssuerCredentials::V1(ref _obj) => {
-                Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Proprietary Issuer Credential type doesn't support this action: `get_problem_report_message`."))
-            }
-            IssuerCredentials::V3(ref obj) => {
-                obj.get_problem_report_message()
-            }
-        }
-    }).map_err(handle_err)
-}
 
 #[cfg(test)]
 pub mod tests {
@@ -899,7 +906,7 @@ pub mod tests {
         libindy_create_and_store_credential_def(&issuer_did, SCHEMAS_JSON, tag, None, config).unwrap();
     }
 
-    fn default_agent_info(connection_handle: Option<u32>) -> MyAgentInfo {
+    fn default_agent_info(connection_handle: Option<Handle<Connections>>) -> MyAgentInfo {
         MyAgentInfo {
             my_pw_did: Some("8XFh8yBzrpJQmNyZzgoTqB".to_string()),
             my_pw_vk: Some(VERKEY.to_string()),
@@ -916,7 +923,7 @@ pub mod tests {
         }
     }
 
-    pub fn create_standard_issuer_credential(connection_handle: Option<u32>) -> IssuerCredential {
+    pub fn create_standard_issuer_credential(connection_handle: Option<Handle<Connections>>) -> IssuerCredential {
         let credential_req: CredentialRequest = serde_json::from_str(CREDENTIAL_REQ_STRING).unwrap();
         let (credential_offer, _) = parse_json_offer(CREDENTIAL_OFFER_JSON).unwrap();
         let mut issuer_credential = IssuerCredential {
@@ -939,7 +946,7 @@ pub mod tests {
             rev_cred_payment_txn: None,
             rev_reg_def_json: None,
             cred_def_id: CRED_DEF_ID.to_string(),
-            cred_def_handle: 0,
+            cred_def_handle: Handle::dummy(),
             thread: Some(Thread::new()),
             my_did: None,
             my_vk: None,
@@ -952,7 +959,7 @@ pub mod tests {
         issuer_credential
     }
 
-    pub fn create_standard_issuer_credential_json(connection_handle: Option<u32>) -> String {
+    pub fn create_standard_issuer_credential_json(connection_handle: Option<Handle<Connections>>) -> String {
         let issuer_credential = create_standard_issuer_credential(connection_handle);
         serde_json::to_string(&IssuerCredentials::V1(issuer_credential)).unwrap()
     }
@@ -973,7 +980,7 @@ pub mod tests {
             credential_name: DEFAULT_CREDENTIAL_NAME.to_owned(),
             credential_id: String::from(DEFAULT_CREDENTIAL_ID),
             cred_def_id: CRED_DEF_ID.to_string(),
-            cred_def_handle: 1,
+            cred_def_handle: Handle::from(1),
             ref_msg_id: None,
             rev_reg_id: None,
             cred_rev_id: None,
@@ -998,10 +1005,10 @@ pub mod tests {
     pub fn create_full_issuer_credential() -> (IssuerCredential, ::credential::Credential) {
         let issuer_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
         let (_, cred_def_handle) = ::credential_def::tests::create_cred_def_real(true);
-        let cred_def_id = ::credential_def::get_cred_def_id(cred_def_handle).unwrap();
-        let rev_reg_id = ::credential_def::get_rev_reg_id(cred_def_handle).unwrap();
-        let tails_file = ::credential_def::get_tails_file(cred_def_handle).unwrap();
-        let rev_reg_def_json = ::credential_def::get_rev_reg_def(cred_def_handle).unwrap();
+        let cred_def_id = cred_def_handle.get_cred_def_id().unwrap();
+        let rev_reg_id = cred_def_handle.get_rev_reg_id().unwrap();
+        let tails_file = cred_def_handle.get_tails_file().unwrap();
+        let rev_reg_def_json = cred_def_handle.get_rev_reg_id().unwrap();
         let credential_data = r#"{"address1": ["123 Main St"], "address2": ["Suite 3"], "city": ["Draper"], "state": ["UT"], "zip": ["84000"]}"#;
 
         let mut issuer_credential = IssuerCredential {
@@ -1053,7 +1060,7 @@ pub mod tests {
         (issuer_credential, credential)
     }
 
-    fn _issuer_credential_create() -> u32 {
+    fn _issuer_credential_create() -> Handle<IssuerCredentials> {
         issuer_credential_create(create_cred_def_fake(),
                                  "1".to_string(),
                                  "8XFh8yBzrpJQmNyZzgoTqB".to_owned(),
@@ -1075,7 +1082,7 @@ pub mod tests {
         let _setup = SetupMocks::init();
 
         let handle = _issuer_credential_create();
-        let string = to_string(handle).unwrap();
+        let string = handle.to_string().unwrap();
         assert!(!string.is_empty());
     }
 
@@ -1087,9 +1094,9 @@ pub mod tests {
 
         let handle = _issuer_credential_create();
 
-        assert_eq!(send_credential_offer(handle, connection_handle).unwrap(), error::SUCCESS.code_num);
-        assert_eq!(get_state(handle).unwrap(), VcxStateType::VcxStateOfferSent as u32);
-        assert_eq!(get_offer_uid(handle).unwrap(), "ntc2ytb");
+        assert_eq!(handle.send_credential_offer(connection_handle).unwrap(), error::SUCCESS.code_num);
+        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateOfferSent as u32);
+        assert_eq!(handle.get_offer_uid().unwrap(), "ntc2ytb");
     }
 
     #[cfg(feature = "pool_tests")]
@@ -1108,19 +1115,19 @@ pub mod tests {
         let connection_handle = build_test_connection();
 
         let handle = _issuer_credential_create();
-        assert_eq!(get_state(handle).unwrap(), VcxStateType::VcxStateInitialized as u32);
+        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateInitialized as u32);
 
         LibindyMock::set_next_result(error::TIMEOUT_LIBINDY_ERROR.code_num);
 
-        let res = send_credential_offer(handle, connection_handle).unwrap_err();
+        let res = handle.send_credential_offer(connection_handle).unwrap_err();
         assert_eq!(res.kind(), VcxErrorKind::InvalidState);
-        assert_eq!(get_state(handle).unwrap(), VcxStateType::VcxStateInitialized as u32);
-        assert_eq!(get_offer_uid(handle).unwrap(), "");
+        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateInitialized as u32);
+        assert_eq!(handle.get_offer_uid().unwrap(), "");
 
         // Can retry after initial failure
-        assert_eq!(send_credential_offer(handle, connection_handle).unwrap(), error::SUCCESS.code_num);
-        assert_eq!(get_state(handle).unwrap(), VcxStateType::VcxStateOfferSent as u32);
-        assert_eq!(get_offer_uid(handle).unwrap(), "ntc2ytb");
+        assert_eq!(handle.send_credential_offer(connection_handle).unwrap(), error::SUCCESS.code_num);
+        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateOfferSent as u32);
+        assert_eq!(handle.get_offer_uid().unwrap(), "ntc2ytb");
     }
 
     #[test]
@@ -1152,16 +1159,16 @@ pub mod tests {
 
         let handle = _issuer_credential_create();
 
-        let string = to_string(handle).unwrap();
+        let string = handle.to_string().unwrap();
 
         let value: serde_json::Value = serde_json::from_str(&string).unwrap();
         assert_eq!(value["version"], PENDING_OBJECT_SERIALIZE_VERSION);
 
-        release(handle).unwrap();
+        handle.release().unwrap();
 
         let new_handle = from_string(&string).unwrap();
 
-        let new_string = to_string(new_handle).unwrap();
+        let new_string = new_handle.to_string().unwrap();
         assert_eq!(new_string, string);
     }
 
@@ -1240,19 +1247,19 @@ pub mod tests {
         let h4 = _issuer_credential_create();
         let h5 = _issuer_credential_create();
         release_all();
-        assert_eq!(release(h1).unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
-        assert_eq!(release(h2).unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
-        assert_eq!(release(h3).unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
-        assert_eq!(release(h4).unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
-        assert_eq!(release(h5).unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
+        assert_eq!(h1.release().unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
+        assert_eq!(h2.release().unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
+        assert_eq!(h3.release().unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
+        assert_eq!(h4.release().unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
+        assert_eq!(h5.release().unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
     }
 
     #[test]
     fn test_errors() {
         let _setup = SetupLibraryWallet::init();
-
-        assert_eq!(to_string(0).unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
-        assert_eq!(release(0).unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
+        let h = Handle::<IssuerCredentials>::dummy();
+        assert_eq!(h.to_string().unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
+        assert_eq!(h.release().unwrap_err().kind(), VcxErrorKind::InvalidIssuerCredentialHandle);
     }
 
     #[test]
@@ -1265,7 +1272,7 @@ pub mod tests {
                                                                 "CredentialNameHere".to_string(),
                                                                 r#"["name","gpa"]"#.to_string(),
                                                                 1).unwrap();
-        get_encoded_attributes(issuer_credential_handle).unwrap_err();
+        issuer_credential_handle.get_encoded_attributes().unwrap_err();
 
         let issuer_credential_handle = issuer_credential_create(::credential_def::tests::create_cred_def_fake(),
                                                                 "IssuerCredentialName".to_string(),
@@ -1274,7 +1281,7 @@ pub mod tests {
                                                                 r#"{"name":["frank"],"gpa":["4.0"]}"#.to_string(),
                                                                 1).unwrap();
 
-        let _encoded_attributes = self::get_encoded_attributes(issuer_credential_handle).unwrap();
+        let _encoded_attributes = issuer_credential_handle.get_encoded_attributes().unwrap();
     }
 
     #[test]

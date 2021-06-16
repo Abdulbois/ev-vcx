@@ -891,7 +891,7 @@ pub mod tests {
     extern crate serde_json;
 
     use super::*;
-    use api::return_types_u32;
+    use api::return_types;
     use std::ptr;
     use std::ffi::CString;
     use utils::libindy::wallet::{delete_wallet, init_wallet};
@@ -899,7 +899,6 @@ pub mod tests {
     use utils::libindy::payments::build_test_address;
     use utils::devsetup::*;
     use settings;
-    use utils::timeout::TimeoutUtils;
 
     const ADDRESS: *const c_char = "address\0".as_ptr().cast();
     const MSG: &[u8] = "message\0".as_bytes();
@@ -919,52 +918,52 @@ pub mod tests {
     fn test_get_token_info() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_wallet_get_token_info(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_wallet_get_token_info(h,
                                              0,
-                                             Some(cb.get_callback())),
+                                             Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
     fn test_send_tokens() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_wallet_send_tokens(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_wallet_send_tokens(h,
                                           0,
                                           "1\0".as_ptr().cast(),
                                           ADDRESS,
-                                          Some(cb.get_callback())),
+                                          Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
     fn test_create_address() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_wallet_create_payment_address(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_wallet_create_payment_address(h,
                                                      ptr::null_mut(),
-                                                     Some(cb.get_callback())),
+                                                     Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
     fn test_sign_with_address_api() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32_BIN::new().unwrap();
-        assert_eq!(vcx_wallet_sign_with_address(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_bin();
+        assert_eq!(vcx_wallet_sign_with_address(h,
                                                 ADDRESS,
                                                 MSG.as_ptr(),
                                                 MSG_LEN as u32,
-                                                Some(cb.get_callback())),
+                                                Some(cb)),
                    error::SUCCESS.code_num);
-        let res = cb.receive(TimeoutUtils::some_medium()).unwrap();
+        let res = r.recv_medium().unwrap();
         assert_eq!(&MSG[..MSG_LEN], res.as_slice());
     }
 
@@ -972,18 +971,18 @@ pub mod tests {
     fn test_verify_with_address_api() {
         let _setup = SetupMocks::init();
 
-        let cb = return_types_u32::Return_U32_BOOL::new().unwrap();
+        let (h, cb, r) = return_types::return_u32_bool();
         let sig = "signature\0";
         let sig_len = sig.len() - 1;
-        assert_eq!(vcx_wallet_verify_with_address(cb.command_handle,
+        assert_eq!(vcx_wallet_verify_with_address(h,
                                                   ADDRESS,
                                                   MSG.as_ptr(),
                                                   MSG_LEN as u32,
                                                   sig.as_ptr(),
                                                   sig_len as u32,
-                                                  Some(cb.get_callback())),
+                                                  Some(cb)),
                    error::SUCCESS.code_num);
-        let res = cb.receive(TimeoutUtils::some_medium()).unwrap();
+        let res = r.recv_medium().unwrap();
         assert!(res);
     }
 
@@ -992,35 +991,35 @@ pub mod tests {
     fn test_sign_verify_with_address() {
         let _setup = SetupLibraryWalletPoolZeroFees::init();
 
-        let cb_sign = return_types_u32::Return_U32_BIN::new().unwrap();
-        let cb_verify = return_types_u32::Return_U32_BOOL::new().unwrap();
-        let cb_addr = return_types_u32::Return_U32_STR::new().unwrap();
+        let (h_sign, cb_sign, r_sign) = return_types::return_u32_bin();
+        let (h_verify, cb_verify, r_verify) = return_types::return_u32_bool();
+        let (h_addr, cb_addr, r_addr) = return_types::return_u32_str();
 
-        vcx_wallet_create_payment_address(cb_addr.command_handle,
+        vcx_wallet_create_payment_address(h_addr,
                                           ptr::null_mut(),
-                                          Some(cb_addr.get_callback()));
-        let addr = cb_addr.receive(TimeoutUtils::some_medium()).unwrap().unwrap();
+                                          Some(cb_addr));
+        let addr = r_addr.recv_medium().unwrap().unwrap();
         let addr_raw = CString::new(addr.as_bytes()).unwrap();
 
-        let res_sign = vcx_wallet_sign_with_address(cb_sign.command_handle,
+        let res_sign = vcx_wallet_sign_with_address(h_sign,
                                                     addr_raw.as_ptr(),
                                                     MSG.as_ptr(),
                                                     MSG_LEN as u32,
-                                                    Some(cb_sign.get_callback()));
+                                                    Some(cb_sign));
         assert_eq!(res_sign, error::SUCCESS.code_num);
 
         let addr_raw = CString::new(addr).unwrap();
-        let sig = cb_sign.receive(TimeoutUtils::some_medium()).unwrap();
+        let sig = r_sign.recv_medium().unwrap();
 
-        let res_verify = vcx_wallet_verify_with_address(cb_verify.command_handle,
+        let res_verify = vcx_wallet_verify_with_address(h_verify,
                                                       addr_raw.as_ptr(),
                                                       MSG.as_ptr(),
                                                       MSG_LEN as u32,
                                                       sig.as_ptr(),
                                                       sig.len() as u32,
-                                                      Some(cb_verify.get_callback()));
+                                                      Some(cb_verify));
         assert_eq!(res_verify, error::SUCCESS.code_num);
-        let valid = cb_verify.receive(TimeoutUtils::some_medium()).unwrap();
+        let valid = r_verify.recv_medium().unwrap();
         assert!(valid);
     }
 
@@ -1034,14 +1033,14 @@ pub mod tests {
         let balance = ::utils::libindy::payments::get_wallet_token_info().unwrap().get_balance();
         let tokens = 5;
         let tokens_cstr = CString::new(tokens.to_string()).unwrap();
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_wallet_send_tokens(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_wallet_send_tokens(h,
                                           0,
                                           tokens_cstr.as_ptr(),
                                           recipient.as_ptr(),
-                                          Some(cb.get_callback())),
+                                          Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
         let new_balance = ::utils::libindy::payments::get_wallet_token_info().unwrap().get_balance();
         assert_eq!(balance - tokens, new_balance);
     }
@@ -1051,27 +1050,27 @@ pub mod tests {
         let _setup = SetupLibraryWallet::init();
 
         // Valid add
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_wallet_add_record(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_wallet_add_record(h,
                                          XTYPE,
                                          ID,
                                          VALUE,
                                          EMPTY_TAGS,
-                                         Some(cb.get_callback())),
+                                         Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
 
         // Failure because of duplicate
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_wallet_add_record(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_wallet_add_record(h,
                                          XTYPE,
                                          ID,
                                          VALUE,
                                          EMPTY_TAGS,
-                                         Some(cb.get_callback())),
+                                         Some(cb)),
                    error::SUCCESS.code_num);
 
-        assert_eq!(cb.receive(TimeoutUtils::some_medium()).err(), Some(error::DUPLICATE_WALLET_RECORD.code_num));
+        assert_eq!(r.recv_medium().err(), Some(error::DUPLICATE_WALLET_RECORD.code_num));
     }
 
     #[test]
@@ -1080,15 +1079,15 @@ pub mod tests {
 
         let tags = concat!(r#"{"tagName1":"tag1","tagName2":"tag2"}"#, "\0").as_ptr().cast();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_wallet_add_record(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_wallet_add_record(h,
                                          XTYPE,
                                          ID,
                                          VALUE,
                                          tags,
-                                         Some(cb.get_callback())),
+                                         Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
@@ -1102,14 +1101,14 @@ pub mod tests {
         }).to_string();
         let options = CStringUtils::string_to_cstring(options);
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_wallet_get_record(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_wallet_get_record(h,
                                          XTYPE,
                                          ID,
                                          options.as_ptr(),
-                                         Some(cb.get_callback())),
+                                         Some(cb)),
                    error::SUCCESS.code_num);
-        assert_eq!(cb.receive(TimeoutUtils::some_medium()).err(), Some(error::WALLET_RECORD_NOT_FOUND.code_num));
+        assert_eq!(r.recv_medium().err(), Some(error::WALLET_RECORD_NOT_FOUND.code_num));
     }
 
     #[test]
@@ -1117,24 +1116,24 @@ pub mod tests {
         let _setup = SetupLibraryWallet::init();
 
         // Valid add
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_wallet_add_record(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_wallet_add_record(h,
                                          XTYPE,
                                          ID,
                                          VALUE,
                                          EMPTY_TAGS,
-                                         Some(cb.get_callback())),
+                                         Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
 
-        let cb = return_types_u32::Return_U32_STR::new().unwrap();
-        assert_eq!(vcx_wallet_get_record(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32_str();
+        assert_eq!(vcx_wallet_get_record(h,
                                          XTYPE,
                                          ID,
                                          OPTIONS,
-                                         Some(cb.get_callback())),
+                                         Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
@@ -1142,33 +1141,33 @@ pub mod tests {
         let _setup = SetupLibraryWallet::init();
 
         // Add record
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_wallet_add_record(cb.command_handle, 
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_wallet_add_record(h, 
                                          XTYPE,
                                          ID,
                                          VALUE,
                                          EMPTY_TAGS,
-                                         Some(cb.get_callback())),
+                                         Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
 
         // Successful deletion
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_wallet_delete_record(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_wallet_delete_record(h,
                                             XTYPE,
                                             ID,
-                                            Some(cb.get_callback())),
+                                            Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
 
         // Fails with no record
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_wallet_delete_record(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_wallet_delete_record(h,
                                             XTYPE,
                                             ID,
-                                            Some(cb.get_callback())),
+                                            Some(cb)),
                    error::SUCCESS.code_num);
-        assert_eq!(cb.receive(TimeoutUtils::some_medium()).err(),
+        assert_eq!(r.recv_medium().err(),
                    Some(error::WALLET_RECORD_NOT_FOUND.code_num));
     }
 
@@ -1177,35 +1176,35 @@ pub mod tests {
         let _setup = SetupLibraryWallet::init();
 
         // Assert no record to update
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_wallet_update_record_value(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_wallet_update_record_value(h,
                                                   XTYPE,
                                                   ID,
                                                   OPTIONS,
-                                                  Some(cb.get_callback())),
+                                                  Some(cb)),
                    error::SUCCESS.code_num);
-        assert_eq!(cb.receive(TimeoutUtils::some_medium()).err(),
+        assert_eq!(r.recv_medium().err(),
                    Some(error::WALLET_RECORD_NOT_FOUND.code_num));
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_wallet_add_record(cb.command_handle, 
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_wallet_add_record(h, 
                                          XTYPE,
                                          ID,
                                          VALUE,
                                          EMPTY_TAGS,
-                                         Some(cb.get_callback())),
+                                         Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
 
         // Assert update works
-        let cb = return_types_u32::Return_U32::new().unwrap();
-        assert_eq!(vcx_wallet_update_record_value(cb.command_handle,
+        let (h, cb, r) = return_types::return_u32();
+        assert_eq!(vcx_wallet_update_record_value(h,
                                                   XTYPE,
                                                   ID,
                                                   OPTIONS,
-                                                  Some(cb.get_callback())),
+                                                  Some(cb)),
                    error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_medium()).unwrap();
+        r.recv_medium().unwrap();
     }
 
     #[test]
@@ -1221,14 +1220,14 @@ pub mod tests {
         let backup_key = settings::get_config_value(settings::CONFIG_WALLET_BACKUP_KEY).unwrap();
         let wallet_key = settings::get_config_value(settings::CONFIG_WALLET_KEY).unwrap();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
+        let (h, cb, r) = return_types::return_u32();
         let export_path_cstr = CString::new(export_file.path.as_bytes()).unwrap();
         let backup_key_cstr = CString::new(backup_key.as_bytes()).unwrap();
-        assert_eq!(vcx_wallet_export(cb.command_handle,
+        assert_eq!(vcx_wallet_export(h,
                                      export_path_cstr.as_ptr(),
                                      backup_key_cstr.as_ptr(),
-                                     Some(cb.get_callback())), error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_long()).unwrap();
+                                     Some(cb)), error::SUCCESS.code_num);
+        r.recv_long().unwrap();
 
         delete_wallet(&wallet_name, None, None, None).unwrap();
 
@@ -1239,12 +1238,12 @@ pub mod tests {
             settings::CONFIG_WALLET_BACKUP_KEY: backup_key,
         }).to_string();
 
-        let cb = return_types_u32::Return_U32::new().unwrap();
+        let (h, cb, r) = return_types::return_u32();
         let config_cstr = CString::new(import_config).unwrap();
-        assert_eq!(vcx_wallet_import(cb.command_handle,
+        assert_eq!(vcx_wallet_import(h,
                                      config_cstr.as_ptr(),
-                                     Some(cb.get_callback())), error::SUCCESS.code_num);
-        cb.receive(TimeoutUtils::some_long()).unwrap();
+                                     Some(cb)), error::SUCCESS.code_num);
+        r.recv_long().unwrap();
 
         delete_wallet(&wallet_name, None, None, None).unwrap();
     }
