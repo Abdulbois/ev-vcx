@@ -603,12 +603,9 @@ vcx_error_t vcx_connection_send_reuse(vcx_u32_t command_handle,
                                       const char* invite,
                                       void (*cb)(vcx_command_handle_t, vcx_error_t));
 
-/// Send answer on received question message according to Aries question-answer protocol.
+/// Send answer on received question message according to Aries question-answer or committedanswer protocols.
 ///
-/// The related protocol can be found here: https://github.com/hyperledger/aries-rfcs/tree/master/features/0113-question-answer
-///
-/// Note that this function works in case `aries` communication method is used.
-///     In other cases it returns ActionNotSupported error.
+/// The related Aries question-answer protocol can be found here: https://github.com/hyperledger/aries-rfcs/tree/master/features/0113-question-answer
 ///
 /// #params
 ///
@@ -623,23 +620,48 @@ vcx_error_t vcx_connection_send_reuse(vcx_u32_t command_handle,
 /// cb: Callback that provides success or failure of request
 ///
 /// # Examples
-/// question ->
-///     {
-///         "@type": "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/questionanswer/1.0/question",
-///         "@id": "518be002-de8e-456e-b3d5-8fe472477a86",
-///         "question_text": "Alice, are you on the phone with Bob from Faber Bank right now?",
-///         "question_detail": "This is optional fine-print giving context to the question and its various answers.",
-///         "nonce": "<valid_nonce>",
-///         "signature_required": true,
-///         "valid_responses" : [
-///             {"text": "Yes, it's me"},
-///             {"text": "No, that's not me!"}],
-///         "~timing": {
-///             "expires_time": "2018-12-13T17:29:06+0000"
+/// Aries question-answer:
+///     question ->
+///         {
+///             "@type": "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/questionanswer/1.0/question",
+///             "@id": "518be002-de8e-456e-b3d5-8fe472477a86",
+///             "question_text": "Alice, are you on the phone with Bob from Faber Bank right now?",
+///             "question_detail": "This is optional fine-print giving context to the question and its various answers.",
+///             "nonce": "<valid_nonce>",
+///             "signature_required": true,
+///             "valid_responses" : [
+///                 {"text": "Yes, it's me"},
+///                 {"text": "No, that's not me!"}],
+///             "~timing": {
+///             "   expires_time": "2018-12-13T17:29:06+0000"
+///             }
 ///         }
-///     }
-/// answer ->
-///     {"text": "Yes, it's me"}
+///     answer ->
+///         {"text": "Yes, it's me"}
+/// committedanswer:
+///     question ->
+///         {
+///            '@type': 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/committedanswer/1.0/question',
+///            '@id': '518be002-de8e-456e-b3d5-8fe472477a86',
+///            'question_text': 'Alice, are you on the phone with Bob from Faber Bank right now?',
+///            'question_detail': 'This is optional fine-print giving context to the question and its various answers.',
+///            'valid_responses': [
+///                {'text': 'Yes, it is me', 'nonce': '<unique_identifier_a+2018-12-13T17:00:00+0000>'},
+///                {'text': 'No, that is not me!', 'nonce': '<unique_identifier_b+2018-12-13T17:00:00+0000'},
+///                {'text': 'Hi!', 'nonce': '<unique_identifier_c+2018-12-13T17:00:00+0000'}],
+///            '@timing': {
+///                'expires_time': future
+///            },
+///            'external_links': [
+///                {
+///                    'text': 'Some external link with so many characters that it can go outside of two lines range from here onwards',
+///                    'src': '1'},
+///                {
+///                    'src': 'Some external link with so many characters that it can go outside of two lines range from here onwards'},
+///            ]
+///        }
+///     answer ->
+///         {'text': 'Yes, it is me', 'nonce': '<unique_identifier_a+2018-12-13T17:00:00+0000>'}
 ///
 /// #Returns
 /// Error code as a u32

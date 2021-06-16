@@ -1,5 +1,9 @@
 use v3::messages::a2a::{MessageId, A2AMessage};
 use messages::thread::Thread;
+use v3::messages::committedanswer::question::{Question, QuestionResponse};
+use error::VcxResult;
+use utils::libindy::crypto;
+use chrono::Utc;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Answer {
@@ -11,7 +15,7 @@ pub struct Answer {
     pub thread: Thread,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ResponseSignature {
     pub signature: String,
     pub sig_data: String,
@@ -23,8 +27,23 @@ impl Answer {
         Answer::default()
     }
 
-    pub fn sign() -> Self {
-        unimplemented!()
+    pub fn sign(mut self, question: &Question, response: &QuestionResponse, key: &str) -> VcxResult<Self> {
+        trace!("Answer::sign >>> question: {:?}", secret!(question));
+
+        let sig_data = base64::encode(&response.nonce);
+
+        let signature = crypto::sign(key, sig_data.as_bytes())?;
+
+        let signature = base64::encode(&signature);
+
+        self.signature = ResponseSignature {
+            signature,
+            sig_data,
+            ..Default::default()
+        };
+
+        trace!("Answer::sign <<<");
+        Ok(self)
     }
 
     pub fn set_signature(mut self, signature: ResponseSignature) -> Self {
@@ -43,6 +62,16 @@ impl Default for Answer {
             id: Some(MessageId::default()),
             signature: Default::default(),
             thread: Default::default()
+        }
+    }
+}
+
+impl Default for ResponseSignature {
+    fn default() -> ResponseSignature {
+        ResponseSignature {
+            signature: Default::default(),
+            sig_data: Default::default(),
+            timestamp: Utc::now().timestamp().to_string()
         }
     }
 }
