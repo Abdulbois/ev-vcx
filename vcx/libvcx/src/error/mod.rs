@@ -46,6 +46,8 @@ pub enum VcxErrorKind {
     AlreadyInitialized,
     #[fail(display = "Action is not supported")]
     ActionNotSupported,
+    #[fail(display = "Passed a combination of incompatible parameters")]
+    IncompatibleParameters,
 
     // Connection
     #[fail(display = "Could not store Connection object into the Object Cache")]
@@ -401,6 +403,7 @@ impl From<VcxErrorKind> for u32 {
             VcxErrorKind::InvalidAgencyRequest => error::INVALID_AGENCY_REQUEST.code_num,
             VcxErrorKind::MissingBackupKey => error::MISSING_BACKUP_KEY.code_num,
             VcxErrorKind::ActionNotSupported => error::ACTION_NOT_SUPPORTED.code_num,
+            VcxErrorKind::IncompatibleParameters => error::INCOMPATIBLE_PARAMETERS.code_num,
             VcxErrorKind::Common(num) => num,
             VcxErrorKind::LibndyError(num) => num,
             VcxErrorKind::CreateWalletBackup => error::CREATE_WALLET_BACKUP.code_num,

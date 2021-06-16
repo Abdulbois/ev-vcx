@@ -1,5 +1,10 @@
 use crate::v3::messages::a2a::{MessageId, A2AMessage};
 use crate::messages::thread::Thread;
+use crate::v3::messages::committedanswer::question::{Question, QuestionResponse};
+use crate::error::VcxResult;
+use crate::utils::libindy::crypto;
+#[cfg(any(not(test)))]
+use chrono::Utc;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Answer {
@@ -11,7 +16,7 @@ pub struct Answer {
     pub thread: Thread,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ResponseSignature {
     pub signature: String,
     pub sig_data: String,
@@ -23,8 +28,23 @@ impl Answer {
         Answer::default()
     }
 
-    pub fn sign() -> Self {
-        unimplemented!()
+    pub fn sign(mut self, question: &Question, response: &QuestionResponse, key: &str) -> VcxResult<Self> {
+        trace!("Answer::sign >>> question: {:?}", secret!(question));
+
+        let sig_data = base64::encode(&response.nonce);
+
+        let signature = crypto::sign(key, sig_data.as_bytes())?;
+
+        let signature = base64::encode(&signature);
+
+        self.signature = ResponseSignature {
+            signature,
+            sig_data,
+            ..Default::default()
+        };
+
+        trace!("Answer::sign <<<");
+        Ok(self)
     }
 
     pub fn set_signature(mut self, signature: ResponseSignature) -> Self {
@@ -43,6 +63,26 @@ impl Default for Answer {
             id: Some(MessageId::default()),
             signature: Default::default(),
             thread: Default::default()
+        }
+    }
+}
+
+impl Default for ResponseSignature {
+    #[cfg(all(test))]
+    fn default() -> ResponseSignature {
+        ResponseSignature {
+            signature: Default::default(),
+            sig_data: Default::default(),
+            timestamp: "111".to_string()
+        }
+    }
+
+    #[cfg(any(not(test)))]
+    fn default() -> ResponseSignature {
+        ResponseSignature {
+            signature: Default::default(),
+            sig_data: Default::default(),
+            timestamp: Utc::now().timestamp().to_string()
         }
     }
 }
@@ -77,7 +117,7 @@ pub mod tests {
 
         assert_eq!(_answer(), answer);
 
-        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/committedanswer/1.0/answer","response.@sig":{"sig_data":"","signature":"","timestamp":""},"~thread":{"received_orders":{},"sender_order":0,"thid":"test_id"}}"#;
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/committedanswer/1.0/answer","response.@sig":{"sig_data":"","signature":"","timestamp":"111"},"~thread":{"received_orders":{},"sender_order":0,"thid":"test_id"}}"#;
         assert_eq!(expected, json!(answer.to_a2a_message()).to_string());
     }
 }

@@ -108,6 +108,7 @@ class ErrorCode(IntEnum):
     InvalidDidDoc = 1108,
     MessageIsOutOfThread = 1109,
     InvalidProofProposal = 1110,
+    IncompatibleParameters = 1111,
 
 
 class VcxError(Exception):

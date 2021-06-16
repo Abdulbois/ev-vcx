@@ -1,6 +1,5 @@
 use crate::v3::messages::connection::invite::Invitation;
 use crate::v3::messages::connection::request::Request;
-use crate::v3::messages::connection::response::SignedResponse;
 use crate::v3::messages::connection::problem_report::ProblemReport;
 use crate::v3::messages::trust_ping::ping::Ping;
 use crate::v3::messages::trust_ping::ping_response::PingResponse;
@@ -13,11 +12,10 @@ use crate::v3::messages::outofband::handshake_reuse::HandshakeReuse;
 use crate::v3::messages::outofband::handshake_reuse_accepted::HandshakeReuseAccepted;
 use crate::v3::messages::questionanswer::question::{Question, QuestionResponse};
 use crate::v3::messages::questionanswer::answer::Answer;
-use crate::v3::messages::committedanswer::question::Question as CommitedQuestion;
+use crate::v3::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
 use crate::v3::messages::committedanswer::answer::Answer as CommitedAnswer;
 use crate::v3::messages::invite_action::invite::{Invite as InviteForAction};
 use crate::connection::ConnectionOptions;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DidExchangeMessages {
@@ -40,7 +38,8 @@ pub enum DidExchangeMessages {
     QuestionReceived(Question),
     AnswerReceived(Answer),
     SendAnswer((Question, QuestionResponse)),
-    CommittedQuestionReceived(CommitedQuestion),
+    SendCommittedAnswer((CommittedQuestion, CommittedQuestionResponse)),
+    CommittedQuestionReceived(CommittedQuestion),
     CommittedAnswerReceived(CommitedAnswer),
     SendInviteAction(A2AMessage),
     InviteActionReceived(InviteForAction),

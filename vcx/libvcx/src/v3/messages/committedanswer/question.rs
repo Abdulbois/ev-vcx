@@ -15,6 +15,8 @@ pub struct Question {
 pub struct QuestionResponse {
     pub text: String,
     pub nonce: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ref_msg_id: Option<String>,
 }
 
 impl Question {
@@ -72,10 +74,12 @@ pub mod tests {
             QuestionResponse {
                 text: "Yes, it's me".to_string(),
                 nonce: "n1".to_string(),
+                ref_msg_id: None
             },
             QuestionResponse {
                 text: "No, that's not me!".to_string(),
                 nonce: "n1".to_string(),
+                ref_msg_id: None
             },
         ]
     }

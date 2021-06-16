@@ -11,6 +11,7 @@ use crate::v3::messages::basic_message::message::BasicMessage;
 use crate::v3::handlers::connection::types::{SideConnectionInfo, PairwiseConnectionInfo, CompletedConnection, OutofbandMeta, Invitations};
 use crate::v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
 use crate::v3::messages::questionanswer::question::{Question, QuestionResponse};
+use crate::v3::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
 use crate::v3::messages::invite_action::invite::InviteActionData;
 use crate::v3::messages::invite_action::invite::{Invite as InviteForAction};
 use crate::connection::ConnectionOptions;
@@ -293,15 +294,32 @@ impl Connection {
         trace!("Connection::send_answer >>> question: {:?}, response: {:?}", secret!(question), secret!(response));
         debug!("Connection {}: Sending question answer message", self.source_id());
 
-        let question: Question = ::serde_json::from_str(&question)
-            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
-                                              format!("Could not parse Aries Question from message: {:?}. Err: {:?}", question, err)))?;
+        let parsed_question = ::serde_json::from_str::<Question>(&question);
+        let parser_response = ::serde_json::from_str::<QuestionResponse>(&response);
 
-        let response: QuestionResponse = ::serde_json::from_str(&response)
-            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
-                                              format!("Could not parse Aries Valid Question Response from message: {:?}. Err: {:?}", response, err)))?;
+        if let (Ok(question_), Ok(response_)) = (parsed_question, parser_response) {
+            self.handle_message(DidExchangeMessages::SendAnswer((question_, response_)))?;
+            return Ok(());
+        }
 
-        self.handle_message(DidExchangeMessages::SendAnswer((question, response)))
+        let parsed_question = ::serde_json::from_str::<CommittedQuestion>(&question);
+        let parser_response = ::serde_json::from_str::<CommittedQuestionResponse>(&response);
+
+        match (parsed_question, parser_response) {
+            (Ok(question_), Ok(response_)) => {
+                self.handle_message(DidExchangeMessages::SendCommittedAnswer((question_, response_)))
+            },
+            (Err(err), _) => {
+                Err(VcxError::from_msg(VcxErrorKind::InvalidJson,
+                                       format!("Could not parse Question from message: {:?}. Err: {:?}",
+                                               question, err)))
+            },
+            (_, Err(err)) => {
+                Err(VcxError::from_msg(VcxErrorKind::InvalidJson,
+                                       format!("Could not parse Question Response from message: {:?}. Err: {:?}",
+                                               question, err)))
+            }
+        }
     }
 
     pub fn send_invite_action(&mut self, data: InviteActionData) -> VcxResult<String> {

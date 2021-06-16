@@ -83,7 +83,7 @@ pub fn parse_message_type(message_type: &str) -> VcxResult<(String, String, Stri
                     Some((prefix.to_string(), family.to_string(), version.to_string(), type_.to_string())),
                 _ => None
             }
-        }).ok_or(VcxError::from_msg(VcxErrorKind::InvalidOption, format!("Cannot parse @type from string: {}", message_type)))?;
+        }).ok_or(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot parse @type from string: {}", message_type)))?;
 
     trace!("parse_message_type <<< message_type: {:?}", secret!(message_type));
     Ok(message_type)
