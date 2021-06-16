@@ -278,7 +278,7 @@ describe('Connection:', () => {
         }
       }
       const error = await shouldThrow(() => connection.sendAnswer(data))
-      assert.equal(error.vcxCode, VCXCode.ACTION_NOT_SUPPORTED)
+      assert.equal(error.vcxCode, VCXCode.NOT_READY)
     })
   })
 

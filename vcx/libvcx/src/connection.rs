@@ -30,6 +30,8 @@ use v3::handlers::connection::types::CompletedConnection;
 use v3::messages::invite_action::invite::{Invite as InviteForAction, InviteActionData};
 
 use settings::ProtocolTypes;
+use v3::messages::committedanswer::question::{QuestionResponse, Question};
+use v3::messages::committedanswer::answer::Answer;
 
 lazy_static! {
     static ref CONNECTION_MAP: ObjectCache<Connections> = Default::default();
@@ -475,6 +477,54 @@ impl Connection {
         debug!("Connection {}: Sent generic message", self.source_id);
         trace!("Connection::send_generic_message <<< msg_uid: {:?}", secret!(msg_uid));
         return Ok(msg_uid);
+    }
+
+
+    pub fn send_answer(&self, question: String, response: String) -> VcxResult<()> {
+        trace!("Connection::send_answer >>> question: {:?}, response: {:?}", secret!(question), secret!(response));
+        debug!("Connection {}: Sending answer for question", self.source_id);
+
+        if self.state != VcxStateType::VcxStateAccepted {
+            return Err(VcxError::from_msg(VcxErrorKind::NotReady, format!("Connection {} is not in Accepted state. Not ready to send message", self.source_id)));
+        }
+
+        let question: Question = ::serde_json::from_str(&question)
+            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
+                                              format!("Could not parse Valid Question from message: {:?}. Err: {:?}", question, err)))?;
+
+        let response: QuestionResponse = ::serde_json::from_str(&response)
+            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
+                                              format!("Could not parse Valid Question Response from message: {:?}. Err: {:?}", response, err)))?;
+
+        let thread = Thread::new().set_thid(question.id.to_string());
+
+        let answer = Answer::create()
+            .set_thread(thread)
+            .sign(&question, &response, &self.pw_verkey)?;
+
+        ::messages::send_message()
+            .to(&self.get_pw_did())?
+            .to_vk(&self.get_pw_verkey())?
+            .msg_type(&RemoteMessageType::Other(String::from("Answer")))?
+            .version(self.version.clone())?
+            .edge_agent_payload(
+                &self.get_pw_verkey(),
+                &self.get_their_pw_verkey(),
+                &json!(&answer.to_a2a_message()).to_string(),
+                PayloadKinds::Other(String::from("Answer")),
+                None)?
+            .agent_did(&self.get_agent_did())?
+            .agent_vk(&self.get_agent_verkey())?
+            .set_title("Peer Sent Answer")?
+            .set_detail("Peer Sent Answer")?
+            .ref_msg_id(response.ref_msg_id)?
+            .status_code(&MessageStatusCode::Accepted)?
+            .send_secure()
+            .map_err(|err| err.extend("Cannot send generic message"))?;
+
+        debug!("Connection {}: Sent answer for question", self.source_id);
+        trace!("Connection::send_answer <<<");
+        return Ok(());
     }
 
 
@@ -968,8 +1018,9 @@ impl Handle<Connections> {
     pub fn send_answer(self, question: String, answer: String) -> VcxResult<()> {
         CONNECTION_MAP.get_mut(self, |connection| {
             match connection {
-                Connections::V1(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported,
-                                                             "Proprietary Connection type doesn't support this action: `send_answer`.")),
+                Connections::V1(connection) => {
+                    connection.send_answer(question.clone(), answer.clone())
+                },
                 Connections::V3(connection) => {
                     connection.send_answer(question.clone(), answer.clone())
                 }
