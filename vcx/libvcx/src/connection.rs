@@ -32,7 +32,6 @@ use crate::v3::messages::invite_action::invite::{Invite as InviteForAction, Invi
 use crate::settings::ProtocolTypes;
 use crate::v3::messages::committedanswer::question::{QuestionResponse, Question};
 use crate::v3::messages::committedanswer::answer::Answer;
->>>>>>> vcx/libvcx/src/connection.rs
 
 lazy_static! {
     static ref CONNECTION_MAP: ObjectCache<Connections> = Default::default();
@@ -503,7 +502,7 @@ impl Connection {
             .set_thread(thread)
             .sign(&question, &response, &self.pw_verkey)?;
 
-        ::messages::send_message()
+        messages::send_message()
             .to(&self.get_pw_did())?
             .to_vk(&self.get_pw_verkey())?
             .msg_type(&RemoteMessageType::Other(String::from("Answer")))?

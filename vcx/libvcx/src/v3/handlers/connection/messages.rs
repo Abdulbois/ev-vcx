@@ -14,8 +14,9 @@ use crate::v3::messages::questionanswer::question::{Question, QuestionResponse};
 use crate::v3::messages::questionanswer::answer::Answer;
 use crate::v3::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
 use crate::v3::messages::committedanswer::answer::Answer as CommitedAnswer;
-use crate::v3::messages::invite_action::invite::{Invite as InviteForAction};
+use crate::v3::messages::invite_action::invite::Invite as InviteForAction;
 use crate::connection::ConnectionOptions;
+use crate::v3::messages::connection::response::SignedResponse;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DidExchangeMessages {
