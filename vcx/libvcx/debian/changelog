@@ -1,6 +1,24 @@
-libvcx (0.11.2) unstable; urgency=medium
+libvcx (0.12.0) unstable; urgency=medium
 
 [ Hyperledger ]
+
+## 0.12.0
+* Added async version of function to provision agent with token - `vcx_provision_agent_with_token_async`.
+* Added `vcx_create_pairwise_agent` function to create a pairwise agent which can be later used for connection establishment.
+  It allows to speed up the connection establishing process.
+  The result value should be passed into `vcx_connection_connect` function as `pairwise_agent_info` field of `connection_options` parameter.
+* Added support `Transports Return Route` Aries RFC.
+* Added support for connectionless credentials. You can pass 0 as connection handle into `vcx_credential_send_request`
+  function in order to get a credential for a connectionless credential offer (containing `~service` decorator).
+* Updated `vcx_connection_send_answer` function to reply on a question related to `committedanswer` protocol.
+* Added wrapper for React-Native.
+
+* Bugfixes
+    * Various efficiency improvements.
+    * VCX do not update status of the Connection Request message as read.
+    * Pool connection is optional for getting record from cache.
+    * Objective-C: Added missing function to get connection information - `getConnectionInviteDetails`.
+    * Objective-C: Added API functions for Proof Verifier.
 
 ## 0.11.2
 * Bugfixes
