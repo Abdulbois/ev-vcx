@@ -251,7 +251,6 @@ pub fn get_final_config(my_did: &str,
         "remote_to_sdk_verkey": agent_vk,
         "institution_name": get_or_default(&institution_name.map(String::from), "<CHANGE_ME>"),
         "institution_logo_url": get_or_default(&institution_logo_url.map(String::from), "<CHANGE_ME>"),
-        "genesis_path": get_or_default(&genesis_path.map(String::from), "<CHANGE_ME>"),
         "protocol_type": &my_config.protocol_type,
     });
 
@@ -578,7 +577,6 @@ mod tests {
             "agency_did":"Ab8TvZa3Q19VNkQVzAWVL7",
             "agency_endpoint":"http://www.whocares.org",
             "agency_verkey":"5LXaR43B1aQyeh94VBP8LG1Sgvjk7aNfqiksBCSjwqbf",
-            "genesis_path":"<CHANGE_ME>",
             "institution_did":"FhrSrYtQcw3p9xwf7NYemf",
             "institution_logo_url":"<CHANGE_ME>",
             "institution_name":"<CHANGE_ME>",
