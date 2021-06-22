@@ -1001,7 +1001,7 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 ///
 /// #Returns
 /// Error code as a u32
-- (void)getCredential:(NSInteger )credentailHandle
+- (void)getCredential:(NSInteger )credentialHandle
            completion:(void (^)(NSError *error, NSString *credential))completion;
 
 /// Delete a Credential associated with the state object from the Wallet and release handle of the state object.
@@ -1040,7 +1040,7 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 /// Error code as a u32
 - (void)credentialCreateWithOffer:(NSString *)sourceId
                             offer:(NSString *)credentialOffer
-                       completion:(void (^)(NSError *error, NSInteger credentailHandle))completion;
+                       completion:(void (^)(NSError *error, NSInteger credentialHandle))completion;
 
 /// Create a Credential object based off of a known message id for a given connection.
 ///
@@ -1181,7 +1181,7 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 ///
 /// #Returns
 /// Error code as a u32
-- (void)credentialUpdateState:(NSInteger )credentailHandle
+- (void)credentialUpdateState:(NSInteger )credentialHandle
                 completion:(void (^)(NSError *error, NSInteger state))completion;
 
 /// Update the state of the credential based on the given message.

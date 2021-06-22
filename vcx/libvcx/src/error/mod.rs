@@ -64,6 +64,8 @@ pub enum VcxErrorKind {
     ConnectionAlreadyExists,
     #[fail(display = "Connection does not exist")]
     ConnectionDoesNotExist,
+    #[fail(display = "Connection used for sending a message is not in the completed state")]
+    ConnectionNotCompleted,
 
     // Payment
     #[fail(display = "No payment information associated with object")]
@@ -344,6 +346,7 @@ impl From<VcxErrorKind> for u32 {
             VcxErrorKind::DeleteConnection => error::CANNOT_DELETE_CONNECTION.code_num,
             VcxErrorKind::ConnectionAlreadyExists => error::CONNECTION_ALREADY_EXISTS.code_num,
             VcxErrorKind::ConnectionDoesNotExist => error::CONNECTION_DOES_NOT_EXIST.code_num,
+            VcxErrorKind::ConnectionNotCompleted => error::CONNECTION_NOT_COMPLETED.code_num,
             VcxErrorKind::CreateCredDef => error::CREATE_CREDENTIAL_DEF_ERR.code_num,
             VcxErrorKind::CredDefAlreadyCreated => error::CREDENTIAL_DEF_ALREADY_CREATED.code_num,
             VcxErrorKind::InvalidCredDefHandle => error::INVALID_CREDENTIAL_DEF_HANDLE.code_num,
