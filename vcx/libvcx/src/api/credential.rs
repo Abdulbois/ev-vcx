@@ -1057,6 +1057,57 @@ pub extern fn vcx_credential_get_problem_report(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
+/// Retrieve information about a stored credential.
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// credential_handle: credential handle that was provided during creation. Used to identify credential object
+///
+/// cb: Callback that provides error status of api call, or returns the credential information in json format.
+/// {
+///     "referent": string, // cred_id in the wallet
+///     "attrs": {"key1":"raw_value1", "key2":"raw_value2"},
+///     "schema_id": string,
+///     "cred_def_id": string,
+///     "rev_reg_id": Optional<string>,
+///     "cred_rev_id": Optional<string>
+/// }
+///
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+#[allow(unused_variables, unused_mut)]
+#[no_mangle]
+pub extern fn vcx_credential_get_info(command_handle: CommandHandle,
+                                  credential_handle: Handle<Credentials>,
+                                  cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, *const c_char)>) -> u32 {
+    info!("vcx_credential_get_info >>>");
+
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+
+    spawn(move || {
+        match credential_handle.get_info() {
+            Ok(info) => {
+                trace!("vcx_credential_get_info_cb(command_handle: {}, rc: {}, info: {})",
+                       command_handle, error::SUCCESS.as_str(), secret!(info));
+                let info = CStringUtils::string_to_cstring(info);
+                cb(command_handle, error::SUCCESS.code_num, info.as_ptr());
+            }
+            Err(e) => {
+                warn!("vcx_credential_get_info_cb(command_handle: {}, rc: {})",
+                      command_handle, e);
+                cb(command_handle, e.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
 #[cfg(test)]
 mod tests {
     extern crate serde_json;

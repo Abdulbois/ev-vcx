@@ -1305,6 +1305,29 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 - (void)credentialGetProblemReport:(NSInteger) credentialHandle
                         completion:(void (^)(NSError *error, NSString *message))completion;
 
+/// Retrieve information about a stored credential.
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// credential_handle: credential handle that was provided during creation. Used to identify credential object
+///
+/// cb: Callback that provides error status of api call, or returns the credential information in json format.
+/// {
+///     "referent": string, // cred_id in the wallet
+///     "attrs": {"key1":"raw_value1", "key2":"raw_value2"},
+///     "schema_id": string,
+///     "cred_def_id": string,
+///     "rev_reg_id": Optional<string>,
+///     "cred_rev_id": Optional<string>
+/// }
+///
+///
+/// #Returns
+/// Error code as a u32
+- (void)credentialGetInfo:(NSInteger) credentialHandle
+                        completion:(void (^)(NSError *error, NSString *message))completion;
+
 /// Releases the credential object by de-allocating memory
 ///
 /// #Params

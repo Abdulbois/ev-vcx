@@ -238,6 +238,7 @@ export interface IFFIEntryPoint {
   vcx_delete_credential: (commandId: number, handle: number, cb: any) => number,
   vcx_credential_get_presentation_proposal_msg: (commandId: number, handle: number, cb: any) => number,
   vcx_credential_get_problem_report: (commandId: number, handle: number, cb: any) => number,
+  vcx_credential_get_info: (commandId: number, handle: number, cb: any) => number,
 
   // logger
   vcx_set_default_logger: (level: string) => number,
@@ -490,6 +491,7 @@ export const FFIConfiguration: { [ Key in keyof IFFIEntryPoint ]: any } = {
   vcx_credential_get_presentation_proposal_msg: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CREDENTIAL_HANDLE,
     FFI_CALLBACK_PTR]],
   vcx_credential_get_problem_report: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CONNECTION_HANDLE, FFI_CALLBACK_PTR]],
+  vcx_credential_get_info: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CONNECTION_HANDLE, FFI_CALLBACK_PTR]],
 
   // credentialDef
   vcx_credentialdef_create: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_SOURCE_ID, FFI_STRING_DATA, FFI_STRING_DATA,

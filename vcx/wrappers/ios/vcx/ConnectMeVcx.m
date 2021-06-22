@@ -1333,6 +1333,24 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
     }
 }
 
+- (void)credentialGetInfo:(NSInteger) credentialHandle
+               completion:(void (^)(NSError *error, NSString *message))completion
+{
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    vcx_error_t ret = vcx_credential_get_info(handle,
+                                              credentialHandle,
+                                              VcxWrapperCommonStringCallback);
+    if( ret != 0 )
+    {
+       [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+       dispatch_async(dispatch_get_main_queue(), ^{
+           completion(error, nil);
+       });
+    }
+}
+
 - (int)credentialRelease:(NSInteger) credentialHandle {
     return vcx_credential_release(credentialHandle);
 }

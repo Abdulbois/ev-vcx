@@ -475,6 +475,9 @@ vcx_error_t vcx_credential_get_presentation_proposal_msg(vcx_command_handle_t ha
 /** Get Problem Report message for Credential object in Failed or Rejected state. */
 vcx_error_t vcx_credential_get_problem_report(vcx_command_handle_t command_handle, vcx_credential_handle_t credential_handle, void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
+/** Retrieve information about a stored credential. */
+vcx_error_t vcx_credential_get_info(vcx_command_handle_t command_handle, vcx_credential_handle_t credential_handle, void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
 /**
  * wallet object
  *

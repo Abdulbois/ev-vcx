@@ -601,6 +601,32 @@ class Credential(VcxStateful):
         self.logger.debug("vcx_credential_get_problem_report completed")
         return result.decode() if result else None
 
+    async def vcx_credential_get_info(self) -> Optional[str]:
+        """
+        Retrieve information about a stored credential.
+        :return: Credential Info as JSON string or null
+           {
+               "referent": string, // cred_id in the wallet
+               "attrs": {"key1":"raw_value1", "key2":"raw_value2"},
+               "schema_id": string,
+               "cred_def_id": string,
+               "rev_reg_id": Optional<string>,
+               "cred_rev_id": Optional<string>
+           }
+        """
+
+        if not hasattr(Credential.vcx_credential_get_info, "cb"):
+            self.logger.debug("vcx_credential_get_info: Creating callback")
+            Credential.vcx_credential_get_info.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
+
+        c_connection_handle = c_uint32(self.handle)
+        result = await do_call('vcx_credential_get_info',
+                               c_connection_handle,
+                               Credential.vcx_credential_get_info.cb)
+
+        self.logger.debug("vcx_credential_get_info completed")
+        return result.decode() if result else None
+
 
 
 

@@ -479,6 +479,25 @@ impl Credential {
         trace!("Credential::get_presentation_proposal_msg <<< presentation_proposal: {:?}", presentation_proposal);
         Ok(presentation_proposal)
     }
+
+    fn get_info(&self) -> VcxResult<String> {
+        trace!("Credential::get_info >>>");
+        debug!("Credential {}: Getting credential info", self.source_id);
+
+        if self.state != VcxStateType::VcxStateAccepted {
+            return Err(VcxError::from_msg(VcxErrorKind::NotReady,
+                                   format!("Credential object {} in state {} not ready to get information about stored credential", self.source_id, self.state as u32)));
+        }
+
+        let cred_id = self.cred_id.as_ref()
+            .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Credential object state: `cred_id` not found", self.source_id)))?;
+
+        let credential_info = prover_get_credential(&cred_id)?;
+        let credential_info_json = json!(credential_info).to_string();
+
+        trace!("Credential::get_info <<< credential_json: {:?}", credential_info_json);
+        Ok(credential_info_json)
+    }
 }
 
 //********************************************
@@ -858,6 +877,15 @@ impl Handle<Credentials> {
                     Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Proprietary Credential type doesn't support this action: `get_problem_report_message`."))
                 }
                 Credentials::V3(obj) => obj.get_problem_report_message()
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn get_info(self) -> VcxResult<String> {
+        HANDLE_MAP.get(self, |obj| {
+            match obj {
+                Credentials::Pending(obj) | Credentials::V1(obj) => obj.get_info(),
+                Credentials::V3(obj) => obj.get_info()
             }
         }).map_err(handle_err)
     }
