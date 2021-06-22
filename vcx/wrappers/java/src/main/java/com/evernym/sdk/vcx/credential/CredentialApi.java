@@ -651,4 +651,35 @@ public class CredentialApi extends VcxJava.API {
 
         return future;
     }
+
+    /**
+     * Retrieve information about a stored credential.
+     *
+     * @param  credentialHandle handle pointing to Credential state object.
+     *
+     * @return                  Credential Information as JSON string or null
+     *                          {
+     *                              "referent": string, // cred_id in the wallet
+     *                              "attrs": {"key1":"raw_value1", "key2":"raw_value2"},
+     *                              "schema_id": string,
+     *                              "cred_def_id": string,
+     *                              "rev_reg_id": Optional<string>,
+     *                              "cred_rev_id": Optional<string>
+     *                           }
+     *
+     * @throws VcxException     If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> credentialGetInfo(
+            int credentialHandle
+    ) throws VcxException {
+
+        logger.debug("credentialGetInfo() called with: credentialHandle = [" + credentialHandle + "]");
+        CompletableFuture<String> future = new CompletableFuture<String>();
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_credential_get_info(commandHandle, credentialHandle, stringCB);
+        checkResult(result);
+
+        return future;
+    }
 }

@@ -758,6 +758,9 @@ public abstract class LibVcx {
         /** Get Problem Report message for object in Failed or Rejected state.. */
         public int vcx_credential_get_problem_report(int command_handle, int credential_handle, Callback cb);
 
+        /** Retrieve information about a stored credential. */
+        public int vcx_credential_get_info(int command_handle, int credential_handle, Callback cb);
+
         /**
          * wallet object
          *

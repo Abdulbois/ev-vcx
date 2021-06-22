@@ -11,7 +11,7 @@ use v3::messages::a2a::A2AMessage;
 use v3::messages::status::Status;
 use v3::handlers::connection::types::CompletedConnection;
 
-use utils::libindy::anoncreds::{self, libindy_prover_store_credential, libindy_prover_delete_credential};
+use utils::libindy::anoncreds::{self, libindy_prover_store_credential, libindy_prover_delete_credential, prover_get_credential};
 use error::prelude::*;
 use std::collections::HashMap;
 
@@ -22,6 +22,7 @@ use v3::handlers::connection::agent::AgentInfo;
 use messages::thread::Thread;
 use v3::handlers::connection::connection::Connection;
 use utils::libindy::signus::create_and_store_my_did;
+use utils::libindy::types::CredentialInfo;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HolderSM {
@@ -270,6 +271,25 @@ impl HolderSM {
                     Status::Success | Status::Undefined => None,
                     Status::Rejected(ref problem_report) => problem_report.as_ref(),
                     Status::Failed(problem_report) => Some(problem_report),
+                }
+            }
+        }
+    }
+
+    pub fn get_info(&self) -> VcxResult<CredentialInfo> {
+        match self.state {
+            HolderState::OfferReceived(_) |
+            HolderState::RequestSent(_) => {
+                Err(VcxError::from_msg(VcxErrorKind::NotReady,
+                                       format!("Holder object {} in state {} not ready to get information about stored credential", self.source_id, self.state())))
+            },
+            HolderState::Finished(ref state) => {
+                match state.cred_id.as_ref() {
+                    Some(cred_id) => prover_get_credential(&cred_id),
+                    None => {
+                        Err(VcxError::from_msg(VcxErrorKind::NotReady,
+                                               format!("Holder object {} in state {} not ready to get information about stored credential", self.source_id, self.state())))
+                    }
                 }
             }
         }
