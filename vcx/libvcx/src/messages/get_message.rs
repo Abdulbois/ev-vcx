@@ -13,7 +13,6 @@ use v3::messages::a2a::A2AMessage as AriesA2AMessage;
 use v3::utils::encryption_envelope::EncryptionEnvelope;
 use messages::issuance::credential_offer::CredentialOffer;
 use std::convert::TryInto;
-
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct GetMessages {
@@ -323,43 +322,36 @@ impl Message {
     pub fn decrypt(&self, vk: &str) -> Message {
         trace!("Message::decrypt >>> vk: {:?}", secret!(vk));
 
+        // TODO: must be Result
         let mut new_message = self.clone();
+        if let Some(ref payload) = self.payload {
+            let decrypted_payload = match payload {
+                MessagePayload::V1(payload) => {
+                    Payloads::decrypt_payload_v1(&vk, &payload)
+                        .map(Payloads::PayloadV1)
+                }
+                MessagePayload::V2(payload) => {
+                    Payloads::decrypt_payload_v2(&vk, &payload)
+                        .map(Payloads::PayloadV2)
+                }
+            };
+
+            if let Ok(mut decrypted_payload) = decrypted_payload {
+                Self::_set_ref_msg_id(&mut decrypted_payload, &self.uid)
+                    .map_err(|err| error!("Could not set ref_msg_id: {:?}", err)).ok();
+                new_message.decrypted_payload = ::serde_json::to_string(&decrypted_payload).ok();
+            } else if let Ok(decrypted_payload) = self._decrypt_v3_message() {
+                new_message.msg_type = RemoteMessageType::Other(String::from("aries"));
+                new_message.decrypted_payload = ::serde_json::to_string(&json!(decrypted_payload)).ok()
+            } else {
+                warn!("Message::decrypt <<< were not able to decrypt message, setting null");
+                new_message.decrypted_payload = ::serde_json::to_string(&json!(null)).ok();
+            }
+        }
         new_message.payload = None;
 
-        // try to decrypt aries based message first
-        if let Ok(decrypted_payload) = self._decrypt_v3_message() {
-            new_message.msg_type = RemoteMessageType::Other(String::from("aries"));
-            new_message.decrypted_payload = ::serde_json::to_string(&json!(decrypted_payload)).ok();
-            trace!("Message::decrypt <<< message: {:?}", secret!(new_message));
-            return new_message;
-        }
-
-        // decrypt proprietary 0.5 / 0.6 message
-        if self.payload.is_none() {
-            return new_message
-        }
-
-        let decrypted_payload = match self.payload.as_ref().unwrap() {
-            MessagePayload::V1(payload) => {
-                Payloads::decrypt_payload_v1(&vk, &payload)
-                    .map(Payloads::PayloadV1)
-            }
-            MessagePayload::V2(payload) => {
-                Payloads::decrypt_payload_v2(&vk, &payload)
-                    .map(Payloads::PayloadV2)
-            }
-        };
-
-        if let Ok(mut decrypted_payload) = decrypted_payload {
-            Self::_set_ref_msg_id(&mut decrypted_payload, &self.uid)
-                .map_err(|err| error!("Could not set ref_msg_id: {:?}", err)).ok();
-            new_message.decrypted_payload = ::serde_json::to_string(&decrypted_payload).ok();
-        } else {
-            warn!("Message::decrypt <<< were not able to decrypt message, setting null");
-            new_message.decrypted_payload = ::serde_json::to_string(&json!(null)).ok();
-        }
-
         trace!("Message::decrypt <<< message: {:?}", secret!(new_message));
+
         new_message
     }
 
