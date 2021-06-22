@@ -105,6 +105,7 @@ public enum ErrorCode {
     MESSAGE_IS_OUT_OF_THREAD(1109),
     INVALID_PROOF_PROPOSAL(1110),
     INCOMPATIBLE_PARAMETERS(1111),
+    CONNECTION_NOT_COMPLETED(1112),
     UNIDENTIFIED_ERROR_CODE(9999); //Wrapper expects to never receive 9999 from libindy. If libindy ever reaches this number in error codes, please increment number in UNIDENTIFIED_ERROR_CODE(<new bigger number>)
 
     private int value;

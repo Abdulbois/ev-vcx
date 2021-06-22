@@ -128,6 +128,7 @@ impl_error! {
     INVALID_DID_DOC: 1108 => "The format of DIDDoc is invalid",
     MESSAGE_IS_OUT_OF_THREAD: 1109 => "The format of DIDDoc is invalid",
     INCOMPATIBLE_PARAMETERS: 1111 => "Passed a combination of incompatible parameters",
+    CONNECTION_NOT_COMPLETED: 1112 => "Connection used for sending a message is not in the completed state",
 }
 
 /// Returns the corresponding message for the provided error code _without_ a null terminator
