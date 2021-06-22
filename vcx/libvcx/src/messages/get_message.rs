@@ -1,7 +1,7 @@
 use settings;
 use messages::message_type::{MessageTypes, MessageTypeV2};
 use messages::*;
-use messages::payload::{Payloads, PayloadTypes, PayloadKinds, PayloadV1, PayloadV2};
+use messages::payload::{Payloads, PayloadTypes, PayloadKinds, PayloadV1};
 use utils::{httpclient, constants};
 use error::prelude::*;
 use settings::ProtocolTypes;
@@ -323,59 +323,43 @@ impl Message {
     pub fn decrypt(&self, vk: &str) -> Message {
         trace!("Message::decrypt >>> vk: {:?}", secret!(vk));
 
-        // TODO: must be Result
         let mut new_message = self.clone();
-        if let Some(ref payload) = self.payload {
-            let decrypted_payload = match payload {
-                MessagePayload::V1(payload) => {
-                    if let Ok(payload) = Payloads::decrypt_payload_v1(&vk, &payload) {
-                        Ok(Payloads::PayloadV1(payload))
-                    } else {
-                        warn!("fallback to Payloads::decrypt_payload_v12 in Message:decrypt for MessagePayload::V1");
-                        serde_json::from_slice::<serde_json::Value>(i8_as_u8_slice(payload))
-                            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot deserialize MessagePayload: {}", err)))
-                            .and_then(|json| Payloads::decrypt_payload_v12(&vk, &json))
-                            .map(|json| {
-                                (
-                                    json.type_,
-                                    match json.msg {
-                                        serde_json::Value::String(_str) => _str,
-                                        value => value.to_string()
-                                    }
-                                )
-                            })
-                            .map(|(type_, payload)|
-                                Payloads::PayloadV2(PayloadV2 {
-                                    type_,
-                                    id: ::utils::uuid::uuid(),
-                                    msg: payload,
-                                    thread: Default::default(),
-                                })
-                            )
-                    }
-                }
-                MessagePayload::V2(payload) => {
-                    Payloads::decrypt_payload_v2(&vk, &payload)
-                        .map(Payloads::PayloadV2)
-                }
-            };
-
-            if let Ok(mut decrypted_payload) = decrypted_payload {
-                Self::_set_ref_msg_id(&mut decrypted_payload, &self.uid)
-                    .map_err(|err| error!("Could not set ref_msg_id: {:?}", err)).ok();
-                new_message.decrypted_payload = ::serde_json::to_string(&decrypted_payload).ok();
-            } else if let Ok(decrypted_payload) = self._decrypt_v3_message() {
-                new_message.msg_type = RemoteMessageType::Other(String::from("aries"));
-                new_message.decrypted_payload = ::serde_json::to_string(&json!(decrypted_payload)).ok()
-            } else {
-                warn!("Message::decrypt <<< were not able to decrypt message, setting null");
-                new_message.decrypted_payload = ::serde_json::to_string(&json!(null)).ok();
-            }
-        }
         new_message.payload = None;
 
-        trace!("Message::decrypt <<< message: {:?}", secret!(new_message));
+        // try to decrypt aries based message first
+        if let Ok(decrypted_payload) = self._decrypt_v3_message() {
+            new_message.msg_type = RemoteMessageType::Other(String::from("aries"));
+            new_message.decrypted_payload = ::serde_json::to_string(&json!(decrypted_payload)).ok();
+            trace!("Message::decrypt <<< message: {:?}", secret!(new_message));
+            return new_message;
+        }
 
+        // decrypt proprietary 0.5 / 0.6 message
+        if self.payload.is_none() {
+            return new_message
+        }
+
+        let decrypted_payload = match self.payload.as_ref().unwrap() {
+            MessagePayload::V1(payload) => {
+                Payloads::decrypt_payload_v1(&vk, &payload)
+                    .map(Payloads::PayloadV1)
+            }
+            MessagePayload::V2(payload) => {
+                Payloads::decrypt_payload_v2(&vk, &payload)
+                    .map(Payloads::PayloadV2)
+            }
+        };
+
+        if let Ok(mut decrypted_payload) = decrypted_payload {
+            Self::_set_ref_msg_id(&mut decrypted_payload, &self.uid)
+                .map_err(|err| error!("Could not set ref_msg_id: {:?}", err)).ok();
+            new_message.decrypted_payload = ::serde_json::to_string(&decrypted_payload).ok();
+        } else {
+            warn!("Message::decrypt <<< were not able to decrypt message, setting null");
+            new_message.decrypted_payload = ::serde_json::to_string(&json!(null)).ok();
+        }
+
+        trace!("Message::decrypt <<< message: {:?}", secret!(new_message));
         new_message
     }
 

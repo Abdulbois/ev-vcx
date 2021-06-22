@@ -394,14 +394,8 @@ pub fn get_threadpool_size() -> usize {
 
 pub fn get_protocol_version() -> usize {
     let protocol_version = match get_config_value(CONFIG_PROTOCOL_VERSION) {
-        Ok(ver) => ver.parse::<usize>().unwrap_or_else(|err| {
-            warn!("Can't parse value of protocol version from config ({}), use default one ({})", err, DEFAULT_PROTOCOL_VERSION);
-            DEFAULT_PROTOCOL_VERSION
-        }),
-        Err(err) => {
-            info!("Can't fetch protocol version from config ({}), use default one ({})", err, DEFAULT_PROTOCOL_VERSION);
-            DEFAULT_PROTOCOL_VERSION
-        }
+        Ok(ver) => ver.parse::<usize>().unwrap_or(DEFAULT_PROTOCOL_VERSION),
+        Err(_) => DEFAULT_PROTOCOL_VERSION
     };
     if protocol_version > MAX_SUPPORTED_PROTOCOL_VERSION {
         error!("Protocol version from config {}, greater then maximal supported {}, use maximum one",

@@ -235,7 +235,6 @@ pub fn get_final_config(my_did: &str,
 
     let institution_name = my_config.name.as_ref().or(my_config.institution_name.as_ref());
     let institution_logo_url = my_config.logo.as_ref().or(my_config.institution_logo_url.as_ref());
-    let genesis_path = my_config.path.as_ref().or(my_config.genesis_path.as_ref());
 
     let mut final_config = json!({
         "wallet_key": &my_config.wallet_key,
@@ -251,9 +250,12 @@ pub fn get_final_config(my_did: &str,
         "remote_to_sdk_verkey": agent_vk,
         "institution_name": get_or_default(&institution_name.map(String::from), "<CHANGE_ME>"),
         "institution_logo_url": get_or_default(&institution_logo_url.map(String::from), "<CHANGE_ME>"),
-        "genesis_path": get_or_default(&genesis_path.map(String::from), "<CHANGE_ME>"),
         "protocol_type": &my_config.protocol_type,
     });
+
+    if let Some(genesis_path) = &my_config.genesis_path {
+        final_config["genesis_path"] = json!(genesis_path);
+    }
 
     if let Some(key_derivation) = &my_config.wallet_key_derivation {
         final_config["wallet_key_derivation"] = json!(key_derivation);
@@ -578,7 +580,6 @@ mod tests {
             "agency_did":"Ab8TvZa3Q19VNkQVzAWVL7",
             "agency_endpoint":"http://www.whocares.org",
             "agency_verkey":"5LXaR43B1aQyeh94VBP8LG1Sgvjk7aNfqiksBCSjwqbf",
-            "genesis_path":"<CHANGE_ME>",
             "institution_did":"FhrSrYtQcw3p9xwf7NYemf",
             "institution_logo_url":"<CHANGE_ME>",
             "institution_name":"<CHANGE_ME>",
