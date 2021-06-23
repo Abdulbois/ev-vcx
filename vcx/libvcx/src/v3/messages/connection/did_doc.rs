@@ -342,7 +342,7 @@ impl Service {
             Ok(decoded[2..].to_base58())
         } else{
             Err(VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
-                                   format!("Invalid Service Key: Multicodec identifier is either not supported or not recognized. Expected: 0xED, Found: {}.`", decoded[0])))
+                                   format!("Invalid Service Key: Multicodec identifier is either not supported or not recognized. Expected: 0xED01, Found: {} in key {}.`", decoded[0], key)))
         }
     }
 
