@@ -253,7 +253,9 @@ pub fn get_final_config(my_did: &str,
         "protocol_type": &my_config.protocol_type,
     });
 
-    if let Some(genesis_path) = &my_config.genesis_path {
+    let genesis_path = my_config.path.as_ref().or(my_config.genesis_path.as_ref());
+
+    if let Some(genesis_path) = &genesis_path {
         final_config["genesis_path"] = json!(genesis_path);
     }
 
