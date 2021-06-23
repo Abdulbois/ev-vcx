@@ -421,7 +421,7 @@ pub mod tests {
         String::from("3LYuxJBJkngDbvJj4zjx13DBUdZ2P96eNybwd2n9L9AU")
     }
 
-    pub fn _did_key_1() -> String { String::from("did:key:6MkukGVb3mRvTu1msArDKY9UwxeZFGjmwnCKtdQttr4Fk6i")}
+    pub fn _did_key_1() -> String { String::from("did:key:z6MkukGVb3mRvTu1msArDKY9UwxeZFGjmwnCKtdQttr4Fk6i")}
 
     pub fn _did_key_2() -> String { String::from("did:key:z6Mkw7FfEGiwh6YQbCLTNbJWAYR8boGNMt7PCjh35GLNxmMo")}
 
