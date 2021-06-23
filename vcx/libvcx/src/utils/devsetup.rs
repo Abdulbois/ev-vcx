@@ -3,7 +3,7 @@ use ::{settings, utils};
 use std::fs;
 use utils::libindy::wallet::{reset_wallet_handle, delete_wallet, create_wallet};
 use ::messages::agent_provisioning::agent_provisioning_v0_7::provision;
-use utils::libindy::pool::reset_pool_handle;
+use utils::libindy::pool::reset_pool_handles;
 use settings::set_defaults;
 use futures::Future;
 use std::sync::Once;
@@ -55,7 +55,7 @@ fn setup() {
 fn tear_down() {
     settings::clear_config();
     reset_wallet_handle();
-    reset_pool_handle();
+    reset_pool_handles();
 }
 
 impl SetupEmpty {

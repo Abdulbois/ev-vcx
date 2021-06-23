@@ -2,43 +2,67 @@ use futures::Future;
 use indy::{pool, ErrorCode};
 
 use settings;
-use std::sync::atomic::{AtomicI32, Ordering};
 use error::prelude::*;
+use std::sync::RwLock;
 
-mod handle {
-    use super::*;
-
-    // NOTE: we use `Ordering::Relaxed` because this is a glorified counter;
-    // we don't synchronize anything with this atomic type
-    static HANDLE: AtomicI32 = AtomicI32::new(0);
-
-    // NOTE: only positive values are considered valid handles
-    pub fn get() -> VcxResult<i32> {
-        let handle = HANDLE.load(Ordering::Relaxed);
-        if handle > 0 {
-            Ok(handle)
-        } else {
-            Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"))
-        }
-    }
-
-    // NOTE: it's okay to store invalid handles since we have to go through `get`
-    // to actually use the handle for anything, and we validate the handle there
-    pub fn set(handle: i32) {
-        HANDLE.store(handle, Ordering::Relaxed);
-    }
+lazy_static! {
+    static ref POOLS: RwLock<Vec<i32>> = RwLock::new(Vec::new());
 }
 
-pub fn set_pool_handle(handle: i32) {
-    handle::set(handle);
+pub fn add_pool_handle(handle: i32) {
+    let mut pools = match POOLS.write() {
+        Ok(pools) => pools,
+        Err(_) => {
+            error!("Cannot add pool handle");
+            return;
+        }
+    };
+
+    pools.push(handle)
 }
 
 pub fn get_pool_handle() -> VcxResult<i32> {
-    handle::get()
+    match POOLS.read() {
+        Ok(pools) => {
+            if pools.len() == 1 {
+                return Ok(pools[0])
+            } else if pools.len() > 1 {
+                Err(VcxError::from_msg(VcxErrorKind::InvalidState,
+                                       "There is more than one pool opened. In order to do write transactions, \
+                                       you must be connected to a single network!"))
+            } else {
+                Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"))
+            }
+        },
+        Err(_) => Err(VcxError::from_msg(VcxErrorKind::InternalError, "Cannot get lock for opened pools"))
+    }
 }
 
-pub fn reset_pool_handle() {
-    handle::set(0);
+pub fn get_pool_handles() -> VcxResult<Vec<i32>> {
+    let pools = match POOLS.read() {
+        Ok(pools) => pools.clone(),
+        Err(_) => {
+            return Err(VcxError::from_msg(VcxErrorKind::InternalError, "Cannot get lock for opened pools"))
+        }
+    };
+
+    if pools.is_empty(){
+        return Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"))
+    }
+
+    Ok(pools)
+}
+
+pub fn reset_pool_handles() {
+    let mut pools = match POOLS.write() {
+        Ok(pools) => pools,
+        Err(_) => {
+            error!("Cannot add pool handle");
+            return;
+        }
+    };
+
+    pools.clear();
 }
 
 pub fn set_protocol_version() -> VcxResult<()> {
@@ -97,7 +121,7 @@ pub fn open_pool_ledger(pool_name: &str, config: Option<&str>) -> VcxResult<u32>
                 }
             })?;
 
-    set_pool_handle(handle);
+    add_pool_handle(handle);
     Ok(handle as u32)
 }
 
@@ -106,48 +130,66 @@ pub fn init_pool() -> VcxResult<()> {
 
     if settings::indy_mocks_enabled() { return Ok(()); }
 
-    if get_pool_handle().is_ok(){
+    if get_pool_handle().is_ok() {
         debug!("Pool is already initialized.");
         return Ok(())
     }
 
-    let pool_name = settings::get_config_value(settings::CONFIG_POOL_NAME)
-        .unwrap_or(settings::DEFAULT_POOL_NAME.to_string());
+    let networks = settings::get_pool_networks()?;
 
-    let path: String = settings::get_config_value(settings::CONFIG_GENESIS_PATH)?;
+    for config in networks {
+        let pool_name = config.pool_name
+            .ok_or(VcxError::from_msg(
+                VcxErrorKind::InvalidConfiguration,
+                format!("Cannot read Pool Network Name from library settings")
+            ))?;
 
-    trace!("opening pool {} with genesis_path: {}", pool_name, path);
+        let pool_config = config.pool_config.map(|config| json!(config).to_string());
 
-    create_pool_ledger_config(&pool_name, &path)
-        .map_err(|err| err.extend("Can not create Pool Ledger Config"))?;
+        trace!("opening pool {} with genesis_path: {}", pool_name, &config.genesis_path);
 
-    debug!("Pool Config Created Successfully");
-    let pool_config: Option<String> = settings::get_config_value(settings::CONFIG_POOL_CONFIG).ok();
+        create_pool_ledger_config(&pool_name, &config.genesis_path)
+            .map_err(|err| err.extend("Can not create Pool Ledger Config"))?;
 
-    open_pool_ledger(&pool_name, pool_config.as_ref().map(String::as_str))
-        .map_err(|err| err.extend("Can not open Pool Ledger"))?;
+        debug!("Pool Config Created Successfully");
+
+        open_pool_ledger(&pool_name, pool_config.as_ref().map(String::as_str))
+            .map_err(|err| err.extend("Can not open Pool Ledger"))?;
+    }
 
     Ok(())
 }
 
 pub fn close() -> VcxResult<()> {
-    let handle = get_pool_handle()?;
+    let handles = get_pool_handles()?;
 
-    pool::close_pool_ledger(handle).wait()?;
-    reset_pool_handle();
+    for handle in handles {
+        pool::close_pool_ledger(handle).wait()?;
+    }
+
+    reset_pool_handles();
 
     Ok(())
 }
 
-pub fn delete(pool_name: &str) -> VcxResult<()> {
-    trace!("delete >>> pool_name: {}", pool_name);
+pub fn delete() -> VcxResult<()> {
+    trace!("delete >>>");
 
     if settings::indy_mocks_enabled() {
-        reset_pool_handle();
+        reset_pool_handles();
         return Ok(());
     }
 
-    pool::delete_pool_ledger(pool_name).wait()?;
+    let networks = settings::get_pool_networks()?;
+    for config in networks {
+        let pool_name = config.pool_name
+            .ok_or(VcxError::from_msg(
+                VcxErrorKind::InvalidConfiguration,
+                format!("Cannot read Pool Network Name from library settings")
+            ))?;
+
+        pool::delete_pool_ledger(&pool_name).wait()?;
+    }
 
     Ok(())
 }
@@ -171,7 +213,7 @@ pub mod tests {
 
     pub fn delete_test_pool() {
         close().ok();
-        delete(POOL).ok();
+        delete().ok();
     }
 
     pub fn open_test_pool() -> u32 {

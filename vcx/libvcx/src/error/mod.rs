@@ -18,6 +18,8 @@ pub mod prelude {
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Fail, Serialize, Deserialize)]
 pub enum VcxErrorKind {
     // Common
+    #[fail(display = "Internal Error")]
+    InternalError,
     #[fail(display = "Object is in invalid state for requested operation")]
     InvalidState,
     #[fail(display = "Invalid configuration was passed into provisioning /initialization functions")]
@@ -322,6 +324,7 @@ impl From<VcxError> for u32 {
 impl From<VcxErrorKind> for u32 {
     fn from(code: VcxErrorKind) -> u32 {
         match code {
+            VcxErrorKind::InternalError => error::UNKNOWN_ERROR.code_num,
             VcxErrorKind::InvalidState => error::INVALID_STATE.code_num,
             VcxErrorKind::InvalidConfiguration => error::INVALID_CONFIGURATION.code_num,
             VcxErrorKind::InvalidHandle => error::INVALID_OBJ_HANDLE.code_num,

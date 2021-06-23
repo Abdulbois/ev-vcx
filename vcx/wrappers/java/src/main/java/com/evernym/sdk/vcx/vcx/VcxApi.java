@@ -170,6 +170,10 @@ public class VcxApi extends VcxJava.API {
      *                                  }
      *                          }
      *
+     *                          Note: You can also pass a list of network configs.
+     *                                In this case library will connect to multiple ledger networks and will look up public data in each of them.
+     *                                [{ "genesis_path": string, "pool_name": string, ... }]
+     *
      * @return                  void
      *
      * @throws VcxException   If an exception occurred in Libvcx library.

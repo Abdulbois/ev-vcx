@@ -1839,6 +1839,9 @@ vcx_error_t vcx_init_with_config(vcx_command_handle_t command_handle,
 ///                                         By default Libindy sends a read requests to 2 nodes in the pool.
 ///                             }
 ///                 }
+///                 Note: You can also pass a list of network configs.
+///                       In this case library will connect to multiple ledger networks and will look up public data in each of them.
+///                     [{ "genesis_path": string, "pool_name": string, ... }]}
 ///
 ///
 /// cb: Callback that provides no value

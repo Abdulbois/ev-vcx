@@ -51,8 +51,9 @@ pub static CONFIG_TXN_AUTHOR_AGREEMENT: &'static str = "author_agreement";
 pub static CONFIG_USE_LATEST_PROTOCOLS: &'static str = "use_latest_protocols";
 pub static CONFIG_POOL_CONFIG: &'static str = "pool_config";
 pub static CONFIG_DID_METHOD: &str = "did_method";
-pub static COMMUNICATION_METHOD: &str = "communication_method";// proprietary or aries
+pub static COMMUNICATION_METHOD: &str = "communication_method"; // proprietary or aries
 pub static CONFIG_ACTORS: &str = "actors"; // inviter, invitee, issuer, holder, prover, verifier, sender, receiver
+pub static CONFIG_POOL_NETWORKS: &str = "pool_networks";
 
 pub static DEFAULT_PROTOCOL_VERSION: usize = 2;
 pub static MAX_SUPPORTED_PROTOCOL_VERSION: usize = 2;
@@ -190,6 +191,7 @@ pub fn get_wallet_storage_config() -> String {
 
 #[cfg(all(feature="mysql"))]
 use std::env;
+use utils::random::random_string;
 
 #[cfg(all(feature="mysql"))]
 fn get_write_host() -> String {
@@ -223,12 +225,12 @@ pub fn get_wallet_storage_credentials() -> String {
     }).to_string()
 }
 
-#[cfg(all(feature="mysql"))]
+#[cfg(all(feature = "mysql"))]
 fn get_user() -> String {
     env::var("DB_USER").unwrap_or("root".to_string())
 }
 
-#[cfg(all(feature="mysql"))]
+#[cfg(all(feature = "mysql"))]
 fn get_pass() -> String {
     env::var("DB_ROOT").unwrap_or("root".to_string())
 }
@@ -283,7 +285,7 @@ fn validate_optional_config_val<F, S, E>(val: Option<&String>, err: VcxErrorKind
             closure(val_)
                 .or(Err(VcxError::from(err)))?;
             Ok(())
-        },
+        }
         None => Ok(())
     }
 }
@@ -336,6 +338,8 @@ pub fn process_config_string(config: &str, do_validation: bool) -> VcxResult<u32
         validate_config(&setting.borrow())?;
     }
 
+    map_pool_settings();
+
     trace!("process_config_string <<<");
 
     Ok(error::SUCCESS.code_num)
@@ -346,37 +350,79 @@ pub fn process_config_file(path: &str) -> VcxResult<u32> {
 
     if !Path::new(path).is_file() {
         error!("Configuration path was invalid");
-        return Err(VcxError::from_msg(VcxErrorKind::InvalidConfiguration, format!("Cannot find config file by specified path: {:?}", path)))
+        return Err(VcxError::from_msg(VcxErrorKind::InvalidConfiguration, format!("Cannot find config file by specified path: {:?}", path)));
     }
 
     let config = read_file(path)?;
     process_config_string(&config, true)
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
-struct PoolConfig {
-    genesis_path: String,
-    pool_name: Option<String>,
-    pool_config: Option<serde_json::Value>,
+pub struct PoolConfig {
+    pub genesis_path: String,
+    pub pool_name: Option<String>,
+    pub pool_config: Option<serde_json::Value>,
 }
 
-pub fn process_pool_config_string(config: &str) -> VcxResult<u32> {
+#[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(untagged)]
+pub enum PoolConfigs {
+    List(Vec<PoolConfig>),
+    Single(PoolConfig),
+}
+
+pub fn process_pool_config_string(config: &str) -> VcxResult<()> {
     trace!("process_pool_config_string >>> config {}", secret!(config));
     debug!("processing pool config");
 
-    let _config: PoolConfig = serde_json::from_str(config)
-        .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidConfiguration, format!("Invalid Pool configuration JSON. Err: {:?}", err)))?;
+    let pool_configs: PoolConfigs = serde_json::from_str(config)
+        .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidConfiguration,
+                                          format!("Cannot parse Pool Network configuration from provided config JSON. Err: {:?}", err)))?;
 
-    let res = process_config_string(config, false)?;
+    match pool_configs {
+        PoolConfigs::Single(mut config_) => {
+            set_pool_name_if_missing(&mut config_);
+            set_config_value(CONFIG_POOL_NETWORKS, &json!(vec![config_]).to_string());
+        }
+        PoolConfigs::List(mut configs) => {
+            for config in configs.iter_mut(){
+                set_pool_name_if_missing(config);
+            }
+            set_config_value(CONFIG_POOL_NETWORKS, &json!(configs).to_string());
+        }
+    }
 
     trace!("process_pool_config_string <<<");
-    Ok(res)
+    return Ok(());
+}
+
+fn set_pool_name_if_missing(config: &mut PoolConfig) {
+    if config.pool_name.is_none() {
+        config.pool_name = Some(random_string(10));
+    }
+}
+
+pub fn map_pool_settings() {
+    // map pool related settings from set of fields to new single setting
+    let pool_name = get_config_value(CONFIG_POOL_NAME).ok();
+    let genesis_path = get_config_value(CONFIG_GENESIS_PATH).ok();
+    let pool_config = get_config_value(CONFIG_POOL_CONFIG).ok();
+    if let Some(genesis_path_) = genesis_path {
+        let network_config = PoolConfig {
+            genesis_path: genesis_path_.clone(),
+            pool_name: pool_name.or(Some(random_string(10))),
+            pool_config: pool_config.and_then(
+                |config| serde_json::from_str::<serde_json::Value>(&config).ok()
+            )
+        };
+        set_config_value(CONFIG_POOL_NETWORKS, &json!(vec![network_config]).to_string());
+    }
 }
 
 pub fn get_wallet_name() -> VcxResult<String> {
     get_config_value(CONFIG_WALLET_NAME)
-        .map_err(|_|VcxError::from(VcxErrorKind::MissingWalletKey))
+        .map_err(|_| VcxError::from(VcxErrorKind::MissingWalletKey))
 }
 
 pub fn get_threadpool_size() -> usize {
@@ -425,7 +471,7 @@ pub fn get_config_value(key: &str) -> VcxResult<String> {
     let get_config_value = get_opt_config_value(key)
         .ok_or(VcxError::from_msg(
             VcxErrorKind::InvalidConfiguration,
-            format!("Cannot read the value for \"{}\" key from library settings", key)
+            format!("Cannot read the value for \"{}\" key from library settings", key),
         ))?;
 
     trace!("get_config_value <<< value: {}", secret!(get_config_value));
@@ -436,7 +482,7 @@ pub fn set_opt_config_value(key: &str, value: &Option<String>) {
     trace!("set_opt_config_value >>> key: {}, key: {:?}", key, secret!(value));
 
     if let Some(v) = value {
-       set_config_value(key, v.as_str())
+        set_config_value(key, v.as_str())
     }
 }
 
@@ -508,12 +554,12 @@ pub fn get_connecting_protocol_version() -> ProtocolTypes {
 pub fn _config_str_to_bool(key: &str) -> VcxResult<bool> {
     get_config_value(key)?
         .parse::<bool>()
-        .map_err(|_|VcxError::from_msg(VcxErrorKind::InvalidConfiguration, format!("{} - config supposed to be true | false", key)))
+        .map_err(|_| VcxError::from_msg(VcxErrorKind::InvalidConfiguration, format!("{} - config supposed to be true | false", key)))
 }
 
 pub fn get_payment_method() -> VcxResult<String> {
     get_config_value(CONFIG_PAYMENT_METHOD)
-        .map_err(|_|VcxError::from_msg(VcxErrorKind::MissingPaymentMethod, "Payment Method is not set."))
+        .map_err(|_| VcxError::from_msg(VcxErrorKind::MissingPaymentMethod, "Payment Method is not set."))
 }
 
 pub fn get_communication_method() -> VcxResult<String> {
@@ -602,6 +648,23 @@ pub fn get_protocol_type() -> ProtocolTypes {
 
     trace!("get_protocol_type >>> protocol_type: {:?}", protocol_type);
     protocol_type
+}
+
+pub fn get_pool_networks() -> VcxResult<Vec<PoolConfig>> {
+    let networks = get_config_value(CONFIG_POOL_NETWORKS)
+        .map_err(|_| VcxError::from_msg(
+            VcxErrorKind::InvalidConfiguration,
+            format!("Cannot open Pool Network: Provided configuration JSON doesn't contain pool network information")
+        ))?;
+
+
+    let networks: Vec<PoolConfig> = serde_json::from_str(&networks)
+        .map_err(|err| VcxError::from_msg(
+            VcxErrorKind::InvalidConfiguration,
+            format!("Cannot read Pool Network information from library settings. Err: {:?}", err)
+        ))?;
+
+    Ok(networks)
 }
 
 pub fn clear_config() {

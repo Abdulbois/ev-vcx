@@ -717,7 +717,7 @@ pub extern fn vcx_messages_update_status(command_handle: CommandHandle,
 /// Error code as u32
 #[no_mangle]
 pub extern fn vcx_pool_set_handle(handle: i32) -> i32 {
-    ::utils::libindy::pool::set_pool_handle(handle);
+    ::utils::libindy::pool::add_pool_handle(handle);
 
     handle
 }

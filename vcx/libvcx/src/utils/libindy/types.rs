@@ -32,3 +32,13 @@ pub struct AttributeValues {
     pub raw: String,
     pub encoded: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct CredentialDefinitionData {
+    id: String,
+    #[serde(rename = "schemaId")]
+    schema_id: String,
+    #[serde(rename = "type")]
+    type_: String,
+    value: serde_json::Value,
+}

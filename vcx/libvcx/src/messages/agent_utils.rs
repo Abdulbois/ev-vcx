@@ -150,6 +150,7 @@ pub struct Config {
     genesis_path: Option<String>,
     institution_name: Option<String>,
     institution_logo_url: Option<String>,
+    pool_networks: Option<serde_json::Value>,
 }
 
 pub fn set_config_values(my_config: &Config) {
@@ -282,6 +283,9 @@ pub fn get_final_config(my_did: &str,
     }
     if let Some(_use_latest_protocols) = &my_config.use_latest_protocols {
         final_config["use_latest_protocols"] = json!(_use_latest_protocols);
+    }
+    if let Some(_pool_networks) = &my_config.pool_networks {
+        final_config["pool_networks"] = json!(_pool_networks);
     }
 
     Ok(final_config.to_string())

@@ -131,7 +131,8 @@ fn _finish_init(command_handle: CommandHandle, cb: extern fn(xcommand_handle: Co
 
     spawn(move || {
         let pool_open_thread = thread::spawn(|| {
-            if settings::get_config_value(settings::CONFIG_GENESIS_PATH).is_err() {
+            if settings::get_config_value(settings::CONFIG_POOL_NETWORKS).is_err() {
+                info!("Skipping connection to Pool Ledger Network as no configs passed");
                 return Ok(());
             }
 
@@ -238,7 +239,7 @@ pub extern fn vcx_init_minimal(config: *const c_char) -> u32 {
 ///
 /// command_handle: command handle to map callback to user context.
 ///
-/// pool_config: string - the configuration JSON containing pool related settings:
+/// pool_config: string - the configuration JSON containing pool related settings.
 ///                 {
 ///                     genesis_path: string - path to pool ledger genesis transactions,
 ///                     pool_name: Optional[string] - name of the pool ledger configuration will be created.
@@ -255,9 +256,12 @@ pub extern fn vcx_init_minimal(config: *const c_char) -> u32 {
 ///                                         Note: Nodes not specified will be placed randomly.
 ///                                 "number_read_nodes": int (optional) - the number of nodes to send read requests (2 by default)
 ///                                         By default Libindy sends a read requests to 2 nodes in the pool.
-///    }
+///                     }
 ///                 }
 ///
+///                 Note: You can also pass a list of network configs.
+///                       In this case library will connect to multiple ledger networks and will look up public data in each of them.
+///                     [{ "genesis_path": string, "pool_name": string, ... }]
 ///
 /// cb: Callback that provides no value
 ///
@@ -347,9 +351,6 @@ pub extern fn vcx_shutdown(delete: bool) -> u32 {
     ::credential::release_all();
 
     if delete {
-        let pool_name = settings::get_config_value(settings::CONFIG_POOL_NAME)
-            .unwrap_or(settings::DEFAULT_POOL_NAME.to_string());
-
         let wallet_name = settings::get_config_value(settings::CONFIG_WALLET_NAME)
             .unwrap_or(settings::DEFAULT_WALLET_NAME.to_string());
 
@@ -360,7 +361,7 @@ pub extern fn vcx_shutdown(delete: bool) -> u32 {
             Err(_) => (),
         };
 
-        match pool::delete(&pool_name) {
+        match pool::delete() {
             Ok(()) => (),
             Err(_) => (),
         };
