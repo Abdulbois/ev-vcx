@@ -338,8 +338,8 @@ impl Service {
                                                           format!("Invalid Service Key: unable to decode key body: {}.`", key)))?;
         // Only ed25519 public keys are currently supported
         if decoded[0] == 0xED {
-            // for ed25519, multicodec should be 1 byte long. Dropping this should yield the raw key bytes
-            Ok(decoded[1..].to_base58())
+            // for ed25519, multicodec should be 2 bytes long (0xed01). Dropping this should yield the raw key bytes
+            Ok(decoded[2..].to_base58())
         } else{
             Err(VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
                                    format!("Invalid Service Key: Multicodec identifier is either not supported or not recognized. Expected: 0xED, Found: {}.`", decoded[0])))
@@ -421,11 +421,11 @@ pub mod tests {
         String::from("3LYuxJBJkngDbvJj4zjx13DBUdZ2P96eNybwd2n9L9AU")
     }
 
-    pub fn _did_key_1() -> String { String::from("did:key:z2Dfi5HdkgAk7Afquv9NLeZVAWFxiWUvPGFFwnZ3w5wjGei")}
+    pub fn _did_key_1() -> String { String::from("did:key:z6MkgnoxYYRk6LAgiR9RkZhnr8mBJCpso2M14zWsTJkAFMwr")}
 
-    pub fn _did_key_2() -> String { String::from("did:key:z2Dh54TGydgWjp4fF5kXcQvAkxk1GW7WKbS8nrBEJaGSHuo")}
+    pub fn _did_key_2() -> String { String::from("did:key:z6Mkw7FfEGiwh6YQbCLTNbJWAYR8boGNMt7PCjh35GLNxmMo")}
 
-    pub fn _did_key_3() -> String { String::from("did:key:z2DSkckbFLUuySLnTtiuapCrMJnhg4cwTq413g1cLz3itVr")}
+    pub fn _did_key_3() -> String { String::from("did:key:z6MkgnoxYYRk6LAgiR9RkZhnr8mBJCpso2M14zWsTJkAFMwr")}
 
     pub fn _id() -> String {
         String::from("VsKV7grR1BUE29mG2Fm2kX")
