@@ -1,4 +1,4 @@
-from ctypes import
+from ctypes import *
 import logging
 from vcx.common import do_call, do_call_sync, create_cb
 
@@ -121,10 +121,6 @@ async def vcx_init_pool(pool_config: str) -> None:
                                                         By default Libindy sends a read requests to 2 nodes in the pool.
                                             }
                                 }
-
-                                Note: You can also pass a list of network configs.
-                                    In this case library will connect to multiple ledger networks and will look up public data in each of them.
-                                    [{ "genesis_path": string, "pool_name": string, ... }]
 
     Example:
     await vcx_init_pool('/home/username/docker.txn')

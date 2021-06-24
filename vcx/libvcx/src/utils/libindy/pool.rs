@@ -4,6 +4,8 @@ use indy::{pool, ErrorCode};
 use settings;
 use error::prelude::*;
 use std::sync::RwLock;
+use std::thread;
+use settings::PoolConfig;
 
 lazy_static! {
     static ref POOLS: RwLock<Vec<i32>> = RwLock::new(Vec::new());
@@ -65,13 +67,6 @@ pub fn reset_pool_handles() {
     pools.clear();
 }
 
-pub fn set_protocol_version() -> VcxResult<()> {
-    pool::set_protocol_version(settings::get_protocol_version())
-        .wait()?;
-
-    Ok(())
-}
-
 pub fn create_pool_ledger_config(pool_name: &str, path: &str) -> VcxResult<()> {
     let pool_config = json!({"genesis_txn": path}).to_string();
 
@@ -93,8 +88,6 @@ pub fn create_pool_ledger_config(pool_name: &str, path: &str) -> VcxResult<()> {
 }
 
 pub fn open_pool_ledger(pool_name: &str, config: Option<&str>) -> VcxResult<u32> {
-    set_protocol_version()?;
-
     let handle = pool::open_pool_ledger(pool_name, config)
         .wait()
         .map_err(|err|
@@ -108,9 +101,8 @@ pub fn open_pool_ledger(pool_name: &str, config: Option<&str>) -> VcxResult<u32>
                                format!("Can not connect to Pool \"{}\".", pool_name))
                 }
                 ErrorCode::PoolIncompatibleProtocolVersion => {
-                    let protocol_version = settings::get_protocol_version();
                     err.to_vcx(VcxErrorKind::PoolLedgerConnect,
-                               format!("Pool \"{}\" is not compatible with Protocol Version \"{}\".", pool_name, protocol_version))
+                               format!("Pool \"{}\" is not compatible with Protocol Version.", pool_name))
                 }
                 ErrorCode::CommonInvalidState => {
                     err.to_vcx(VcxErrorKind::PoolLedgerConnect,
@@ -125,6 +117,28 @@ pub fn open_pool_ledger(pool_name: &str, config: Option<&str>) -> VcxResult<u32>
     Ok(handle as u32)
 }
 
+fn connect_to_pool(config: PoolConfig) -> VcxResult<()> {
+    let pool_name = config.pool_name
+        .ok_or(VcxError::from_msg(
+            VcxErrorKind::InvalidConfiguration,
+            format!("Cannot read Pool Network Name from library settings")
+        ))?;
+
+    let pool_config = config.pool_config.map(|config| json!(config).to_string());
+
+    trace!("opening pool {} with genesis_path: {}", pool_name, &config.genesis_path);
+
+    create_pool_ledger_config(&pool_name, &config.genesis_path)
+        .map_err(|err| err.extend("Can not create Pool Ledger Config"))?;
+
+    debug!("Pool Config Created Successfully");
+
+    open_pool_ledger(&pool_name, pool_config.as_ref().map(String::as_str))
+        .map_err(|err| err.extend("Can not open Pool Ledger"))?;
+
+    Ok(())
+}
+
 pub fn init_pool() -> VcxResult<()> {
     trace!("init_pool >>>");
 
@@ -137,25 +151,15 @@ pub fn init_pool() -> VcxResult<()> {
 
     let networks = settings::get_pool_networks()?;
 
-    for config in networks {
-        let pool_name = config.pool_name
-            .ok_or(VcxError::from_msg(
-                VcxErrorKind::InvalidConfiguration,
-                format!("Cannot read Pool Network Name from library settings")
-            ))?;
-
-        let pool_config = config.pool_config.map(|config| json!(config).to_string());
-
-        trace!("opening pool {} with genesis_path: {}", pool_name, &config.genesis_path);
-
-        create_pool_ledger_config(&pool_name, &config.genesis_path)
-            .map_err(|err| err.extend("Can not create Pool Ledger Config"))?;
-
-        debug!("Pool Config Created Successfully");
-
-        open_pool_ledger(&pool_name, pool_config.as_ref().map(String::as_str))
-            .map_err(|err| err.extend("Can not open Pool Ledger"))?;
-    }
+    networks
+        .into_iter()
+        .map(|network_config| {
+            thread::spawn(move || {
+                connect_to_pool(network_config)
+            })
+        })
+        .map(|handle| handle.join().expect("Cannot join Thread"))
+        .collect::<VcxResult<()>>()?;
 
     Ok(())
 }

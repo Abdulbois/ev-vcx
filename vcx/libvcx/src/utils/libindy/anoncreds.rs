@@ -13,7 +13,7 @@ use utils::constants::{SCHEMA_ID, SCHEMA_JSON, SCHEMA_TXN, CREATE_SCHEMA_ACTION,
 use error::prelude::*;
 use utils::libindy::types::{CredentialInfo, CredentialDefinitionData};
 use schema::SchemaData;
-use utils::libindy::pool::get_pool_handles;
+use std::sync::Arc;
 
 const BLOB_STORAGE_TYPE: &str = "default";
 const REVOCATION_REGISTRY_TYPE: &str = "ISSUANCE_BY_DEFAULT";
@@ -395,21 +395,25 @@ pub fn publish_schema(schema: &str) -> VcxResult<Option<PaymentTxn>> {
     Ok(payment)
 }
 
+pub fn get_schema(pool_handle: i32, schema_id: String) -> Option<(String, String)> {
+    if let Ok(schema_json) = libindy_get_schema(pool_handle,& schema_id) {
+        let valid_schema_data = serde_json::from_str::<SchemaData>(&schema_json);
+        if valid_schema_data.is_ok() {
+            return Some((schema_id.to_string(), schema_json));
+        }
+    }
+    return None;
+}
+
 pub fn get_schema_json(schema_id: &str) -> VcxResult<(String, String)> {
     if settings::indy_mocks_enabled() { return Ok((SCHEMA_ID.to_string(), SCHEMA_JSON.to_string())); }
 
-    let pool_handles = get_pool_handles().unwrap_or(Vec::new());
-    for pool_handle in pool_handles {
-        if let Ok(schema_json) = libindy_get_schema(pool_handle, schema_id) {
-            let valid_schema_data = serde_json::from_str::<SchemaData>(&schema_json);
-            if valid_schema_data.is_ok() {
-                return Ok((schema_id.to_string(), schema_json));
-            }
-        }
+    match query_connected_pool_networks(Arc::new(get_schema), schema_id)? {
+        Some(result) => Ok(result),
+        None =>
+            Err(VcxError::from_msg(VcxErrorKind::InvalidSchema,
+                                   format!("Could not find Schema on the connected Ledger networks")))
     }
-
-    return Err(VcxError::from_msg(VcxErrorKind::InvalidSchema,
-                                  format!("Could not find Schema on connected the Ledger networks")));
 }
 
 pub fn generate_cred_def(issuer_did: &str,
@@ -456,21 +460,25 @@ pub fn publish_cred_def(issuer_did: &str, cred_def_json: &str) -> VcxResult<Opti
     Ok(payment)
 }
 
+pub fn get_cred_def(pool_handle: i32, cred_def_id: String) -> Option<(String, String)> {
+    if let Ok(cred_def_json) = libindy_get_cred_def(pool_handle, &cred_def_id) {
+        let valid_cred_def_data = serde_json::from_str::<CredentialDefinitionData>(&cred_def_json);
+        if valid_cred_def_data.is_ok() {
+            return Some((cred_def_id, cred_def_json));
+        }
+    }
+    return None;
+}
+
 pub fn get_cred_def_json(cred_def_id: &str) -> VcxResult<(String, String)> {
     if settings::indy_mocks_enabled() { return Ok((CRED_DEF_ID.to_string(), CRED_DEF_JSON.to_string())); }
 
-    let pool_handles = get_pool_handles().unwrap_or(Vec::new());
-    for pool_handle in pool_handles {
-        if let Ok(cred_def_json) = libindy_get_cred_def(pool_handle, cred_def_id) {
-            let valid_cred_def_data = serde_json::from_str::<CredentialDefinitionData>(&cred_def_json);
-            if valid_cred_def_data.is_ok() {
-                return Ok((cred_def_id.to_string(), cred_def_json));
-            }
-        }
+    match query_connected_pool_networks(Arc::new(get_cred_def), cred_def_id)? {
+        Some(result) => Ok(result),
+        None =>
+            Err(VcxError::from_msg(VcxErrorKind::CredentialDefinitionNotFound,
+                                   format!("Could not find Credential Definition on the connected Ledger networks")))
     }
-
-    return Err(VcxError::from_msg(VcxErrorKind::InvalidSchema,
-                                  format!("Could not find Credential Definition on the connected Ledger networks")));
 }
 
 pub fn generate_rev_reg(issuer_did: &str, cred_def_id: &str, tails_file: &str, max_creds: u32)

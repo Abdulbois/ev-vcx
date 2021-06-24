@@ -45,7 +45,6 @@ pub static CONFIG_WALLET_STORAGE_CREDS: &'static str = "storage_credentials";
 pub static CONFIG_WALLET_HANDLE: &'static str = "wallet_handle";
 pub static CONFIG_THREADPOOL_SIZE: &'static str = "threadpool_size";
 pub static CONFIG_WALLET_KEY_DERIVATION: &'static str = "wallet_key_derivation";
-pub static CONFIG_PROTOCOL_VERSION: &'static str = "protocol_version";
 pub static CONFIG_PAYMENT_METHOD: &'static str = "payment_method";
 pub static CONFIG_TXN_AUTHOR_AGREEMENT: &'static str = "author_agreement";
 pub static CONFIG_USE_LATEST_PROTOCOLS: &'static str = "use_latest_protocols";
@@ -55,8 +54,6 @@ pub static COMMUNICATION_METHOD: &str = "communication_method"; // proprietary o
 pub static CONFIG_ACTORS: &str = "actors"; // inviter, invitee, issuer, holder, prover, verifier, sender, receiver
 pub static CONFIG_POOL_NETWORKS: &str = "pool_networks";
 
-pub static DEFAULT_PROTOCOL_VERSION: usize = 2;
-pub static MAX_SUPPORTED_PROTOCOL_VERSION: usize = 2;
 pub static UNINITIALIZED_WALLET_KEY: &str = "<KEY_IS_NOT_SET>";
 pub static DEFAULT_GENESIS_PATH: &str = "genesis.txn";
 pub static DEFAULT_EXPORTED_WALLET_PATH: &str = "wallet.txn";
@@ -149,7 +146,6 @@ pub fn set_defaults() -> u32 {
     settings.insert(CONFIG_WALLET_KEY.to_string(), DEFAULT_WALLET_KEY.to_string());
     settings.insert(CONFIG_WALLET_KEY_DERIVATION.to_string(), DEFAULT_WALLET_KEY_DERIVATION.to_string());
     settings.insert(CONFIG_LINK_SECRET_ALIAS.to_string(), DEFAULT_LINK_SECRET_ALIAS.to_string());
-    settings.insert(CONFIG_PROTOCOL_VERSION.to_string(), DEFAULT_PROTOCOL_VERSION.to_string());
     settings.insert(CONFIG_EXPORTED_WALLET_PATH.to_string(),
                     get_temp_dir_path(DEFAULT_EXPORTED_WALLET_PATH).to_str().unwrap_or("").to_string());
     settings.insert(CONFIG_WALLET_BACKUP_KEY.to_string(), DEFAULT_WALLET_BACKUP_KEY.to_string());
@@ -435,20 +431,6 @@ pub fn get_threadpool_size() -> usize {
         MAX_THREADPOOL_SIZE
     } else {
         size
-    }
-}
-
-pub fn get_protocol_version() -> usize {
-    let protocol_version = match get_config_value(CONFIG_PROTOCOL_VERSION) {
-        Ok(ver) => ver.parse::<usize>().unwrap_or(DEFAULT_PROTOCOL_VERSION),
-        Err(_) => DEFAULT_PROTOCOL_VERSION
-    };
-    if protocol_version > MAX_SUPPORTED_PROTOCOL_VERSION {
-        error!("Protocol version from config {}, greater then maximal supported {}, use maximum one",
-               protocol_version, MAX_SUPPORTED_PROTOCOL_VERSION);
-        MAX_SUPPORTED_PROTOCOL_VERSION
-    } else {
-        protocol_version
     }
 }
 

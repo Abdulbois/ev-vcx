@@ -6,9 +6,11 @@ use indy::ledger;
 use indy::cache;
 
 use settings;
-use utils::libindy::pool::get_pool_handle;
+use utils::libindy::pool::{get_pool_handle, get_pool_handles};
 use utils::libindy::wallet::get_wallet_handle;
 use error::prelude::*;
+use std::sync::{mpsc, Arc};
+use std::thread;
 
 pub fn multisign_request(did: &str, request: &str) -> VcxResult<String> {
     ledger::multi_sign_request(get_wallet_handle(), did, request)
@@ -452,6 +454,32 @@ fn _verify_transaction_can_be_endorsed(transaction_json: &str, _did: &str) -> Vc
     }
 
     Ok(())
+}
+
+pub fn query_connected_pool_networks(
+    query_func: Arc<dyn Fn(i32, String) -> Option<(String, String)> + Send + Sync>,
+    id: &str,
+) -> VcxResult<Option<(String, String)>> {
+    let (sender, receiver) = mpsc::channel();
+
+    let pool_handles = get_pool_handles()?;
+    for pool_handle in pool_handles {
+        let sender_ = sender.clone();
+        let id = id.to_string();
+        let query_func = query_func.clone();
+
+        thread::spawn(move || {
+            sender_.send(query_func(pool_handle, id)).ok();
+        });
+    }
+
+    for received in receiver {
+        if received.is_some() {
+            return Ok(received);
+        }
+    }
+
+    return Ok(None);
 }
 
 #[cfg(test)]
