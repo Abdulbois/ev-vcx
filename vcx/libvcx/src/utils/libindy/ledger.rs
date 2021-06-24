@@ -460,18 +460,21 @@ pub fn query_connected_pool_networks(
     query_func: Arc<dyn Fn(i32, String) -> Option<(String, String)> + Send + Sync>,
     id: &str,
 ) -> VcxResult<Option<(String, String)>> {
-    let (sender, receiver) = mpsc::channel();
+    let receiver = {
+        let (sender, receiver) = mpsc::channel();
 
-    let pool_handles = get_pool_handles()?;
-    for pool_handle in pool_handles {
-        let sender_ = sender.clone();
-        let id = id.to_string();
-        let query_func = query_func.clone();
+        let pool_handles = get_pool_handles()?;
+        for pool_handle in pool_handles {
+            let sender_ = sender.clone();
+            let id = id.to_string();
+            let query_func = query_func.clone();
 
-        thread::spawn(move || {
-            sender_.send(query_func(pool_handle, id)).ok();
-        });
-    }
+            thread::spawn(move || {
+                sender_.send(query_func(pool_handle, id)).ok();
+            });
+        }
+        receiver
+    };
 
     for received in receiver {
         if received.is_some() {

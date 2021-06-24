@@ -1278,7 +1278,7 @@ mod tests {
             tails_file: None,
             timestamp: None,
         }];
-        assert_eq!(DisclosedProof::build_schemas_json(&credential_ids).unwrap_err().kind(), VcxErrorKind::InvalidSchema);
+        assert_eq!(DisclosedProof::build_schemas_json(&credential_ids).unwrap_err().kind(), VcxErrorKind::NoPoolOpen);
     }
 
     #[test]
@@ -1329,7 +1329,7 @@ mod tests {
             tails_file: None,
             timestamp: None,
         }];
-        assert_eq!(DisclosedProof::build_cred_def_json(&credential_ids).unwrap_err().kind(), VcxErrorKind::CredentialDefinitionNotFound);
+        assert_eq!(DisclosedProof::build_cred_def_json(&credential_ids).unwrap_err().kind(), VcxErrorKind::NoPoolOpen);
     }
 
     #[test]

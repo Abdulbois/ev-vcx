@@ -893,7 +893,9 @@ pub mod tests {
 
         process_pool_config_string(&config.to_string()).unwrap();
 
-        assert_eq!(get_config_value(CONFIG_GENESIS_PATH).unwrap(), path.to_string());
+        let networks = get_pool_networks().unwrap();
+        assert_eq!(networks.len(), 1);
+        assert_eq!(networks[0].genesis_path, path.to_string());
 
         // With optional fields
         let config = json!({
@@ -906,8 +908,10 @@ pub mod tests {
 
         process_pool_config_string(&config.to_string()).unwrap();
 
-        assert_eq!(get_config_value(CONFIG_GENESIS_PATH).unwrap(), path.to_string());
-        assert_eq!(get_config_value(CONFIG_POOL_NAME).unwrap(), name.to_string());
+        let networks = get_pool_networks().unwrap();
+        assert_eq!(networks.len(), 1);
+        assert_eq!(networks[0].genesis_path, path.to_string());
+        assert_eq!(networks[0].pool_name.clone().unwrap(), name.to_string());
 
         // Empty
         let config = json!({}).to_string();
@@ -919,5 +923,36 @@ pub mod tests {
             "other_field": "pool1",
         }).to_string();
         assert_eq!(process_pool_config_string(&config.to_string()).unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
+    }
+
+    #[test]
+    fn test_process_pool_config_for_multiple_networks() {
+        let _setup = SetupDefaults::init();
+
+        let path = "path/test/";
+        let name = "pool1";
+
+        let path_2 = "path/test/2";
+        let name_2 = "pool2";
+
+        let config = json!(
+            vec![
+                json!({
+                    "pool_name": name,
+                    "genesis_path": path
+                }),
+                json!({
+                    "pool_name": name_2,
+                    "genesis_path": path_2
+                })
+            ]
+        );
+
+        process_pool_config_string(&config.to_string()).unwrap();
+
+        let networks = get_pool_networks().unwrap();
+        assert_eq!(networks.len(), 2);
+        assert_eq!(networks[0].genesis_path, path.to_string());
+        assert_eq!(networks[1].genesis_path, path_2.to_string());
     }
 }
