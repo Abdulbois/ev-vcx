@@ -8,7 +8,7 @@ use utils::threadpool::spawn;
 use std::thread;
 use std::ptr::null;
 use error::prelude::*;
-use indy::{CommandHandle, SearchHandle, WalletHandle};
+use indy::{CommandHandle, SearchHandle};
 
 const EMPTY_CSTR: *const c_char = "\0".as_ptr().cast();
 
@@ -871,19 +871,6 @@ pub  extern fn vcx_wallet_validate_payment_address(command_handle: i32,
     });
 
     error::SUCCESS.code_num
-}
-
-/// Set the wallet handle before calling vcx_init_minimal
-///
-/// #params
-///
-/// handle: wallet handle that libvcx should use
-///
-/// #Returns
-/// Error code as u32
-#[no_mangle]
-pub extern fn vcx_wallet_set_handle(handle: WalletHandle) -> WalletHandle {
-    wallet::set_wallet_handle(handle)
 }
 
 #[cfg(test)]

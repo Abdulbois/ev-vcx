@@ -178,53 +178,6 @@ fn _finish_init(command_handle: CommandHandle, cb: extern fn(xcommand_handle: Co
     error::SUCCESS.code_num
 }
 
-/// Initialize vcx with the minimal configuration (wallet, pool must already be set with
-/// vcx_wallet_set_handle() and vcx_pool_set_handle()) and without any agency configuration
-///
-/// # Example:
-/// vcx_init_minimal -> '{"institution_name":"faber","institution_did":"44x8p4HubxzUK1dwxcc5FU",\
-//      "institution_verkey":"444MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE"}'
-///
-/// #Params
-///
-/// config: minimal configuration
-///
-/// #Returns
-/// Error code as u32
-#[no_mangle]
-pub extern fn vcx_init_minimal(config: *const c_char) -> u32 {
-    check_useful_c_str!(config,VcxErrorKind::InvalidOption);
-
-    trace!("vcx_init_minimal(config: {:?})", secret!(config));
-
-    if config == "ENABLE_TEST_MODE" {
-        settings::set_config_value(settings::CONFIG_ENABLE_TEST_MODE, "true");
-        settings::set_defaults();
-        settings::set_config_value(settings::CONFIG_PROTOCOL_TYPE, "1.0");
-    } else {
-        match settings::process_config_string(&config, false) {
-            Err(e) => {
-                error!("Invalid configuration specified: {}", e);
-                return e.into();
-            }
-            Ok(_) => (),
-        }
-    };
-
-    if wallet::get_wallet_handle() == INVALID_WALLET_HANDLE || pool::get_pool_handle().is_err() {
-        error!("Library cannot be initialized without wallet/pool");
-        return error::INVALID_STATE.code_num;
-    }
-
-    ::utils::threadpool::init();
-
-    settings::log_settings();
-
-    trace!("libvcx version: {}{}", version_constants::VERSION, version_constants::REVISION);
-
-    error::SUCCESS.code_num
-}
-
 /// Connect to a Pool Ledger
 ///
 /// You can deffer connecting to the Pool Ledger during library initialization (vcx_init or vcx_init_with_config)
@@ -564,9 +517,7 @@ mod tests {
         wallet::{import, tests::export_test_wallet},
         pool::get_pool_handle,
     };
-    use api::VcxStateType;
     use api::return_types;
-    use indy::WalletHandle;
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     use utils::get_temp_dir_path;
     use utils::devsetup::*;
@@ -1053,101 +1004,6 @@ mod tests {
             settings::CONFIG_INSTITUTION_LOGO_URL: settings::get_config_value(settings::CONFIG_INSTITUTION_LOGO_URL).unwrap(),
             settings::CONFIG_PAYMENT_METHOD:       settings::get_config_value(settings::CONFIG_PAYMENT_METHOD).unwrap()
         }).to_string()
-    }
-
-    fn _vcx_init_minimal_c_closure(content: &str) -> u32 {
-        let content = CString::new(content).unwrap();
-        vcx_init_minimal(content.as_ptr())
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_init_minimal() {
-        let _setup = SetupLibraryWalletPoolZeroFees::init();
-
-        let config = get_settings();
-
-        settings::clear_config();
-
-        // Store settings and handles
-        let wallet_handle = ::utils::libindy::wallet::get_wallet_handle();
-        let pool_handle = ::utils::libindy::pool::get_pool_handle().unwrap();
-        assert_ne!(wallet_handle, INVALID_WALLET_HANDLE);
-        assert_ne!(pool_handle, INVALID_POOL_HANDLE);
-
-        // Reset handles to 0
-        assert_eq!(::api::utils::vcx_pool_set_handle(INVALID_POOL_HANDLE), INVALID_POOL_HANDLE);
-        assert_eq!(::api::wallet::vcx_wallet_set_handle(INVALID_WALLET_HANDLE), INVALID_WALLET_HANDLE);
-
-        // Test for errors when handles not set
-        assert_ne!(error::SUCCESS.code_num, _vcx_init_minimal_c_closure(&config));
-        ::api::wallet::vcx_wallet_set_handle(wallet_handle);
-
-        assert_ne!(error::SUCCESS.code_num, _vcx_init_minimal_c_closure(&config));
-        ::api::utils::vcx_pool_set_handle(pool_handle);
-
-        // NOTE: handles are set independently, test config with no wallet or pool
-        assert_eq!(error::SUCCESS.code_num, _vcx_init_minimal_c_closure(&config));
-
-        // test that wallet and pool are operational
-        ::utils::libindy::anoncreds::tests::create_and_store_credential(::utils::constants::DEFAULT_SCHEMA_ATTRS, false);
-
-        settings::set_defaults();
-    }
-
-    #[test]
-    fn test_no_agency_config() {
-        let _setup = SetupMocks::init();
-
-        let config = json!({
-            "institution_name": "faber",
-            "institution_did": "44x8p4HubxzUK1dwxcc5FU",
-            "institution_verkey": "444MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE"
-        }).to_string();
-
-        ::api::wallet::vcx_wallet_set_handle(WalletHandle(1));
-        ::api::utils::vcx_pool_set_handle(1);
-
-        let init_res = _vcx_init_minimal_c_closure(&config);
-        assert_eq!(init_res, error::SUCCESS.code_num);
-
-        let cred_handle = ::issuer_credential::from_string(::utils::constants::DEFAULT_SERIALIZED_ISSUER_CREDENTIAL).unwrap();
-        let connection_handle = ::connection::from_string(::utils::constants::DEFAULT_CONNECTION).unwrap();
-        let my_pw_did = connection_handle.get_pw_did().unwrap();
-        let their_pw_did = connection_handle.get_their_pw_did().unwrap();
-
-        let offer = cred_handle.generate_credential_offer_msg().unwrap();
-        let mycred = ::credential::credential_create_with_offer("test1", &offer).unwrap();
-        let request = mycred.generate_credential_request_msg(&my_pw_did, &their_pw_did).unwrap();
-        cred_handle.update_state(Some(request)).unwrap();
-        let cred = cred_handle.generate_credential_msg(&my_pw_did).unwrap();
-        mycred.update_state(Some(cred)).unwrap();
-        assert_eq!(mycred.get_state().unwrap(), VcxStateType::VcxStateAccepted as u32);
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_init_minimal_with_invalid_agency_config() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        let config = json!({
-            "institution_name": "faber",
-            "institution_did": "44x8p4HubxzUK1dwxcc5FU",
-            "institution_verkey": "444MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE"
-        }).to_string();
-
-        ::api::wallet::vcx_wallet_set_handle(get_wallet_handle());
-        ::api::utils::vcx_pool_set_handle(get_pool_handle().unwrap());
-
-        settings::clear_config();
-
-        assert_eq!(_vcx_init_minimal_c_closure(&config), error::SUCCESS.code_num);
-
-        let connection_handle = ::connection::create_connection("test_create_fails").unwrap();
-
-        connection_handle.connect(None).unwrap_err();
-
-        settings::set_defaults();
     }
 
     #[cfg(feature = "pool_tests")]

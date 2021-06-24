@@ -347,17 +347,6 @@ public class WalletApi extends VcxJava.API {
         return future;
     }
 
-    /**
-     * Set the wallet handle before calling vcx_init_minimal
-     *
-     * @param handle        wallet handle that libvcx should use
-     *
-     * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
-     */
-    public static void setWalletHandle(int handle) {
-        LibVcx.api.vcx_wallet_set_handle(handle);
-    }
-
     private static Callback vcxCreateWalletBackupCB = new Callback() {
         @SuppressWarnings({"unused", "unchecked"})
         public void callback(int commandHandle, int err, int walletHandle) {

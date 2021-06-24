@@ -518,16 +518,6 @@ class Wallet:
         return result
 
     @staticmethod
-    def set_handle(handle: int) -> None:
-        """
-        Sets the wallet handle for libvcx to use, called before vcx_init_minimal
-        :param handle: wallet handle
-        """
-        c_handle = c_uint32(handle)
-
-        do_call_sync('vcx_wallet_set_handle', c_handle)
-
-    @staticmethod
     async def sign_with_address(address: str, msg: bytes) -> bytes:
         """
         Sign data using payment address

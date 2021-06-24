@@ -107,25 +107,6 @@ public class VcxApi extends VcxJava.API {
         return future;
     }
 
-    /**
-     * Initialize vcx with the minimal configuration (wallet, pool must already be set with)
-     *
-     * @param  configJson       minimal configuration as JSON string
-     *
-     * @return                  void
-     *
-     * @throws VcxException   If an exception occurred in Libvcx library.
-     */
-    public static int vcxInitMinimal(String configJson) throws VcxException {
-        ParamGuard.notNullOrWhiteSpace(configJson, "config");
-        logger.debug("vcxInitMinimal() called with: configJson = [****]");
-
-        int result = LibVcx.api.vcx_init_minimal(
-                configJson);
-        checkResult(result);
-
-        return result;
-    }
     private static Callback vcxInitPoolCB = new Callback() {
 
 

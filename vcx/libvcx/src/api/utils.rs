@@ -707,21 +707,6 @@ pub extern fn vcx_messages_update_status(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Set the pool handle before calling vcx_init_minimal
-///
-/// #params
-///
-/// handle: pool handle that libvcx should use
-///
-/// #Returns
-/// Error code as u32
-#[no_mangle]
-pub extern fn vcx_pool_set_handle(handle: i32) -> i32 {
-    ::utils::libindy::pool::add_pool_handle(handle);
-
-    handle
-}
-
 /// Gets minimal request price for performing an action in case the requester can perform this action.
 ///
 /// # Params

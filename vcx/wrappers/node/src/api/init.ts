@@ -92,10 +92,6 @@ export async function initVcxWithConfig (config: string, options: IInitVCXOption
   }
 }
 
-export function initMinimal (config: string): number {
-  return rustAPI().vcx_init_minimal(config)
-}
-
 /**
  * Connect to a Pool Ledger
  *

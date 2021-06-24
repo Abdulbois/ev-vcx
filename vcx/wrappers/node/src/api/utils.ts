@@ -405,10 +405,6 @@ export async function updateMessages ({ msgJson }: IUpdateMessagesConfigs): Prom
   }
 }
 
-export function setPoolHandle (handle: number): void {
-  rustAPI().vcx_pool_set_handle(handle)
-}
-
 export async function endorseTransaction (transaction: string): Promise<void> {
   /**
    * Endorse transaction to the ledger preserving an original author

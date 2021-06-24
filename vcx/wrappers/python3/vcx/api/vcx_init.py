@@ -70,25 +70,6 @@ async def vcx_init_with_config(config: str) -> None:
     logger.debug("vcx_init_with_config completed")
     return result
 
-def vcx_init_minimal(config_string: str) -> None:
-    """
-    Initializes VCX with minimal (no-agency) config file AFTER the wallet and pool are set.
-
-    :param config_string: String
-    Example:
-    vcx_wallet_set_handle(wallet_handle)
-    vcx_pool_set_handle(pool_handle)
-    await vcx_init_minimal('{"wallet_name":"wallet1",.....}')
-    :return:
-    """
-    logger = logging.getLogger(__name__)
-
-    c_config_string = c_char_p(config_string.encode('utf-8'))
-
-    result = do_call_sync('vcx_init_minimal', c_config_string)
-
-    logger.debug("vcx_init_minimal completed")
-    return result
 
 async def vcx_init_pool(pool_config: str) -> None:
     """
