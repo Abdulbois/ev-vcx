@@ -1,6 +1,8 @@
 use error::prelude::*;
 use settings::environment::LedgerEnvironments;
 use super::*;
+use utils::random::random_string;
+use utils::libindy::pool::create_genesis_txn_file;
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct PoolNetworksConfig {
@@ -140,4 +142,21 @@ pub fn get_init_pool_config_values(config: &str) -> VcxResult<Vec<PoolConfig>> {
 
     trace!("process_pool_config_string <<<");
     return Ok(config);
+}
+
+pub fn get_pool_networks() -> VcxResult<Vec<PoolConfig>> {
+    let networks = get_config_value(CONFIG_POOL_NETWORKS)
+        .map_err(|_| VcxError::from_msg(
+            VcxErrorKind::InvalidConfiguration,
+            format!("Cannot open Pool Network: Provided configuration JSON doesn't contain pool network information"),
+        ))?;
+
+
+    let networks: Vec<PoolConfig> = serde_json::from_str(&networks)
+        .map_err(|err| VcxError::from_msg(
+            VcxErrorKind::InvalidConfiguration,
+            format!("Cannot read Pool Network information from library settings. Err: {:?}", err),
+        ))?;
+
+    Ok(networks)
 }

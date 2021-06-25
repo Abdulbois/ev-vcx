@@ -5,7 +5,7 @@ use settings;
 use error::prelude::*;
 use std::sync::RwLock;
 use std::{thread, fs};
-use settings::pool::PoolConfig;
+use settings::pool::{PoolConfig, get_pool_networks};
 use utils::libindy::environment::genesis_transactions_path;
 use std::io::Write;
 
@@ -151,9 +151,7 @@ pub fn init_pool() -> VcxResult<()> {
         return Ok(());
     }
 
-    let networks = settings::get_pool_networks()?;
-
-    networks
+    get_pool_networks()?
         .into_iter()
         .map(|network_config| {
             thread::spawn(move || {
@@ -186,7 +184,7 @@ pub fn delete() -> VcxResult<()> {
         return Ok(());
     }
 
-    let networks = settings::get_pool_networks()?;
+    let networks = get_pool_networks()?;
     for config in networks {
         let pool_name = config.pool_name
             .ok_or(VcxError::from_msg(

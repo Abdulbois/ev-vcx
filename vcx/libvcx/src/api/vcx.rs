@@ -517,17 +517,19 @@ mod tests {
 
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     fn config() -> String {
-        json!({"agency_did" : "72x8p4HubxzUK1dwxcc5FU",
-               "remote_to_sdk_did" : "UJGjM6Cea2YVixjWwHN9wq",
-               "sdk_to_remote_did" : "AB3JM851T4EQmhh8CdagSP",
-               "sdk_to_remote_verkey" : "888MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
-               "institution_name" : "evernym enterprise",
-               "agency_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
-               "remote_to_sdk_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
-               "genesis_path": get_temp_dir_path("pool1.txn").to_str().unwrap(),
-               "payment_method": "null",
-               "pool_config": json!({"timeout":60}).to_string()
-           }).to_string()
+        json!({
+            "agency_endpoint" : "https://agency.com",
+            "agency_did" : "72x8p4HubxzUK1dwxcc5FU",
+           "remote_to_sdk_did" : "UJGjM6Cea2YVixjWwHN9wq",
+           "sdk_to_remote_did" : "AB3JM851T4EQmhh8CdagSP",
+           "sdk_to_remote_verkey" : "888MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
+           "institution_name" : "evernym enterprise",
+           "agency_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
+           "remote_to_sdk_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
+           "genesis_path": get_temp_dir_path("pool1.txn").to_str().unwrap(),
+           "payment_method": "null",
+           "pool_config": json!({"timeout":60}).to_string()
+       }).to_string()
     }
 
     fn _vcx_init_c_closure(path: &str) -> Result<(), u32> {

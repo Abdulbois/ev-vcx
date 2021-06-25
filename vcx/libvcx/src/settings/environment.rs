@@ -64,6 +64,10 @@ impl AgencyEnvironments {
     }
 }
 
+pub const DEMO_AGENCY_ENDPOINT: &'static str = "http://agency.pps.evernym.com";
+pub const DEMO_AGENCY_DID: &'static str = "3mbwr7i85JNSL3LoNQecaW";
+pub const DEMO_AGENCY_VERKEY: &'static str = "2WXxo6y1FJvXWgZnoYUP5BJej2mceFrqBDNPE3p6HDPf";
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum LedgerEnvironments {
     #[serde(rename = "production")]

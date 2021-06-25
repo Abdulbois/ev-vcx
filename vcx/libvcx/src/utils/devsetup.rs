@@ -350,6 +350,7 @@ use utils::plugins::init_plugin;
 use utils::libindy::pool::tests::{open_test_pool, delete_test_pool, create_test_pool};
 use utils::file::write_file;
 use utils::logger::LibvcxDefaultLogger;
+use settings::wallet::get_wallet_name;
 
 static mut INSTITUTION_CONFIG: Handle<String> = Handle::dummy();
 static mut CONSUMER_CONFIG: Handle<String> = Handle::dummy();
@@ -455,10 +456,10 @@ pub fn cleanup_indy_env() {
 
 pub fn cleanup_agency_env() {
     set_institution();
-    delete_wallet(&settings::get_wallet_name().unwrap(), None, None, None).unwrap();
+    delete_wallet(&get_wallet_name().unwrap(), None, None, None).unwrap();
 
     set_consumer();
-    delete_wallet(&settings::get_wallet_name().unwrap(), None, None, None).unwrap();
+    delete_wallet(&get_wallet_name().unwrap(), None, None, None).unwrap();
 
     delete_test_pool();
 }
@@ -731,7 +732,7 @@ pub fn setup_consumer_env(protocol_type: &str) {
 
 pub fn cleanup_consumer_env() {
 //    set_consumer();
-    delete_wallet(&settings::get_wallet_name().unwrap(), None, None, None).ok();
+    delete_wallet(&get_wallet_name().unwrap(), None, None, None).ok();
     delete_test_pool();
 }
 

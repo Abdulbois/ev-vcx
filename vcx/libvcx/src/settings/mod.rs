@@ -1,6 +1,7 @@
 pub mod agency;
 pub mod pool;
 pub mod environment;
+pub mod wallet;
 
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -15,8 +16,6 @@ use reqwest::Url;
 use error::prelude::*;
 use utils::file::read_file;
 use indy_sys::INVALID_WALLET_HANDLE;
-#[cfg(all(feature = "mysql"))]
-use utils::libindy::mysql_wallet::init_mysql_wallet as do_init_mysql_wallet;
 
 pub static CONFIG_POOL_NAME: &str = "pool_name";
 pub static CONFIG_PROTOCOL_TYPE: &str = "protocol_type";
@@ -34,8 +33,6 @@ pub static CONFIG_INSTITUTION_NAME: &str = "institution_name";
 pub static CONFIG_INSTITUTION_LOGO_URL: &str = "institution_logo_url";
 pub static CONFIG_ENABLE_TEST_MODE: &str = "enable_test_mode";
 pub static CONFIG_GENESIS_PATH: &str = "genesis_path";
-pub static CONFIG_LOG_CONFIG: &str = "log_config";
-pub static CONFIG_LINK_SECRET_ALIAS: &str = "link_secret_alias";
 pub static CONFIG_EXPORTED_WALLET_PATH: &str = "exported_wallet_path";
 pub static CONFIG_WALLET_BACKUP_KEY: &str = "backup_key";
 pub static CONFIG_WALLET_KEY: &str = "wallet_key";
@@ -94,25 +91,6 @@ impl ToString for HashMap<String, String> {
     }
 }
 
-#[cfg(all(feature = "mysql"))]
-use std::sync::Once;
-
-#[cfg(all(feature = "mysql"))]
-static START: Once = Once::new();
-
-#[cfg(all(feature = "mysql"))]
-pub fn init_mysql_wallet() {
-    START.call_once(|| {
-        let _ = do_init_mysql_wallet();
-    });
-}
-
-#[cfg(all(not(feature = "mysql")))]
-pub fn init_mysql_wallet() {
-    //nothing is initiated without this feature
-}
-
-
 pub fn set_defaults() -> u32 {
     trace!("set default settings >>>");
 
@@ -120,14 +98,13 @@ pub fn set_defaults() -> u32 {
     let mut settings = SETTINGS.write().unwrap();
 
     #[cfg(all(feature = "mysql"))]
-        init_mysql_wallet();
-
+    wallet::init_mysql_wallet();
 
     settings.insert(CONFIG_POOL_NAME.to_string(), DEFAULT_POOL_NAME.to_string());
     settings.insert(CONFIG_WALLET_NAME.to_string(), DEFAULT_WALLET_NAME.to_string());
-    settings.insert(CONFIG_WALLET_TYPE.to_string(), get_wallet_type());
-    settings.insert(CONFIG_WALLET_STORAGE_CONFIG.to_string(), get_wallet_storage_config());
-    settings.insert(CONFIG_WALLET_STORAGE_CREDS.to_string(), get_wallet_storage_credentials());
+    settings.insert(CONFIG_WALLET_TYPE.to_string(), wallet::get_wallet_type());
+    settings.insert(CONFIG_WALLET_STORAGE_CONFIG.to_string(), wallet::get_wallet_storage_config());
+    settings.insert(CONFIG_WALLET_STORAGE_CREDS.to_string(), wallet::get_wallet_storage_credentials());
     settings.insert(CONFIG_AGENCY_ENDPOINT.to_string(), DEFAULT_URL.to_string());
     settings.insert(CONFIG_AGENCY_DID.to_string(), DEFAULT_DID.to_string());
     settings.insert(CONFIG_AGENCY_VERKEY.to_string(), DEFAULT_VERKEY.to_string());
@@ -141,7 +118,6 @@ pub fn set_defaults() -> u32 {
     settings.insert(CONFIG_SDK_TO_REMOTE_ROLE.to_string(), DEFAULT_ROLE.to_string());
     settings.insert(CONFIG_WALLET_KEY.to_string(), DEFAULT_WALLET_KEY.to_string());
     settings.insert(CONFIG_WALLET_KEY_DERIVATION.to_string(), DEFAULT_WALLET_KEY_DERIVATION.to_string());
-    settings.insert(CONFIG_LINK_SECRET_ALIAS.to_string(), DEFAULT_LINK_SECRET_ALIAS.to_string());
     settings.insert(CONFIG_EXPORTED_WALLET_PATH.to_string(),
                     get_temp_dir_path(DEFAULT_EXPORTED_WALLET_PATH).to_str().unwrap_or("").to_string());
     settings.insert(CONFIG_WALLET_BACKUP_KEY.to_string(), DEFAULT_WALLET_BACKUP_KEY.to_string());
@@ -149,82 +125,6 @@ pub fn set_defaults() -> u32 {
     settings.insert(CONFIG_PAYMENT_METHOD.to_string(), DEFAULT_PAYMENT_METHOD.to_string());
 
     error::SUCCESS.code_num
-}
-
-#[cfg(all(not(feature = "mysql")))]
-pub fn get_wallet_type() -> String {
-    DEFAULT_DEFAULT.to_string()
-}
-
-#[cfg(all(feature = "mysql"))]
-pub fn get_wallet_type() -> String {
-    "mysql".to_string()
-}
-
-#[cfg(all(not(feature = "mysql")))]
-pub fn get_wallet_storage_config() -> String {
-    trace!("setting default storage confing");
-    DEFAULT_WALLET_STORAGE_CONFIG.to_string()
-}
-
-#[cfg(all(feature = "mysql"))]
-pub fn get_wallet_storage_config() -> String {
-    trace!("setting mysql storage config");
-    json!({
-        "db_name": "wallet",
-        "port": get_port(),
-        "write_host": get_write_host(),
-        "read_host": get_read_host()
-    }).to_string()
-}
-
-
-#[cfg(all(feature = "mysql"))]
-use std::env;
-use utils::random::random_string;
-use utils::libindy::pool::create_genesis_txn_file;
-use settings::pool::PoolConfig;
-
-#[cfg(all(feature = "mysql"))]
-fn get_write_host() -> String {
-    env::var("DB_WRITE_HOST").unwrap_or("mysql".to_string())
-}
-
-#[cfg(all(feature = "mysql"))]
-fn get_read_host() -> String {
-    env::var("DB_WRITE_HOST").unwrap_or("mysql".to_string())
-}
-
-#[cfg(all(feature = "mysql"))]
-fn get_port() -> i32 {
-    let port_var = env::var("DB_PORT").and_then(|s| s.parse::<i32>().map_err(|_| env::VarError::NotPresent));
-    if port_var.is_err() {
-        warn!("Port is absent or is not int, using default 3306");
-    }
-    port_var.unwrap_or(3306)
-}
-
-#[cfg(all(not(feature = "mysql")))]
-pub fn get_wallet_storage_credentials() -> String {
-    DEFAULT_WALLET_STORAGE_CREDENTIALS.to_string()
-}
-
-#[cfg(all(feature = "mysql"))]
-pub fn get_wallet_storage_credentials() -> String {
-    json!({
-        "pass": get_pass(),
-        "user": get_user(),
-    }).to_string()
-}
-
-#[cfg(all(feature = "mysql"))]
-fn get_user() -> String {
-    env::var("DB_USER").unwrap_or("root".to_string())
-}
-
-#[cfg(all(feature = "mysql"))]
-fn get_pass() -> String {
-    env::var("DB_ROOT").unwrap_or("root".to_string())
 }
 
 pub fn validate_config(config: &HashMap<String, String>) -> VcxResult<u32> {
@@ -259,8 +159,7 @@ pub fn validate_config(config: &HashMap<String, String>) -> VcxResult<u32> {
     Ok(error::SUCCESS.code_num)
 }
 
-#[allow(dead_code)]
-fn validate_mandatory_config_val<F, S, E>(val: Option<&String>, err: VcxErrorKind, closure: F) -> VcxResult<u32>
+fn _validate_mandatory_config_val<F, S, E>(val: Option<&String>, err: VcxErrorKind, closure: F) -> VcxResult<u32>
     where F: Fn(&str) -> Result<S, E> {
     closure(val.as_ref().ok_or(VcxError::from(err))?)
         .or(Err(VcxError::from(err)))?;
@@ -322,13 +221,15 @@ pub fn process_config_string(config: &str, do_validation: bool) -> VcxResult<u32
         }
     }
 
-    let agency_config = agency::get_agency_config_values(config)?;
-    set_config_value(CONFIG_AGENCY_ENDPOINT, &agency_config.agency_endpoint);
-    set_config_value(CONFIG_AGENCY_DID, &agency_config.agency_did);
-    set_config_value(CONFIG_AGENCY_VERKEY, &agency_config.agency_verkey);
+    if let Ok(agency_config) = agency::get_agency_config_values(config) {
+        set_config_value(CONFIG_AGENCY_ENDPOINT, &agency_config.agency_endpoint);
+        set_config_value(CONFIG_AGENCY_DID, &agency_config.agency_did);
+        set_config_value(CONFIG_AGENCY_VERKEY, &agency_config.agency_verkey);
+    }
 
-    let pool_config = pool::get_pool_config_values(config)?;
-    set_config_value(CONFIG_POOL_NETWORKS, &json!(pool_config).to_string());
+    if let Ok(pool_config) = pool::get_pool_config_values(config) {
+        set_config_value(CONFIG_POOL_NETWORKS, &json!(pool_config).to_string());
+    }
 
     if do_validation {
         let setting = SETTINGS.read()
@@ -361,11 +262,6 @@ pub fn process_init_pool_config_string(config: &str) -> VcxResult<()> {
 
     trace!("process_init_pool_config_string <<<");
     Ok(())
-}
-
-pub fn get_wallet_name() -> VcxResult<String> {
-    get_config_value(CONFIG_WALLET_NAME)
-        .map_err(|_| VcxError::from(VcxErrorKind::MissingWalletKey))
 }
 
 pub fn get_threadpool_size() -> usize {
@@ -427,45 +323,6 @@ pub fn unset_config_value(key: &str) {
     SETTINGS
         .write().unwrap()
         .remove(key);
-}
-
-pub fn get_wallet_config(wallet_name: &str, wallet_type: Option<&str>, _storage_config: Option<&str>) -> String { // TODO: _storage_config must be used
-    trace!("get_wallet_config >>> wallet_name: {}, wallet_type: {:?}", wallet_name, secret!(wallet_type));
-
-    let mut config = json!({
-        "id": wallet_name,
-    });
-
-    let config_type = get_config_value(CONFIG_WALLET_TYPE).ok();
-
-    if let Some(_type) = wallet_type.map(str::to_string).or(config_type) {
-        config["storage_type"] = serde_json::Value::String(_type);
-    }
-
-    if let Ok(_config) = get_config_value(CONFIG_WALLET_STORAGE_CONFIG) {
-        config["storage_config"] = serde_json::from_str(&_config).unwrap();
-    }
-
-    trace!("get_wallet_config >>> config: {:?}", secret!(config));
-
-    config.to_string()
-}
-
-pub fn get_wallet_credentials(_storage_creds: Option<&str>) -> String { // TODO: storage_creds must be used?
-    trace!("get_wallet_credentials >>> ");
-
-    let key = get_config_value(CONFIG_WALLET_KEY).unwrap_or(UNINITIALIZED_WALLET_KEY.to_string());
-    let mut credentials = json!({"key": key});
-
-    let key_derivation = get_config_value(CONFIG_WALLET_KEY_DERIVATION).ok();
-    if let Some(_key) = key_derivation { credentials["key_derivation_method"] = json!(_key); }
-
-    let storage_creds = get_config_value(CONFIG_WALLET_STORAGE_CREDS).ok();
-    if let Some(_creds) = storage_creds { credentials["storage_credentials"] = serde_json::from_str(&_creds).unwrap(); }
-
-    trace!("get_wallet_credentials >>> credentials: {:?}", secret!(credentials));
-
-    credentials.to_string()
 }
 
 pub fn _config_str_to_bool(key: &str) -> VcxResult<bool> {
@@ -559,23 +416,6 @@ pub fn get_protocol_type() -> ProtocolTypes {
     protocol_type
 }
 
-pub fn get_pool_networks() -> VcxResult<Vec<PoolConfig>> {
-    let networks = get_config_value(CONFIG_POOL_NETWORKS)
-        .map_err(|_| VcxError::from_msg(
-            VcxErrorKind::InvalidConfiguration,
-            format!("Cannot open Pool Network: Provided configuration JSON doesn't contain pool network information"),
-        ))?;
-
-
-    let networks: Vec<PoolConfig> = serde_json::from_str(&networks)
-        .map_err(|err| VcxError::from_msg(
-            VcxErrorKind::InvalidConfiguration,
-            format!("Cannot read Pool Network information from library settings. Err: {:?}", err),
-        ))?;
-
-    Ok(networks)
-}
-
 pub fn clear_config() {
     trace!("clear_config >>>");
     let mut config = SETTINGS.write().unwrap();
@@ -586,6 +426,7 @@ pub fn clear_config() {
 pub mod tests {
     use super::*;
     use utils::devsetup::{TempFile, SetupDefaults};
+    use settings::pool::get_pool_networks;
 
     fn _institution_name() -> String {
         "enterprise".to_string()
@@ -600,18 +441,44 @@ pub mod tests {
             "pool_name" : "pool1",
             "config_name":"config1",
             "wallet_name":"test_read_config_file",
+            "agency_endpoint" : "https://agency.com",
             "agency_did" : "72x8p4HubxzUK1dwxcc5FU",
+            "agency_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
             "remote_to_sdk_did" : "UJGjM6Cea2YVixjWwHN9wq",
             "sdk_to_remote_did" : "AB3JM851T4EQmhh8CdagSP",
             "sdk_to_remote_verkey" : "888MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
             "institution_name" : _institution_name(),
-            "agency_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
             "remote_to_sdk_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
             "genesis_path":"/tmp/pool1.txn",
             "wallet_key":"key",
             "pool_config": _pool_config(),
             "payment_method": "null"
         })
+    }
+
+    #[test]
+    fn test_process_config_str_for_aliases() {
+        let _setup = SetupDefaults::init();
+
+        let config = json!({
+            "wallet_name":"test_read_config_file",
+            "agency_alias" : "demo",
+            "pool_network_alias" : "demo",
+            "remote_to_sdk_did" : "UJGjM6Cea2YVixjWwHN9wq",
+            "sdk_to_remote_did" : "AB3JM851T4EQmhh8CdagSP",
+            "sdk_to_remote_verkey" : "888MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
+            "remote_to_sdk_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
+            "institution_name" : _institution_name(),
+            "wallet_key":"key",
+        }).to_string();
+
+        assert_eq!(process_config_string(&config, true).unwrap(), error::SUCCESS.code_num);
+
+        assert_eq!(pool::get_pool_networks().unwrap().len(), 1);
+
+        assert_eq!(get_config_value(CONFIG_AGENCY_ENDPOINT).unwrap(), environment::DEMO_AGENCY_ENDPOINT);
+        assert_eq!(get_config_value(CONFIG_AGENCY_DID).unwrap(), environment::DEMO_AGENCY_DID);
+        assert_eq!(get_config_value(CONFIG_AGENCY_VERKEY).unwrap(), environment::DEMO_AGENCY_VERKEY);
     }
 
     pub fn config_json() -> String {
@@ -758,6 +625,7 @@ pub mod tests {
         let _setup = SetupDefaults::init();
 
         let content = json!({
+            "agency_alias" : "demo",
             "pool_name" : "pool1",
             "config_name":"config1",
             "wallet_name":"test_clear_config",
@@ -838,13 +706,6 @@ pub mod tests {
 
         // Empty
         let config = json!({}).to_string();
-        assert_eq!(process_init_pool_config_string(&config.to_string()).unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
-
-        // Unexpected fields
-        let config = json!({
-            "genesis_path": "path/test/",
-            "other_field": "pool1",
-        }).to_string();
         assert_eq!(process_init_pool_config_string(&config.to_string()).unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
     }
 
