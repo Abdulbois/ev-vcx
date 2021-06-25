@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import random
 import time
@@ -43,6 +44,7 @@ provisionConfig = {
 async def main():
     print("#1 Provision an agent and wallet, get back configuration details")
     config = await vcx_agent_provision(json.dumps(provisionConfig))
+    print(config)
 
     print("#2 Initialize libvcx with new configuration")
     await vcx_init_with_config(config)
@@ -183,9 +185,7 @@ async def issue_credential(connection_to_alice, schema_attributes, credential_va
 
 def proof_attrs(institution_did):
     return [
-        {'name': 'Hobby'},
         {'name': 'MemberID'},
-        {'names': ['FirstName', 'Lastname'], 'restrictions': {'issuer_did': institution_did}},
     ]
 
 
@@ -198,7 +198,7 @@ def proof_predicates(institution_did):
 
 async def ask_for_proof(connection_to_alice, proof_attrs, proof_predicates):
     print("#19 Create a Proof object")
-    proof = await Proof.create('proof_uuid', 'proof_from_alice', proof_attrs, {}, proof_predicates)
+    proof = await Proof.create('proof_uuid', 'proof_from_alice', proof_attrs, {}, [])
 
     print("#20 Request proof of degree from alice")
     await proof.request_proof(connection_to_alice)

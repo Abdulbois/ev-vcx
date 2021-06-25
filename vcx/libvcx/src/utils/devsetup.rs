@@ -351,6 +351,7 @@ use utils::libindy::pool::tests::{open_test_pool, delete_test_pool, create_test_
 use utils::file::write_file;
 use utils::logger::LibvcxDefaultLogger;
 use settings::wallet::get_wallet_name;
+use messages::agent_provisioning;
 
 static mut INSTITUTION_CONFIG: Handle<String> = Handle::dummy();
 static mut CONSUMER_CONFIG: Handle<String> = Handle::dummy();
@@ -514,7 +515,7 @@ pub fn setup_agency_env(protocol_type: &str, use_zero_fees: bool) {
         "protocol_type": protocol_type,
     });
 
-    let enterprise_config = ::messages::agent_utils::connect_register_provision(&config.to_string()).unwrap();
+    let enterprise_config = agent_provisioning::provision(&config.to_string()).unwrap();
 
     ::api::vcx::vcx_shutdown(false);
 
@@ -535,7 +536,7 @@ pub fn setup_agency_env(protocol_type: &str, use_zero_fees: bool) {
         "protocol_type": protocol_type,
     });
 
-    let consumer_config = ::messages::agent_utils::connect_register_provision(&config.to_string()).unwrap();
+    let consumer_config = agent_provisioning::provision(&config.to_string()).unwrap();
 
     unsafe {
         INSTITUTION_CONFIG = CONFIG_STRING.add(config_with_wallet_handle(&enterprise_wallet_name, &enterprise_config)).unwrap();
@@ -718,7 +719,7 @@ pub fn setup_consumer_env(protocol_type: &str) {
         "protocol_type": protocol_type,
     });
 
-    let consumer_config = ::messages::agent_utils::connect_register_provision(&config.to_string()).unwrap();
+    let consumer_config = agent_provisioning::provision(&config.to_string()).unwrap();
 
     unsafe {
         CONSUMER_CONFIG = CONFIG_STRING.add(config_with_wallet_handle(&consumer_wallet_name, &consumer_config.to_string())).unwrap();

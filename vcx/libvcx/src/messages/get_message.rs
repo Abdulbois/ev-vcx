@@ -4,7 +4,7 @@ use messages::*;
 use messages::payload::{Payloads, PayloadTypes, PayloadKinds, PayloadV1};
 use utils::{httpclient, constants};
 use error::prelude::*;
-use settings::ProtocolTypes;
+use settings::protocol::ProtocolTypes;
 use utils::httpclient::AgencyMock;
 use messages::issuance::credential_offer::set_cred_offer_ref_message;
 use messages::proofs::proof_request::set_proof_req_ref_message;
@@ -88,7 +88,7 @@ impl GetMessagesBuilder {
     #[cfg(test)]
     pub fn create_v1() -> GetMessagesBuilder {
         let mut builder = GetMessagesBuilder::create();
-        builder.version = settings::ProtocolTypes::V1;
+        builder.version = ProtocolTypes::V1;
         builder
     }
 
@@ -169,7 +169,7 @@ impl GetMessagesBuilder {
         trace!("GetMessagesBuilder::prepare_download_request >>>");
 
         let message = match self.version {
-            settings::ProtocolTypes::V1 =>
+            ProtocolTypes::V1 =>
                 A2AMessage::Version1(
                     A2AMessageV1::GetMessages(
                         GetMessages {
@@ -181,8 +181,8 @@ impl GetMessagesBuilder {
                         }
                     )
                 ),
-            settings::ProtocolTypes::V2 |
-            settings::ProtocolTypes::V3 =>
+            ProtocolTypes::V2 |
+            ProtocolTypes::V3 =>
                 A2AMessage::Version2(
                     A2AMessageV2::GetMessages(
                         GetMessages {
@@ -242,7 +242,7 @@ impl GeneralMessage for GetMessagesBuilder {
         trace!("GetMessagesBuilder::prepare_request >>>");
 
         let message = match self.version {
-            settings::ProtocolTypes::V1 =>
+            ProtocolTypes::V1 =>
                 A2AMessage::Version1(
                     A2AMessageV1::GetMessages(
                         GetMessages {
@@ -254,8 +254,8 @@ impl GeneralMessage for GetMessagesBuilder {
                         }
                     )
                 ),
-            settings::ProtocolTypes::V2 |
-            settings::ProtocolTypes::V3 =>
+            ProtocolTypes::V2 |
+            ProtocolTypes::V3 =>
                 A2AMessage::Version2(
                     A2AMessageV2::GetMessages(
                         GetMessages {

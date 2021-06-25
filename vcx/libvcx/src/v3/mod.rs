@@ -18,7 +18,6 @@ pub mod test {
     use crate::schema::CreateSchema;
     use rand::Rng;
     use utils::devsetup::*;
-    use messages::agent_utils::connect_register_provision;
     use utils::libindy::wallet::*;
     use indy_sys::WalletHandle;
     use utils::plugins::init_plugin;
@@ -29,6 +28,7 @@ pub mod test {
     
     use utils::libindy::anoncreds::prover_get_credentials;
     use utils::libindy::types::CredentialInfo;
+    use messages::agent_provisioning;
 
     pub fn source_id() -> String {
         String::from("test source id")
@@ -167,7 +167,7 @@ pub mod test {
                 "protocol_type": "3.0",
             }).to_string();
 
-            let config = connect_register_provision(&config).unwrap();
+            let config = agent_provisioning::provision(&config).unwrap();
 
             let config = config_with_wallet_handle(wallet_name, &config);
 
@@ -363,7 +363,7 @@ pub mod test {
                 "protocol_type": "3.0",
             }).to_string();
 
-            let config = connect_register_provision(&config).unwrap();
+            let config = agent_provisioning::provision(&config).unwrap();
 
             let config = config_with_wallet_handle(&wallet_name, &config);
 

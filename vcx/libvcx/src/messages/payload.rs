@@ -1,7 +1,8 @@
 use messages::message_type::*;
 use messages::i8_as_u8_slice;
 use messages::get_message::MessagePayload;
-use settings::{ProtocolTypes, get_protocol_type};
+use settings::get_protocol_type;
+use settings::protocol::ProtocolTypes;
 use utils::libindy::crypto;
 use error::prelude::*;
 use messages::thread::Thread;

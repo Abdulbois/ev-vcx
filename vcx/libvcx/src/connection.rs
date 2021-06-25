@@ -8,7 +8,7 @@ use crate::object_cache::Handle;
 use api::VcxStateType;
 use error::prelude::*;
 use messages;
-use messages::{GeneralMessage, MessageStatusCode, RemoteMessageType, SerializableObjectWithState};
+use messages::{GeneralMessage, MessageStatusCode, RemoteMessageType, SerializableObjectWithState, update_agent};
 use messages::invite::{InviteDetail, SenderDetail, Payload as ConnectionPayload, AcceptanceDetails, RedirectDetail, RedirectionDetails};
 use messages::payload::{Payloads, PayloadKinds};
 use messages::thread::Thread;
@@ -29,7 +29,7 @@ use v3::messages::a2a::A2AMessage;
 use v3::handlers::connection::types::CompletedConnection;
 use v3::messages::invite_action::invite::{Invite as InviteForAction, InviteActionData};
 
-use settings::ProtocolTypes;
+use settings::protocol::ProtocolTypes;
 use v3::messages::committedanswer::question::{QuestionResponse, Question};
 use v3::messages::committedanswer::answer::Answer;
 
@@ -104,7 +104,7 @@ pub struct Connection {
     public_did: Option<String>,
     their_public_did: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    version: Option<settings::ProtocolTypes>,
+    version: Option<ProtocolTypes>,
 }
 
 impl Connection {
@@ -312,7 +312,7 @@ impl Connection {
     fn get_invite_detail(&self) -> &Option<InviteDetail> { &self.invite_detail }
     fn set_invite_detail(&mut self, id: InviteDetail) {
         self.version = match id.version.is_some() {
-            true => Some(settings::ProtocolTypes::from(id.version.clone().unwrap())),
+            true => Some(ProtocolTypes::from(id.version.clone().unwrap())),
             false => Some(settings::get_protocol_type()),
         };
         self.invite_detail = Some(id);
@@ -322,7 +322,7 @@ impl Connection {
     fn get_redirect_detail(&self) -> &Option<RedirectDetail> { &self.redirect_detail }
     fn set_redirect_detail(&mut self, rd: RedirectDetail) { self.redirect_detail = Some(rd); }
 
-    fn get_version(&self) -> Option<settings::ProtocolTypes> {
+    fn get_version(&self) -> Option<ProtocolTypes> {
         self.version.clone()
     }
 
@@ -367,9 +367,9 @@ impl Connection {
             self.public_did = Some(settings::get_config_value(settings::CONFIG_INSTITUTION_DID)?);
         };
 
-        ::messages::agent_utils::update_agent_profile(&self.pw_did,
-                                                      &self.public_did,
-                                                      ProtocolTypes::V1)
+        update_agent::update_agent_profile(&self.pw_did,
+                                           &self.public_did,
+                                           ProtocolTypes::V1)
     }
 
     pub fn update_state(&mut self, message: Option<String>) -> VcxResult<u32> {

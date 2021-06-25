@@ -1,4 +1,4 @@
-use settings::Actors;
+use v3::messages::a2a::protocol_registry::Actors;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, EnumIter)]
 pub enum MessageFamilies {
