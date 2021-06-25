@@ -35,7 +35,7 @@ pub mod tests {
     }
 
     fn _setup() {
-        ::settings::set_config_value(::settings::COMMUNICATION_METHOD, "aries");
+        ::settings::set_config_value(::settings::CONFIG_PROTOCOL_TYPE, "3.0");
     }
 
     fn _source_id() -> &'static str {

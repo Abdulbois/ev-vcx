@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::fmt;
+use std::{fmt, io};
 use std::ffi::CString;
 use std::ptr;
 
@@ -318,6 +318,12 @@ impl From<VcxError> for u32 {
     fn from(code: VcxError) -> u32 {
         set_current_error(&code);
         code.kind().into()
+    }
+}
+
+impl From<io::Error> for VcxError {
+    fn from(err: io::Error) -> Self {
+        err.context(VcxErrorKind::IOError).into()
     }
 }
 

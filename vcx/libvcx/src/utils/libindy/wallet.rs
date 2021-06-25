@@ -392,7 +392,7 @@ pub mod tests {
         // Missing exported_wallet_path
         let res = import(&config.to_string()).unwrap_err();
         assert_eq!(res.kind(), VcxErrorKind::InvalidWalletImportConfig);
-        config[settings::CONFIG_EXPORTED_WALLET_PATH] = serde_json::to_value(
+        config["exported_wallet_path"] = serde_json::to_value(
             get_temp_dir_path(settings::DEFAULT_EXPORTED_WALLET_PATH).to_str().unwrap()
         ).unwrap();
 

@@ -232,7 +232,7 @@ pub extern fn vcx_init_pool(command_handle: CommandHandle,
     trace!("vcx_init_pool(command_handle: {}, pool_config: {:?})",
            command_handle, pool_config);
 
-    match settings::process_pool_config_string(&pool_config) {
+    match settings::process_init_pool_config_string(&pool_config) {
         Err(e) => {
             error!("Invalid pool configuration specified: {}", e);
             return e.into();
@@ -357,18 +357,6 @@ pub extern fn vcx_update_institution_info(name: *const c_char, logo_url: *const 
 
     settings::set_config_value(::settings::CONFIG_INSTITUTION_NAME, &name);
     settings::set_config_value(::settings::CONFIG_INSTITUTION_LOGO_URL, &logo_url);
-
-    error::SUCCESS.code_num
-}
-
-#[no_mangle]
-pub extern fn vcx_update_webhook_url(notification_webhook_url: *const c_char) -> u32 {
-    info!("vcx_update_webhook >>>");
-
-    check_useful_c_str!(notification_webhook_url, VcxErrorKind::InvalidOption);
-    trace!("vcx_update_webhook(webhook_url: {})", secret!(notification_webhook_url));
-
-    settings::set_config_value(::settings::CONFIG_WEBHOOK_URL, &notification_webhook_url);
 
     error::SUCCESS.code_num
 }
@@ -890,19 +878,6 @@ mod tests {
 
         assert_eq!(new_name, &settings::get_config_value(::settings::CONFIG_INSTITUTION_NAME).unwrap());
         assert_eq!(new_url, &settings::get_config_value(::settings::CONFIG_INSTITUTION_LOGO_URL).unwrap());
-    }
-
-    #[test]
-    fn test_vcx_update_institution_webhook() {
-        let _setup = SetupDefaults::init();
-
-        let webhook_url_cstr = "http://www.evernym.com\0";
-        let webhook_url = &webhook_url_cstr[..webhook_url_cstr.len() - 1];
-        assert_ne!(webhook_url, &settings::get_config_value(::settings::CONFIG_WEBHOOK_URL).unwrap());
-
-        assert_eq!(error::SUCCESS.code_num, vcx_update_webhook_url(webhook_url_cstr.as_ptr().cast()));
-
-        assert_eq!(webhook_url, &settings::get_config_value(::settings::CONFIG_WEBHOOK_URL).unwrap());
     }
 
     #[test]

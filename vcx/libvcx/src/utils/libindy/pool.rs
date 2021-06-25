@@ -4,8 +4,10 @@ use indy::{pool, ErrorCode};
 use settings;
 use error::prelude::*;
 use std::sync::RwLock;
-use std::thread;
-use settings::PoolConfig;
+use std::{thread, fs};
+use settings::pool::PoolConfig;
+use utils::libindy::environment::genesis_transactions_path;
+use std::io::Write;
 
 lazy_static! {
     static ref POOLS: RwLock<Vec<i32>> = RwLock::new(Vec::new());
@@ -27,7 +29,7 @@ pub fn get_pool_handle() -> VcxResult<i32> {
     match POOLS.read() {
         Ok(pools) => {
             if pools.len() == 1 {
-                return Ok(pools[0])
+                return Ok(pools[0]);
             } else if pools.len() > 1 {
                 Err(VcxError::from_msg(VcxErrorKind::InvalidState,
                                        "There is more than one pool opened. In order to do write transactions, \
@@ -35,7 +37,7 @@ pub fn get_pool_handle() -> VcxResult<i32> {
             } else {
                 Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"))
             }
-        },
+        }
         Err(_) => Err(VcxError::from_msg(VcxErrorKind::InternalError, "Cannot get lock for opened pools"))
     }
 }
@@ -44,12 +46,12 @@ pub fn get_pool_handles() -> VcxResult<Vec<i32>> {
     let pools = match POOLS.read() {
         Ok(pools) => pools.clone(),
         Err(_) => {
-            return Err(VcxError::from_msg(VcxErrorKind::InternalError, "Cannot get lock for opened pools"))
+            return Err(VcxError::from_msg(VcxErrorKind::InternalError, "Cannot get lock for opened pools"));
         }
     };
 
-    if pools.is_empty(){
-        return Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"))
+    if pools.is_empty() {
+        return Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"));
     }
 
     Ok(pools)
@@ -121,7 +123,7 @@ fn connect_to_pool(config: PoolConfig) -> VcxResult<()> {
     let pool_name = config.pool_name
         .ok_or(VcxError::from_msg(
             VcxErrorKind::InvalidConfiguration,
-            format!("Cannot read Pool Network Name from library settings")
+            format!("Cannot read Pool Network Name from library settings"),
         ))?;
 
     let pool_config = config.pool_config.map(|config| json!(config).to_string());
@@ -146,7 +148,7 @@ pub fn init_pool() -> VcxResult<()> {
 
     if get_pool_handle().is_ok() {
         debug!("Pool is already initialized.");
-        return Ok(())
+        return Ok(());
     }
 
     let networks = settings::get_pool_networks()?;
@@ -189,13 +191,39 @@ pub fn delete() -> VcxResult<()> {
         let pool_name = config.pool_name
             .ok_or(VcxError::from_msg(
                 VcxErrorKind::InvalidConfiguration,
-                format!("Cannot read Pool Network Name from library settings")
+                format!("Cannot read Pool Network Name from library settings"),
             ))?;
 
         pool::delete_pool_ledger(&pool_name).wait()?;
     }
 
     Ok(())
+}
+
+pub fn create_genesis_txn_file(name: &str, genesis_transactions: &str) -> VcxResult<String> {
+    let path = genesis_transactions_path(name);
+
+    let path_str = path
+        .to_str()
+        .ok_or(VcxError::from_msg(VcxErrorKind::IOError, "Cannot create directory to write genesis transactions"))?
+        .to_string();
+
+    if let Some(parent_path) = path.parent() {
+        fs::DirBuilder::new()
+            .recursive(true)
+            .create(parent_path)?;
+    }
+
+    let mut file =
+        fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(path.clone())?;
+
+    file.write_all(genesis_transactions.as_bytes())?;
+    file.flush()?;
+    file.sync_all()?;
+    Ok(path_str)
 }
 
 #[cfg(test)]

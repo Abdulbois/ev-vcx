@@ -11,7 +11,7 @@ use error::prelude::*;
 use indy_sys::CommandHandle;
 use utils::httpclient::AgencyMock;
 use utils::constants::*;
-use messages::agent_utils::{ComMethod, Config};
+use messages::agent_utils::{ComMethod, ProvisioningConfig};
 use v3::handlers::connection::agent::AgentInfo;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
@@ -250,7 +250,7 @@ pub extern fn vcx_get_provision_token(command_handle: CommandHandle,
         }
     };
 
-    let vcx_config: Config = match serde_json::from_value(configs["vcx_config"].clone()) {
+    let vcx_config: ProvisioningConfig = match serde_json::from_value(configs["vcx_config"].clone()) {
         Ok(x) => x,
         Err(_) => {
             return VcxError::from_msg(VcxErrorKind::InvalidConfiguration, "missing vcx_config").into();

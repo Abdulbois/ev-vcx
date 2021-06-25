@@ -1,4 +1,6 @@
-extern crate serde_json;
+pub mod agency;
+pub mod pool;
+pub mod environment;
 
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -13,8 +15,8 @@ use reqwest::Url;
 use error::prelude::*;
 use utils::file::read_file;
 use indy_sys::INVALID_WALLET_HANDLE;
-#[cfg(all(feature="mysql"))]
-use utils::libindy::mysql_wallet::{init_mysql_wallet as do_init_mysql_wallet};
+#[cfg(all(feature = "mysql"))]
+use utils::libindy::mysql_wallet::init_mysql_wallet as do_init_mysql_wallet;
 
 pub static CONFIG_POOL_NAME: &str = "pool_name";
 pub static CONFIG_PROTOCOL_TYPE: &str = "protocol_type";
@@ -23,14 +25,13 @@ pub static CONFIG_AGENCY_DID: &str = "agency_did";
 pub static CONFIG_AGENCY_VERKEY: &str = "agency_verkey";
 pub static CONFIG_REMOTE_TO_SDK_DID: &str = "remote_to_sdk_did";
 pub static CONFIG_REMOTE_TO_SDK_VERKEY: &str = "remote_to_sdk_verkey";
-pub static CONFIG_SDK_TO_REMOTE_DID: &str = "sdk_to_remote_did";// functionally not used
+pub static CONFIG_SDK_TO_REMOTE_DID: &str = "sdk_to_remote_did";
 pub static CONFIG_SDK_TO_REMOTE_VERKEY: &str = "sdk_to_remote_verkey";
 pub static CONFIG_SDK_TO_REMOTE_ROLE: &str = "sdk_to_remote_role";
 pub static CONFIG_INSTITUTION_DID: &str = "institution_did";
-pub static CONFIG_INSTITUTION_VERKEY: &str = "institution_verkey";// functionally not used
+pub static CONFIG_INSTITUTION_VERKEY: &str = "institution_verkey";
 pub static CONFIG_INSTITUTION_NAME: &str = "institution_name";
 pub static CONFIG_INSTITUTION_LOGO_URL: &str = "institution_logo_url";
-pub static CONFIG_WEBHOOK_URL: &str = "webhook_url";
 pub static CONFIG_ENABLE_TEST_MODE: &str = "enable_test_mode";
 pub static CONFIG_GENESIS_PATH: &str = "genesis_path";
 pub static CONFIG_LOG_CONFIG: &str = "log_config";
@@ -47,10 +48,8 @@ pub static CONFIG_THREADPOOL_SIZE: &'static str = "threadpool_size";
 pub static CONFIG_WALLET_KEY_DERIVATION: &'static str = "wallet_key_derivation";
 pub static CONFIG_PAYMENT_METHOD: &'static str = "payment_method";
 pub static CONFIG_TXN_AUTHOR_AGREEMENT: &'static str = "author_agreement";
-pub static CONFIG_USE_LATEST_PROTOCOLS: &'static str = "use_latest_protocols";
 pub static CONFIG_POOL_CONFIG: &'static str = "pool_config";
 pub static CONFIG_DID_METHOD: &str = "did_method";
-pub static COMMUNICATION_METHOD: &str = "communication_method"; // proprietary or aries
 pub static CONFIG_ACTORS: &str = "actors"; // inviter, invitee, issuer, holder, prover, verifier, sender, receiver
 pub static CONFIG_POOL_NETWORKS: &str = "pool_networks";
 
@@ -75,11 +74,9 @@ pub static MASK_VALUE: &str = "********";
 pub static DEFAULT_WALLET_KEY_DERIVATION: &str = "RAW";
 pub static DEFAULT_PAYMENT_PLUGIN: &str = "libsovtoken.so";
 pub static DEFAULT_PAYMENT_INIT_FUNCTION: &str = "sovtoken_init";
-pub static DEFAULT_USE_LATEST_PROTOCOLS: &str = "false";
 pub static DEFAULT_PAYMENT_METHOD: &str = "sov";
 pub static DEFAULT_PROTOCOL_TYPE: &str = "3.0";
 pub static MAX_THREADPOOL_SIZE: usize = 128;
-pub static DEFAULT_COMMUNICATION_METHOD: &str = "evernym";
 
 lazy_static! {
     static ref SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(HashMap::new());
@@ -97,20 +94,20 @@ impl ToString for HashMap<String, String> {
     }
 }
 
-#[cfg(all(feature="mysql"))]
+#[cfg(all(feature = "mysql"))]
 use std::sync::Once;
 
-#[cfg(all(feature="mysql"))]
+#[cfg(all(feature = "mysql"))]
 static START: Once = Once::new();
 
-#[cfg(all(feature="mysql"))]
+#[cfg(all(feature = "mysql"))]
 pub fn init_mysql_wallet() {
     START.call_once(|| {
         let _ = do_init_mysql_wallet();
     });
 }
 
-#[cfg(all(not(feature="mysql")))]
+#[cfg(all(not(feature = "mysql")))]
 pub fn init_mysql_wallet() {
     //nothing is initiated without this feature
 }
@@ -122,8 +119,8 @@ pub fn set_defaults() -> u32 {
     // if this fails the program should exit
     let mut settings = SETTINGS.write().unwrap();
 
-    #[cfg(all(feature="mysql"))]
-    init_mysql_wallet();
+    #[cfg(all(feature = "mysql"))]
+        init_mysql_wallet();
 
 
     settings.insert(CONFIG_POOL_NAME.to_string(), DEFAULT_POOL_NAME.to_string());
@@ -139,7 +136,6 @@ pub fn set_defaults() -> u32 {
     settings.insert(CONFIG_INSTITUTION_DID.to_string(), DEFAULT_DID.to_string());
     settings.insert(CONFIG_INSTITUTION_NAME.to_string(), DEFAULT_DEFAULT.to_string());
     settings.insert(CONFIG_INSTITUTION_LOGO_URL.to_string(), DEFAULT_URL.to_string());
-    settings.insert(CONFIG_WEBHOOK_URL.to_string(), DEFAULT_URL.to_string());
     settings.insert(CONFIG_SDK_TO_REMOTE_DID.to_string(), DEFAULT_DID.to_string());
     settings.insert(CONFIG_SDK_TO_REMOTE_VERKEY.to_string(), DEFAULT_VERKEY.to_string());
     settings.insert(CONFIG_SDK_TO_REMOTE_ROLE.to_string(), DEFAULT_ROLE.to_string());
@@ -151,29 +147,27 @@ pub fn set_defaults() -> u32 {
     settings.insert(CONFIG_WALLET_BACKUP_KEY.to_string(), DEFAULT_WALLET_BACKUP_KEY.to_string());
     settings.insert(CONFIG_THREADPOOL_SIZE.to_string(), DEFAULT_THREADPOOL_SIZE.to_string());
     settings.insert(CONFIG_PAYMENT_METHOD.to_string(), DEFAULT_PAYMENT_METHOD.to_string());
-    settings.insert(CONFIG_USE_LATEST_PROTOCOLS.to_string(), DEFAULT_USE_LATEST_PROTOCOLS.to_string());
-    settings.insert(COMMUNICATION_METHOD.to_string(), DEFAULT_COMMUNICATION_METHOD.to_string());
 
     error::SUCCESS.code_num
 }
 
-#[cfg(all(not(feature="mysql")))]
+#[cfg(all(not(feature = "mysql")))]
 pub fn get_wallet_type() -> String {
     DEFAULT_DEFAULT.to_string()
 }
 
-#[cfg(all(feature="mysql"))]
+#[cfg(all(feature = "mysql"))]
 pub fn get_wallet_type() -> String {
     "mysql".to_string()
 }
 
-#[cfg(all(not(feature="mysql")))]
+#[cfg(all(not(feature = "mysql")))]
 pub fn get_wallet_storage_config() -> String {
     trace!("setting default storage confing");
     DEFAULT_WALLET_STORAGE_CONFIG.to_string()
 }
 
-#[cfg(all(feature="mysql"))]
+#[cfg(all(feature = "mysql"))]
 pub fn get_wallet_storage_config() -> String {
     trace!("setting mysql storage config");
     json!({
@@ -185,21 +179,23 @@ pub fn get_wallet_storage_config() -> String {
 }
 
 
-#[cfg(all(feature="mysql"))]
+#[cfg(all(feature = "mysql"))]
 use std::env;
 use utils::random::random_string;
+use utils::libindy::pool::create_genesis_txn_file;
+use settings::pool::PoolConfig;
 
-#[cfg(all(feature="mysql"))]
+#[cfg(all(feature = "mysql"))]
 fn get_write_host() -> String {
     env::var("DB_WRITE_HOST").unwrap_or("mysql".to_string())
 }
 
-#[cfg(all(feature="mysql"))]
+#[cfg(all(feature = "mysql"))]
 fn get_read_host() -> String {
     env::var("DB_WRITE_HOST").unwrap_or("mysql".to_string())
 }
 
-#[cfg(all(feature="mysql"))]
+#[cfg(all(feature = "mysql"))]
 fn get_port() -> i32 {
     let port_var = env::var("DB_PORT").and_then(|s| s.parse::<i32>().map_err(|_| env::VarError::NotPresent));
     if port_var.is_err() {
@@ -208,12 +204,12 @@ fn get_port() -> i32 {
     port_var.unwrap_or(3306)
 }
 
-#[cfg(all(not(feature="mysql")))]
+#[cfg(all(not(feature = "mysql")))]
 pub fn get_wallet_storage_credentials() -> String {
     DEFAULT_WALLET_STORAGE_CREDENTIALS.to_string()
 }
 
-#[cfg(all(feature="mysql"))]
+#[cfg(all(feature = "mysql"))]
 pub fn get_wallet_storage_credentials() -> String {
     json!({
         "pass": get_pass(),
@@ -255,8 +251,6 @@ pub fn validate_config(config: &HashMap<String, String>) -> VcxResult<u32> {
 
     validate_optional_config_val(config.get(CONFIG_AGENCY_ENDPOINT), VcxErrorKind::InvalidUrl, Url::parse)?;
     validate_optional_config_val(config.get(CONFIG_INSTITUTION_LOGO_URL), VcxErrorKind::InvalidUrl, Url::parse)?;
-
-    validate_optional_config_val(config.get(CONFIG_WEBHOOK_URL), VcxErrorKind::InvalidUrl, Url::parse)?;
 
     validate_optional_config_val(config.get(CONFIG_ACTORS), VcxErrorKind::InvalidConfiguration, validation::validate_actors)?;
 
@@ -328,13 +322,19 @@ pub fn process_config_string(config: &str, do_validation: bool) -> VcxResult<u32
         }
     }
 
+    let agency_config = agency::get_agency_config_values(config)?;
+    set_config_value(CONFIG_AGENCY_ENDPOINT, &agency_config.agency_endpoint);
+    set_config_value(CONFIG_AGENCY_DID, &agency_config.agency_did);
+    set_config_value(CONFIG_AGENCY_VERKEY, &agency_config.agency_verkey);
+
+    let pool_config = pool::get_pool_config_values(config)?;
+    set_config_value(CONFIG_POOL_NETWORKS, &json!(pool_config).to_string());
+
     if do_validation {
         let setting = SETTINGS.read()
             .or(Err(VcxError::from(VcxErrorKind::InvalidConfiguration)))?;
         validate_config(&setting.borrow())?;
     }
-
-    map_pool_settings();
 
     trace!("process_config_string <<<");
 
@@ -353,67 +353,14 @@ pub fn process_config_file(path: &str) -> VcxResult<u32> {
     process_config_string(&config, true)
 }
 
-#[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
-#[serde(deny_unknown_fields)]
-pub struct PoolConfig {
-    pub genesis_path: String,
-    pub pool_name: Option<String>,
-    pub pool_config: Option<serde_json::Value>,
-}
+pub fn process_init_pool_config_string(config: &str) -> VcxResult<()> {
+    trace!("process_init_pool_config_string >>> config {}", secret!(config));
 
-#[derive(Clone, Deserialize, Serialize, Debug)]
-#[serde(untagged)]
-pub enum PoolConfigs {
-    List(Vec<PoolConfig>),
-    Single(PoolConfig),
-}
+    let pool_config = pool::get_init_pool_config_values(config)?;
+    set_config_value(CONFIG_POOL_NETWORKS, &json!(pool_config).to_string());
 
-pub fn process_pool_config_string(config: &str) -> VcxResult<()> {
-    trace!("process_pool_config_string >>> config {}", secret!(config));
-    debug!("processing pool config");
-
-    let pool_configs: PoolConfigs = serde_json::from_str(config)
-        .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidConfiguration,
-                                          format!("Cannot parse Pool Network configuration from provided config JSON. Err: {:?}", err)))?;
-
-    match pool_configs {
-        PoolConfigs::Single(mut config_) => {
-            set_pool_name_if_missing(&mut config_);
-            set_config_value(CONFIG_POOL_NETWORKS, &json!(vec![config_]).to_string());
-        }
-        PoolConfigs::List(mut configs) => {
-            for config in configs.iter_mut(){
-                set_pool_name_if_missing(config);
-            }
-            set_config_value(CONFIG_POOL_NETWORKS, &json!(configs).to_string());
-        }
-    }
-
-    trace!("process_pool_config_string <<<");
-    return Ok(());
-}
-
-fn set_pool_name_if_missing(config: &mut PoolConfig) {
-    if config.pool_name.is_none() {
-        config.pool_name = Some(random_string(10));
-    }
-}
-
-pub fn map_pool_settings() {
-    // map pool related settings from set of fields to new single setting
-    let pool_name = get_config_value(CONFIG_POOL_NAME).ok();
-    let genesis_path = get_config_value(CONFIG_GENESIS_PATH).ok();
-    let pool_config = get_config_value(CONFIG_POOL_CONFIG).ok();
-    if let Some(genesis_path_) = genesis_path {
-        let network_config = PoolConfig {
-            genesis_path: genesis_path_.clone(),
-            pool_name: pool_name.or(Some(random_string(10))),
-            pool_config: pool_config.and_then(
-                |config| serde_json::from_str::<serde_json::Value>(&config).ok()
-            )
-        };
-        set_config_value(CONFIG_POOL_NETWORKS, &json!(vec![network_config]).to_string());
-    }
+    trace!("process_init_pool_config_string <<<");
+    Ok(())
 }
 
 pub fn get_wallet_name() -> VcxResult<String> {
@@ -521,18 +468,6 @@ pub fn get_wallet_credentials(_storage_creds: Option<&str>) -> String { // TODO:
     credentials.to_string()
 }
 
-pub fn get_connecting_protocol_version() -> ProtocolTypes {
-    trace!("get_connecting_protocol_version >>> ");
-
-    let protocol = get_config_value(CONFIG_USE_LATEST_PROTOCOLS).unwrap_or(DEFAULT_USE_LATEST_PROTOCOLS.to_string());
-    let protocol = match protocol.as_ref() {
-        "true" | "TRUE" | "True" => ProtocolTypes::V2,
-        "false" | "FALSE" | "False" | _ => ProtocolTypes::V1,
-    };
-    trace!("get_connecting_protocol_version >>> protocol: {:?}", protocol);
-    protocol
-}
-
 pub fn _config_str_to_bool(key: &str) -> VcxResult<bool> {
     get_config_value(key)?
         .parse::<bool>()
@@ -544,15 +479,10 @@ pub fn get_payment_method() -> VcxResult<String> {
         .map_err(|_| VcxError::from_msg(VcxErrorKind::MissingPaymentMethod, "Payment Method is not set."))
 }
 
-pub fn get_communication_method() -> VcxResult<String> {
-    get_config_value(COMMUNICATION_METHOD)
-}
-
 pub fn is_aries_protocol_set() -> bool {
     trace!("is_aries_protocol_set >>> ");
 
-    let res = get_protocol_type() == ProtocolTypes::V2 && ARIES_COMMUNICATION_METHOD == get_communication_method().unwrap_or_default() ||
-        get_protocol_type() == ProtocolTypes::V3;
+    let res = get_protocol_type() == ProtocolTypes::V3;
 
     trace!("is_aries_protocol_set >>> res: {:?}", res);
     res
@@ -578,9 +508,6 @@ pub enum Actors {
     Sender,
     Receiver,
 }
-
-pub const ARIES_COMMUNICATION_METHOD: &str = "aries";
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ProtocolTypes {
@@ -636,14 +563,14 @@ pub fn get_pool_networks() -> VcxResult<Vec<PoolConfig>> {
     let networks = get_config_value(CONFIG_POOL_NETWORKS)
         .map_err(|_| VcxError::from_msg(
             VcxErrorKind::InvalidConfiguration,
-            format!("Cannot open Pool Network: Provided configuration JSON doesn't contain pool network information")
+            format!("Cannot open Pool Network: Provided configuration JSON doesn't contain pool network information"),
         ))?;
 
 
     let networks: Vec<PoolConfig> = serde_json::from_str(&networks)
         .map_err(|err| VcxError::from_msg(
             VcxErrorKind::InvalidConfiguration,
-            format!("Cannot read Pool Network information from library settings. Err: {:?}", err)
+            format!("Cannot read Pool Network information from library settings. Err: {:?}", err),
         ))?;
 
     Ok(networks)
@@ -789,10 +716,6 @@ pub mod tests {
         let mut config = _mandatory_config();
         config.insert(CONFIG_INSTITUTION_LOGO_URL.to_string(), invalid.to_string());
         assert_eq!(validate_config(&config).unwrap_err().kind(), VcxErrorKind::InvalidUrl);
-
-        let mut config = _mandatory_config();
-        config.insert(CONFIG_WEBHOOK_URL.to_string(), invalid.to_string());
-        assert_eq!(validate_config(&config).unwrap_err().kind(), VcxErrorKind::InvalidUrl);
     }
 
     #[test]
@@ -891,7 +814,7 @@ pub mod tests {
             "genesis_path": path
         }).to_string();
 
-        process_pool_config_string(&config.to_string()).unwrap();
+        process_init_pool_config_string(&config.to_string()).unwrap();
 
         let networks = get_pool_networks().unwrap();
         assert_eq!(networks.len(), 1);
@@ -906,7 +829,7 @@ pub mod tests {
             }
         }).to_string();
 
-        process_pool_config_string(&config.to_string()).unwrap();
+        process_init_pool_config_string(&config.to_string()).unwrap();
 
         let networks = get_pool_networks().unwrap();
         assert_eq!(networks.len(), 1);
@@ -915,14 +838,14 @@ pub mod tests {
 
         // Empty
         let config = json!({}).to_string();
-        assert_eq!(process_pool_config_string(&config.to_string()).unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
+        assert_eq!(process_init_pool_config_string(&config.to_string()).unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
 
         // Unexpected fields
         let config = json!({
             "genesis_path": "path/test/",
             "other_field": "pool1",
         }).to_string();
-        assert_eq!(process_pool_config_string(&config.to_string()).unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
+        assert_eq!(process_init_pool_config_string(&config.to_string()).unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
     }
 
     #[test]
@@ -948,7 +871,7 @@ pub mod tests {
             ]
         );
 
-        process_pool_config_string(&config.to_string()).unwrap();
+        process_init_pool_config_string(&config.to_string()).unwrap();
 
         let networks = get_pool_networks().unwrap();
         assert_eq!(networks.len(), 2);

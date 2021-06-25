@@ -1,10 +1,12 @@
 use messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, prepare_message_for_agency, parse_response_from_agency};
 use error::prelude::*;
-use messages::agent_utils::{set_config_values, configure_wallet, ComMethod, Config};
+use messages::agent_utils::{process_provisioning_config, configure_wallet, ComMethod, ProvisioningConfig};
 use messages::message_type::MessageTypes;
 use utils::httpclient;
 use settings::ProtocolTypes;
 use settings::ProtocolTypes::V2;
+use settings;
+use utils::libindy::wallet;
 
 pub static VALID_SIGNATURE_ALGORITHMS: [&'static str; 2] = ["SafetyNet", "DeviceCheck"];
 
@@ -110,12 +112,14 @@ impl TokenRequestBuilder {
     }
 }
 
-pub fn provision(my_config: Config, sponsee_id: &str, sponsor_id: &str, com_method: ComMethod) -> VcxResult<String> {
+pub fn provision(config: ProvisioningConfig, sponsee_id: &str, sponsor_id: &str, com_method: ComMethod) -> VcxResult<String> {
     debug!("***Configuring Library");
-    set_config_values(&my_config);
+    let config = process_provisioning_config(&json!(config).to_string())?;
 
     debug!("***Configuring Wallet");
-    configure_wallet(&my_config)?;
+    configure_wallet(&config)?;
+
+    let agency_did = settings::get_config_value(settings::CONFIG_AGENCY_DID)?;
 
     debug!("Getting Token");
     let token = TokenRequestBuilder::build()
@@ -123,8 +127,10 @@ pub fn provision(my_config: Config, sponsee_id: &str, sponsor_id: &str, com_meth
         .sponsor_id(sponsor_id)
         .push_id(com_method)
         .version(V2)
-        .agency_did(&my_config.agency_did)
+        .agency_did(&agency_did)
         .send_secure()?;
+
+    wallet::close_wallet()?;
 
     Ok(token)
 }

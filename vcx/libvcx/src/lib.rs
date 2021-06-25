@@ -45,6 +45,7 @@ extern crate chrono;
 extern crate sha2;
 extern crate dashmap;
 extern crate rust_base58;
+extern crate dirs;
 
 #[macro_use]
 pub mod utils;
@@ -63,7 +64,6 @@ pub mod credential;
 pub mod object_cache;
 pub mod disclosed_proof;
 pub mod wallet_backup;
-
 pub mod v3;
 
 #[allow(unused_imports)]

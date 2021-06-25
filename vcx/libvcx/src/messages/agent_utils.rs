@@ -8,6 +8,7 @@ use utils::option_util::get_or_default;
 use error::prelude::*;
 use utils::httpclient::AgencyMock;
 use settings::ProtocolTypes;
+use settings::agency::get_agency_config_values;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Connect {
@@ -125,63 +126,79 @@ fn default_com_type() -> i32 { 1 }
 
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Config {
+pub struct ProvisioningConfig {
     #[serde(default)]
     protocol_type: settings::ProtocolTypes,
-    agency_url: String,
-    pub agency_did: String,
-    agency_verkey: String,
+
+    // agency related options
+    agency_alias: Option<String>,
+    agency_url: Option<String>,
+    agency_did: Option<String>,
+    agency_verkey: Option<String>,
+
+    // ????
+    agent_seed: Option<String>,
+
+    // wallet related options
     wallet_name: Option<String>,
     wallet_key: String,
     wallet_type: Option<String>,
-    agent_seed: Option<String>,
     enterprise_seed: Option<String>,
     wallet_key_derivation: Option<String>,
-    name: Option<String>,
-    logo: Option<String>,
-    path: Option<String>,
     storage_config: Option<String>,
     storage_credentials: Option<String>,
-    pool_config: Option<String>,
-    did_method: Option<String>,
-    communication_method: Option<String>,
-    webhook_url: Option<String>,
-    use_latest_protocols: Option<String>,
+
+    // pool ledger related options
+    path: Option<String>,
+    // ledger genesis transactions
     genesis_path: Option<String>,
+    pool_config: Option<String>,
+    pool_networks: Option<serde_json::Value>,
+    // predefined alias
+    pool_network_alias: Option<String>,
+
+    // meta
+    name: Option<String>,
+    logo: Option<String>,
     institution_name: Option<String>,
     institution_logo_url: Option<String>,
-    pool_networks: Option<serde_json::Value>,
+    
+    // rest
+    did_method: Option<String>,
 }
 
-pub fn set_config_values(my_config: &Config) {
-    let wallet_name = get_or_default(&my_config.wallet_name, settings::DEFAULT_WALLET_NAME);
+pub fn process_provisioning_config(config_json: &str) -> VcxResult<ProvisioningConfig> {
+    let config = parse_config(config_json)?;
 
-    settings::set_config_value(settings::CONFIG_PROTOCOL_TYPE, &my_config.protocol_type.to_string());
-    settings::set_config_value(settings::CONFIG_AGENCY_ENDPOINT, &my_config.agency_url);
+    let agency_config = get_agency_config_values(config_json)?;
+    settings::set_config_value(settings::CONFIG_AGENCY_ENDPOINT, &agency_config.agency_endpoint);
+    settings::set_config_value(settings::CONFIG_AGENCY_DID, &agency_config.agency_did);
+    settings::set_config_value(settings::CONFIG_AGENCY_VERKEY, &agency_config.agency_verkey);
+
+    let wallet_name = get_or_default(&config.wallet_name, settings::DEFAULT_WALLET_NAME);
     settings::set_config_value(settings::CONFIG_WALLET_NAME, &wallet_name);
-    settings::set_config_value(settings::CONFIG_AGENCY_DID, &my_config.agency_did);
-    settings::set_config_value(settings::CONFIG_AGENCY_VERKEY, &my_config.agency_verkey);
-    settings::set_config_value(settings::CONFIG_REMOTE_TO_SDK_VERKEY, &my_config.agency_verkey);
-    settings::set_config_value(settings::CONFIG_WALLET_KEY, &my_config.wallet_key);
+    settings::set_config_value(settings::CONFIG_WALLET_KEY, &config.wallet_key);
 
-    settings::set_opt_config_value(settings::CONFIG_WALLET_KEY_DERIVATION, &my_config.wallet_key_derivation);
-    settings::set_opt_config_value(settings::CONFIG_WALLET_TYPE, &my_config.wallet_type);
-    settings::set_opt_config_value(settings::CONFIG_WALLET_STORAGE_CONFIG, &my_config.storage_config);
-    settings::set_opt_config_value(settings::CONFIG_WALLET_STORAGE_CREDS, &my_config.storage_credentials);
-    settings::set_opt_config_value(settings::CONFIG_POOL_CONFIG, &my_config.pool_config);
-    settings::set_opt_config_value(settings::CONFIG_DID_METHOD, &my_config.did_method);
-    settings::set_opt_config_value(settings::COMMUNICATION_METHOD, &my_config.communication_method);
-    settings::set_opt_config_value(settings::CONFIG_WEBHOOK_URL, &my_config.webhook_url);
+    settings::set_opt_config_value(settings::CONFIG_WALLET_KEY_DERIVATION, &config.wallet_key_derivation);
+    settings::set_opt_config_value(settings::CONFIG_WALLET_TYPE, &config.wallet_type);
+    settings::set_opt_config_value(settings::CONFIG_WALLET_STORAGE_CONFIG, &config.storage_config);
+    settings::set_opt_config_value(settings::CONFIG_WALLET_STORAGE_CREDS, &config.storage_credentials);
+    settings::set_opt_config_value(settings::CONFIG_POOL_CONFIG, &config.pool_config);
+    settings::set_opt_config_value(settings::CONFIG_DID_METHOD, &config.did_method);
+    settings::set_config_value(settings::CONFIG_PROTOCOL_TYPE, &config.protocol_type.to_string());
 
+    let agency_verkey = settings::get_config_value(settings::CONFIG_AGENCY_VERKEY).unwrap_or_default();
+    settings::set_config_value(settings::CONFIG_REMOTE_TO_SDK_VERKEY, &agency_verkey);
 
-    let institution_name = my_config.name.as_ref().or(my_config.institution_name.as_ref());
-    let institution_logo_url = my_config.logo.as_ref().or(my_config.institution_logo_url.as_ref());
-
+    let institution_name = config.name.as_ref().or(config.institution_name.as_ref());
+    let institution_logo_url = config.logo.as_ref().or(config.institution_logo_url.as_ref());
     settings::set_opt_config_value(settings::CONFIG_INSTITUTION_NAME, &institution_name.map(String::from));
     settings::set_opt_config_value(settings::CONFIG_INSTITUTION_LOGO_URL, &institution_logo_url.map(String::from));
+
+    Ok(config)
 }
 
-fn _create_issuer_keys(my_did: &str, my_vk: &str, my_config: &Config) -> VcxResult<(String, String)> {
+fn _create_issuer_keys(my_did: &str, my_vk: &str, my_config: &ProvisioningConfig) -> VcxResult<(String, String)> {
     if my_config.enterprise_seed == my_config.agent_seed {
         Ok((my_did.to_string(), my_vk.to_string()))
     } else {
@@ -192,7 +209,7 @@ fn _create_issuer_keys(my_did: &str, my_vk: &str, my_config: &Config) -> VcxResu
     }
 }
 
-pub fn configure_wallet(my_config: &Config) -> VcxResult<(String, String, String)> {
+pub fn configure_wallet(my_config: &ProvisioningConfig) -> VcxResult<(String, String, String)> {
     let wallet_name = get_or_default(&my_config.wallet_name, settings::DEFAULT_WALLET_NAME);
 
     wallet::init_wallet(
@@ -222,7 +239,7 @@ pub fn get_final_config(my_did: &str,
                         agent_did: &str,
                         agent_vk: &str,
                         wallet_name: &str,
-                        my_config: &Config) -> VcxResult<String> {
+                        my_config: &ProvisioningConfig) -> VcxResult<String> {
     let (issuer_did, issuer_vk) = _create_issuer_keys(my_did, my_vk, my_config)?;
 
     settings::set_config_value(settings::CONFIG_REMOTE_TO_SDK_DID, &agent_did);
@@ -237,12 +254,16 @@ pub fn get_final_config(my_did: &str,
     let institution_name = my_config.name.as_ref().or(my_config.institution_name.as_ref());
     let institution_logo_url = my_config.logo.as_ref().or(my_config.institution_logo_url.as_ref());
 
+    let agency_url = settings::get_config_value(settings::CONFIG_AGENCY_ENDPOINT)?;
+    let agency_did = settings::get_config_value(settings::CONFIG_AGENCY_DID)?;
+    let agency_verkey = settings::get_config_value(settings::CONFIG_AGENCY_VERKEY)?;
+
     let mut final_config = json!({
         "wallet_key": &my_config.wallet_key,
         "wallet_name": wallet_name,
-        "agency_endpoint": &my_config.agency_url,
-        "agency_did": &my_config.agency_did,
-        "agency_verkey": &my_config.agency_verkey,
+        "agency_endpoint": &agency_url,
+        "agency_did": &agency_did,
+        "agency_verkey": &agency_verkey,
         "sdk_to_remote_did": my_did,
         "sdk_to_remote_verkey": my_vk,
         "institution_did": issuer_did,
@@ -254,8 +275,8 @@ pub fn get_final_config(my_did: &str,
         "protocol_type": &my_config.protocol_type,
     });
 
-    let genesis_path = my_config.path.as_ref().or(my_config.genesis_path.as_ref());
 
+    let genesis_path = my_config.path.as_ref().or(my_config.genesis_path.as_ref());
     if let Some(genesis_path) = &genesis_path {
         final_config["genesis_path"] = json!(genesis_path);
     }
@@ -275,24 +296,18 @@ pub fn get_final_config(my_did: &str,
     if let Some(_pool_config) = &my_config.pool_config {
         final_config["pool_config"] = json!(_pool_config);
     }
-    if let Some(_communication_method) = &my_config.communication_method {
-        final_config["communication_method"] = json!(_communication_method);
-    }
-    if let Some(_webhook_url) = &my_config.webhook_url {
-        final_config["webhook_url"] = json!(_webhook_url);
-    }
-    if let Some(_use_latest_protocols) = &my_config.use_latest_protocols {
-        final_config["use_latest_protocols"] = json!(_use_latest_protocols);
-    }
     if let Some(_pool_networks) = &my_config.pool_networks {
         final_config["pool_networks"] = json!(_pool_networks);
+    }
+    if let Some(pool_network_alias) = &my_config.pool_network_alias {
+        final_config["pool_network_alias"] = json!(pool_network_alias);
     }
 
     Ok(final_config.to_string())
 }
 
-pub fn parse_config(config: &str) -> VcxResult<Config> {
-    let my_config: Config = ::serde_json::from_str(&config)
+pub fn parse_config(config: &str) -> VcxResult<ProvisioningConfig> {
+    let my_config: ProvisioningConfig = ::serde_json::from_str(&config)
         .map_err(|err|
             VcxError::from_msg(
                 VcxErrorKind::InvalidConfiguration,
@@ -304,22 +319,22 @@ pub fn parse_config(config: &str) -> VcxResult<Config> {
 
 pub fn connect_register_provision(config: &str) -> VcxResult<String> {
     trace!("connect_register_provision >>> config: {:?}", secret!(config));
-    let my_config = parse_config(config)?;
-
     debug!("***Configuring Library");
-    set_config_values(&my_config);
+    let config = process_provisioning_config(&config)?;
 
     debug!("***Configuring Wallet");
-    let (my_did, my_vk, wallet_name) = configure_wallet(&my_config)?;
+    let (my_did, my_vk, wallet_name) = configure_wallet(&config)?;
+
+    let agency_did = settings::get_config_value(settings::CONFIG_AGENCY_DID)?;
 
     debug!("Connecting to Agency");
-    let (agent_did, agent_vk) = match my_config.protocol_type {
-        settings::ProtocolTypes::V1 => onboarding_v1(&my_did, &my_vk, &my_config.agency_did)?,
+    let (agent_did, agent_vk) = match config.protocol_type {
+        settings::ProtocolTypes::V1 => onboarding_v1(&my_did, &my_vk, &agency_did)?,
         settings::ProtocolTypes::V2 |
-        settings::ProtocolTypes::V3=> onboarding_v2(&my_did, &my_vk, &my_config.agency_did)?,
+        settings::ProtocolTypes::V3=> onboarding_v2(&my_did, &my_vk, &agency_did)?,
     };
 
-    let config = get_final_config(&my_did, &my_vk, &agent_did, &agent_vk, &wallet_name, &my_config)?;
+    let config = get_final_config(&my_did, &my_vk, &agent_did, &agent_vk, &wallet_name, &config)?;
 
     wallet::close_wallet()?;
 
@@ -385,14 +400,11 @@ fn onboarding_v1(my_did: &str, my_vk: &str, agency_did: &str) -> VcxResult<(Stri
 pub fn update_agent_profile(agent_did: &str,
                             public_did: &Option<String>,
                             protocol_type: ProtocolTypes) -> VcxResult<u32> {
-    let webhook_url = settings::get_config_value(settings::CONFIG_WEBHOOK_URL).ok();
-
     if let Ok(name) = settings::get_config_value(settings::CONFIG_INSTITUTION_NAME) {
         ::messages::update_data()
             .to(agent_did)?
             .name(&name)?
             .logo_url(&settings::get_config_value(settings::CONFIG_INSTITUTION_LOGO_URL)?)?
-            .webhook_url(&webhook_url)?
             .use_public_did(public_did)?
             .version(&Some(protocol_type))?
             .send_secure()
@@ -559,7 +571,7 @@ mod tests {
         connect_register_provision(&config.to_string()).unwrap();
         assert!(std::path::Path::new(&(path + "test_wallet")).exists());
         vcx_shutdown(false);
-        let my_config: Config = serde_json::from_str(&config.to_string()).unwrap();
+        let my_config: ProvisioningConfig = serde_json::from_str(&config.to_string()).unwrap();
 
         //Opens already created wallet at custom location
         configure_wallet(&my_config).unwrap();

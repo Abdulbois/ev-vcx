@@ -313,7 +313,7 @@ impl Connection {
     fn set_invite_detail(&mut self, id: InviteDetail) {
         self.version = match id.version.is_some() {
             true => Some(settings::ProtocolTypes::from(id.version.clone().unwrap())),
-            false => Some(settings::get_connecting_protocol_version()),
+            false => Some(settings::get_protocol_type()),
         };
         self.invite_detail = Some(id);
     }
@@ -1110,7 +1110,7 @@ fn create_connection_v1(source_id: &str) -> VcxResult<Connection> {
         their_pw_verkey: String::new(),
         public_did: None,
         their_public_did: None,
-        version: Some(settings::get_connecting_protocol_version()),
+        version: Some(settings::get_protocol_type()),
     };
 
     trace!("create_connection_v1 <<<");
@@ -1618,7 +1618,7 @@ pub mod tests {
         assert!(handle.release().is_ok());
 
         // Aries connection
-        ::settings::set_config_value(::settings::COMMUNICATION_METHOD, "aries");
+        ::settings::set_config_value(::settings::CONFIG_PROTOCOL_TYPE, "3.0");
 
         let handle = create_connection("test_serialize_deserialize").unwrap();
 

@@ -52,13 +52,6 @@ async function runFaber (options) {
     logger.info('Running with builtin wallet.')
   }
 
-  if (await isPortReachable(url.parse(optionalWebhook).port, { host: url.parse(optionalWebhook).hostname })) { // eslint-disable-line
-    provisionConfig.webhook_url = optionalWebhook
-    logger.info(`Running with webhook notifications enabled! Webhook url = ${optionalWebhook}`)
-  } else {
-    logger.info('Webhook url will not be used')
-  }
-
   logger.info(`#1 Config used to provision agent in agency: ${JSON.stringify(provisionConfig, null, 2)}`)
   const agentProvision = await demoCommon.provisionAgentInAgency(provisionConfig)
 
