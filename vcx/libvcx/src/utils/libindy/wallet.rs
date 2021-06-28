@@ -5,6 +5,7 @@ use settings;
 
 use error::prelude::*;
 use indy::{WalletHandle, INVALID_WALLET_HANDLE};
+use settings::wallet::{get_wallet_config, get_wallet_credentials};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WalletRecord {
@@ -63,8 +64,8 @@ pub fn reset_wallet_handle() { set_wallet_handle(INVALID_WALLET_HANDLE); }
 pub fn create_wallet(wallet_name: &str, wallet_type: Option<&str>, storage_config: Option<&str>, storage_creds: Option<&str>) -> VcxResult<()> {
     trace!("creating wallet: {}", wallet_name);
 
-    let config = settings::get_wallet_config(wallet_name, wallet_type, storage_config);
-    let credentials = settings::get_wallet_credentials(storage_creds);
+    let config = get_wallet_config(wallet_name, wallet_type, storage_config);
+    let credentials = get_wallet_credentials(storage_creds);
 
     match wallet::create_wallet(&config, &credentials)
         .wait() {
@@ -90,8 +91,8 @@ pub fn open_wallet(wallet_name: &str, wallet_type: Option<&str>, storage_config:
         return Ok(set_wallet_handle(WalletHandle(1)));
     }
 
-    let config = settings::get_wallet_config(wallet_name, wallet_type, storage_config);
-    let credentials = settings::get_wallet_credentials(storage_creds);
+    let config = get_wallet_config(wallet_name, wallet_type, storage_config);
+    let credentials = get_wallet_credentials(storage_creds);
 
     let handle = wallet::open_wallet(&config, &credentials)
         .wait()
@@ -148,8 +149,8 @@ pub fn delete_wallet(wallet_name: &str, wallet_type: Option<&str>, storage_confi
 
     close_wallet().ok();
 
-    let config = settings::get_wallet_config(wallet_name, wallet_type, storage_config);
-    let credentials = settings::get_wallet_credentials(storage_creds);
+    let config = get_wallet_config(wallet_name, wallet_type, storage_config);
+    let credentials = get_wallet_credentials(storage_creds);
 
     wallet::delete_wallet(&config, &credentials)
         .wait()
@@ -230,8 +231,8 @@ pub fn import(config: &str) -> VcxResult<()> {
 
     let restore_config = RestoreWalletConfigs::from_str(config)?;
 
-    let config = settings::get_wallet_config(&restore_config.wallet_name, None, None);
-    let credentials = settings::get_wallet_credentials(None);
+    let config = get_wallet_config(&restore_config.wallet_name, None, None);
+    let credentials = get_wallet_credentials(None);
     let import_config = json!({"key": restore_config.backup_key, "path": restore_config.exported_wallet_path }).to_string();
 
     wallet::import_wallet(&config, &credentials, &import_config)
@@ -392,7 +393,7 @@ pub mod tests {
         // Missing exported_wallet_path
         let res = import(&config.to_string()).unwrap_err();
         assert_eq!(res.kind(), VcxErrorKind::InvalidWalletImportConfig);
-        config[settings::CONFIG_EXPORTED_WALLET_PATH] = serde_json::to_value(
+        config["exported_wallet_path"] = serde_json::to_value(
             get_temp_dir_path(settings::DEFAULT_EXPORTED_WALLET_PATH).to_str().unwrap()
         ).unwrap();
 

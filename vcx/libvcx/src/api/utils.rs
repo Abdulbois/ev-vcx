@@ -11,7 +11,7 @@ use error::prelude::*;
 use indy_sys::CommandHandle;
 use utils::httpclient::AgencyMock;
 use utils::constants::*;
-use messages::agent_utils::{ComMethod, Config};
+use messages::agent_utils::{ComMethod, ProvisioningConfig};
 use v3::handlers::connection::agent::AgentInfo;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
@@ -250,7 +250,7 @@ pub extern fn vcx_get_provision_token(command_handle: CommandHandle,
         }
     };
 
-    let vcx_config: Config = match serde_json::from_value(configs["vcx_config"].clone()) {
+    let vcx_config: ProvisioningConfig = match serde_json::from_value(configs["vcx_config"].clone()) {
         Ok(x) => x,
         Err(_) => {
             return VcxError::from_msg(VcxErrorKind::InvalidConfiguration, "missing vcx_config").into();
@@ -705,21 +705,6 @@ pub extern fn vcx_messages_update_status(command_handle: CommandHandle,
     });
 
     error::SUCCESS.code_num
-}
-
-/// Set the pool handle before calling vcx_init_minimal
-///
-/// #params
-///
-/// handle: pool handle that libvcx should use
-///
-/// #Returns
-/// Error code as u32
-#[no_mangle]
-pub extern fn vcx_pool_set_handle(handle: i32) -> i32 {
-    ::utils::libindy::pool::set_pool_handle(handle);
-
-    handle
 }
 
 /// Gets minimal request price for performing an action in case the requester can perform this action.

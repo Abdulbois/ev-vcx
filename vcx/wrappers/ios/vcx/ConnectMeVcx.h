@@ -127,8 +127,11 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 ///                                         Note: Nodes not specified will be placed randomly.
 ///                                 "number_read_nodes": int (optional) - the number of nodes to send read requests (2 by default)
 ///                                         By default Libindy sends a read requests to 2 nodes in the pool.
-///    }
+///                     }
 ///                 }
+///
+///                 Note: You can also pass a list of network configs.
+///                       In this case library will connect to multiple ledger networks and will look up public data in each of them.
 ///
 ///
 /// cb: Callback that provides no value

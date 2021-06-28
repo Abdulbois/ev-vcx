@@ -92,10 +92,6 @@ export async function initVcxWithConfig (config: string, options: IInitVCXOption
   }
 }
 
-export function initMinimal (config: string): number {
-  return rustAPI().vcx_init_minimal(config)
-}
-
 /**
  * Connect to a Pool Ledger
  *
@@ -126,6 +122,10 @@ export function initMinimal (config: string): number {
  *                                         By default Libindy sends a read requests to 2 nodes in the pool.
  *                             }
  *                  }
+ *
+ *                  Note: You can also pass a list of network configs.
+ *                        In this case library will connect to multiple ledger networks and will look up public data in each of them.
+ *                        [{ "genesis_path": string, "pool_name": string, ... }]
  *
  * Example:
  * ```

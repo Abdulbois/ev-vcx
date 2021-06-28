@@ -292,16 +292,6 @@ async def vcx_messages_update_status(msg_json: str):
     return result
 
 
-def vcx_pool_set_handle(handle: int) -> None:
-    """
-    Sets the pool handle for libvcx to use, called before vcx_init_minimal
-    :param handle: pool handle
-    """
-    c_handle = c_uint32(handle)
-
-    do_call_sync('vcx_pool_set_handle', c_handle)
-
-
 async def vcx_get_ledger_author_agreement():
     """
     Retrieve author agreement and acceptance mechanisms set on the Ledger

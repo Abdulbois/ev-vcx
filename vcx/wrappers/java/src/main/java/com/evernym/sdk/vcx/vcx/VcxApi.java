@@ -107,25 +107,6 @@ public class VcxApi extends VcxJava.API {
         return future;
     }
 
-    /**
-     * Initialize vcx with the minimal configuration (wallet, pool must already be set with)
-     *
-     * @param  configJson       minimal configuration as JSON string
-     *
-     * @return                  void
-     *
-     * @throws VcxException   If an exception occurred in Libvcx library.
-     */
-    public static int vcxInitMinimal(String configJson) throws VcxException {
-        ParamGuard.notNullOrWhiteSpace(configJson, "config");
-        logger.debug("vcxInitMinimal() called with: configJson = [****]");
-
-        int result = LibVcx.api.vcx_init_minimal(
-                configJson);
-        checkResult(result);
-
-        return result;
-    }
     private static Callback vcxInitPoolCB = new Callback() {
 
 
@@ -169,6 +150,10 @@ public class VcxApi extends VcxJava.API {
      *                                         By default Libindy sends a read requests to 2 nodes in the pool.
      *                                  }
      *                          }
+     *
+     *                          Note: You can also pass a list of network configs.
+     *                                In this case library will connect to multiple ledger networks and will look up public data in each of them.
+     *                                [{ "genesis_path": string, "pool_name": string, ... }]
      *
      * @return                  void
      *

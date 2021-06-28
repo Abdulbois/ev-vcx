@@ -3,7 +3,7 @@ use ::{settings, utils};
 use std::fs;
 use utils::libindy::wallet::{reset_wallet_handle, delete_wallet, create_wallet};
 use ::messages::agent_provisioning::agent_provisioning_v0_7::provision;
-use utils::libindy::pool::reset_pool_handle;
+use utils::libindy::pool::reset_pool_handles;
 use settings::set_defaults;
 use futures::Future;
 use std::sync::Once;
@@ -55,7 +55,7 @@ fn setup() {
 fn tear_down() {
     settings::clear_config();
     reset_wallet_handle();
-    reset_pool_handle();
+    reset_pool_handles();
 }
 
 impl SetupEmpty {
@@ -102,8 +102,7 @@ impl SetupAriesMocks {
     pub fn init() -> SetupAriesMocks {
         setup();
         settings::set_config_value(settings::CONFIG_ENABLE_TEST_MODE, "true");
-        settings::set_config_value(settings::CONFIG_PROTOCOL_TYPE, "2.0");
-        settings::set_config_value(settings::COMMUNICATION_METHOD, "aries");
+        settings::set_config_value(settings::CONFIG_PROTOCOL_TYPE, "3.0");
         SetupAriesMocks
     }
 }
@@ -351,6 +350,7 @@ use utils::plugins::init_plugin;
 use utils::libindy::pool::tests::{open_test_pool, delete_test_pool, create_test_pool};
 use utils::file::write_file;
 use utils::logger::LibvcxDefaultLogger;
+use settings::wallet::get_wallet_name;
 
 static mut INSTITUTION_CONFIG: Handle<String> = Handle::dummy();
 static mut CONSUMER_CONFIG: Handle<String> = Handle::dummy();
@@ -456,10 +456,10 @@ pub fn cleanup_indy_env() {
 
 pub fn cleanup_agency_env() {
     set_institution();
-    delete_wallet(&settings::get_wallet_name().unwrap(), None, None, None).unwrap();
+    delete_wallet(&get_wallet_name().unwrap(), None, None, None).unwrap();
 
     set_consumer();
-    delete_wallet(&settings::get_wallet_name().unwrap(), None, None, None).unwrap();
+    delete_wallet(&get_wallet_name().unwrap(), None, None, None).unwrap();
 
     delete_test_pool();
 }
@@ -499,24 +499,20 @@ pub fn setup_agency_env(protocol_type: &str, use_zero_fees: bool) {
     let enterprise_wallet_name = format!("{}_{}", constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
 
     let seed1 = create_new_seed();
-    let mut config = json!({
-            "agency_url": AGENCY_ENDPOINT.to_string(),
-            "agency_did": AGENCY_DID.to_string(),
-            "agency_verkey": AGENCY_VERKEY.to_string(),
-            "wallet_name": enterprise_wallet_name,
-            "wallet_key": settings::DEFAULT_WALLET_KEY.to_string(),
-            "wallet_key_derivation": settings::DEFAULT_WALLET_KEY_DERIVATION,
-            "enterprise_seed": seed1,
-            "agent_seed": seed1,
-            "name": "institution".to_string(),
-            "logo": "http://www.logo.com".to_string(),
-            "path": constants::GENESIS_PATH.to_string(),
-            "protocol_type": protocol_type,
-            });
-
-    if protocol_type == "2.0" {
-        config["use_latest_protocols"] = json!("true");
-    }
+    let config = json!({
+        "agency_url": AGENCY_ENDPOINT.to_string(),
+        "agency_did": AGENCY_DID.to_string(),
+        "agency_verkey": AGENCY_VERKEY.to_string(),
+        "wallet_name": enterprise_wallet_name,
+        "wallet_key": settings::DEFAULT_WALLET_KEY.to_string(),
+        "wallet_key_derivation": settings::DEFAULT_WALLET_KEY_DERIVATION,
+        "enterprise_seed": seed1,
+        "agent_seed": seed1,
+        "name": "institution".to_string(),
+        "logo": "http://www.logo.com".to_string(),
+        "path": constants::GENESIS_PATH.to_string(),
+        "protocol_type": protocol_type,
+    });
 
     let enterprise_config = ::messages::agent_utils::connect_register_provision(&config.to_string()).unwrap();
 
@@ -524,24 +520,20 @@ pub fn setup_agency_env(protocol_type: &str, use_zero_fees: bool) {
 
     let consumer_wallet_name = format!("{}_{}", constants::CONSUMER_PREFIX, settings::DEFAULT_WALLET_NAME);
     let seed2 = create_new_seed();
-    let mut config = json!({
-            "agency_url": C_AGENCY_ENDPOINT.to_string(),
-            "agency_did": C_AGENCY_DID.to_string(),
-            "agency_verkey": C_AGENCY_VERKEY.to_string(),
-            "wallet_name": consumer_wallet_name,
-            "wallet_key": settings::DEFAULT_WALLET_KEY.to_string(),
-            "wallet_key_derivation": settings::DEFAULT_WALLET_KEY_DERIVATION.to_string(),
-            "enterprise_seed": seed2,
-            "agent_seed": seed2,
-            "name": "consumer".to_string(),
-            "logo": "http://www.logo.com".to_string(),
-            "path": constants::GENESIS_PATH.to_string(),
-            "protocol_type": protocol_type,
-        });
-
-    if protocol_type == "2.0" {
-        config["use_latest_protocols"] = json!("true");
-    }
+    let config = json!({
+        "agency_url": C_AGENCY_ENDPOINT.to_string(),
+        "agency_did": C_AGENCY_DID.to_string(),
+        "agency_verkey": C_AGENCY_VERKEY.to_string(),
+        "wallet_name": consumer_wallet_name,
+        "wallet_key": settings::DEFAULT_WALLET_KEY.to_string(),
+        "wallet_key_derivation": settings::DEFAULT_WALLET_KEY_DERIVATION.to_string(),
+        "enterprise_seed": seed2,
+        "agent_seed": seed2,
+        "name": "consumer".to_string(),
+        "logo": "http://www.logo.com".to_string(),
+        "path": constants::GENESIS_PATH.to_string(),
+        "protocol_type": protocol_type,
+    });
 
     let consumer_config = ::messages::agent_utils::connect_register_provision(&config.to_string()).unwrap();
 
@@ -613,24 +605,20 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, use_zero_fees: bool) {
     let enterprise_wallet_name = format!("{}_{}", constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
 
     let seed1 = create_new_seed();
-    let mut config = json!({
-            "agency_url": AGENCY_ENDPOINT.to_string(),
-            "agency_did": AGENCY_DID.to_string(),
-            "agency_verkey": AGENCY_VERKEY.to_string(),
-            "wallet_name": enterprise_wallet_name,
-            "wallet_key": settings::DEFAULT_WALLET_KEY.to_string(),
-            "wallet_key_derivation": settings::DEFAULT_WALLET_KEY_DERIVATION,
-            "enterprise_seed": seed1,
-            "agent_seed": seed1,
-            "name": "institution".to_string(),
-            "logo": "http://www.logo.com".to_string(),
-            "path": constants::GENESIS_PATH.to_string(),
-            "protocol_type": protocol_type,
-        });
-
-    if protocol_type == "2.0" {
-        config["use_latest_protocols"] = json!("true");
-    }
+    let config = json!({
+        "agency_url": AGENCY_ENDPOINT.to_string(),
+        "agency_did": AGENCY_DID.to_string(),
+        "agency_verkey": AGENCY_VERKEY.to_string(),
+        "wallet_name": enterprise_wallet_name,
+        "wallet_key": settings::DEFAULT_WALLET_KEY.to_string(),
+        "wallet_key_derivation": settings::DEFAULT_WALLET_KEY_DERIVATION,
+        "enterprise_seed": seed1,
+        "agent_seed": seed1,
+        "name": "institution".to_string(),
+        "logo": "http://www.logo.com".to_string(),
+        "path": constants::GENESIS_PATH.to_string(),
+        "protocol_type": protocol_type,
+    });
 
     let enterprise_config = provision(&config.to_string(), &test_token).unwrap();
 
@@ -638,24 +626,20 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, use_zero_fees: bool) {
 
     let consumer_wallet_name = format!("{}_{}", constants::CONSUMER_PREFIX, settings::DEFAULT_WALLET_NAME);
     let seed2 = create_new_seed();
-    let mut config = json!({
-            "agency_url": C_AGENCY_ENDPOINT.to_string(),
-            "agency_did": C_AGENCY_DID.to_string(),
-            "agency_verkey": C_AGENCY_VERKEY.to_string(),
-            "wallet_name": consumer_wallet_name,
-            "wallet_key": settings::DEFAULT_WALLET_KEY.to_string(),
-            "wallet_key_derivation": settings::DEFAULT_WALLET_KEY_DERIVATION.to_string(),
-            "enterprise_seed": seed2,
-            "agent_seed": seed2,
-            "name": "consumer".to_string(),
-            "logo": "http://www.logo.com".to_string(),
-            "path": constants::GENESIS_PATH.to_string(),
-            "protocol_type": protocol_type,
-        });
-
-    if protocol_type == "2.0" {
-        config["use_latest_protocols"] = json!("true");
-    }
+    let config = json!({
+        "agency_url": C_AGENCY_ENDPOINT.to_string(),
+        "agency_did": C_AGENCY_DID.to_string(),
+        "agency_verkey": C_AGENCY_VERKEY.to_string(),
+        "wallet_name": consumer_wallet_name,
+        "wallet_key": settings::DEFAULT_WALLET_KEY.to_string(),
+        "wallet_key_derivation": settings::DEFAULT_WALLET_KEY_DERIVATION.to_string(),
+        "enterprise_seed": seed2,
+        "agent_seed": seed2,
+        "name": "consumer".to_string(),
+        "logo": "http://www.logo.com".to_string(),
+        "path": constants::GENESIS_PATH.to_string(),
+        "protocol_type": protocol_type,
+    });
 
     let consumer_config = provision(&config.to_string(), &test_token).unwrap();
 
@@ -719,24 +703,20 @@ pub fn setup_consumer_env(protocol_type: &str) {
 
     let consumer_wallet_name = format!("{}_{}", constants::CONSUMER_PREFIX, settings::DEFAULT_WALLET_NAME);
     let seed2 = create_new_seed();
-    let mut config = json!({
-            "agency_url": C_AGENCY_ENDPOINT.to_string(),
-            "agency_did": C_AGENCY_DID.to_string(),
-            "agency_verkey": C_AGENCY_VERKEY.to_string(),
-            "wallet_name": consumer_wallet_name,
-            "wallet_key": settings::DEFAULT_WALLET_KEY.to_string(),
-            "wallet_key_derivation": settings::DEFAULT_WALLET_KEY_DERIVATION.to_string(),
-            "enterprise_seed": seed2,
-            "agent_seed": seed2,
-            "name": "consumer".to_string(),
-            "logo": "http://www.logo.com".to_string(),
-            "path": constants::GENESIS_PATH.to_string(),
-            "protocol_type": protocol_type,
-        });
-
-    if protocol_type == "2.0" {
-        config["use_latest_protocols"] = json!("true");
-    }
+    let config = json!({
+        "agency_url": C_AGENCY_ENDPOINT.to_string(),
+        "agency_did": C_AGENCY_DID.to_string(),
+        "agency_verkey": C_AGENCY_VERKEY.to_string(),
+        "wallet_name": consumer_wallet_name,
+        "wallet_key": settings::DEFAULT_WALLET_KEY.to_string(),
+        "wallet_key_derivation": settings::DEFAULT_WALLET_KEY_DERIVATION.to_string(),
+        "enterprise_seed": seed2,
+        "agent_seed": seed2,
+        "name": "consumer".to_string(),
+        "logo": "http://www.logo.com".to_string(),
+        "path": constants::GENESIS_PATH.to_string(),
+        "protocol_type": protocol_type,
+    });
 
     let consumer_config = ::messages::agent_utils::connect_register_provision(&config.to_string()).unwrap();
 
@@ -752,7 +732,7 @@ pub fn setup_consumer_env(protocol_type: &str) {
 
 pub fn cleanup_consumer_env() {
 //    set_consumer();
-    delete_wallet(&settings::get_wallet_name().unwrap(), None, None, None).ok();
+    delete_wallet(&get_wallet_name().unwrap(), None, None, None).ok();
     delete_test_pool();
 }
 

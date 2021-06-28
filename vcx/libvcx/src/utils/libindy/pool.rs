@@ -2,50 +2,71 @@ use futures::Future;
 use indy::{pool, ErrorCode};
 
 use settings;
-use std::sync::atomic::{AtomicI32, Ordering};
 use error::prelude::*;
+use std::sync::RwLock;
+use std::{thread, fs};
+use settings::pool::{PoolConfig, get_pool_networks};
+use utils::libindy::environment::genesis_transactions_path;
+use std::io::Write;
 
-mod handle {
-    use super::*;
-
-    // NOTE: we use `Ordering::Relaxed` because this is a glorified counter;
-    // we don't synchronize anything with this atomic type
-    static HANDLE: AtomicI32 = AtomicI32::new(0);
-
-    // NOTE: only positive values are considered valid handles
-    pub fn get() -> VcxResult<i32> {
-        let handle = HANDLE.load(Ordering::Relaxed);
-        if handle > 0 {
-            Ok(handle)
-        } else {
-            Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"))
-        }
-    }
-
-    // NOTE: it's okay to store invalid handles since we have to go through `get`
-    // to actually use the handle for anything, and we validate the handle there
-    pub fn set(handle: i32) {
-        HANDLE.store(handle, Ordering::Relaxed);
-    }
+lazy_static! {
+    static ref POOLS: RwLock<Vec<i32>> = RwLock::new(Vec::new());
 }
 
-pub fn set_pool_handle(handle: i32) {
-    handle::set(handle);
+pub fn add_pool_handle(handle: i32) {
+    let mut pools = match POOLS.write() {
+        Ok(pools) => pools,
+        Err(_) => {
+            error!("Cannot add pool handle");
+            return;
+        }
+    };
+
+    pools.push(handle)
 }
 
 pub fn get_pool_handle() -> VcxResult<i32> {
-    handle::get()
+    match POOLS.read() {
+        Ok(pools) => {
+            if pools.len() == 1 {
+                return Ok(pools[0]);
+            } else if pools.len() > 1 {
+                Err(VcxError::from_msg(VcxErrorKind::InvalidState,
+                                       "There is more than one pool opened. In order to do write transactions, \
+                                       you must be connected to a single network!"))
+            } else {
+                Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"))
+            }
+        }
+        Err(_) => Err(VcxError::from_msg(VcxErrorKind::InternalError, "Cannot get lock for opened pools"))
+    }
 }
 
-pub fn reset_pool_handle() {
-    handle::set(0);
+pub fn get_pool_handles() -> VcxResult<Vec<i32>> {
+    let pools = match POOLS.read() {
+        Ok(pools) => pools.clone(),
+        Err(_) => {
+            return Err(VcxError::from_msg(VcxErrorKind::InternalError, "Cannot get lock for opened pools"));
+        }
+    };
+
+    if pools.is_empty() {
+        return Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"));
+    }
+
+    Ok(pools)
 }
 
-pub fn set_protocol_version() -> VcxResult<()> {
-    pool::set_protocol_version(settings::get_protocol_version())
-        .wait()?;
+pub fn reset_pool_handles() {
+    let mut pools = match POOLS.write() {
+        Ok(pools) => pools,
+        Err(_) => {
+            error!("Cannot add pool handle");
+            return;
+        }
+    };
 
-    Ok(())
+    pools.clear();
 }
 
 pub fn create_pool_ledger_config(pool_name: &str, path: &str) -> VcxResult<()> {
@@ -69,8 +90,6 @@ pub fn create_pool_ledger_config(pool_name: &str, path: &str) -> VcxResult<()> {
 }
 
 pub fn open_pool_ledger(pool_name: &str, config: Option<&str>) -> VcxResult<u32> {
-    set_protocol_version()?;
-
     let handle = pool::open_pool_ledger(pool_name, config)
         .wait()
         .map_err(|err|
@@ -84,9 +103,8 @@ pub fn open_pool_ledger(pool_name: &str, config: Option<&str>) -> VcxResult<u32>
                                format!("Can not connect to Pool \"{}\".", pool_name))
                 }
                 ErrorCode::PoolIncompatibleProtocolVersion => {
-                    let protocol_version = settings::get_protocol_version();
                     err.to_vcx(VcxErrorKind::PoolLedgerConnect,
-                               format!("Pool \"{}\" is not compatible with Protocol Version \"{}\".", pool_name, protocol_version))
+                               format!("Pool \"{}\" is not compatible with Protocol Version.", pool_name))
                 }
                 ErrorCode::CommonInvalidState => {
                     err.to_vcx(VcxErrorKind::PoolLedgerConnect,
@@ -97,32 +115,25 @@ pub fn open_pool_ledger(pool_name: &str, config: Option<&str>) -> VcxResult<u32>
                 }
             })?;
 
-    set_pool_handle(handle);
+    add_pool_handle(handle);
     Ok(handle as u32)
 }
 
-pub fn init_pool() -> VcxResult<()> {
-    trace!("init_pool >>>");
+fn connect_to_pool(config: PoolConfig) -> VcxResult<()> {
+    let pool_name = config.pool_name
+        .ok_or(VcxError::from_msg(
+            VcxErrorKind::InvalidConfiguration,
+            format!("Cannot read Pool Network Name from library settings"),
+        ))?;
 
-    if settings::indy_mocks_enabled() { return Ok(()); }
+    let pool_config = config.pool_config.map(|config| json!(config).to_string());
 
-    if get_pool_handle().is_ok(){
-        debug!("Pool is already initialized.");
-        return Ok(())
-    }
+    trace!("opening pool {} with genesis_path: {}", pool_name, &config.genesis_path);
 
-    let pool_name = settings::get_config_value(settings::CONFIG_POOL_NAME)
-        .unwrap_or(settings::DEFAULT_POOL_NAME.to_string());
-
-    let path: String = settings::get_config_value(settings::CONFIG_GENESIS_PATH)?;
-
-    trace!("opening pool {} with genesis_path: {}", pool_name, path);
-
-    create_pool_ledger_config(&pool_name, &path)
+    create_pool_ledger_config(&pool_name, &config.genesis_path)
         .map_err(|err| err.extend("Can not create Pool Ledger Config"))?;
 
     debug!("Pool Config Created Successfully");
-    let pool_config: Option<String> = settings::get_config_value(settings::CONFIG_POOL_CONFIG).ok();
 
     open_pool_ledger(&pool_name, pool_config.as_ref().map(String::as_str))
         .map_err(|err| err.extend("Can not open Pool Ledger"))?;
@@ -130,26 +141,87 @@ pub fn init_pool() -> VcxResult<()> {
     Ok(())
 }
 
-pub fn close() -> VcxResult<()> {
-    let handle = get_pool_handle()?;
+pub fn init_pool() -> VcxResult<()> {
+    trace!("init_pool >>>");
 
-    pool::close_pool_ledger(handle).wait()?;
-    reset_pool_handle();
+    if settings::indy_mocks_enabled() { return Ok(()); }
+
+    if get_pool_handle().is_ok() {
+        debug!("Pool is already initialized.");
+        return Ok(());
+    }
+
+    get_pool_networks()?
+        .into_iter()
+        .map(|network_config| {
+            thread::spawn(move || {
+                connect_to_pool(network_config)
+            })
+        })
+        .map(|handle| handle.join().expect("Cannot join Thread"))
+        .collect::<VcxResult<()>>()?;
 
     Ok(())
 }
 
-pub fn delete(pool_name: &str) -> VcxResult<()> {
-    trace!("delete >>> pool_name: {}", pool_name);
+pub fn close() -> VcxResult<()> {
+    let handles = get_pool_handles()?;
+
+    for handle in handles {
+        pool::close_pool_ledger(handle).wait()?;
+    }
+
+    reset_pool_handles();
+
+    Ok(())
+}
+
+pub fn delete() -> VcxResult<()> {
+    trace!("delete >>>");
 
     if settings::indy_mocks_enabled() {
-        reset_pool_handle();
+        reset_pool_handles();
         return Ok(());
     }
 
-    pool::delete_pool_ledger(pool_name).wait()?;
+    let networks = get_pool_networks()?;
+    for config in networks {
+        let pool_name = config.pool_name
+            .ok_or(VcxError::from_msg(
+                VcxErrorKind::InvalidConfiguration,
+                format!("Cannot read Pool Network Name from library settings"),
+            ))?;
+
+        pool::delete_pool_ledger(&pool_name).wait()?;
+    }
 
     Ok(())
+}
+
+pub fn create_genesis_txn_file(name: &str, genesis_transactions: &str) -> VcxResult<String> {
+    let path = genesis_transactions_path(name);
+
+    let path_str = path
+        .to_str()
+        .ok_or(VcxError::from_msg(VcxErrorKind::IOError, "Cannot create directory to write genesis transactions"))?
+        .to_string();
+
+    if let Some(parent_path) = path.parent() {
+        fs::DirBuilder::new()
+            .recursive(true)
+            .create(parent_path)?;
+    }
+
+    let mut file =
+        fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(path.clone())?;
+
+    file.write_all(genesis_transactions.as_bytes())?;
+    file.flush()?;
+    file.sync_all()?;
+    Ok(path_str)
 }
 
 #[cfg(test)]
@@ -171,7 +243,7 @@ pub mod tests {
 
     pub fn delete_test_pool() {
         close().ok();
-        delete(POOL).ok();
+        delete().ok();
     }
 
     pub fn open_test_pool() -> u32 {

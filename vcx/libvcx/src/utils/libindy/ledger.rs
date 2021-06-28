@@ -6,9 +6,11 @@ use indy::ledger;
 use indy::cache;
 
 use settings;
-use utils::libindy::pool::get_pool_handle;
+use utils::libindy::pool::{get_pool_handle, get_pool_handles};
 use utils::libindy::wallet::get_wallet_handle;
 use error::prelude::*;
+use std::sync::{mpsc, Arc};
+use std::thread;
 
 pub fn multisign_request(did: &str, request: &str) -> VcxResult<String> {
     ledger::multi_sign_request(get_wallet_handle(), did, request)
@@ -383,8 +385,7 @@ pub fn parse_response(response: &str) -> VcxResult<Response> {
                                           format!("Could not parse Ledger response. Err: {:?}", err)))
 }
 
-pub fn libindy_get_schema(schema_id: &str) -> VcxResult<String> {
-    let pool_handle = get_pool_handle().unwrap_or(0);
+pub fn libindy_get_schema(pool_handle: i32, schema_id: &str) -> VcxResult<String> {
     let wallet_handle = get_wallet_handle();
     let submitter_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID)?;
 
@@ -393,8 +394,7 @@ pub fn libindy_get_schema(schema_id: &str) -> VcxResult<String> {
         .map_err(VcxError::from)
 }
 
-pub fn libindy_get_cred_def(cred_def_id: &str) -> VcxResult<String> {
-    let pool_handle = get_pool_handle().unwrap_or(0);
+pub fn libindy_get_cred_def(pool_handle: i32, cred_def_id: &str) -> VcxResult<String> {
     let wallet_handle = get_wallet_handle();
     let submitter_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID)?;
 
@@ -454,6 +454,35 @@ fn _verify_transaction_can_be_endorsed(transaction_json: &str, _did: &str) -> Vc
     }
 
     Ok(())
+}
+
+pub fn query_connected_pool_networks(
+    query_func: Arc<dyn Fn(i32, String) -> Option<(String, String)> + Send + Sync>,
+    id: &str,
+) -> VcxResult<Option<(String, String)>> {
+    let receiver = {
+        let (sender, receiver) = mpsc::channel();
+
+        let pool_handles = get_pool_handles()?;
+        for pool_handle in pool_handles {
+            let sender_ = sender.clone();
+            let id = id.to_string();
+            let query_func = query_func.clone();
+
+            thread::spawn(move || {
+                sender_.send(query_func(pool_handle, id)).ok();
+            });
+        }
+        receiver
+    };
+
+    for received in receiver {
+        if received.is_some() {
+            return Ok(received);
+        }
+    }
+
+    return Ok(None);
 }
 
 #[cfg(test)]
