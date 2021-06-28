@@ -1,9 +1,9 @@
-use settings;
 use error::{VcxResult, VcxErrorKind, VcxError};
 use utils::option_util::get_or_err;
-use settings::{ProtocolTypes, get_config_value, CONFIG_REMOTE_TO_SDK_DID, CONFIG_REMOTE_TO_SDK_VERKEY, CONFIG_AGENCY_DID, CONFIG_AGENCY_VERKEY};
+use settings::{get_config_value, CONFIG_REMOTE_TO_SDK_DID, CONFIG_REMOTE_TO_SDK_VERKEY, CONFIG_AGENCY_DID, CONFIG_AGENCY_VERKEY};
 
 use crate::{connection::Connections, object_cache::Handle};
+use settings::protocol::ProtocolTypes;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct MyAgentInfo {
@@ -15,7 +15,7 @@ pub struct MyAgentInfo {
     pub pw_agent_did: Option<String>,
     pub pw_agent_vk: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub version: Option<settings::ProtocolTypes>,
+    pub version: Option<ProtocolTypes>,
 
     // User Agent
     pub agent_did: String,

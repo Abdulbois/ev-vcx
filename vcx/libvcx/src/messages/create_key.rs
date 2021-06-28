@@ -3,8 +3,8 @@ use messages::*;
 use messages::message_type::MessageTypes;
 use utils::{httpclient, constants};
 use error::prelude::*;
-use settings::ProtocolTypes;
 use utils::httpclient::AgencyMock;
+use settings::protocol::ProtocolTypes;
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -70,9 +70,9 @@ impl CreateKeyBuilder {
 
         if settings::agency_mocks_enabled() {
             match self.version {
-                settings::ProtocolTypes::V1 => AgencyMock::set_next_response(constants::CREATE_KEYS_RESPONSE),
-                settings::ProtocolTypes::V2 |
-                settings::ProtocolTypes::V3 => AgencyMock::set_next_response(constants::CREATE_KEYS_V2_RESPONSE),
+                ProtocolTypes::V1 => AgencyMock::set_next_response(constants::CREATE_KEYS_RESPONSE),
+                ProtocolTypes::V2 |
+                ProtocolTypes::V3 => AgencyMock::set_next_response(constants::CREATE_KEYS_V2_RESPONSE),
             }
         }
 
@@ -87,7 +87,7 @@ impl CreateKeyBuilder {
         trace!("CreateKeyBuilder::prepare_request >>>");
 
         let message = match self.version {
-            settings::ProtocolTypes::V1 =>
+            ProtocolTypes::V1 =>
                 A2AMessage::Version1(
                     A2AMessageV1::CreateKey(CreateKey {
                         msg_type: MessageTypes::MessageTypeV1(MessageTypes::build_v1(A2AMessageKinds::CreateKey)),
@@ -95,8 +95,8 @@ impl CreateKeyBuilder {
                         for_verkey: self.for_verkey.to_string()
                     })
                 ),
-            settings::ProtocolTypes::V2 |
-            settings::ProtocolTypes::V3 =>
+            ProtocolTypes::V2 |
+            ProtocolTypes::V3 =>
                 A2AMessage::Version2(
                     A2AMessageV2::CreateKey(CreateKey {
                         msg_type: MessageTypes::MessageTypeV2(MessageTypes::build_v2(A2AMessageKinds::CreateKey)),

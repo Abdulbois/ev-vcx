@@ -5,7 +5,7 @@ pub mod get_message;
 pub mod send_message;
 pub mod update_profile;
 pub mod proofs;
-pub mod agent_utils;
+pub mod provision;
 pub mod update_connection;
 pub mod update_message;
 pub mod message_type;
@@ -14,6 +14,7 @@ pub mod wallet_backup;
 pub mod deaddrop;
 pub mod agent_provisioning;
 pub mod token_provisioning;
+pub mod update_agent;
 #[macro_use]
 pub mod thread;
 pub mod issuance;
@@ -32,7 +33,7 @@ use self::get_message::{GetMessagesBuilder, GetMessages, GetMessagesResponse, Me
 use self::send_message::SendMessageBuilder;
 use self::update_message::{UpdateMessageStatusByConnections, UpdateMessageStatusByConnectionsResponse};
 use self::proofs::proof_request::ProofRequestMessage;
-use self::agent_utils::{Connect, ConnectResponse, SignUp, SignUpResponse, CreateAgent, CreateAgentResponse, UpdateComMethod, ComMethodUpdated};
+use self::provision::{Connect, ConnectResponse, SignUp, SignUpResponse, CreateAgent, CreateAgentResponse};
 use self::wallet_backup::backup_init::{BackupInit, BackupProvisioned, BackupInitBuilder};
 use self::wallet_backup::backup::{Backup, BackupAck, BackupBuilder};
 use self::wallet_backup::restore::{BackupRestore, BackupRestored, BackupRestoreBuilder};
@@ -41,11 +42,12 @@ use error::prelude::*;
 
 use serde::{de, Deserialize, Deserializer, ser, Serialize, Serializer};
 use serde_json::Value;
-use settings::ProtocolTypes;
+use settings::protocol::ProtocolTypes;
 use messages::deaddrop::retrieve::{RetrieveDeadDrop, RetrievedDeadDropResult, RetrieveDeadDropBuilder};
 use messages::agent_provisioning::agent_provisioning_v0_7::{AgentCreated, ProvisionAgent};
 use messages::token_provisioning::token_provisioning::{TokenRequest, TokenResponse};
-use messages::agent_utils::ProblemReport;
+use messages::provision::ProblemReport;
+use messages::update_agent::{UpdateComMethod, ComMethodUpdated};
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
@@ -573,7 +575,7 @@ pub struct ForwardV2 {
 impl Forward {
     fn new(fwd: String, msg: Vec<u8>, version: ProtocolTypes) -> VcxResult<A2AMessage> {
         match version {
-            settings::ProtocolTypes::V1 => {
+            ProtocolTypes::V1 => {
                 Ok(A2AMessage::Version1(A2AMessageV1::Forward(
                     Forward {
                         msg_type: MessageTypes::build_v1(A2AMessageKinds::Forward),
@@ -582,8 +584,8 @@ impl Forward {
                     }
                 )))
             }
-            settings::ProtocolTypes::V2 |
-            settings::ProtocolTypes::V3 => {
+            ProtocolTypes::V2 |
+            ProtocolTypes::V3 => {
                 let msg = serde_json::from_slice(msg.as_slice())
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
                                                       format!("Could not parse JSON object from bytes. Err: {:?}", err)))?;
@@ -947,9 +949,9 @@ impl A2AMessageKinds {
 
 pub fn prepare_message_for_agency(message: &A2AMessage, agency_did: &str, version: &ProtocolTypes) -> VcxResult<Vec<u8>> {
     match version {
-        settings::ProtocolTypes::V1 => bundle_for_agency_v1(message, &agency_did),
-        settings::ProtocolTypes::V2 |
-        settings::ProtocolTypes::V3 => pack_for_agency_v2(message, agency_did)
+        ProtocolTypes::V1 => bundle_for_agency_v1(message, &agency_did),
+        ProtocolTypes::V2 |
+        ProtocolTypes::V3 => pack_for_agency_v2(message, agency_did)
     }
 }
 
@@ -995,9 +997,9 @@ fn pack_for_agency_v2(message: &A2AMessage, agency_did: &str) -> VcxResult<Vec<u
 fn parse_response_from_agency(response: &[u8], version: &ProtocolTypes) -> VcxResult<Vec<A2AMessage>> {
     trace!("parse_response_from_agency >>> response {:?}", response);
     match version {
-        settings::ProtocolTypes::V1 => parse_response_from_agency_v1(response),
-        settings::ProtocolTypes::V2 |
-        settings::ProtocolTypes::V3 => parse_response_from_agency_v2(response)
+        ProtocolTypes::V1 => parse_response_from_agency_v1(response),
+        ProtocolTypes::V2 |
+        ProtocolTypes::V3 => parse_response_from_agency_v2(response)
     }
 }
 
@@ -1161,9 +1163,9 @@ pub fn prepare_message_for_agent(messages: Vec<A2AMessage>, pw_vk: &str, agent_d
     trace!("prepare_message_for_agent >>> pw_vk: {}, agent_did: {}, agent_vk: {}", secret!(pw_vk), secret!(agent_did), secret!(agent_vk));
 
     match version {
-        settings::ProtocolTypes::V1 => prepare_message_for_agent_v1(messages, pw_vk, agent_did, agent_vk),
-        settings::ProtocolTypes::V2 |
-        settings::ProtocolTypes::V3 => prepare_message_for_agent_v2(messages, pw_vk, agent_did, agent_vk)
+        ProtocolTypes::V1 => prepare_message_for_agent_v1(messages, pw_vk, agent_did, agent_vk),
+        ProtocolTypes::V2 |
+        ProtocolTypes::V3 => prepare_message_for_agent_v2(messages, pw_vk, agent_did, agent_vk)
     }
 }
 

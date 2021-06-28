@@ -11,8 +11,10 @@ use error::prelude::*;
 use indy_sys::CommandHandle;
 use utils::httpclient::AgencyMock;
 use utils::constants::*;
-use messages::agent_utils::{ComMethod, ProvisioningConfig};
+use messages::agent_provisioning::types::ProvisioningConfig;
 use v3::handlers::connection::agent::AgentInfo;
+use messages::{agent_provisioning, update_agent};
+use messages::update_agent::ComMethod;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
 ///
@@ -146,7 +148,7 @@ pub extern fn vcx_provision_agent(config: *const c_char) -> *mut c_char {
 
     trace!("vcx_provision_agent(config: {})", secret!(config));
 
-    match messages::agent_utils::connect_register_provision(&config) {
+    match agent_provisioning::provision(&config) {
         Err(e) => {
             error!("Provision Agent Error {}.", e);
             wallet::close_wallet().ok();
@@ -188,7 +190,7 @@ pub extern fn vcx_agent_provision_async(command_handle: CommandHandle,
            command_handle, secret!(config));
 
     thread::spawn(move || {
-        match messages::agent_utils::connect_register_provision(&config) {
+        match agent_provisioning::provision(&config) {
             Err(e) => {
                 error!("vcx_agent_provision_async_cb(command_handle: {}, rc: {}, config: NULL", command_handle, e);
                 cb(command_handle, e.into(), ptr::null_mut());
@@ -336,7 +338,7 @@ pub extern fn vcx_agent_update_info(command_handle: CommandHandle,
     };
 
     spawn(move || {
-        match messages::agent_utils::update_agent_info(com_method) {
+        match update_agent::update_agent_info(com_method) {
             Ok(()) => {
                 trace!("vcx_agent_update_info_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());

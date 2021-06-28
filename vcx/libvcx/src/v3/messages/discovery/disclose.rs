@@ -1,6 +1,6 @@
 use messages::thread::Thread;
-use settings::Actors;
 use v3::messages::a2a::{MessageId, A2AMessage};
+use v3::messages::a2a::protocol_registry::Actors;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Disclose {

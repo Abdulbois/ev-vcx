@@ -1,15 +1,15 @@
 use messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, parse_response_from_agency, prepare_forward_message};
 use utils::libindy::{wallet, crypto};
 use error::prelude::*;
-use messages::agent_utils::{process_provisioning_config, configure_wallet, get_final_config};
 use serde_json::from_str;
 use messages::message_type::MessageTypes;
 use messages::thread::Thread;
 use utils::uuid::uuid;
 use settings;
 use utils::httpclient;
-use settings::ProtocolTypes;
+use settings::protocol::ProtocolTypes;
 use messages::token_provisioning::token_provisioning::VALID_SIGNATURE_ALGORITHMS;
+use messages::agent_provisioning::utils::{process_provisioning_config, configure_wallet, get_final_config};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ProvisionToken {

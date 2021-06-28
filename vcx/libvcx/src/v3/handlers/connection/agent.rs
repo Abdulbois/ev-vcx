@@ -14,7 +14,7 @@ use utils::httpclient;
 use utils::libindy::signus::create_and_store_my_did;
 use settings;
 use error::prelude::*;
-use settings::ProtocolTypes;
+use settings::protocol::ProtocolTypes;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct AgentInfo {

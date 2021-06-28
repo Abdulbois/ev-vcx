@@ -2,6 +2,7 @@ pub mod agency;
 pub mod pool;
 pub mod environment;
 pub mod wallet;
+pub mod protocol;
 
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -12,10 +13,10 @@ use serde_json::Value;
 use strum::IntoEnumIterator;
 use std::borrow::Borrow;
 use reqwest::Url;
-
 use error::prelude::*;
 use utils::file::read_file;
-use indy_sys::INVALID_WALLET_HANDLE;
+use v3::messages::a2a::protocol_registry::Actors;
+use settings::protocol::ProtocolTypes;
 
 pub static CONFIG_POOL_NAME: &str = "pool_name";
 pub static CONFIG_PROTOCOL_TYPE: &str = "protocol_type";
@@ -49,6 +50,7 @@ pub static CONFIG_POOL_CONFIG: &'static str = "pool_config";
 pub static CONFIG_DID_METHOD: &str = "did_method";
 pub static CONFIG_ACTORS: &str = "actors"; // inviter, invitee, issuer, holder, prover, verifier, sender, receiver
 pub static CONFIG_POOL_NETWORKS: &str = "pool_networks";
+pub static CONFIG_USE_LATEST_PROTOCOLS: &'static str = "use_latest_protocols";
 
 pub static UNINITIALIZED_WALLET_KEY: &str = "<KEY_IS_NOT_SET>";
 pub static DEFAULT_GENESIS_PATH: &str = "genesis.txn";
@@ -74,6 +76,7 @@ pub static DEFAULT_PAYMENT_INIT_FUNCTION: &str = "sovtoken_init";
 pub static DEFAULT_PAYMENT_METHOD: &str = "sov";
 pub static DEFAULT_PROTOCOL_TYPE: &str = "3.0";
 pub static MAX_THREADPOOL_SIZE: usize = 128;
+pub static DEFAULT_USE_LATEST_PROTOCOLS: &str = "false";
 
 lazy_static! {
     static ref SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(HashMap::new());
@@ -132,7 +135,7 @@ pub fn validate_config(config: &HashMap<String, String>) -> VcxResult<u32> {
     debug!("validating config");
 
     //Mandatory parameters
-    if ::utils::libindy::wallet::get_wallet_handle() == INVALID_WALLET_HANDLE && config.get(CONFIG_WALLET_KEY).is_none() {
+    if config.get(CONFIG_WALLET_KEY).is_none() {
         return Err(VcxError::from(VcxErrorKind::MissingWalletKey));
     }
 
@@ -325,24 +328,13 @@ pub fn unset_config_value(key: &str) {
         .remove(key);
 }
 
-pub fn _config_str_to_bool(key: &str) -> VcxResult<bool> {
-    get_config_value(key)?
-        .parse::<bool>()
-        .map_err(|_| VcxError::from_msg(VcxErrorKind::InvalidConfiguration, format!("{} - config supposed to be true | false", key)))
-}
-
 pub fn get_payment_method() -> VcxResult<String> {
     get_config_value(CONFIG_PAYMENT_METHOD)
         .map_err(|_| VcxError::from_msg(VcxErrorKind::MissingPaymentMethod, "Payment Method is not set."))
 }
 
 pub fn is_aries_protocol_set() -> bool {
-    trace!("is_aries_protocol_set >>> ");
-
-    let res = get_protocol_type() == ProtocolTypes::V3;
-
-    trace!("is_aries_protocol_set >>> res: {:?}", res);
-    res
+    get_protocol_type() == ProtocolTypes::V3
 }
 
 pub fn get_actors() -> Vec<Actors> {
@@ -353,57 +345,16 @@ pub fn get_actors() -> Vec<Actors> {
         ).unwrap_or_else(|_| Actors::iter().collect())
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, Eq, PartialEq, EnumIter)]
-#[serde(rename_all = "lowercase")]
-pub enum Actors {
-    Inviter,
-    Invitee,
-    Issuer,
-    Holder,
-    Prover,
-    Verifier,
-    Sender,
-    Receiver,
-}
+pub fn get_connecting_protocol_version() -> ProtocolTypes {
+    trace!("get_connecting_protocol_version >>> ");
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub enum ProtocolTypes {
-    #[serde(rename = "1.0")]
-    V1,
-    #[serde(rename = "2.0")]
-    V2,
-    #[serde(rename = "3.0")]
-    V3,
-}
-
-impl Default for ProtocolTypes {
-    fn default() -> Self {
-        ProtocolTypes::V1
-    }
-}
-
-impl From<String> for ProtocolTypes {
-    fn from(type_: String) -> Self {
-        match type_.as_str() {
-            "1.0" => ProtocolTypes::V1,
-            "2.0" => ProtocolTypes::V2,
-            "3.0" => ProtocolTypes::V3,
-            type_ @ _ => {
-                error!("Unknown protocol type: {:?}. Use default", type_);
-                ProtocolTypes::default()
-            }
-        }
-    }
-}
-
-impl ::std::string::ToString for ProtocolTypes {
-    fn to_string(&self) -> String {
-        match self {
-            ProtocolTypes::V1 => "1.0".to_string(),
-            ProtocolTypes::V2 => "2.0".to_string(),
-            ProtocolTypes::V3 => "3.0".to_string(),
-        }
-    }
+    let protocol = get_config_value(CONFIG_USE_LATEST_PROTOCOLS).unwrap_or(DEFAULT_USE_LATEST_PROTOCOLS.to_string());
+    let protocol = match protocol.as_ref() {
+        "true" | "TRUE" | "True" => ProtocolTypes::V2,
+        "false" | "FALSE" | "False" | _ => ProtocolTypes::V1,
+    };
+    trace!("get_connecting_protocol_version >>> protocol: {:?}", protocol);
+    protocol
 }
 
 pub fn get_protocol_type() -> ProtocolTypes {

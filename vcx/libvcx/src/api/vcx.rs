@@ -1,4 +1,4 @@
-use utils::version_constants;
+use utils::{version_constants, threadpool};
 use libc::c_char;
 use utils::cstring::CStringUtils;
 use utils::libindy::{wallet, pool, ledger};
@@ -105,7 +105,7 @@ pub extern fn vcx_init(command_handle: CommandHandle,
 }
 
 fn _finish_init(command_handle: CommandHandle, cb: extern fn(xcommand_handle: CommandHandle, err: u32)) -> u32 {
-    ::utils::threadpool::init();
+    threadpool::init();
 
     settings::log_settings();
 
@@ -441,33 +441,6 @@ pub extern fn vcx_set_active_txn_author_agreement_meta(text: *const c_char,
     }
 }
 
-#[no_mangle]
-pub extern fn vcx_mint_tokens(seed: *const c_char, fees: *const c_char) {
-    info!("vcx_mint_tokens >>>");
-
-    // TODO: CHEC
-    let seed = if !seed.is_null() {
-        match CStringUtils::c_str_to_string(seed) {
-            Ok(opt_val) => opt_val.map(String::from),
-            Err(_) => return ()
-        }
-    } else {
-        None
-    };
-
-    let fees = if !fees.is_null() {
-        match CStringUtils::c_str_to_string(fees) {
-            Ok(opt_val) => opt_val.map(String::from),
-            Err(_) => return ()
-        }
-    } else {
-        None
-    };
-    trace!("vcx_mint_tokens(seed: {:?}, fees: {:?})", secret!(seed), fees);
-
-    ::utils::libindy::payments::mint_tokens_and_set_fees(None, None, fees, seed).unwrap_or_default();
-}
-
 /// Get details for last occurred error.
 ///
 /// This function should be called in two places to handle both cases of error occurrence:
@@ -508,10 +481,6 @@ mod tests {
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     use utils::get_temp_dir_path;
     use utils::devsetup::*;
-    #[cfg(feature = "pool_tests")]
-    use indy_sys::INVALID_POOL_HANDLE;
-    #[cfg(feature = "pool_tests")]
-    use utils::libindy::wallet::get_wallet_handle;
     #[cfg(feature = "pool_tests")]
     use utils::libindy::pool::tests::delete_test_pool;
 
@@ -963,23 +932,6 @@ mod tests {
                                                    Some(cb)), error::SUCCESS.code_num);
         let agreement = r.recv_short().unwrap();
         assert_eq!(::utils::constants::DEFAULT_AUTHOR_AGREEMENT, agreement.unwrap());
-    }
-
-    #[cfg(feature = "pool_tests")]
-    fn get_settings() -> String {
-        json!({
-            settings::CONFIG_AGENCY_DID:           settings::get_config_value(settings::CONFIG_AGENCY_DID).unwrap(),
-            settings::CONFIG_AGENCY_VERKEY:        settings::get_config_value(settings::CONFIG_AGENCY_VERKEY).unwrap(),
-            settings::CONFIG_AGENCY_ENDPOINT:      settings::get_config_value(settings::CONFIG_AGENCY_ENDPOINT).unwrap(),
-            settings::CONFIG_REMOTE_TO_SDK_DID:    settings::get_config_value(settings::CONFIG_REMOTE_TO_SDK_DID).unwrap(),
-            settings::CONFIG_REMOTE_TO_SDK_VERKEY: settings::get_config_value(settings::CONFIG_REMOTE_TO_SDK_VERKEY).unwrap(),
-            settings::CONFIG_SDK_TO_REMOTE_DID:    settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_DID).unwrap(),
-            settings::CONFIG_SDK_TO_REMOTE_VERKEY: settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_VERKEY).unwrap(),
-            settings::CONFIG_INSTITUTION_NAME:     settings::get_config_value(settings::CONFIG_INSTITUTION_NAME).unwrap(),
-            settings::CONFIG_INSTITUTION_DID:      settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap(),
-            settings::CONFIG_INSTITUTION_LOGO_URL: settings::get_config_value(settings::CONFIG_INSTITUTION_LOGO_URL).unwrap(),
-            settings::CONFIG_PAYMENT_METHOD:       settings::get_config_value(settings::CONFIG_PAYMENT_METHOD).unwrap()
-        }).to_string()
     }
 
     #[cfg(feature = "pool_tests")]

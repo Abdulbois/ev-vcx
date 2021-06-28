@@ -6,7 +6,7 @@ use self::rust_base58::FromBase58;
 use utils::qualifier;
 use reqwest::Url;
 use error::prelude::*;
-use settings::Actors;
+use v3::messages::a2a::protocol_registry::Actors;
 
 pub fn validate_did(did: &str) -> VcxResult<String> {
     if qualifier::is_fully_qualified(did) {
