@@ -363,15 +363,15 @@ impl Message {
                 trace!("_set_ref_msg_id >>> message type: {:?}", secret!(type_));
 
                 match type_ {
-                    "CRED_OFFER" => {
+                    "CRED_OFFER" | "credential-offer" => {
                         let offer = set_cred_offer_ref_message(&payload.msg, None, &msg_id)?;
                         payload.msg = json!(offer).to_string();
                     }
-                    "CRED_REQ" => {
+                    "CRED_REQ" | "credential-request" => {
                         let cred_req = set_cred_req_ref_message(&payload.msg, &msg_id)?;
                         payload.msg = json!(cred_req).to_string();
                     }
-                    "PROOF_REQUEST" => {
+                    "PROOF_REQUEST" | "presentation-request" => {
                         let proof_request = set_proof_req_ref_message(&payload.msg, None, &msg_id)?;
                         payload.msg = json!(proof_request).to_string();
                     }

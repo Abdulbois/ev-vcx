@@ -50,6 +50,7 @@ pub static CONFIG_POOL_CONFIG: &'static str = "pool_config";
 pub static CONFIG_DID_METHOD: &str = "did_method";
 pub static CONFIG_ACTORS: &str = "actors"; // inviter, invitee, issuer, holder, prover, verifier, sender, receiver
 pub static CONFIG_POOL_NETWORKS: &str = "pool_networks";
+pub static CONFIG_USE_LATEST_PROTOCOLS: &'static str = "use_latest_protocols";
 
 pub static UNINITIALIZED_WALLET_KEY: &str = "<KEY_IS_NOT_SET>";
 pub static DEFAULT_GENESIS_PATH: &str = "genesis.txn";
@@ -75,6 +76,7 @@ pub static DEFAULT_PAYMENT_INIT_FUNCTION: &str = "sovtoken_init";
 pub static DEFAULT_PAYMENT_METHOD: &str = "sov";
 pub static DEFAULT_PROTOCOL_TYPE: &str = "3.0";
 pub static MAX_THREADPOOL_SIZE: usize = 128;
+pub static DEFAULT_USE_LATEST_PROTOCOLS: &str = "false";
 
 lazy_static! {
     static ref SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(HashMap::new());
@@ -341,6 +343,18 @@ pub fn get_actors() -> Vec<Actors> {
             ::serde_json::from_str(&actors)
                 .map_err(|_| VcxError::from(VcxErrorKind::InvalidConfiguration))
         ).unwrap_or_else(|_| Actors::iter().collect())
+}
+
+pub fn get_connecting_protocol_version() -> ProtocolTypes {
+    trace!("get_connecting_protocol_version >>> ");
+
+    let protocol = get_config_value(CONFIG_USE_LATEST_PROTOCOLS).unwrap_or(DEFAULT_USE_LATEST_PROTOCOLS.to_string());
+    let protocol = match protocol.as_ref() {
+        "true" | "TRUE" | "True" => ProtocolTypes::V2,
+        "false" | "FALSE" | "False" | _ => ProtocolTypes::V1,
+    };
+    trace!("get_connecting_protocol_version >>> protocol: {:?}", protocol);
+    protocol
 }
 
 pub fn get_protocol_type() -> ProtocolTypes {

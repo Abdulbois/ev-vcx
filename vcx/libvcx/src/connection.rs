@@ -313,7 +313,7 @@ impl Connection {
     fn set_invite_detail(&mut self, id: InviteDetail) {
         self.version = match id.version.is_some() {
             true => Some(ProtocolTypes::from(id.version.clone().unwrap())),
-            false => Some(settings::get_protocol_type()),
+            false => Some(settings::get_connecting_protocol_version()),
         };
         self.invite_detail = Some(id);
     }
@@ -1110,7 +1110,7 @@ fn create_connection_v1(source_id: &str) -> VcxResult<Connection> {
         their_pw_verkey: String::new(),
         public_did: None,
         their_public_did: None,
-        version: Some(settings::get_protocol_type()),
+        version: Some(settings::get_connecting_protocol_version()),
     };
 
     trace!("create_connection_v1 <<<");
