@@ -74,13 +74,13 @@ async def vcx_init_with_config(config: str) -> None:
 async def vcx_init_pool(pool_config: str) -> None:
     """
     Connect to a Pool Ledger
-   
+
     You can deffer connecting to the Pool Ledger during library initialization (vcx_init or vcx_init_with_config)
     to decrease the taken time by omitting `genesis_path` field in config JSON.
     Next, you can use this function (for instance as a background task) to perform a connection to the Pool Ledger.
-   
+
     Note: Pool must be already initialized before sending any request to the Ledger.
-   
+
     Note: EXPERIMENTAL
 
     :param pool_config: String - the configuration JSON containing pool related settings:
@@ -101,6 +101,7 @@ async def vcx_init_pool(pool_config: str) -> None:
                                                 "number_read_nodes": int (optional) - the number of nodes to send read requests (2 by default)
                                                         By default Libindy sends a read requests to 2 nodes in the pool.
                                             }
+                                    network: Optional[string] - Network identifier used for fully-qualified DIDs.
                                 }
 
     Example:

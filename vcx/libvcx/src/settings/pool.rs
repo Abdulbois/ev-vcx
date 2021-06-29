@@ -14,6 +14,7 @@ pub struct ExplicitPoolConfig {
     pub genesis_path: String,
     pub pool_name: Option<String>,
     pub pool_config: Option<serde_json::Value>,
+    pub network: Option<String>,
 }
 
 impl ExplicitPoolConfig {
@@ -23,6 +24,7 @@ impl ExplicitPoolConfig {
             genesis_path: self.genesis_path,
             pool_name: Some(pool_name),
             pool_config: self.pool_config,
+            network: self.network,
         })
     }
 }
@@ -32,6 +34,7 @@ pub struct PredefinedPoolConfig {
     pub pool_network_alias: LedgerEnvironments,
     pub pool_name: Option<String>,
     pub pool_config: Option<serde_json::Value>,
+    pub network: Option<String>,
 }
 
 impl PredefinedPoolConfig {
@@ -44,6 +47,7 @@ impl PredefinedPoolConfig {
             genesis_path,
             pool_name: Some(pool_name),
             pool_config: self.pool_config,
+            network: self.network
         })
     }
 }
@@ -54,6 +58,7 @@ pub struct PoolConfig {
     pub genesis_path: String,
     pub pool_name: Option<String>,
     pub pool_config: Option<serde_json::Value>,
+    pub network: Option<String>,
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]

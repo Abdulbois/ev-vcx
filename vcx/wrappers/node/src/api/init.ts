@@ -121,6 +121,7 @@ export async function initVcxWithConfig (config: string, options: IInitVCXOption
  *                                 "number_read_nodes": int (optional) - the number of nodes to send read requests (2 by default)
  *                                         By default Libindy sends a read requests to 2 nodes in the pool.
  *                             }
+ *                     network: Optional[string] - Network identifier used for fully-qualified DIDs.
  *                  }
  *
  *                  Note: You can also pass a list of network configs.
