@@ -6,11 +6,12 @@ use indy::ledger;
 use indy::cache;
 
 use settings;
-use utils::libindy::pool::{get_pool_handle, get_pool_handles};
+use utils::libindy::pool::{get_pool, get_pools};
 use utils::libindy::wallet::get_wallet_handle;
 use error::prelude::*;
 use std::sync::{mpsc, Arc};
 use std::thread;
+use utils::qualifier::network;
 
 pub fn multisign_request(did: &str, request: &str) -> VcxResult<String> {
     ledger::multi_sign_request(get_wallet_handle(), did, request)
@@ -27,7 +28,7 @@ pub fn libindy_sign_request(did: &str, request: &str) -> VcxResult<String> {
 pub fn libindy_sign_and_submit_request(issuer_did: &str, request_json: &str) -> VcxResult<String> {
     if settings::indy_mocks_enabled() { return Ok(r#"{"rc":"success"}"#.to_string()); }
 
-    let pool_handle = get_pool_handle()?;
+    let pool_handle = get_pool(None)?;
     let wallet_handle = get_wallet_handle();
 
     ledger::sign_and_submit_request(pool_handle, wallet_handle, issuer_did, request_json)
@@ -36,7 +37,7 @@ pub fn libindy_sign_and_submit_request(issuer_did: &str, request_json: &str) -> 
 }
 
 pub fn libindy_submit_request(request_json: &str) -> VcxResult<String> {
-    let pool_handle = get_pool_handle()?;
+    let pool_handle = get_pool(None)?;
 
     ledger::submit_request(pool_handle, request_json)
         .wait()
@@ -279,7 +280,7 @@ pub mod auth_rule {
 
         let auth_rules_request = libindy_build_auth_rules_request(submitter_did, &data)?;
 
-        let response = ledger::sign_and_submit_request(get_pool_handle()?,
+        let response = ledger::sign_and_submit_request(get_pool(None)?,
                                                        get_wallet_handle(),
                                                        submitter_did,
                                                        &auth_rules_request)
@@ -463,10 +464,13 @@ pub fn query_connected_pool_networks(
     let receiver = {
         let (sender, receiver) = mpsc::channel();
 
-        let pool_handles = get_pool_handles()?;
+        let network = network(&id);
+        let pool_handles = get_pools(network.as_ref().map(String::as_str))?;
+
         for pool_handle in pool_handles {
             let sender_ = sender.clone();
             let id = id.to_string();
+
             let query_func = query_func.clone();
 
             thread::spawn(move || {

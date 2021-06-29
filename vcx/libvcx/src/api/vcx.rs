@@ -210,6 +210,7 @@ fn _finish_init(command_handle: CommandHandle, cb: extern fn(xcommand_handle: Co
 ///                                 "number_read_nodes": int (optional) - the number of nodes to send read requests (2 by default)
 ///                                         By default Libindy sends a read requests to 2 nodes in the pool.
 ///                     }
+///                     network: Optional[string] - Network identifier used for fully-qualified DIDs.
 ///                 }
 ///                 Note: You can also pass a list of network configs.
 ///                       In this case library will connect to multiple ledger networks and will look up public data in each of them.
@@ -475,7 +476,7 @@ mod tests {
     use std::ptr;
     use utils::libindy::{
         wallet::{import, tests::export_test_wallet},
-        pool::get_pool_handle,
+        pool::get_pool,
     };
     use api::return_types;
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
@@ -535,7 +536,7 @@ mod tests {
         _vcx_init_c_closure(&config.path).unwrap();
 
         // Assert wallet and pool was initialized
-        assert_ne!(get_pool_handle().unwrap(), 0);
+        assert_ne!(get_pool(None).unwrap(), 0);
     }
 
     #[cfg(feature = "pool_tests")]
@@ -562,7 +563,7 @@ mod tests {
         _vcx_init_with_config_c_closure(&config()).unwrap();
 
         // Assert pool was initialized
-        assert_ne!(get_pool_handle().unwrap(), 0);
+        assert_ne!(get_pool(None).unwrap(), 0);
     }
 
     #[cfg(feature = "pool_tests")]
@@ -576,7 +577,7 @@ mod tests {
         let err = _vcx_init_with_config_c_closure(&config()).unwrap_err();
         assert_eq!(err, error::POOL_LEDGER_CONNECT.code_num);
 
-        assert_eq!(get_pool_handle().unwrap_err().kind(), VcxErrorKind::NoPoolOpen);
+        assert_eq!(get_pool(None).unwrap_err().kind(), VcxErrorKind::NoPoolOpen);
 
         delete_test_pool();
     }
@@ -594,7 +595,7 @@ mod tests {
         _vcx_init_with_config_c_closure(&content).unwrap();
 
         // assert that pool was never initialized
-        assert!(get_pool_handle().is_err());
+        assert!(get_pool(None).is_err());
     }
 
     #[test]

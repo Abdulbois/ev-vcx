@@ -9,11 +9,18 @@ use settings::pool::{PoolConfig, get_pool_networks};
 use utils::libindy::environment::genesis_transactions_path;
 use std::io::Write;
 
-lazy_static! {
-    static ref POOLS: RwLock<Vec<i32>> = RwLock::new(Vec::new());
+pub const DEFAULT_NETWORK: &'static str = "sov";
+
+struct PoolInfo {
+    network: String,
+    handle: i32,
 }
 
-pub fn add_pool_handle(handle: i32) {
+lazy_static! {
+    static ref POOLS: RwLock<Vec<PoolInfo>> = RwLock::new(Vec::new());
+}
+
+pub fn add_pool(network: Option<&str>, handle: i32) {
     let mut pools = match POOLS.write() {
         Ok(pools) => pools,
         Err(_) => {
@@ -22,29 +29,51 @@ pub fn add_pool_handle(handle: i32) {
         }
     };
 
-    pools.push(handle)
+    pools.push(PoolInfo {
+        network: network.unwrap_or(DEFAULT_NETWORK).to_string(),
+        handle,
+    })
 }
 
-pub fn get_pool_handle() -> VcxResult<i32> {
+pub fn get_pool(network: Option<String>) -> VcxResult<i32> {
     match POOLS.read() {
         Ok(pools) => {
-            if pools.len() == 1 {
-                return Ok(pools[0]);
-            } else if pools.len() > 1 {
-                Err(VcxError::from_msg(VcxErrorKind::InvalidState,
-                                       "There is more than one pool opened. In order to do write transactions, \
+            match network {
+                Some(network) => {
+                    let pool_handles = pools
+                        .iter()
+                        .filter(|pool| pool.network == network)
+                        .map(|pool| pool.handle)
+                        .collect::<Vec<i32>>();
+
+                    if pool_handles.len() > 1 {
+                        return Err(VcxError::from_msg(VcxErrorKind::InvalidState,
+                                                      "There is more than one pool opened. In order to do write transactions, \
+                                       you must be connected to a single network!"));
+                    }
+
+                    Ok(pool_handles[0])
+                }
+                None => {
+                    if pools.len() == 1 {
+                        Ok(pools[0].handle)
+                    } else if pools.len() > 1 {
+                        Err(VcxError::from_msg(VcxErrorKind::InvalidState,
+                                               "There is more than one pool opened. In order to do write transactions, \
                                        you must be connected to a single network!"))
-            } else {
-                Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"))
+                    } else {
+                        Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"))
+                    }
+                }
             }
         }
         Err(_) => Err(VcxError::from_msg(VcxErrorKind::InternalError, "Cannot get lock for opened pools"))
     }
 }
 
-pub fn get_pool_handles() -> VcxResult<Vec<i32>> {
+pub fn get_pools(network: Option<&str>) -> VcxResult<Vec<i32>> {
     let pools = match POOLS.read() {
-        Ok(pools) => pools.clone(),
+        Ok(pools) => pools,
         Err(_) => {
             return Err(VcxError::from_msg(VcxErrorKind::InternalError, "Cannot get lock for opened pools"));
         }
@@ -54,7 +83,28 @@ pub fn get_pool_handles() -> VcxResult<Vec<i32>> {
         return Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"));
     }
 
-    Ok(pools)
+    match network {
+        Some(network) => {
+            let pool_handles = pools
+                .iter()
+                .filter(|pool| pool.network == network)
+                .map(|pool| pool.handle)
+                .collect::<Vec<i32>>();
+
+            if pool_handles.len() == 0 {
+                return Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen,
+                                              format!("There is no pool opened for requested network key: {}", network)));
+            }
+
+            Ok(pool_handles)
+        }
+        None => {
+            Ok(pools
+                .iter()
+                .map(|pool| pool.handle)
+                .collect::<Vec<i32>>())
+        }
+    }
 }
 
 pub fn reset_pool_handles() {
@@ -89,7 +139,7 @@ pub fn create_pool_ledger_config(pool_name: &str, path: &str) -> VcxResult<()> {
     }
 }
 
-pub fn open_pool_ledger(pool_name: &str, config: Option<&str>) -> VcxResult<u32> {
+pub fn open_pool_ledger(pool_name: &str, config: Option<&str>, network: Option<&str>) -> VcxResult<u32> {
     let handle = pool::open_pool_ledger(pool_name, config)
         .wait()
         .map_err(|err|
@@ -115,7 +165,7 @@ pub fn open_pool_ledger(pool_name: &str, config: Option<&str>) -> VcxResult<u32>
                 }
             })?;
 
-    add_pool_handle(handle);
+    add_pool(network, handle);
     Ok(handle as u32)
 }
 
@@ -127,6 +177,7 @@ fn connect_to_pool(config: PoolConfig) -> VcxResult<()> {
         ))?;
 
     let pool_config = config.pool_config.map(|config| json!(config).to_string());
+    let network = config.network.as_ref().map(String::as_str);
 
     trace!("opening pool {} with genesis_path: {}", pool_name, &config.genesis_path);
 
@@ -135,7 +186,7 @@ fn connect_to_pool(config: PoolConfig) -> VcxResult<()> {
 
     debug!("Pool Config Created Successfully");
 
-    open_pool_ledger(&pool_name, pool_config.as_ref().map(String::as_str))
+    open_pool_ledger(&pool_name, pool_config.as_ref().map(String::as_str), network)
         .map_err(|err| err.extend("Can not open Pool Ledger"))?;
 
     Ok(())
@@ -146,7 +197,7 @@ pub fn init_pool() -> VcxResult<()> {
 
     if settings::indy_mocks_enabled() { return Ok(()); }
 
-    if get_pool_handle().is_ok() {
+    if get_pool(None).is_ok() {
         debug!("Pool is already initialized.");
         return Ok(());
     }
@@ -165,7 +216,7 @@ pub fn init_pool() -> VcxResult<()> {
 }
 
 pub fn close() -> VcxResult<()> {
-    let handles = get_pool_handles()?;
+    let handles = get_pools(None)?;
 
     for handle in handles {
         pool::close_pool_ledger(handle).wait()?;
@@ -248,7 +299,7 @@ pub mod tests {
 
     pub fn open_test_pool() -> u32 {
         create_test_pool();
-        open_pool_ledger(POOL, None).unwrap()
+        open_pool_ledger(POOL, None, None).unwrap()
     }
 
     pub fn get_txns(test_pool_ip: &str) -> Vec<String> {
@@ -274,6 +325,6 @@ pub mod tests {
     fn test_open_close_pool() {
         let _setup = SetupLibraryWalletPoolZeroFees::init();
 
-        assert!(get_pool_handle().unwrap() > 0);
+        assert!(get_pool(None).unwrap() > 0);
     }
 }
