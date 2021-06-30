@@ -117,7 +117,7 @@ mod tests {
     fn test_update_agent_info_real() {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
 
         let com_method = ComMethod {
             id: "7b7f97f2".to_string(),

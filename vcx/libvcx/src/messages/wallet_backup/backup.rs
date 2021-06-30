@@ -93,7 +93,7 @@ mod tests {
         settings::set_config_value(settings::CONFIG_REMOTE_TO_SDK_VERKEY, &agent_vk);
         settings::set_config_value(settings::CONFIG_SDK_TO_REMOTE_VERKEY, &my_vk);
 
-        settings::set_config_value(CONFIG_PROTOCOL_TYPE, &settings::ProtocolTypes::V2.to_string());
+        settings::set_config_value(CONFIG_PROTOCOL_TYPE, &settings::protocol::ProtocolTypes::V2.to_string());
 
         let msg = backup_wallet()
             .wallet_data(vec![1, 2, 3])
