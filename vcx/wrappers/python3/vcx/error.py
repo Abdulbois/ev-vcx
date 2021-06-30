@@ -109,6 +109,7 @@ class ErrorCode(IntEnum):
     MessageIsOutOfThread = 1109,
     InvalidProofProposal = 1110,
     IncompatibleParameters = 1111,
+    ConnectionNotCompleted = 1112,
 
 
 class VcxError(Exception):

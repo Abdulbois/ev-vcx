@@ -50,6 +50,7 @@ pub mod file;
 pub mod option_util;
 pub mod agent_info;
 pub mod health_check;
+pub mod random;
 
 #[cfg(test)]
 pub mod plugins;

@@ -22,7 +22,6 @@ public abstract class LibVcx {
 
         public int vcx_init_with_config(int command_handle, String config, Callback cb);
         public int vcx_init(int command_handle, String config_path, Callback cb);
-        public int vcx_init_minimal(String config);
         public int vcx_init_pool(int command_handle, String pool_config, Callback cb);
 
         public String vcx_error_c_message(int error_code);
@@ -678,12 +677,6 @@ public abstract class LibVcx {
         // const char*   request_with_meta_json)
         public int  indy_append_txn_author_agreement_acceptance_to_request(int command_handle, String request_json, String text, String version, String taa_digest, String mechanism, Long time, Callback cb);
 
-
-        /*
-        * Set the pool handle before calling vcx_init_minimal
-        * */
-        public int vcx_pool_set_handle(int handle);
-
         /*
         * Gets minimal request price for performing an action in case the requester can perform this action.
         * */
@@ -758,6 +751,9 @@ public abstract class LibVcx {
         /** Get Problem Report message for object in Failed or Rejected state.. */
         public int vcx_credential_get_problem_report(int command_handle, int credential_handle, Callback cb);
 
+        /** Retrieve information about a stored credential. */
+        public int vcx_credential_get_info(int command_handle, int credential_handle, Callback cb);
+
         /**
          * wallet object
          *
@@ -781,9 +777,6 @@ public abstract class LibVcx {
 
         /** Update a record in wallet */
         public int vcx_wallet_update_record_value(int command_handle, String recordType, String recordId, String recordValue, Callback cb);
-
-        /** Set wallet handle manually */
-        public int vcx_wallet_set_handle(int handle);
 
         /** Create a Wallet Backup object that provides a Cloud wallet backup and provision's backup protocol with Agent */
         public int vcx_wallet_backup_create(int command_handle, String sourceID, String backupKey, Callback cb);

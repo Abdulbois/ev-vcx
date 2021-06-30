@@ -1,4 +1,4 @@
-use crate::utils::version_constants;
+use crate::utils::{version_constants, threadpool};
 use libc::c_char;
 use crate::utils::cstring::CStringUtils;
 use crate::utils::libindy::{wallet, pool, ledger};
@@ -105,7 +105,7 @@ pub extern fn vcx_init(command_handle: CommandHandle,
 }
 
 fn _finish_init(command_handle: CommandHandle, cb: extern fn(xcommand_handle: CommandHandle, err: u32)) -> u32 {
-    crate::utils::threadpool::init();
+    threadpool::init();
 
     settings::log_settings();
 
@@ -131,7 +131,8 @@ fn _finish_init(command_handle: CommandHandle, cb: extern fn(xcommand_handle: Co
 
     spawn(move || {
         let pool_open_thread = thread::spawn(|| {
-            if settings::get_config_value(settings::CONFIG_GENESIS_PATH).is_err() {
+            if settings::get_config_value(settings::CONFIG_POOL_NETWORKS).is_err() {
+                info!("Skipping connection to Pool Ledger Network as no configs passed");
                 return Ok(());
             }
 
@@ -177,53 +178,6 @@ fn _finish_init(command_handle: CommandHandle, cb: extern fn(xcommand_handle: Co
     error::SUCCESS.code_num
 }
 
-/// Initialize vcx with the minimal configuration (wallet, pool must already be set with
-/// vcx_wallet_set_handle() and vcx_pool_set_handle()) and without any agency configuration
-///
-/// # Example:
-/// vcx_init_minimal -> '{"institution_name":"faber","institution_did":"44x8p4HubxzUK1dwxcc5FU",\
-//      "institution_verkey":"444MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE"}'
-///
-/// #Params
-///
-/// config: minimal configuration
-///
-/// #Returns
-/// Error code as u32
-#[no_mangle]
-pub extern fn vcx_init_minimal(config: *const c_char) -> u32 {
-    check_useful_c_str!(config,VcxErrorKind::InvalidOption);
-
-    trace!("vcx_init_minimal(config: {:?})", secret!(config));
-
-    if config == "ENABLE_TEST_MODE" {
-        settings::set_config_value(settings::CONFIG_ENABLE_TEST_MODE, "true");
-        settings::set_defaults();
-        settings::set_config_value(settings::CONFIG_PROTOCOL_TYPE, "1.0");
-    } else {
-        match settings::process_config_string(&config, false) {
-            Err(e) => {
-                error!("Invalid configuration specified: {}", e);
-                return e.into();
-            }
-            Ok(_) => (),
-        }
-    };
-
-    if wallet::get_wallet_handle() == INVALID_WALLET_HANDLE || pool::get_pool_handle().is_err() {
-        error!("Library cannot be initialized without wallet/pool");
-        return error::INVALID_STATE.code_num;
-    }
-
-    crate::utils::threadpool::init();
-
-    settings::log_settings();
-
-    trace!("libvcx version: {}{}", version_constants::VERSION, version_constants::REVISION);
-
-    error::SUCCESS.code_num
-}
-
 /// Connect to a Pool Ledger
 ///
 /// You can deffer connecting to the Pool Ledger during library initialization (vcx_init or vcx_init_with_config)
@@ -238,7 +192,7 @@ pub extern fn vcx_init_minimal(config: *const c_char) -> u32 {
 ///
 /// command_handle: command handle to map callback to user context.
 ///
-/// pool_config: string - the configuration JSON containing pool related settings:
+/// pool_config: string - the configuration JSON containing pool related settings.
 ///                 {
 ///                     genesis_path: string - path to pool ledger genesis transactions,
 ///                     pool_name: Optional[string] - name of the pool ledger configuration will be created.
@@ -255,9 +209,12 @@ pub extern fn vcx_init_minimal(config: *const c_char) -> u32 {
 ///                                         Note: Nodes not specified will be placed randomly.
 ///                                 "number_read_nodes": int (optional) - the number of nodes to send read requests (2 by default)
 ///                                         By default Libindy sends a read requests to 2 nodes in the pool.
-///    }
+///                     }
+///                     network: Optional[string] - Network identifier used for fully-qualified DIDs.
 ///                 }
-///
+///                 Note: You can also pass a list of network configs.
+///                       In this case library will connect to multiple ledger networks and will look up public data in each of them.
+///                     [{ "genesis_path": string, "pool_name": string, ... }]
 ///
 /// cb: Callback that provides no value
 ///
@@ -276,7 +233,7 @@ pub extern fn vcx_init_pool(command_handle: CommandHandle,
     trace!("vcx_init_pool(command_handle: {}, pool_config: {:?})",
            command_handle, pool_config);
 
-    match settings::process_pool_config_string(&pool_config) {
+    match settings::process_init_pool_config_string(&pool_config) {
         Err(e) => {
             error!("Invalid pool configuration specified: {}", e);
             return e.into();
@@ -347,9 +304,6 @@ pub extern fn vcx_shutdown(delete: bool) -> u32 {
     crate::credential::release_all();
 
     if delete {
-        let pool_name = settings::get_config_value(settings::CONFIG_POOL_NAME)
-            .unwrap_or(settings::DEFAULT_POOL_NAME.to_string());
-
         let wallet_name = settings::get_config_value(settings::CONFIG_WALLET_NAME)
             .unwrap_or(settings::DEFAULT_WALLET_NAME.to_string());
 
@@ -360,7 +314,7 @@ pub extern fn vcx_shutdown(delete: bool) -> u32 {
             Err(_) => (),
         };
 
-        match pool::delete(&pool_name) {
+        match pool::delete() {
             Ok(()) => (),
             Err(_) => (),
         };
@@ -404,18 +358,6 @@ pub extern fn vcx_update_institution_info(name: *const c_char, logo_url: *const 
 
     settings::set_config_value(crate::settings::CONFIG_INSTITUTION_NAME, &name);
     settings::set_config_value(crate::settings::CONFIG_INSTITUTION_LOGO_URL, &logo_url);
-
-    error::SUCCESS.code_num
-}
-
-#[no_mangle]
-pub extern fn vcx_update_webhook_url(notification_webhook_url: *const c_char) -> u32 {
-    info!("vcx_update_webhook >>>");
-
-    check_useful_c_str!(notification_webhook_url, VcxErrorKind::InvalidOption);
-    trace!("vcx_update_webhook(webhook_url: {})", secret!(notification_webhook_url));
-
-    settings::set_config_value(crate::settings::CONFIG_WEBHOOK_URL, &notification_webhook_url);
 
     error::SUCCESS.code_num
 }
@@ -500,33 +442,6 @@ pub extern fn vcx_set_active_txn_author_agreement_meta(text: *const c_char,
     }
 }
 
-#[no_mangle]
-pub extern fn vcx_mint_tokens(seed: *const c_char, fees: *const c_char) {
-    info!("vcx_mint_tokens >>>");
-
-    // TODO: CHEC
-    let seed = if !seed.is_null() {
-        match CStringUtils::c_str_to_string(seed) {
-            Ok(opt_val) => opt_val.map(String::from),
-            Err(_) => return ()
-        }
-    } else {
-        None
-    };
-
-    let fees = if !fees.is_null() {
-        match CStringUtils::c_str_to_string(fees) {
-            Ok(opt_val) => opt_val.map(String::from),
-            Err(_) => return ()
-        }
-    } else {
-        None
-    };
-    trace!("vcx_mint_tokens(seed: {:?}, fees: {:?})", secret!(seed), fees);
-
-    crate::utils::libindy::payments::mint_tokens_and_set_fees(None, None, fees, seed).unwrap_or_default();
-}
-
 /// Get details for last occurred error.
 ///
 /// This function should be called in two places to handle both cases of error occurrence:
@@ -561,34 +476,30 @@ mod tests {
     use std::ptr;
     use crate::utils::libindy::{
         wallet::{import, tests::export_test_wallet},
-        pool::get_pool_handle,
+        pool::get_pool,
     };
-    use crate::api::VcxStateType;
     use crate::api::return_types;
-    use crate::indy::WalletHandle;
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     use crate::utils::get_temp_dir_path;
     use crate::utils::devsetup::*;
-    #[cfg(feature = "pool_tests")]
-    use indy_sys::INVALID_POOL_HANDLE;
-    #[cfg(feature = "pool_tests")]
-    use crate::utils::libindy::wallet::get_wallet_handle;
     #[cfg(feature = "pool_tests")]
     use crate::utils::libindy::pool::tests::delete_test_pool;
 
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     fn config() -> String {
-        json!({"agency_did" : "72x8p4HubxzUK1dwxcc5FU",
-               "remote_to_sdk_did" : "UJGjM6Cea2YVixjWwHN9wq",
-               "sdk_to_remote_did" : "AB3JM851T4EQmhh8CdagSP",
-               "sdk_to_remote_verkey" : "888MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
-               "institution_name" : "evernym enterprise",
-               "agency_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
-               "remote_to_sdk_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
-               "genesis_path": get_temp_dir_path("pool1.txn").to_str().unwrap(),
-               "payment_method": "null",
-               "pool_config": json!({"timeout":60}).to_string()
-           }).to_string()
+        json!({
+            "agency_endpoint" : "https://agency.com",
+            "agency_did" : "72x8p4HubxzUK1dwxcc5FU",
+           "remote_to_sdk_did" : "UJGjM6Cea2YVixjWwHN9wq",
+           "sdk_to_remote_did" : "AB3JM851T4EQmhh8CdagSP",
+           "sdk_to_remote_verkey" : "888MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
+           "institution_name" : "evernym enterprise",
+           "agency_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
+           "remote_to_sdk_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
+           "genesis_path": get_temp_dir_path("pool1.txn").to_str().unwrap(),
+           "payment_method": "null",
+           "pool_config": json!({"timeout":60}).to_string()
+       }).to_string()
     }
 
     fn _vcx_init_c_closure(path: &str) -> Result<(), u32> {
@@ -625,7 +536,7 @@ mod tests {
         _vcx_init_c_closure(&config.path).unwrap();
 
         // Assert wallet and pool was initialized
-        assert_ne!(get_pool_handle().unwrap(), 0);
+        assert_ne!(get_pool(None).unwrap(), 0);
     }
 
     #[cfg(feature = "pool_tests")]
@@ -652,7 +563,7 @@ mod tests {
         _vcx_init_with_config_c_closure(&config()).unwrap();
 
         // Assert pool was initialized
-        assert_ne!(get_pool_handle().unwrap(), 0);
+        assert_ne!(get_pool(None).unwrap(), 0);
     }
 
     #[cfg(feature = "pool_tests")]
@@ -666,7 +577,7 @@ mod tests {
         let err = _vcx_init_with_config_c_closure(&config()).unwrap_err();
         assert_eq!(err, error::POOL_LEDGER_CONNECT.code_num);
 
-        assert_eq!(get_pool_handle().unwrap_err().kind(), VcxErrorKind::NoPoolOpen);
+        assert_eq!(get_pool(None).unwrap_err().kind(), VcxErrorKind::NoPoolOpen);
 
         delete_test_pool();
     }
@@ -684,7 +595,7 @@ mod tests {
         _vcx_init_with_config_c_closure(&content).unwrap();
 
         // assert that pool was never initialized
-        assert!(get_pool_handle().is_err());
+        assert!(get_pool(None).is_err());
     }
 
     #[test]
@@ -942,19 +853,6 @@ mod tests {
     }
 
     #[test]
-    fn test_vcx_update_institution_webhook() {
-        let _setup = SetupDefaults::init();
-
-        let webhook_url_cstr = "http://www.evernym.com\0";
-        let webhook_url = &webhook_url_cstr[..webhook_url_cstr.len() - 1];
-        assert_ne!(webhook_url, &settings::get_config_value(crate::settings::CONFIG_WEBHOOK_URL).unwrap());
-
-        assert_eq!(error::SUCCESS.code_num, vcx_update_webhook_url(webhook_url_cstr.as_ptr().cast()));
-
-        assert_eq!(webhook_url, &settings::get_config_value(crate::settings::CONFIG_WEBHOOK_URL).unwrap());
-    }
-
-    #[test]
     fn get_current_error_works_for_no_error() {
         let _setup = SetupDefaults::init();
 
@@ -1035,118 +933,6 @@ mod tests {
                                                    Some(cb)), error::SUCCESS.code_num);
         let agreement = r.recv_short().unwrap();
         assert_eq!(crate::utils::constants::DEFAULT_AUTHOR_AGREEMENT, agreement.unwrap());
-    }
-
-    #[cfg(feature = "pool_tests")]
-    fn get_settings() -> String {
-        json!({
-            settings::CONFIG_AGENCY_DID:           settings::get_config_value(settings::CONFIG_AGENCY_DID).unwrap(),
-            settings::CONFIG_AGENCY_VERKEY:        settings::get_config_value(settings::CONFIG_AGENCY_VERKEY).unwrap(),
-            settings::CONFIG_AGENCY_ENDPOINT:      settings::get_config_value(settings::CONFIG_AGENCY_ENDPOINT).unwrap(),
-            settings::CONFIG_REMOTE_TO_SDK_DID:    settings::get_config_value(settings::CONFIG_REMOTE_TO_SDK_DID).unwrap(),
-            settings::CONFIG_REMOTE_TO_SDK_VERKEY: settings::get_config_value(settings::CONFIG_REMOTE_TO_SDK_VERKEY).unwrap(),
-            settings::CONFIG_SDK_TO_REMOTE_DID:    settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_DID).unwrap(),
-            settings::CONFIG_SDK_TO_REMOTE_VERKEY: settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_VERKEY).unwrap(),
-            settings::CONFIG_INSTITUTION_NAME:     settings::get_config_value(settings::CONFIG_INSTITUTION_NAME).unwrap(),
-            settings::CONFIG_INSTITUTION_DID:      settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap(),
-            settings::CONFIG_INSTITUTION_LOGO_URL: settings::get_config_value(settings::CONFIG_INSTITUTION_LOGO_URL).unwrap(),
-            settings::CONFIG_PAYMENT_METHOD:       settings::get_config_value(settings::CONFIG_PAYMENT_METHOD).unwrap()
-        }).to_string()
-    }
-
-    fn _vcx_init_minimal_c_closure(content: &str) -> u32 {
-        let content = CString::new(content).unwrap();
-        vcx_init_minimal(content.as_ptr())
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_init_minimal() {
-        let _setup = SetupLibraryWalletPoolZeroFees::init();
-
-        let config = get_settings();
-
-        settings::clear_config();
-
-        // Store settings and handles
-        let wallet_handle = crate::utils::libindy::wallet::get_wallet_handle();
-        let pool_handle = crate::utils::libindy::pool::get_pool_handle().unwrap();
-        assert_ne!(wallet_handle, INVALID_WALLET_HANDLE);
-        assert_ne!(pool_handle, INVALID_POOL_HANDLE);
-
-        // Reset handles to 0
-        assert_eq!(crate::api::utils::vcx_pool_set_handle(INVALID_POOL_HANDLE), INVALID_POOL_HANDLE);
-        assert_eq!(crate::api::wallet::vcx_wallet_set_handle(INVALID_WALLET_HANDLE), INVALID_WALLET_HANDLE);
-
-        // Test for errors when handles not set
-        assert_ne!(error::SUCCESS.code_num, _vcx_init_minimal_c_closure(&config));
-        crate::api::wallet::vcx_wallet_set_handle(wallet_handle);
-
-        assert_ne!(error::SUCCESS.code_num, _vcx_init_minimal_c_closure(&config));
-        crate::api::utils::vcx_pool_set_handle(pool_handle);
-
-        // NOTE: handles are set independently, test config with no wallet or pool
-        assert_eq!(error::SUCCESS.code_num, _vcx_init_minimal_c_closure(&config));
-
-        // test that wallet and pool are operational
-        crate::utils::libindy::anoncreds::tests::create_and_store_credential(crate::utils::constants::DEFAULT_SCHEMA_ATTRS, false);
-
-        settings::set_defaults();
-    }
-
-    #[test]
-    fn test_no_agency_config() {
-        let _setup = SetupMocks::init();
-
-        let config = json!({
-            "institution_name": "faber",
-            "institution_did": "44x8p4HubxzUK1dwxcc5FU",
-            "institution_verkey": "444MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE"
-        }).to_string();
-
-        crate::api::wallet::vcx_wallet_set_handle(WalletHandle(1));
-        crate::api::utils::vcx_pool_set_handle(1);
-
-        let init_res = _vcx_init_minimal_c_closure(&config);
-        assert_eq!(init_res, error::SUCCESS.code_num);
-
-        let cred_handle = crate::issuer_credential::from_string(crate::utils::constants::DEFAULT_SERIALIZED_ISSUER_CREDENTIAL).unwrap();
-        let connection_handle = crate::connection::from_string(crate::utils::constants::DEFAULT_CONNECTION).unwrap();
-        let my_pw_did = connection_handle.get_pw_did().unwrap();
-        let their_pw_did = connection_handle.get_their_pw_did().unwrap();
-
-        let offer = cred_handle.generate_credential_offer_msg().unwrap();
-        let mycred = crate::credential::credential_create_with_offer("test1", &offer).unwrap();
-        let request = mycred.generate_credential_request_msg(&my_pw_did, &their_pw_did).unwrap();
-        cred_handle.update_state(Some(request)).unwrap();
-        let cred = cred_handle.generate_credential_msg(&my_pw_did).unwrap();
-        mycred.update_state(Some(cred)).unwrap();
-        assert_eq!(mycred.get_state().unwrap(), VcxStateType::VcxStateAccepted as u32);
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_init_minimal_with_invalid_agency_config() {
-        let _setup = SetupLibraryWalletPool::init();
-
-        let config = json!({
-            "institution_name": "faber",
-            "institution_did": "44x8p4HubxzUK1dwxcc5FU",
-            "institution_verkey": "444MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE"
-        }).to_string();
-
-        crate::api::wallet::vcx_wallet_set_handle(get_wallet_handle());
-        crate::api::utils::vcx_pool_set_handle(get_pool_handle().unwrap());
-
-        settings::clear_config();
-
-        assert_eq!(_vcx_init_minimal_c_closure(&config), error::SUCCESS.code_num);
-
-        let connection_handle = crate::connection::create_connection("test_create_fails").unwrap();
-
-        connection_handle.connect(None).unwrap_err();
-
-        settings::set_defaults();
     }
 
     #[cfg(feature = "pool_tests")]

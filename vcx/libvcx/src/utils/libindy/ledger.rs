@@ -6,9 +6,12 @@ use crate::indy::ledger;
 use crate::indy::cache;
 
 use crate::settings;
-use crate::utils::libindy::pool::get_pool_handle;
+use crate::utils::libindy::pool::{get_pool, get_pools};
 use crate::utils::libindy::wallet::get_wallet_handle;
 use crate::error::prelude::*;
+use std::sync::{mpsc, Arc};
+use std::thread;
+use crate::utils::qualifier::network;
 
 pub fn multisign_request(did: &str, request: &str) -> VcxResult<String> {
     ledger::multi_sign_request(get_wallet_handle(), did, request)
@@ -25,7 +28,7 @@ pub fn libindy_sign_request(did: &str, request: &str) -> VcxResult<String> {
 pub fn libindy_sign_and_submit_request(issuer_did: &str, request_json: &str) -> VcxResult<String> {
     if settings::indy_mocks_enabled() { return Ok(r#"{"rc":"success"}"#.to_string()); }
 
-    let pool_handle = get_pool_handle()?;
+    let pool_handle = get_pool(None)?;
     let wallet_handle = get_wallet_handle();
 
     ledger::sign_and_submit_request(pool_handle, wallet_handle, issuer_did, request_json)
@@ -34,7 +37,7 @@ pub fn libindy_sign_and_submit_request(issuer_did: &str, request_json: &str) -> 
 }
 
 pub fn libindy_submit_request(request_json: &str) -> VcxResult<String> {
-    let pool_handle = get_pool_handle()?;
+    let pool_handle = get_pool(None)?;
 
     ledger::submit_request(pool_handle, request_json)
         .wait()
@@ -277,7 +280,7 @@ pub mod auth_rule {
 
         let auth_rules_request = libindy_build_auth_rules_request(submitter_did, &data)?;
 
-        let response = ledger::sign_and_submit_request(get_pool_handle()?,
+        let response = ledger::sign_and_submit_request(get_pool(None)?,
                                                        get_wallet_handle(),
                                                        submitter_did,
                                                        &auth_rules_request)
@@ -383,8 +386,7 @@ pub fn parse_response(response: &str) -> VcxResult<Response> {
                                           format!("Could not parse Ledger response. Err: {:?}", err)))
 }
 
-pub fn libindy_get_schema(schema_id: &str) -> VcxResult<String> {
-    let pool_handle = get_pool_handle().unwrap_or(0);
+pub fn libindy_get_schema(pool_handle: i32, schema_id: &str) -> VcxResult<String> {
     let wallet_handle = get_wallet_handle();
     let submitter_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID)?;
 
@@ -393,8 +395,7 @@ pub fn libindy_get_schema(schema_id: &str) -> VcxResult<String> {
         .map_err(VcxError::from)
 }
 
-pub fn libindy_get_cred_def(cred_def_id: &str) -> VcxResult<String> {
-    let pool_handle = get_pool_handle().unwrap_or(0);
+pub fn libindy_get_cred_def(pool_handle: i32, cred_def_id: &str) -> VcxResult<String> {
     let wallet_handle = get_wallet_handle();
     let submitter_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID)?;
 
@@ -454,6 +455,38 @@ fn _verify_transaction_can_be_endorsed(transaction_json: &str, _did: &str) -> Vc
     }
 
     Ok(())
+}
+
+pub fn query_connected_pool_networks(
+    query_func: Arc<dyn Fn(i32, String) -> Option<(String, String)> + Send + Sync>,
+    id: &str,
+) -> VcxResult<Option<(String, String)>> {
+    let receiver = {
+        let (sender, receiver) = mpsc::channel();
+
+        let network = network(&id);
+        let pool_handles = get_pools(network.as_ref().map(String::as_str))?;
+
+        for pool_handle in pool_handles {
+            let sender_ = sender.clone();
+            let id = id.to_string();
+
+            let query_func = query_func.clone();
+
+            thread::spawn(move || {
+                sender_.send(query_func(pool_handle, id)).ok();
+            });
+        }
+        receiver
+    };
+
+    for received in receiver {
+        if received.is_some() {
+            return Ok(received);
+        }
+    }
+
+    return Ok(None);
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::fmt;
+use std::{fmt, io};
 use std::ffi::CString;
 use std::ptr;
 
@@ -18,6 +18,8 @@ pub mod prelude {
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Fail, Serialize, Deserialize)]
 pub enum VcxErrorKind {
     // Common
+    #[fail(display = "Internal Error")]
+    InternalError,
     #[fail(display = "Object is in invalid state for requested operation")]
     InvalidState,
     #[fail(display = "Invalid configuration was passed into provisioning /initialization functions")]
@@ -64,6 +66,8 @@ pub enum VcxErrorKind {
     ConnectionAlreadyExists,
     #[fail(display = "Connection does not exist")]
     ConnectionDoesNotExist,
+    #[fail(display = "Connection used for sending a message is not in the completed state")]
+    ConnectionNotCompleted,
 
     // Payment
     #[fail(display = "No payment information associated with object")]
@@ -319,9 +323,16 @@ impl From<VcxError> for u32 {
     }
 }
 
+impl From<io::Error> for VcxError {
+    fn from(err: io::Error) -> Self {
+        err.context(VcxErrorKind::IOError).into()
+    }
+}
+
 impl From<VcxErrorKind> for u32 {
     fn from(code: VcxErrorKind) -> u32 {
         match code {
+            VcxErrorKind::InternalError => error::UNKNOWN_ERROR.code_num,
             VcxErrorKind::InvalidState => error::INVALID_STATE.code_num,
             VcxErrorKind::InvalidConfiguration => error::INVALID_CONFIGURATION.code_num,
             VcxErrorKind::InvalidHandle => error::INVALID_OBJ_HANDLE.code_num,
@@ -344,6 +355,7 @@ impl From<VcxErrorKind> for u32 {
             VcxErrorKind::DeleteConnection => error::CANNOT_DELETE_CONNECTION.code_num,
             VcxErrorKind::ConnectionAlreadyExists => error::CONNECTION_ALREADY_EXISTS.code_num,
             VcxErrorKind::ConnectionDoesNotExist => error::CONNECTION_DOES_NOT_EXIST.code_num,
+            VcxErrorKind::ConnectionNotCompleted => error::CONNECTION_NOT_COMPLETED.code_num,
             VcxErrorKind::CreateCredDef => error::CREATE_CREDENTIAL_DEF_ERR.code_num,
             VcxErrorKind::CredDefAlreadyCreated => error::CREDENTIAL_DEF_ALREADY_CREATED.code_num,
             VcxErrorKind::InvalidCredDefHandle => error::INVALID_CREDENTIAL_DEF_HANDLE.code_num,

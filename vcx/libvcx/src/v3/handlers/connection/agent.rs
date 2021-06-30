@@ -14,7 +14,7 @@ use crate::utils::httpclient;
 use crate::utils::libindy::signus::create_and_store_my_did;
 use crate::settings;
 use crate::error::prelude::*;
-use crate::settings::ProtocolTypes;
+use crate::settings::protocol::ProtocolTypes;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct AgentInfo {

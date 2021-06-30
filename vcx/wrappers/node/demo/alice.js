@@ -45,12 +45,6 @@ async function runAlice (options) {
   } else {
     logger.info('Running with builtin wallet.')
   }
-  if (await isPortReachable(url.parse(optionalWebhook).port, { host: url.parse(optionalWebhook).hostname })) { // eslint-disable-line
-    provisionConfig.webhook_url = optionalWebhook
-    logger.info(`Running with webhook notifications enabled! Webhook url = ${optionalWebhook}`)
-  } else {
-    logger.info('Webhook url will not be used')
-  }
 
   logger.info('#8 Provision an agent and wallet, get back configuration details')
   const config = await demoCommon.provisionAgentInAgency(provisionConfig)

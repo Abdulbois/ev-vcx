@@ -5,7 +5,7 @@ use crate::utils::httpclient;
 use crate::error::prelude::*;
 use crate::utils::httpclient::AgencyMock;
 use crate::utils::constants::DELETE_CONNECTION_RESPONSE;
-use crate::settings::ProtocolTypes;
+use crate::settings::protocol::ProtocolTypes;
 
 #[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -61,7 +61,7 @@ pub struct DeleteConnectionBuilder {
     status_code: ConnectionStatus,
     agent_did: String,
     agent_vk: String,
-    version: settings::ProtocolTypes,
+    version: ProtocolTypes,
 }
 
 impl DeleteConnectionBuilder {
@@ -78,7 +78,7 @@ impl DeleteConnectionBuilder {
         }
     }
 
-    pub fn version(&mut self, version: &Option<settings::ProtocolTypes>) -> VcxResult<&mut Self> {
+    pub fn version(&mut self, version: &Option<ProtocolTypes>) -> VcxResult<&mut Self> {
         self.version = match version {
             Some(version) => version.clone(),
             None => settings::get_protocol_type()
@@ -140,7 +140,7 @@ impl GeneralMessage for DeleteConnectionBuilder {
         trace!("DeleteConnection::prepare_request >>>");
 
         let message = match self.version {
-            settings::ProtocolTypes::V1 =>
+            ProtocolTypes::V1 =>
                 A2AMessage::Version1(
                     A2AMessageV1::UpdateConnection(
                         UpdateConnection {
@@ -149,8 +149,8 @@ impl GeneralMessage for DeleteConnectionBuilder {
                         }
                     )
                 ),
-            settings::ProtocolTypes::V2 |
-            settings::ProtocolTypes::V3 =>
+            ProtocolTypes::V2 |
+            ProtocolTypes::V3 =>
                 A2AMessage::Version2(
                     A2AMessageV2::UpdateConnection(
                         UpdateConnection {

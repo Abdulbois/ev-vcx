@@ -1,4 +1,4 @@
-use crate::settings::Actors;
+use crate::v3::messages::a2a::protocol_registry::Actors;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, EnumIter)]
 pub enum MessageFamilies {
@@ -101,12 +101,12 @@ impl From<String> for MessageFamilies {
             "questionanswer" => MessageFamilies::QuestionAnswer,
             "committedanswer" => MessageFamilies::Committedanswer,
             "invite-action" => MessageFamilies::InviteAction,
-            family @ _ => MessageFamilies::Unknown(family.to_string())
+            _ => MessageFamilies::Unknown(family)
         }
     }
 }
 
-impl ::std::string::ToString for MessageFamilies {
+impl ToString for MessageFamilies {
     fn to_string(&self) -> String {
         match self {
             MessageFamilies::Routing => "routing".to_string(),

@@ -1,10 +1,10 @@
 use crate::settings;
 use crate::messages::message_type::{MessageTypes, MessageTypeV2};
 use crate::messages::*;
-use crate::messages::payload::{Payloads, PayloadTypes, PayloadKinds, PayloadV1, PayloadV2};
+use crate::messages::payload::{Payloads, PayloadTypes, PayloadKinds, PayloadV1};
 use crate::utils::{httpclient, constants};
 use crate::error::prelude::*;
-use crate::settings::ProtocolTypes;
+use crate::settings::protocol::ProtocolTypes;
 use crate::utils::httpclient::AgencyMock;
 use crate::messages::issuance::credential_offer::set_cred_offer_ref_message;
 use crate::messages::proofs::proof_request::set_proof_req_ref_message;
@@ -89,7 +89,7 @@ impl GetMessagesBuilder {
     #[cfg(test)]
     pub fn create_v1() -> GetMessagesBuilder {
         let mut builder = GetMessagesBuilder::create();
-        builder.version = settings::ProtocolTypes::V1;
+        builder.version = ProtocolTypes::V1;
         builder
     }
 
@@ -170,7 +170,7 @@ impl GetMessagesBuilder {
         trace!("GetMessagesBuilder::prepare_download_request >>>");
 
         let message = match self.version {
-            settings::ProtocolTypes::V1 =>
+            ProtocolTypes::V1 =>
                 A2AMessage::Version1(
                     A2AMessageV1::GetMessages(
                         GetMessages {
@@ -182,8 +182,8 @@ impl GetMessagesBuilder {
                         }
                     )
                 ),
-            settings::ProtocolTypes::V2 |
-            settings::ProtocolTypes::V3 =>
+            ProtocolTypes::V2 |
+            ProtocolTypes::V3 =>
                 A2AMessage::Version2(
                     A2AMessageV2::GetMessages(
                         GetMessages {
@@ -243,7 +243,7 @@ impl GeneralMessage for GetMessagesBuilder {
         trace!("GetMessagesBuilder::prepare_request >>>");
 
         let message = match self.version {
-            settings::ProtocolTypes::V1 =>
+            ProtocolTypes::V1 =>
                 A2AMessage::Version1(
                     A2AMessageV1::GetMessages(
                         GetMessages {
@@ -255,8 +255,8 @@ impl GeneralMessage for GetMessagesBuilder {
                         }
                     )
                 ),
-            settings::ProtocolTypes::V2 |
-            settings::ProtocolTypes::V3 =>
+            ProtocolTypes::V2 |
+            ProtocolTypes::V3 =>
                 A2AMessage::Version2(
                     A2AMessageV2::GetMessages(
                         GetMessages {
@@ -328,31 +328,8 @@ impl Message {
         if let Some(ref payload) = self.payload {
             let decrypted_payload = match payload {
                 MessagePayload::V1(payload) => {
-                    if let Ok(payload) = Payloads::decrypt_payload_v1(&vk, &payload) {
-                        Ok(Payloads::PayloadV1(payload))
-                    } else {
-                        warn!("fallback to Payloads::decrypt_payload_v12 in Message:decrypt for MessagePayload::V1");
-                        serde_json::from_slice::<serde_json::Value>(i8_as_u8_slice(payload))
-                            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot deserialize MessagePayload: {}", err)))
-                            .and_then(|json| Payloads::decrypt_payload_v12(&vk, &json))
-                            .map(|json| {
-                                (
-                                    json.type_,
-                                    match json.msg {
-                                        serde_json::Value::String(_str) => _str,
-                                        value => value.to_string()
-                                    }
-                                )
-                            })
-                            .map(|(type_, payload)|
-                                Payloads::PayloadV2(PayloadV2 {
-                                    type_,
-                                    id: crate::utils::uuid::uuid(),
-                                    msg: payload,
-                                    thread: Default::default(),
-                                })
-                            )
-                    }
+                    Payloads::decrypt_payload_v1(&vk, &payload)
+                        .map(Payloads::PayloadV1)
                 }
                 MessagePayload::V2(payload) => {
                     Payloads::decrypt_payload_v2(&vk, &payload)
@@ -387,15 +364,15 @@ impl Message {
                 trace!("_set_ref_msg_id >>> message type: {:?}", secret!(type_));
 
                 match type_ {
-                    "CRED_OFFER" => {
+                    "CRED_OFFER" | "credential-offer" => {
                         let offer = set_cred_offer_ref_message(&payload.msg, None, &msg_id)?;
                         payload.msg = json!(offer).to_string();
                     }
-                    "CRED_REQ" => {
+                    "CRED_REQ" | "credential-request" => {
                         let cred_req = set_cred_req_ref_message(&payload.msg, &msg_id)?;
                         payload.msg = json!(cred_req).to_string();
                     }
-                    "PROOF_REQUEST" => {
+                    "PROOF_REQUEST" | "presentation-request" => {
                         let proof_request = set_proof_req_ref_message(&payload.msg, None, &msg_id)?;
                         payload.msg = json!(proof_request).to_string();
                     }

@@ -208,7 +208,6 @@ The following wrappers are tested and complete.
 Libvcx library must be initialized with one of the functions:
 * `vcx_init_with_config` -  initializes with <configuration> passed as JSON string. 
 * `vcx_init` -  initializes with a path to the file containing <configuration>. 
-* `vcx_init_minimal` - initializes with the minimal <configuration> (without any agency configuration).
 
 Each library function will use this <configuration> data after the initialization. 
 The list of options can be find [here](../docs/configuration.md#vcx)

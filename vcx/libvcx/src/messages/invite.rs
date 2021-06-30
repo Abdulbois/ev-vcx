@@ -7,6 +7,7 @@ use crate::utils::httpclient;
 use crate::utils::constants::*;
 use crate::utils::uuid::uuid;
 use crate::utils::httpclient::AgencyMock;
+use crate::settings::protocol::ProtocolTypes;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct SendInviteMessageDetails {
@@ -225,7 +226,7 @@ pub struct SendInviteBuilder {
     agent_vk: String,
     public_did: Option<String>,
     thread: Thread,
-    version: settings::ProtocolTypes,
+    version: ProtocolTypes,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -335,7 +336,7 @@ impl SendInviteBuilder {
         Ok(())
     }
 
-    pub fn version(&mut self, version: &Option<settings::ProtocolTypes>) -> VcxResult<&mut Self> {
+    pub fn version(&mut self, version: &Option<ProtocolTypes>) -> VcxResult<&mut Self> {
         self.version = match version {
             Some(version) => version.clone(),
             None => settings::get_protocol_type()
@@ -348,9 +349,9 @@ impl SendInviteBuilder {
 
         if settings::agency_mocks_enabled() {
             match self.version {
-                settings::ProtocolTypes::V1 => AgencyMock::set_next_response(SEND_INVITE_RESPONSE),
-                settings::ProtocolTypes::V2 |
-                settings::ProtocolTypes::V3 => AgencyMock::set_next_response(SEND_INVITE_V2_RESPONSE),
+                ProtocolTypes::V1 => AgencyMock::set_next_response(SEND_INVITE_RESPONSE),
+                ProtocolTypes::V2 |
+                ProtocolTypes::V3 => AgencyMock::set_next_response(SEND_INVITE_V2_RESPONSE),
             }
         }
 
@@ -369,10 +370,9 @@ impl SendInviteBuilder {
         let mut response = parse_response_from_agency(&response, &self.version)?;
 
         let index = match self.version {
-            // TODO: THINK better
-            settings::ProtocolTypes::V1 => 1,
-            settings::ProtocolTypes::V2 |
-            settings::ProtocolTypes::V3 => 0
+            ProtocolTypes::V1 => 1,
+            ProtocolTypes::V2 |
+            ProtocolTypes::V3 => 0
         };
 
         match response.swap_remove(index) {
@@ -394,7 +394,7 @@ pub struct AcceptInviteBuilder {
     agent_vk: String,
     reply_to_msg_id: Option<String>,
     thread: Thread,
-    version: settings::ProtocolTypes,
+    version: ProtocolTypes,
 }
 
 impl AcceptInviteBuilder {
@@ -449,7 +449,7 @@ impl AcceptInviteBuilder {
         Ok(self)
     }
 
-    pub fn version(&mut self, version: Option<settings::ProtocolTypes>) -> VcxResult<&mut Self> {
+    pub fn version(&mut self, version: Option<ProtocolTypes>) -> VcxResult<&mut Self> {
         self.version = match version {
             Some(version) => version,
             None => settings::get_protocol_type()
@@ -470,9 +470,9 @@ impl AcceptInviteBuilder {
 
         if settings::agency_mocks_enabled() {
             match self.version {
-                settings::ProtocolTypes::V1 => AgencyMock::set_next_response(ACCEPT_INVITE_RESPONSE),
-                settings::ProtocolTypes::V2 |
-                settings::ProtocolTypes::V3 => AgencyMock::set_next_response(ACCEPT_INVITE_V2_RESPONSE),
+                ProtocolTypes::V1 => AgencyMock::set_next_response(ACCEPT_INVITE_RESPONSE),
+                ProtocolTypes::V2 |
+                ProtocolTypes::V3 => AgencyMock::set_next_response(ACCEPT_INVITE_V2_RESPONSE),
             }
         }
 
@@ -505,7 +505,7 @@ pub struct RedirectConnectionBuilder {
     agent_vk: String,
     reply_to_msg_id: Option<String>,
     thread: Thread,
-    version: settings::ProtocolTypes,
+    version: ProtocolTypes,
 }
 
 impl RedirectConnectionBuilder {
@@ -566,7 +566,7 @@ impl RedirectConnectionBuilder {
         Ok(self)
     }
 
-    pub fn version(&mut self, version: Option<settings::ProtocolTypes>) -> VcxResult<&mut Self> {
+    pub fn version(&mut self, version: Option<ProtocolTypes>) -> VcxResult<&mut Self> {
         self.version = match version {
             Some(version) => version,
             None => settings::get_protocol_type()
@@ -588,9 +588,9 @@ impl RedirectConnectionBuilder {
 
         if settings::agency_mocks_enabled() {
             match self.version {
-                settings::ProtocolTypes::V1 => AgencyMock::set_next_response(ACCEPT_INVITE_RESPONSE),
-                settings::ProtocolTypes::V2 |
-                settings::ProtocolTypes::V3 => AgencyMock::set_next_response(ACCEPT_INVITE_V2_RESPONSE),
+                ProtocolTypes::V1 => AgencyMock::set_next_response(ACCEPT_INVITE_RESPONSE),
+                ProtocolTypes::V2 |
+                ProtocolTypes::V3 => AgencyMock::set_next_response(ACCEPT_INVITE_V2_RESPONSE),
             }
         }
 
@@ -640,7 +640,7 @@ impl GeneralMessage for SendInviteBuilder {
 
         let messages =
             match self.version {
-                settings::ProtocolTypes::V1 => {
+                ProtocolTypes::V1 => {
                     let create_msg = CreateMessage {
                         msg_type: MessageTypes::build_v1(A2AMessageKinds::CreateMessage),
                         mtype: RemoteMessageType::ConnReq,
@@ -654,8 +654,8 @@ impl GeneralMessage for SendInviteBuilder {
                     vec![A2AMessage::Version1(A2AMessageV1::CreateMessage(create_msg)),
                          A2AMessage::Version1(A2AMessageV1::MessageDetail(MessageDetail::ConnectionRequest(details)))]
                 }
-                settings::ProtocolTypes::V2 |
-                settings::ProtocolTypes::V3 => {
+                ProtocolTypes::V2 |
+                ProtocolTypes::V3 => {
                     let msg = ConnectionRequest {
                         msg_type: MessageTypes::build_v2(A2AMessageKinds::ConnectionRequest),
                         send_msg: true,
@@ -701,7 +701,7 @@ impl GeneralMessage for AcceptInviteBuilder {
 
         let messages =
             match self.version {
-                settings::ProtocolTypes::V1 => {
+                ProtocolTypes::V1 => {
                     let msg_created = CreateMessage {
                         msg_type: MessageTypes::build_v1(A2AMessageKinds::CreateMessage),
                         mtype: RemoteMessageType::ConnReqAnswer,
@@ -713,8 +713,8 @@ impl GeneralMessage for AcceptInviteBuilder {
                     vec![A2AMessage::Version1(A2AMessageV1::CreateMessage(msg_created)),
                          A2AMessage::Version1(A2AMessageV1::MessageDetail(MessageDetail::ConnectionRequestAnswer(self.payload.clone())))]
                 }
-                settings::ProtocolTypes::V2 |
-                settings::ProtocolTypes::V3 => {
+                ProtocolTypes::V2 |
+                ProtocolTypes::V3 => {
                     let msg = ConnectionRequestAnswer {
                         msg_type: MessageTypes::build_v2(A2AMessageKinds::ConnectionRequestAnswer),
                         send_msg: true,
@@ -760,7 +760,7 @@ impl GeneralMessage for RedirectConnectionBuilder {
 
         let messages =
             match self.version {
-                settings::ProtocolTypes::V1 => {
+                ProtocolTypes::V1 => {
                     let msg_created = CreateMessage {
                         msg_type: MessageTypes::build_v1(A2AMessageKinds::CreateMessage),
                         mtype: RemoteMessageType::ConnReqRedirect,
@@ -772,8 +772,8 @@ impl GeneralMessage for RedirectConnectionBuilder {
                     vec![A2AMessage::Version1(A2AMessageV1::CreateMessage(msg_created)),
                          A2AMessage::Version1(A2AMessageV1::MessageDetail(MessageDetail::ConnectionRequestRedirect(self.payload.clone())))]
                 }
-                settings::ProtocolTypes::V2 |
-                settings::ProtocolTypes::V3 => {
+                ProtocolTypes::V2 |
+                ProtocolTypes::V3 => {
                     let msg = ConnectionRequestRedirect {
                         msg_type: MessageTypes::build_v2(A2AMessageKinds::ConnectionRequestRedirect),
                         send_msg: true,
@@ -854,7 +854,7 @@ mod tests {
     fn test_parse_send_invite_v1_response() {
         let _setup = SetupIndyMocks::init();
 
-        let (result, url) = SendInviteBuilder::create().version(&Some(settings::ProtocolTypes::V1)).unwrap().parse_response(SEND_INVITE_RESPONSE.to_vec()).unwrap();
+        let (result, url) = SendInviteBuilder::create().version(&Some(ProtocolTypes::V1)).unwrap().parse_response(SEND_INVITE_RESPONSE.to_vec()).unwrap();
         let invite = serde_json::from_str(INVITE_DETAIL_STRING).unwrap();
 
         assert_eq!(result, invite);
@@ -865,7 +865,7 @@ mod tests {
     fn test_parse_send_invite_v2_response() {
         let _setup = SetupIndyMocks::init();
 
-        let (_, _) = SendInviteBuilder::create().version(&Some(settings::ProtocolTypes::V2)).unwrap().parse_response(SEND_INVITE_V2_RESPONSE.to_vec()).unwrap();
+        let (_, _) = SendInviteBuilder::create().version(&Some(ProtocolTypes::V2)).unwrap().parse_response(SEND_INVITE_V2_RESPONSE.to_vec()).unwrap();
         let _: InviteDetail = serde_json::from_str(INVITE_DETAIL_V2_STRING).unwrap();
     }
 

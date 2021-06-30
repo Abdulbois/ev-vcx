@@ -18,6 +18,7 @@ use crate::utils::libindy::anoncreds::prover_get_credential;
 use crate::v3::messages::error::ProblemReport;
 
 use crate::object_cache::Handle;
+use crate::utils::libindy::types::CredentialInfo;
 
 // Issuer
 
@@ -208,6 +209,14 @@ impl Holder {
 
         let problem_report: Option<&ProblemReport> = self.holder_sm.problem_report();
         Ok(json!(&problem_report).to_string())
+    }
+
+    pub fn get_info(&self) -> VcxResult<String> {
+        trace!("Holder::get_info >>>");
+        debug!("Holder {}: Getting credential info", self.get_source_id());
+
+        let info: CredentialInfo = self.holder_sm.get_info()?;
+        Ok(json!(&info).to_string())
     }
 
     pub fn step(&mut self, message: CredentialIssuanceMessage) -> VcxResult<()> {

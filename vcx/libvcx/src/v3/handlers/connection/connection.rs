@@ -375,7 +375,7 @@ impl Connection {
 
     pub fn get_completed_connection(&self) -> VcxResult<CompletedConnection> {
         self.connection_sm.completed_connection()
-            .ok_or(VcxError::from_msg(VcxErrorKind::NotReady,
+            .ok_or(VcxError::from_msg(VcxErrorKind::ConnectionNotCompleted,
                                       format!("Connection object {} in state {} not ready to send remote messages", self.connection_sm.source_id(), self.state())))
     }
 

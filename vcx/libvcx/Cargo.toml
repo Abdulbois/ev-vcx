@@ -1,8 +1,8 @@
 [package]
 
 name = "libvcx"
-version = "0.11.2"
 edition = "2018"
+version = "0.12.0"
 authors = ["Hyperledger Indy Contributors <hyperledger-indy@lists.hyperledger.org>"]
 publish = false
 description = "This is the official SDK for Evernym's VCX"
@@ -61,7 +61,7 @@ strum = "0.16.0"
 strum_macros = "0.16.0"
 sha2 = "0.9.1"
 dashmap = "3.11.10"
-
+dirs = "3.0.2"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.5"
@@ -95,11 +95,11 @@ maintainer-scripts = "./scripts"
 
 [package.metadata.deb.variants.libvcx-xenial]
 name = "libvcx"
-provides = "libvcx (= 0.11.2)"
+provides = "libvcx (= 0.12.0)"
 
 [package.metadata.deb.variants.libvcx-bionic]
 name = "libvcx"
-provides = "libvcx (= 0.11.2)"
+provides = "libvcx (= 0.12.0)"
 
 [profile.release]
 debug = true

@@ -4,6 +4,7 @@ use crate::messages::message_type::MessageTypes;
 use crate::utils::{httpclient, constants};
 use crate::error::prelude::*;
 use crate::utils::httpclient::AgencyMock;
+use crate::settings::protocol::ProtocolTypes;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -34,7 +35,7 @@ pub struct UIDsByConn {
 struct UpdateMessageStatusByConnectionsBuilder {
     status_code: Option<MessageStatusCode>,
     uids_by_conns: Vec<UIDsByConn>,
-    version: settings::ProtocolTypes,
+    version: ProtocolTypes,
 }
 
 impl UpdateMessageStatusByConnectionsBuilder {
@@ -61,7 +62,7 @@ impl UpdateMessageStatusByConnectionsBuilder {
     }
 
     #[allow(dead_code)]
-    pub fn version(&mut self, version: &Option<settings::ProtocolTypes>) -> VcxResult<&mut Self> {
+    pub fn version(&mut self, version: &Option<ProtocolTypes>) -> VcxResult<&mut Self> {
         self.version = match version {
             Some(version) => version.clone(),
             None => settings::get_protocol_type()
@@ -85,7 +86,7 @@ impl UpdateMessageStatusByConnectionsBuilder {
         trace!("UpdateMessageStatusByConnections::prepare_request >>>");
 
         let message = match self.version {
-            settings::ProtocolTypes::V1 =>
+            ProtocolTypes::V1 =>
                 A2AMessage::Version1(
                     A2AMessageV1::UpdateMessageStatusByConnections(
                         UpdateMessageStatusByConnections {
@@ -95,8 +96,8 @@ impl UpdateMessageStatusByConnectionsBuilder {
                         }
                     )
                 ),
-            settings::ProtocolTypes::V2 |
-            settings::ProtocolTypes::V3 =>
+            ProtocolTypes::V2 |
+            ProtocolTypes::V3 =>
                 A2AMessage::Version2(
                     A2AMessageV2::UpdateMessageStatusByConnections(
                         UpdateMessageStatusByConnections {

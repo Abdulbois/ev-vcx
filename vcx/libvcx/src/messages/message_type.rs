@@ -5,6 +5,7 @@ use serde_json::Value;
 use regex::{Regex, Match};
 use crate::messages::A2AMessageKinds;
 use crate::error::prelude::*;
+use crate::settings::protocol::ProtocolTypes;
 
 pub const MESSAGE_VERSION_V1: &str = "1.0";
 pub const DID: &str = "did:sov:123456789abcdefghi1234";
@@ -35,9 +36,9 @@ impl MessageTypes {
 
     pub fn build(kind: A2AMessageKinds) -> MessageTypes {
         match settings::get_protocol_type() {
-            settings::ProtocolTypes::V1 => MessageTypes::MessageTypeV1(MessageTypes::build_v1(kind)),
-            settings::ProtocolTypes::V2 |
-            settings::ProtocolTypes::V3 => MessageTypes::MessageTypeV2(MessageTypes::build_v2(kind))
+            ProtocolTypes::V1 => MessageTypes::MessageTypeV1(MessageTypes::build_v1(kind)),
+            ProtocolTypes::V2 |
+            ProtocolTypes::V3 => MessageTypes::MessageTypeV2(MessageTypes::build_v2(kind))
         }
     }
 

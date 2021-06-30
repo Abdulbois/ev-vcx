@@ -12,6 +12,7 @@ pub mod tests {
     use crate::v3::messages::connection::request::tests::_request;
     use crate::connection::Connections;
     use crate::object_cache::Handle;
+    use crate::settings;
 
     pub fn mock_connection() -> Handle<Connections> {
         let key = "GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL".to_string();
@@ -35,7 +36,7 @@ pub mod tests {
     }
 
     fn _setup() {
-        crate::settings::set_config_value(crate::settings::COMMUNICATION_METHOD, "aries");
+        settings::set_config_value(settings::CONFIG_PROTOCOL_TYPE, "3.0");
     }
 
     fn _source_id() -> &'static str {

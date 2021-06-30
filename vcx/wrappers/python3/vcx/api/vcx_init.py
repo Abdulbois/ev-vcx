@@ -70,36 +70,17 @@ async def vcx_init_with_config(config: str) -> None:
     logger.debug("vcx_init_with_config completed")
     return result
 
-def vcx_init_minimal(config_string: str) -> None:
-    """
-    Initializes VCX with minimal (no-agency) config file AFTER the wallet and pool are set.
-
-    :param config_string: String
-    Example:
-    vcx_wallet_set_handle(wallet_handle)
-    vcx_pool_set_handle(pool_handle)
-    await vcx_init_minimal('{"wallet_name":"wallet1",.....}')
-    :return:
-    """
-    logger = logging.getLogger(__name__)
-
-    c_config_string = c_char_p(config_string.encode('utf-8'))
-
-    result = do_call_sync('vcx_init_minimal', c_config_string)
-
-    logger.debug("vcx_init_minimal completed")
-    return result
 
 async def vcx_init_pool(pool_config: str) -> None:
     """
     Connect to a Pool Ledger
-   
+
     You can deffer connecting to the Pool Ledger during library initialization (vcx_init or vcx_init_with_config)
     to decrease the taken time by omitting `genesis_path` field in config JSON.
     Next, you can use this function (for instance as a background task) to perform a connection to the Pool Ledger.
-   
+
     Note: Pool must be already initialized before sending any request to the Ledger.
-   
+
     Note: EXPERIMENTAL
 
     :param pool_config: String - the configuration JSON containing pool related settings:
@@ -120,6 +101,7 @@ async def vcx_init_pool(pool_config: str) -> None:
                                                 "number_read_nodes": int (optional) - the number of nodes to send read requests (2 by default)
                                                         By default Libindy sends a read requests to 2 nodes in the pool.
                                             }
+                                    network: Optional[string] - Network identifier used for fully-qualified DIDs.
                                 }
 
     Example:

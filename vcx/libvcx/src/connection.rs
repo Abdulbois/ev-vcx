@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 
-use rmp_serde;
-use serde_json;
 use serde_json::Value;
 
 use crate::object_cache::Handle;
 use crate::api::VcxStateType;
 use crate::error::prelude::*;
 use crate::messages;
-use crate::messages::{GeneralMessage, MessageStatusCode, RemoteMessageType, SerializableObjectWithState};
+use crate::messages::{GeneralMessage, MessageStatusCode, RemoteMessageType, SerializableObjectWithState, update_agent};
 use crate::messages::invite::{InviteDetail, SenderDetail, Payload as ConnectionPayload, AcceptanceDetails, RedirectDetail, RedirectionDetails};
 use crate::messages::payload::{Payloads, PayloadKinds};
 use crate::messages::thread::Thread;
@@ -29,7 +27,7 @@ use crate::v3::messages::a2a::A2AMessage;
 use crate::v3::handlers::connection::types::CompletedConnection;
 use crate::v3::messages::invite_action::invite::{Invite as InviteForAction, InviteActionData};
 
-use crate::settings::ProtocolTypes;
+use crate::settings::protocol::ProtocolTypes;
 use crate::v3::messages::committedanswer::question::{QuestionResponse, Question};
 use crate::v3::messages::committedanswer::answer::Answer;
 
@@ -104,7 +102,7 @@ pub struct Connection {
     public_did: Option<String>,
     their_public_did: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    version: Option<settings::ProtocolTypes>,
+    version: Option<ProtocolTypes>,
 }
 
 impl Connection {
@@ -312,7 +310,7 @@ impl Connection {
     fn get_invite_detail(&self) -> &Option<InviteDetail> { &self.invite_detail }
     fn set_invite_detail(&mut self, id: InviteDetail) {
         self.version = match id.version.is_some() {
-            true => Some(settings::ProtocolTypes::from(id.version.clone().unwrap())),
+            true => Some(ProtocolTypes::from(id.version.clone().unwrap())),
             false => Some(settings::get_connecting_protocol_version()),
         };
         self.invite_detail = Some(id);
@@ -322,7 +320,7 @@ impl Connection {
     fn get_redirect_detail(&self) -> &Option<RedirectDetail> { &self.redirect_detail }
     fn set_redirect_detail(&mut self, rd: RedirectDetail) { self.redirect_detail = Some(rd); }
 
-    fn get_version(&self) -> Option<settings::ProtocolTypes> {
+    fn get_version(&self) -> Option<ProtocolTypes> {
         self.version.clone()
     }
 
@@ -367,9 +365,9 @@ impl Connection {
             self.public_did = Some(settings::get_config_value(settings::CONFIG_INSTITUTION_DID)?);
         };
 
-        crate::messages::agent_utils::update_agent_profile(&self.pw_did,
-                                                      &self.public_did,
-                                                      ProtocolTypes::V1)
+        update_agent::update_agent_profile(&self.pw_did,
+                                           &self.public_did,
+                                           ProtocolTypes::V1)
     }
 
     pub fn update_state(&mut self, message: Option<String>) -> VcxResult<u32> {
@@ -398,18 +396,11 @@ impl Connection {
             for message in response {
                 if message.status_code == MessageStatusCode::Accepted && message.msg_type == RemoteMessageType::ConnReqAnswer {
                     debug!("Connection {}: Received connection request answer", self.source_id);
-
-                    let rc = self.process_acceptance_message(&message);
-                    if rc.is_err() {
-                        self.force_v2_parse_acceptance_details(&message)?;
-                    }
+                    self.process_acceptance_message(&message)?;
                 } else if message.status_code == MessageStatusCode::Redirected && message.msg_type == RemoteMessageType::ConnReqRedirect {
                     debug!("Connection {}: Received connection redirect message", self.source_id);
 
-                    let rc = self.process_redirect_message(&message);
-                    if rc.is_err() {
-                        self.force_v2_parse_redirection_details(&message)?;
-                    }
+                    self.process_redirect_message(&message)?;
                 } else {
                     warn!("Connection {}: Received unexpected message: {:?}", self.source_id, message);
                 }
@@ -1317,95 +1308,7 @@ impl Connection {
         trace!("Connection::parse_redirection_details <<< redirection_details: {:?}", secret!(redirection_details));
         Ok(redirection_details)
     }
-
-    pub fn force_v2_parse_acceptance_details(&mut self, message: &Message) -> VcxResult<SenderDetail> {
-        trace!("Connection::force_v2_parse_acceptance_details >>> message: {:?}", secret!(message));
-        debug!("Connection {}: Forcing parsing acceptance details", self.source_id);
-
-        let my_vk = settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_VERKEY)?;
-
-        let payload = message.payload
-            .as_ref()
-            .ok_or(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Received Message does not contain `payload`"))?;
-
-        let acceptance_details = match payload {
-            MessagePayload::V1(payload) => {
-                trace!("Connection::force_v2_parse_acceptance_details >>> MessagePayload::V1 payload");
-
-                let json: Value = serde_json::from_slice(messages::i8_as_u8_slice(payload))
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
-
-                let payload = Payloads::decrypt_payload_v12(&my_vk, &json)?;
-                let response: AcceptanceDetails = serde_json::from_value(payload.msg)
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
-
-                self.set_their_pw_did(&response.sender_detail.did);
-                self.set_their_pw_verkey(&response.sender_detail.verkey);
-                self.set_state(VcxStateType::VcxStateAccepted);
-
-                response.sender_detail
-            }
-            MessagePayload::V2(payload) => {
-                trace!("Connection::force_v2_parse_acceptance_details >>> MessagePayload::V2 payload");
-
-                let payload = Payloads::decrypt_payload_v2(&my_vk, payload)?;
-                let response: AcceptanceDetails = serde_json::from_str(&payload.msg)
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
-
-                response.sender_detail
-            }
-        };
-
-        trace!("Connection::parse_redirection_details <<< force_v2_parse_acceptance_details: {:?}", secret!(acceptance_details));
-        Ok(acceptance_details)
-    }
 }
-
-
-impl Connection {
-    pub fn force_v2_parse_redirection_details(&mut self, message: &Message) -> VcxResult<RedirectDetail> {
-        trace!("Connection::force_v2_parse_redirection_details >>> message: {:?}", secret!(message));
-        debug!("Connection {}: Forcing parsing redirection details", self.source_id);
-
-        let my_vk = settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_VERKEY)?;
-
-        let payload = message.payload
-            .as_ref()
-            .ok_or(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Received Message does not contain `payload`"))?;
-
-        let redirection_details = match payload {
-            MessagePayload::V1(payload) => {
-                trace!("Connection::force_v2_parse_redirection_details >>> MessagePayload::V1 payload");
-
-                let json: Value = serde_json::from_slice(messages::i8_as_u8_slice(payload))
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot parse RedirectionDetails from Message payload. Err: {}", err)))?;
-
-                let payload = Payloads::decrypt_payload_v12(&my_vk, &json)?;
-                let response: RedirectionDetails = serde_json::from_value(payload.msg)
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
-
-                self.set_redirect_detail(response.redirect_detail.clone());
-                self.set_state(VcxStateType::VcxStateRedirected);
-
-                response.redirect_detail
-            }
-            MessagePayload::V2(payload) => {
-                trace!("Connection::force_v2_parse_redirection_details >>> MessagePayload::V2 payload");
-
-                let payload = Payloads::decrypt_payload_v2(&my_vk, &payload)?;
-                let response: RedirectionDetails = serde_json::from_str(&payload.msg)
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
-
-                response.redirect_detail
-            }
-        };
-
-        trace!("Connection::force_v2_parse_redirection_details <<< redirection_details: {:?}", secret!(redirection_details));
-        Ok(redirection_details)
-    }
-
-}
-
 
 impl Connection {
     pub fn process_redirect_message(&mut self, message: &Message) -> VcxResult<()> {
@@ -1541,6 +1444,7 @@ pub mod tests {
     use crate::utils::devsetup::*;
     use crate::utils::httpclient::AgencyMock;
     use crate::utils::constants;
+    use crate::settings;
 
     pub fn build_test_connection() -> Handle<Connections> {
         let handle = create_connection("alice").unwrap();
@@ -1713,7 +1617,7 @@ pub mod tests {
         assert!(handle.release().is_ok());
 
         // Aries connection
-        crate::settings::set_config_value(crate::settings::COMMUNICATION_METHOD, "aries");
+        settings::set_config_value(settings::CONFIG_PROTOCOL_TYPE, "3.0");
 
         let handle = create_connection("test_serialize_deserialize").unwrap();
 

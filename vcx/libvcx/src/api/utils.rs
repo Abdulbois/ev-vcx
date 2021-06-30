@@ -11,8 +11,10 @@ use crate::error::prelude::*;
 use indy_sys::CommandHandle;
 use crate::utils::httpclient::AgencyMock;
 use crate::utils::constants::*;
-use crate::messages::agent_utils::{ComMethod, Config};
+use crate::messages::agent_provisioning::types::ProvisioningConfig;
 use crate::v3::handlers::connection::agent::AgentInfo;
+use crate::messages::{agent_provisioning, update_agent};
+use crate::messages::update_agent::ComMethod;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
 ///
@@ -146,7 +148,7 @@ pub extern fn vcx_provision_agent(config: *const c_char) -> *mut c_char {
 
     trace!("vcx_provision_agent(config: {})", secret!(config));
 
-    match messages::agent_utils::connect_register_provision(&config) {
+    match agent_provisioning::provision(&config) {
         Err(e) => {
             error!("Provision Agent Error {}.", e);
             wallet::close_wallet().ok();
@@ -188,7 +190,7 @@ pub extern fn vcx_agent_provision_async(command_handle: CommandHandle,
            command_handle, secret!(config));
 
     thread::spawn(move || {
-        match messages::agent_utils::connect_register_provision(&config) {
+        match agent_provisioning::provision(&config) {
             Err(e) => {
                 error!("vcx_agent_provision_async_cb(command_handle: {}, rc: {}, config: NULL", command_handle, e);
                 cb(command_handle, e.into(), ptr::null_mut());
@@ -250,7 +252,7 @@ pub extern fn vcx_get_provision_token(command_handle: CommandHandle,
         }
     };
 
-    let vcx_config: Config = match serde_json::from_value(configs["vcx_config"].clone()) {
+    let vcx_config: ProvisioningConfig = match serde_json::from_value(configs["vcx_config"].clone()) {
         Ok(x) => x,
         Err(_) => {
             return VcxError::from_msg(VcxErrorKind::InvalidConfiguration, "missing vcx_config").into();
@@ -336,7 +338,7 @@ pub extern fn vcx_agent_update_info(command_handle: CommandHandle,
     };
 
     spawn(move || {
-        match messages::agent_utils::update_agent_info(com_method) {
+        match update_agent::update_agent_info(com_method) {
             Ok(()) => {
                 trace!("vcx_agent_update_info_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -705,21 +707,6 @@ pub extern fn vcx_messages_update_status(command_handle: CommandHandle,
     });
 
     error::SUCCESS.code_num
-}
-
-/// Set the pool handle before calling vcx_init_minimal
-///
-/// #params
-///
-/// handle: pool handle that libvcx should use
-///
-/// #Returns
-/// Error code as u32
-#[no_mangle]
-pub extern fn vcx_pool_set_handle(handle: i32) -> i32 {
-    crate::utils::libindy::pool::set_pool_handle(handle);
-
-    handle
 }
 
 /// Gets minimal request price for performing an action in case the requester can perform this action.

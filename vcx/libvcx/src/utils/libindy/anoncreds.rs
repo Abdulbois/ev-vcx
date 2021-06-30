@@ -1,8 +1,6 @@
 use futures::Future;
-use serde_json;
 use serde_json::{map::Map, Value};
 use crate::indy::{anoncreds, blob_storage, ledger};
-use time;
 
 use crate::settings;
 use crate::utils::constants::{LIBINDY_CRED_OFFER, REQUESTED_ATTRIBUTES, PROOF_REQUESTED_PREDICATES, ATTRS, REV_STATE_JSON};
@@ -11,10 +9,13 @@ use crate::utils::libindy::payments::{send_transaction, PaymentTxn};
 use crate::utils::libindy::ledger::*;
 use crate::utils::constants::{SCHEMA_ID, SCHEMA_JSON, SCHEMA_TXN, CREATE_SCHEMA_ACTION, CRED_DEF_ID, CRED_DEF_JSON, CRED_DEF_REQ, CREATE_CRED_DEF_ACTION, CREATE_REV_REG_DEF_ACTION, CREATE_REV_REG_DELTA_ACTION, REVOC_REG_TYPE, rev_def_json, REV_REG_ID, REV_REG_DELTA_JSON, REV_REG_JSON};
 use crate::error::prelude::*;
-use crate::utils::libindy::types::CredentialInfo;
+use crate::utils::libindy::types::{CredentialInfo, CredentialDefinitionData};
+use crate::schema::SchemaData;
+use std::sync::Arc;
 
 const BLOB_STORAGE_TYPE: &str = "default";
 const REVOCATION_REGISTRY_TYPE: &str = "ISSUANCE_BY_DEFAULT";
+
 
 pub fn libindy_verifier_verify_proof(proof_req_json: &str,
                                      proof_json: &str,
@@ -392,14 +393,25 @@ pub fn publish_schema(schema: &str) -> VcxResult<Option<PaymentTxn>> {
     Ok(payment)
 }
 
+pub fn get_schema(pool_handle: i32, schema_id: String) -> Option<(String, String)> {
+    if let Ok(schema_json) = libindy_get_schema(pool_handle,& schema_id) {
+        let valid_schema_data = serde_json::from_str::<SchemaData>(&schema_json);
+        if valid_schema_data.is_ok() {
+            return Some((schema_id.to_string(), schema_json));
+        }
+    }
+    return None;
+}
+
 pub fn get_schema_json(schema_id: &str) -> VcxResult<(String, String)> {
     if settings::indy_mocks_enabled() { return Ok((SCHEMA_ID.to_string(), SCHEMA_JSON.to_string())); }
 
-    let schema_json = libindy_get_schema(schema_id)
-        .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidSchema,
-                                          format!("Could not get Schema from the Ledger. Err: {:?}", err)))?;
-
-    Ok((schema_id.to_string(), schema_json))
+    match query_connected_pool_networks(Arc::new(get_schema), schema_id)? {
+        Some(result) => Ok(result),
+        None =>
+            Err(VcxError::from_msg(VcxErrorKind::InvalidSchema,
+                                   format!("Could not find Schema on the connected Ledger networks")))
+    }
 }
 
 pub fn generate_cred_def(issuer_did: &str,
@@ -446,14 +458,25 @@ pub fn publish_cred_def(issuer_did: &str, cred_def_json: &str) -> VcxResult<Opti
     Ok(payment)
 }
 
+pub fn get_cred_def(pool_handle: i32, cred_def_id: String) -> Option<(String, String)> {
+    if let Ok(cred_def_json) = libindy_get_cred_def(pool_handle, &cred_def_id) {
+        let valid_cred_def_data = serde_json::from_str::<CredentialDefinitionData>(&cred_def_json);
+        if valid_cred_def_data.is_ok() {
+            return Some((cred_def_id, cred_def_json));
+        }
+    }
+    return None;
+}
+
 pub fn get_cred_def_json(cred_def_id: &str) -> VcxResult<(String, String)> {
     if settings::indy_mocks_enabled() { return Ok((CRED_DEF_ID.to_string(), CRED_DEF_JSON.to_string())); }
 
-    let cred_def_json = libindy_get_cred_def(cred_def_id)
-        .map_err(|err| VcxError::from_msg(VcxErrorKind::CredentialDefinitionNotFound,
-                                          format!("Could not get CredentialDefinition from the Ledger. Err: {:?}", err)))?;
-
-    Ok((cred_def_id.to_string(), cred_def_json))
+    match query_connected_pool_networks(Arc::new(get_cred_def), cred_def_id)? {
+        Some(result) => Ok(result),
+        None =>
+            Err(VcxError::from_msg(VcxErrorKind::CredentialDefinitionNotFound,
+                                   format!("Could not find Credential Definition on the connected Ledger networks")))
+    }
 }
 
 pub fn generate_rev_reg(issuer_did: &str, cred_def_id: &str, tails_file: &str, max_creds: u32)

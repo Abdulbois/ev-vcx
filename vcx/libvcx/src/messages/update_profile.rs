@@ -5,14 +5,14 @@ use crate::utils::httpclient;
 use crate::utils::constants::*;
 use crate::error::prelude::*;
 use crate::utils::httpclient::AgencyMock;
-use crate::settings::ProtocolTypes;
+use crate::settings::protocol::ProtocolTypes;
 
 #[derive(Debug)]
 pub struct UpdateProfileDataBuilder {
     to_did: String,
     agent_payload: String,
     configs: Vec<ConfigOption>,
-    version: settings::ProtocolTypes,
+    version: ProtocolTypes,
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
@@ -65,15 +65,6 @@ impl UpdateProfileDataBuilder {
         Ok(self)
     }
 
-    pub fn webhook_url(&mut self, url: &Option<String>) -> VcxResult<&mut Self> {
-        if let Some(x) = url {
-            validation::validate_url(x)?;
-            let config = ConfigOption { name: "notificationWebhookUrl".to_string(), value: x.to_string() };
-            self.configs.push(config);
-        }
-        Ok(self)
-    }
-
     pub fn use_public_did(&mut self, did: &Option<String>) -> VcxResult<&mut Self> {
         if let Some(x) = did {
             let config = ConfigOption { name: "publicDid".to_string(), value: x.to_string() };
@@ -82,7 +73,7 @@ impl UpdateProfileDataBuilder {
         Ok(self)
     }
 
-    pub fn version(&mut self, version: &Option<settings::ProtocolTypes>) -> VcxResult<&mut Self> {
+    pub fn version(&mut self, version: &Option<ProtocolTypes>) -> VcxResult<&mut Self> {
         self.version = match version {
             Some(version) => version.clone(),
             None => settings::get_protocol_type()
@@ -107,7 +98,7 @@ impl UpdateProfileDataBuilder {
         trace!("UpdateProfileData::prepare_request >>>");
 
         let message = match self.version {
-            settings::ProtocolTypes::V1 =>
+            ProtocolTypes::V1 =>
                 A2AMessage::Version1(
                     A2AMessageV1::UpdateConfigs(
                         UpdateConfigs {
@@ -116,8 +107,8 @@ impl UpdateProfileDataBuilder {
                         }
                     )
                 ),
-            settings::ProtocolTypes::V2 |
-            settings::ProtocolTypes::V3 =>
+            ProtocolTypes::V2 |
+            ProtocolTypes::V3 =>
                 A2AMessage::Version2(
                     A2AMessageV2::UpdateConfigs(
                         UpdateConfigs {

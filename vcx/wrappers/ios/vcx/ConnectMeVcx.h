@@ -127,8 +127,12 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 ///                                         Note: Nodes not specified will be placed randomly.
 ///                                 "number_read_nodes": int (optional) - the number of nodes to send read requests (2 by default)
 ///                                         By default Libindy sends a read requests to 2 nodes in the pool.
-///    }
+///                     }
+///                     network: Optional[string] - Network identifier used for fully-qualified DIDs.
 ///                 }
+///
+///                 Note: You can also pass a list of network configs.
+///                       In this case library will connect to multiple ledger networks and will look up public data in each of them.
 ///
 ///
 /// cb: Callback that provides no value
@@ -1001,7 +1005,7 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 ///
 /// #Returns
 /// Error code as a u32
-- (void)getCredential:(NSInteger )credentailHandle
+- (void)getCredential:(NSInteger )credentialHandle
            completion:(void (^)(NSError *error, NSString *credential))completion;
 
 /// Delete a Credential associated with the state object from the Wallet and release handle of the state object.
@@ -1040,7 +1044,7 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 /// Error code as a u32
 - (void)credentialCreateWithOffer:(NSString *)sourceId
                             offer:(NSString *)credentialOffer
-                       completion:(void (^)(NSError *error, NSInteger credentailHandle))completion;
+                       completion:(void (^)(NSError *error, NSInteger credentialHandle))completion;
 
 /// Create a Credential object based off of a known message id for a given connection.
 ///
@@ -1181,7 +1185,7 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 ///
 /// #Returns
 /// Error code as a u32
-- (void)credentialUpdateState:(NSInteger )credentailHandle
+- (void)credentialUpdateState:(NSInteger )credentialHandle
                 completion:(void (^)(NSError *error, NSInteger state))completion;
 
 /// Update the state of the credential based on the given message.
@@ -1303,6 +1307,29 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 /// #Returns
 /// Error code as a u32
 - (void)credentialGetProblemReport:(NSInteger) credentialHandle
+                        completion:(void (^)(NSError *error, NSString *message))completion;
+
+/// Retrieve information about a stored credential.
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// credential_handle: credential handle that was provided during creation. Used to identify credential object
+///
+/// cb: Callback that provides error status of api call, or returns the credential information in json format.
+/// {
+///     "referent": string, // cred_id in the wallet
+///     "attrs": {"key1":"raw_value1", "key2":"raw_value2"},
+///     "schema_id": string,
+///     "cred_def_id": string,
+///     "rev_reg_id": Optional<string>,
+///     "cred_rev_id": Optional<string>
+/// }
+///
+///
+/// #Returns
+/// Error code as a u32
+- (void)credentialGetInfo:(NSInteger) credentialHandle
                         completion:(void (^)(NSError *error, NSString *message))completion;
 
 /// Releases the credential object by de-allocating memory

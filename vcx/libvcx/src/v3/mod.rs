@@ -18,7 +18,6 @@ pub mod test {
     use crate::schema::CreateSchema;
     use rand::Rng;
     use crate::utils::devsetup::*;
-    use crate::messages::agent_utils::connect_register_provision;
     use crate::utils::libindy::wallet::*;
     use indy_sys::WalletHandle;
     use crate::utils::plugins::init_plugin;
@@ -29,6 +28,7 @@ pub mod test {
     
     use crate::utils::libindy::anoncreds::prover_get_credentials;
     use crate::utils::libindy::types::CredentialInfo;
+    use crate::messages::agent_provisioning;
 
     pub fn source_id() -> String {
         String::from("test source id")
@@ -48,7 +48,7 @@ pub mod test {
                 "institution_logo_url":"<CHANGE_ME>",
                 "institution_name":"<CHANGE_ME>",
                 "institution_verkey":"GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL",
-                "protocol_type":"2.0",
+                "protocol_type":"3.0",
                 "remote_to_sdk_did":"LjC6xZPeYPeL5AjuRByMDA",
                 "remote_to_sdk_verkey":"Bkd9WFmCydMCvLKL8x47qyQTN1nbyQ8rUK8JTsQRtLGE",
                 "sdk_to_remote_did":"Mi3bbeWQDVpQCmGFBqWeYa",
@@ -56,7 +56,6 @@ pub mod test {
                 "wallet_key":DEFAULT_WALLET_KEY,
                 "wallet_name":"test_wallet",
                 CONFIG_WALLET_KEY_DERIVATION:"RAW",
-                "communication_method":"aries",
             })
         }
 
@@ -165,11 +164,10 @@ pub mod test {
                 "wallet_key": "123",
                 "payment_method": "null",
                 "enterprise_seed": "000000000000000000000000Trustee1",
-                "protocol_type": "2.0",
-                "communication_method": "aries"
+                "protocol_type": "3.0",
             }).to_string();
 
-            let config = connect_register_provision(&config).unwrap();
+            let config = agent_provisioning::provision(&config).unwrap();
 
             let config = config_with_wallet_handle(wallet_name, &config);
 
@@ -362,11 +360,10 @@ pub mod test {
                 "wallet_name": wallet_name,
                 "wallet_key": "123",
                 "payment_method": "null",
-                "protocol_type": "2.0",
-                "communication_method": "aries"
+                "protocol_type": "3.0",
             }).to_string();
 
-            let config = connect_register_provision(&config).unwrap();
+            let config = agent_provisioning::provision(&config).unwrap();
 
             let config = config_with_wallet_handle(&wallet_name, &config);
 

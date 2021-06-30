@@ -8,6 +8,15 @@ pub fn is_fully_qualified(entity: &str) -> bool {
     REGEX.is_match(&entity)
 }
 
+pub fn network(entity: &str) -> Option<String> {
+    match REGEX.captures(entity) {
+        None => None,
+        Some(caps) => {
+            caps.get(1).map(|m| m.as_str().to_string())
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

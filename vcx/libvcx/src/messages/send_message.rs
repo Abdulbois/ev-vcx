@@ -12,6 +12,7 @@ use crate::utils::httpclient::AgencyMock;
 
 use crate::connection::Connections;
 use crate::object_cache::Handle;
+use settings::protocol::ProtocolTypes;
 
 #[derive(Debug)]
 pub struct SendMessageBuilder {
@@ -26,7 +27,7 @@ pub struct SendMessageBuilder {
     uid: Option<String>,
     title: Option<String>,
     detail: Option<String>,
-    version: settings::ProtocolTypes,
+    version: ProtocolTypes,
 }
 
 impl SendMessageBuilder {
@@ -89,7 +90,7 @@ impl SendMessageBuilder {
         Ok(self)
     }
 
-    pub fn version(&mut self, version: Option<settings::ProtocolTypes>) -> VcxResult<&mut Self> {
+    pub fn version(&mut self, version: Option<ProtocolTypes>) -> VcxResult<&mut Self> {
         self.version = match version {
             Some(version) => version,
             None => settings::get_protocol_type()
@@ -117,15 +118,14 @@ impl SendMessageBuilder {
         let mut response = parse_response_from_agency(&response, &self.version)?;
 
         let index = match self.version {
-            // TODO: THINK better
-            settings::ProtocolTypes::V1 => {
+            ProtocolTypes::V1 => {
                 if response.len() <= 1 {
                     return Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Unexpected number of Messages has been received"));
                 }
                 1
             }
-            settings::ProtocolTypes::V2 |
-            settings::ProtocolTypes::V3 => 0
+            ProtocolTypes::V2 |
+            ProtocolTypes::V3 => 0
         };
 
         match response.remove(index) {
@@ -152,7 +152,7 @@ impl GeneralMessage for SendMessageBuilder {
 
         let messages =
             match self.version {
-                settings::ProtocolTypes::V1 => {
+                ProtocolTypes::V1 => {
                     let create = CreateMessage {
                         msg_type: MessageTypes::build_v1(A2AMessageKinds::CreateMessage),
                         mtype: self.mtype.clone(),
@@ -169,8 +169,8 @@ impl GeneralMessage for SendMessageBuilder {
                     vec![A2AMessage::Version1(A2AMessageV1::CreateMessage(create)),
                          A2AMessage::Version1(A2AMessageV1::MessageDetail(MessageDetail::General(detail)))]
                 }
-                settings::ProtocolTypes::V2 |
-                settings::ProtocolTypes::V3 => {
+                ProtocolTypes::V2 |
+                ProtocolTypes::V3 => {
                     let msg: ::serde_json::Value = ::serde_json::from_slice(self.payload.as_slice())
                         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
                                                           format!("Could not parse JSON from bytes. Err: {:?}", err)))?;

@@ -1,15 +1,15 @@
 use crate::messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, parse_response_from_agency, prepare_forward_message};
 use crate::utils::libindy::{wallet, crypto};
 use crate::error::prelude::*;
-use crate::messages::agent_utils::{parse_config, set_config_values, configure_wallet, get_final_config};
-use serde_json::from_str;
+use crate::serde_json::from_str;
 use crate::messages::message_type::MessageTypes;
 use crate::messages::thread::Thread;
 use crate::utils::uuid::uuid;
 use crate::settings;
 use crate::utils::httpclient;
-use crate::settings::ProtocolTypes;
+use crate::settings::protocol::ProtocolTypes;
 use crate::messages::token_provisioning::token_provisioning::VALID_SIGNATURE_ALGORITHMS;
+use crate::messages::agent_provisioning::utils::{process_provisioning_config, configure_wallet, get_final_config};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ProvisionToken {
@@ -93,7 +93,6 @@ impl ProvisionAgent {
 }
 pub fn provision(config: &str, token: &str) -> VcxResult<String> {
     trace!("connect_register_provision >>> config: {:?}", secret!(config));
-    let my_config = parse_config(config)?;
     let token: ProvisionToken = from_str(token).map_err(|err| VcxError::from_msg(
         VcxErrorKind::InvalidProvisioningToken,
         format!("Cannot parse config: {}", err)
@@ -101,16 +100,16 @@ pub fn provision(config: &str, token: &str) -> VcxResult<String> {
     token.validate()?;
 
     debug!("***Configuring Library");
-    set_config_values(&my_config);
+    let config = process_provisioning_config(config)?;
 
     debug!("***Configuring Wallet");
-    let (my_did, my_vk, wallet_name) = configure_wallet(&my_config)?;
+    let (my_did, my_vk, wallet_name) = configure_wallet(&config)?;
 
     debug!("Connecting to Agency");
     let (agent_did, agent_vk) = create_agent(&my_did, &my_vk, token)?;
 
     debug!("Building config");
-    let config = get_final_config(&my_did, &my_vk, &agent_did, &agent_vk, &wallet_name, &my_config)?;
+    let config = get_final_config(&my_did, &my_vk, &agent_did, &agent_vk, &wallet_name, &config)?;
 
     wallet::close_wallet()?;
 

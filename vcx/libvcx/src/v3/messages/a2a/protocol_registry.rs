@@ -3,7 +3,19 @@ use strum::IntoEnumIterator;
 
 use crate::v3::messages::a2a::message_family::MessageFamilies;
 use crate::v3::messages::discovery::disclose::ProtocolDescriptor;
-use crate::settings::Actors;
+
+#[derive(Clone, Serialize, Deserialize, Debug, Eq, PartialEq, EnumIter)]
+#[serde(rename_all = "lowercase")]
+pub enum Actors {
+    Inviter,
+    Invitee,
+    Issuer,
+    Holder,
+    Prover,
+    Verifier,
+    Sender,
+    Receiver,
+}
 
 pub struct ProtocolRegistry {
     protocols: Vec<ProtocolDescriptor>
