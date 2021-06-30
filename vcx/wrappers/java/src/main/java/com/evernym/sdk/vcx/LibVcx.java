@@ -778,6 +778,24 @@ public abstract class LibVcx {
         /** Update a record in wallet */
         public int vcx_wallet_update_record_value(int command_handle, String recordType, String recordId, String recordValue, Callback cb);
 
+        /** Add tags to a record in the wallet */
+        public int vcx_wallet_add_record_tags(int command_handle, String recordType, String recordId, String recordTags, Callback cb);
+
+        /** Update tags of a record in the wallet */
+        public int vcx_wallet_update_record_tags(int command_handle, String recordType, String recordId, String recordTags, Callback cb);
+
+        /** Delete tags from a record in the wallet */
+        public int vcx_wallet_delete_record_tags(int command_handle, String recordType, String recordId, String recordTags, Callback cb);
+
+        /** Search for records in the wallet */
+        public int vcx_wallet_open_search(int command_handle, String type, String query, String options, Callback cb);
+
+        /** Fetch next records for wallet search */
+        public int vcx_wallet_search_next_records(int command_handle, int searchHandle, int count, Callback cb);
+
+        /** Close a search */
+        public int vcx_wallet_close_search(int command_handle, int searchHandle, Callback cb);
+
         /** Create a Wallet Backup object that provides a Cloud wallet backup and provision's backup protocol with Agent */
         public int vcx_wallet_backup_create(int command_handle, String sourceID, String backupKey, Callback cb);
 

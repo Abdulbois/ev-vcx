@@ -29,6 +29,7 @@ typedef unsigned int vcx_connection_handle_t;
 typedef unsigned int vcx_credential_handle_t;
 typedef unsigned int vcx_proof_handle_t;
 typedef unsigned int vcx_command_handle_t;
+typedef unsigned int vcx_search_handle_t;
 typedef unsigned int vcx_bool_t;
 typedef unsigned int vcx_payment_handle_t;
 typedef unsigned int vcx_u32_t;
@@ -501,6 +502,24 @@ vcx_error_t vcx_wallet_delete_record(vcx_command_handle_t chandle, const char * 
 
 /** Update a record in wallet if it is already added */
 vcx_error_t vcx_wallet_update_record_value(vcx_command_handle_t chandle, const char *type_, const char *record_id, const char *record_value, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err));
+
+/** Adds tags to a record in the wallet */
+vcx_error_t vcx_wallet_add_record_tags(vcx_command_handle_t chandle, const char *type_, const char *record_id, const char *tags, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err));
+
+/** Updates tags of a record in the wallet */
+vcx_error_t vcx_wallet_update_record_tags(vcx_command_handle_t chandle, const char *type_, const char *record_id, const char *tags, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err));
+
+/** Deletes tags from a record in the wallet */
+vcx_error_t vcx_wallet_delete_record_tags(vcx_command_handle_t chandle, const char *type_, const char *record_id, const char *tags, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err));
+
+/** Search for records in the wallet */
+vcx_error_t vcx_wallet_open_search(vcx_command_handle_t chandle, const char *type_, const char *query_json, const char *options_json, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err, vcx_search_handle_t search_handle));
+
+/** Search for records in the wallet */
+vcx_error_t vcx_wallet_search_next_records(vcx_command_handle_t chandle, vcx_search_handle_t search_handle, vcx_u32_t count, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err, const char *records_json));
+
+/** Close a search */
+vcx_error_t vcx_wallet_close_search(vcx_command_handle_t chandle, vcx_search_handle_t search_handle, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err));
 
 /**
  * token object

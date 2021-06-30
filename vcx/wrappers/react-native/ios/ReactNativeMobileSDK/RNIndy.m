@@ -820,12 +820,12 @@ RCT_EXPORT_METHOD(exportWallet: (NSString *)exportPath
   }];
 }
 
-RCT_EXPORT_METHOD(setWalletItem: (NSString *) key
-                          value: (NSString *) value
-                       resolver: (RCTPromiseResolveBlock) resolve
-                       rejecter: (RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(addWalletRecord: (NSString *) recordType
+                              key: (NSString *) key
+                            value: (NSString *) value
+                         resolver: (RCTPromiseResolveBlock) resolve
+                         rejecter: (RCTPromiseRejectBlock)reject)
 {
-  NSString *recordType = @"record_type";
   [[[ConnectMeVcx alloc] init] addRecordWallet:recordType
                                       recordId:key
                                    recordValue:value
@@ -840,11 +840,11 @@ RCT_EXPORT_METHOD(setWalletItem: (NSString *) key
   }];
 }
 
-RCT_EXPORT_METHOD(getWalletItem: (NSString *) key
-                       resolver: (RCTPromiseResolveBlock) resolve
-                       rejecter: (RCTPromiseRejectBlock) reject)
+RCT_EXPORT_METHOD(getWalletRecord: (NSString *) recordType
+                              key: (NSString *) key
+                         resolver: (RCTPromiseResolveBlock) resolve
+                         rejecter: (RCTPromiseRejectBlock) reject)
 {
-  NSString *recordType = @"record_type";
   [[[ConnectMeVcx alloc] init] getRecordWallet:recordType
                                       recordId:key
                                     completion:^(NSError *error, NSString *result)
@@ -859,11 +859,11 @@ RCT_EXPORT_METHOD(getWalletItem: (NSString *) key
    }];
 }
 
-RCT_EXPORT_METHOD(deleteWalletItem: (NSString *) key
-                       resolver: (RCTPromiseResolveBlock) resolve
-                       rejecter: (RCTPromiseRejectBlock) reject)
+RCT_EXPORT_METHOD(deleteWalletRecord: (NSString *) recordType
+                                 key: (NSString *) key
+                            resolver: (RCTPromiseResolveBlock) resolve
+                            rejecter: (RCTPromiseRejectBlock) reject)
 {
-  NSString *recordType = @"record_type";
   [[[ConnectMeVcx alloc] init] deleteRecordWallet:recordType
                                          recordId:key
                                        completion:^(NSError *error) {
@@ -877,13 +877,12 @@ RCT_EXPORT_METHOD(deleteWalletItem: (NSString *) key
   }];
 }
 
-RCT_EXPORT_METHOD(updateWalletItem: (NSString *) key
-                             value: (NSString *) value
-                          resolver: (RCTPromiseResolveBlock) resolve
-                          rejecter: (RCTPromiseRejectBlock) reject)
+RCT_EXPORT_METHOD(updateWalletRecord: (NSString *) recordType
+                                 key: (NSString *) key
+                               value: (NSString *) value
+                            resolver: (RCTPromiseResolveBlock) resolve
+                            rejecter: (RCTPromiseRejectBlock) reject)
 {
-  NSString *recordType = @"record_type";
-
   [[[ConnectMeVcx alloc] init] updateRecordWallet:recordType
                                      withRecordId:key
                                   withRecordValue:value
@@ -892,6 +891,122 @@ RCT_EXPORT_METHOD(updateWalletItem: (NSString *) key
      {
        NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
        reject(indyErrorCode, [NSString stringWithFormat:@"Error occurred while updating wallet item: %@ :: %ld",error.domain, (long)error.code], error);
+     } else {
+       resolve(@0);
+     }
+  }];
+}
+
+RCT_EXPORT_METHOD(addWalletRecordTags: (NSString *) recordType
+                                  key: (NSString *) key
+                                 tags: (NSString *) tags
+                             resolver: (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] walletAddRecordTags:recordType
+                                          recordId:key
+                                        recordTags:tags
+                                        completion:^(NSError *error) {
+     if (error != nil && error.code != 0)
+     {
+       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+       reject(indyErrorCode, [NSString stringWithFormat:@"Error occurred while adding wallet item tags: %@ :: %ld",error.domain, (long)error.code], error);
+     } else {
+       resolve(@0);
+     }
+  }];
+}
+
+RCT_EXPORT_METHOD(updateWalletRecordTags: (NSString *) recordType
+                                  key: (NSString *) key
+                                 tags: (NSString *) tags
+                             resolver: (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] walletUpdateRecordTags:recordType
+                                             recordId:key
+                                           recordTags:tags
+                                           completion:^(NSError *error) {
+     if (error != nil && error.code != 0)
+     {
+       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+       reject(indyErrorCode, [NSString stringWithFormat:@"Error occurred while updating wallet item tags: %@ :: %ld",error.domain, (long)error.code], error);
+     } else {
+       resolve(@0);
+     }
+  }];
+}
+
+RCT_EXPORT_METHOD(deleteWalletRecordTags: (NSString *) recordType
+                                  key: (NSString *) key
+                                 tags: (NSString *) tags
+                             resolver: (RCTPromiseResolveBlock) resolve
+                             rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] walletDeleteRecordTags:recordType
+                                             recordId:key
+                                           recordTags:tags
+                                           completion:^(NSError *error) {
+     if (error != nil && error.code != 0)
+     {
+       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+       reject(indyErrorCode, [NSString stringWithFormat:@"Error occurred while deleting wallet item tags: %@ :: %ld",error.domain, (long)error.code], error);
+     } else {
+       resolve(@0);
+     }
+  }];
+}
+
+RCT_EXPORT_METHOD(openWalletSearch:(NSString *)recordType
+                             query: (NSString *) query
+                           options: (NSString *) options
+                          resolver: (RCTPromiseResolveBlock) resolve
+                          rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] walletOpenSearch:recordType
+                                          query:query
+                                        options:options
+                                     completion:^(NSError *error, NSInteger searchHandle)
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while opening wallet search", error);
+    } else {
+      resolve(@(searchHandle));
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(searchNextWalletRecords:(NSInteger) searchHandle
+                                    count:(NSInteger) count
+                                 resolver:(RCTPromiseResolveBlock) resolve
+                                 rejecter:(RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] walletSearchNextRecords:searchHandle
+                                                 count: count
+                                            completion:^(NSError *error, NSString* message)
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while fetching search records", error);
+    } else {
+      resolve(message);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(closeWalletSearch:(NSInteger) searchHandle
+                           resolver: (RCTPromiseResolveBlock) resolve
+                           rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] walletCloseSearch:searchHandle
+                                      completion:^(NSError *error) {
+     if (error != nil && error.code != 0)
+     {
+       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while closing search", error);
      } else {
        resolve(@0);
      }

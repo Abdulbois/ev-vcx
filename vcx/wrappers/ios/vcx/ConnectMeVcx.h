@@ -2635,6 +2635,120 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 ///     }
 - (void) createPairwiseAgent:(void (^)(NSError *error, NSString *agentInfo))completion;
 
+/// Adds tags to a record in the wallet.
+/// Assumes there is an open wallet and that a record with specified type and id pair already exists.
+///
+/// #Params
+/// recordType: type of record. (e.g. 'data', 'string', 'foobar', 'image')
+///
+/// recordId: the id ("key") of the record.
+///
+/// recordTags: Tags for the record with the associated id and type.
+///
+/// #Returns
+/// Null
+- (void)walletAddRecordTags:(NSString *)recordType
+                   recordId:(NSString *)recordId
+                 recordTags:(NSString *)recordTags
+                 completion:(void (^)(NSError *error))completion;
+
+/// Updates tags of a record in the wallet.
+/// Assumes there is an open wallet and that a record with specified type and id pair already exists.
+///
+/// #Params
+/// recordType: type of record. (e.g. 'data', 'string', 'foobar', 'image')
+///
+/// recordId the id ("key") of the record.
+///
+/// recordTags: New tags for the record with the associated id and type.
+///
+/// #Returns
+/// Null
+- (void)walletUpdateRecordTags:(NSString *)recordType
+                      recordId:(NSString *)recordId
+                    recordTags:(NSString *)recordTags
+                    completion:(void (^)(NSError *error))completion;
+
+/// Deletes tags from a record in the wallet.
+/// Assumes there is an open wallet and that a type and id pair already exists.
+///
+/// #Params
+/// recordType: type of record. (e.g. 'data', 'string', 'foobar', 'image')
+///
+/// recordId: the id ("key") of the record.
+///
+/// recordTags: Tags names as JSON array to remove from the record with the associated id and type.
+///
+/// #Returns
+/// Null
+- (void)walletDeleteRecordTags:(NSString *)recordType
+                      recordId:(NSString *)recordId
+                    recordTags:(NSString *)recordTags
+                    completion:(void (^)(NSError *error))completion;
+
+/// Search for records in the wallet.
+///
+/// #Params
+/// type: type of record. (e.g. 'data', 'string', 'foobar', 'image')
+///
+/// query: MongoDB style query to wallet record tags:
+///  {
+///    "tagName": "tagValue",
+///    $or: {
+///      "tagName2": { $regex: 'pattern' },
+///      "tagName3": { $gte: 123 },
+///    },
+///  }
+/// options:
+///  {
+///    retrieveRecords: (optional, true by default) If false only "counts" will be calculated,
+///    retrieveTotalCount: (optional, false by default) Calculate total count,
+///    retrieveType: (optional, false by default) Retrieve record type,
+///    retrieveValue: (optional, true by default) Retrieve record value,
+///    retrieveTags: (optional, true by default) Retrieve record tags,
+///  }
+///
+/// #Returns
+/// Handle pointing to the opened search
+- (void)walletOpenSearch:(NSString *)type
+                   query:(NSString *)query
+                 options:(NSString *)options
+              completion:(void (^)(NSError *error, NSInteger searchHandle)) completion;
+
+/// Fetch next records for wallet search.
+///
+/// Not if there are no records this call returns WalletNoRecords Indy error.
+///
+/// #Params
+/// searchHandle: wallet search handle (returned by walletOpenSearch)
+///
+/// count: Count of records to fetch
+///
+/// #Returns
+/// Found wallet records:
+/// {
+///   totalCount: <int>, // present only if retrieveTotalCount set to true
+///   records: [{ // present only if retrieveRecords set to true
+///       id: "Some id",
+///       type: "Some type", // present only if retrieveType set to true
+///       value: "Some value", // present only if retrieveValue set to true
+///       tags: <tags json>, // present only if retrieveTags set to true
+///   }],
+/// }
+- (void) walletSearchNextRecords:(NSInteger)searchHandle
+                           count:(NSInteger)count
+                      completion:(void (^)(NSError *error, NSString *records))completion;
+
+/// Close a search
+///
+/// #Params
+/// search_handle: wallet search handle
+///
+/// #Returns
+/// Null
+- (void) walletCloseSearch:(NSInteger)searchHandle
+                completion:(void (^)(NSError *error))completion;
+
 @end
 
 #endif /* init_h */
