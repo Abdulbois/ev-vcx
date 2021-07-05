@@ -1,11 +1,11 @@
 use futures::Future;
 use crate::indy::{wallet, ErrorCode};
-
 use crate::settings;
-
 use crate::error::prelude::*;
 use crate::indy::{WalletHandle, INVALID_WALLET_HANDLE};
 use crate::settings::wallet::{get_wallet_config, get_wallet_credentials};
+use crate::utils::constants::DEFAULT_SEARCH_HANDLE;
+use crate::utils::constants;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WalletRecord {
@@ -211,6 +211,69 @@ pub fn update_record_value(xtype: &str, id: &str, value: &str) -> VcxResult<()> 
     if settings::indy_mocks_enabled() { return Ok(()); }
 
     wallet::update_wallet_record_value(get_wallet_handle(), xtype, id, value)
+        .wait()
+        .map_err(VcxError::from)
+}
+
+
+pub fn add_record_tags(xtype: &str, id: &str, tags: &str) -> VcxResult<()> {
+    trace!("add_record_tags >>> xtype: {}, id: {}, tags: {}", secret!(&xtype), secret!(&id), secret!(&tags));
+
+    if settings::indy_mocks_enabled() { return Ok(()); }
+
+    wallet::add_wallet_record_tags(get_wallet_handle(), xtype, id, tags)
+        .wait()
+        .map_err(VcxError::from)
+}
+
+
+pub fn update_record_tags(xtype: &str, id: &str, tags: &str) -> VcxResult<()> {
+    trace!("update_record_tags >>> xtype: {}, id: {}, tags: {}", secret!(&xtype), secret!(&id), secret!(&tags));
+
+    if settings::indy_mocks_enabled() { return Ok(()); }
+
+    wallet::update_wallet_record_tags(get_wallet_handle(), xtype, id, tags)
+        .wait()
+        .map_err(VcxError::from)
+}
+
+
+pub fn delete_record_tags(xtype: &str, id: &str, tags: &str) -> VcxResult<()> {
+    trace!("delete_record_tags >>> xtype: {}, id: {}, tags: {}", secret!(&xtype), secret!(&id), secret!(&tags));
+
+    if settings::indy_mocks_enabled() { return Ok(()); }
+
+    wallet::delete_wallet_record_tags(get_wallet_handle(), xtype, id, tags)
+        .wait()
+        .map_err(VcxError::from)
+}
+
+pub fn open_search(xtype: &str, query: &str, options: &str) -> VcxResult<i32> {
+    trace!("open_search >>> xtype: {}, query: {}, options: {}", secret!(&xtype), secret!(&query), secret!(&options));
+
+    if settings::indy_mocks_enabled() { return Ok(DEFAULT_SEARCH_HANDLE as i32); }
+
+    wallet::open_wallet_search(get_wallet_handle(), xtype, query, options)
+        .wait()
+        .map_err(VcxError::from)
+}
+
+pub fn search_next_records(search_handle: i32, count: usize) -> VcxResult<String> {
+    trace!("search_next_records >>> search_handle: {}, count: {}", &search_handle, secret!(&count));
+
+    if settings::indy_mocks_enabled() { return Ok(constants::DEFAULT_SEARCH_RECORD.to_string()); }
+
+    wallet::fetch_wallet_search_next_records(get_wallet_handle(), search_handle, count)
+        .wait()
+        .map_err(VcxError::from)
+}
+
+pub fn close_search(search_handle: i32) -> VcxResult<()> {
+    trace!("close_search >>> search_handle: {}", search_handle);
+
+    if settings::indy_mocks_enabled() { return Ok(()); }
+
+    wallet::close_wallet_search(search_handle)
         .wait()
         .map_err(VcxError::from)
 }

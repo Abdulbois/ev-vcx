@@ -1864,9 +1864,9 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void setWalletItem(String key, String value, Promise promise) {
+    public void addWalletRecord(String type, String key, String value, Promise promise) {
         try {
-            WalletApi.addRecordWallet("record_type", key, value).whenComplete((result, t) -> {
+            WalletApi.addRecordWallet(type, key, value).whenComplete((result, t) -> {
                 if (t != null) {
                     VcxException ex = (VcxException) t;
                     ex.printStackTrace();
@@ -1884,9 +1884,9 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void getWalletItem(String key, Promise promise) {
+    public void getWalletRecord(String type, String key, Promise promise) {
         try {
-            WalletApi.getRecordWallet("record_type", key, "").exceptionally((t) -> {
+            WalletApi.getRecordWallet(type, key, "").exceptionally((t) -> {
                 VcxException ex = (VcxException) t;
                 ex.printStackTrace();
                 Log.e(TAG, "getRecordWallet - Error: ", ex);
@@ -1903,9 +1903,9 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void deleteWalletItem(String key, Promise promise) {
+    public void deleteWalletRecord(String type, String key, Promise promise) {
         try {
-            WalletApi.deleteRecordWallet("record_type", key).whenComplete((result, t) -> {
+            WalletApi.deleteRecordWallet(type, key).whenComplete((result, t) -> {
                 if (t != null) {
                     VcxException ex = (VcxException) t;
                     ex.printStackTrace();
@@ -1923,9 +1923,9 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void updateWalletItem(String key, String value, Promise promise) {
+    public void updateWalletRecord(String type, String key, String value, Promise promise) {
         try {
-            WalletApi.updateRecordWallet("record_type", key, value).whenComplete((result, t) -> {
+            WalletApi.updateRecordWallet(type, key, value).whenComplete((result, t) -> {
                 if (t != null) {
                     VcxException ex = (VcxException) t;
                     ex.printStackTrace();
@@ -1938,6 +1938,124 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         } catch (VcxException e) {
             e.printStackTrace();
             Log.e(TAG, "updateRecordWallet - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void addWalletRecordTags(String type, String key, String tags, Promise promise) {
+        try {
+            WalletApi.addRecordTags(type, key, tags).whenComplete((result, t) -> {
+                if (t != null) {
+                    VcxException ex = (VcxException) t;
+                    ex.printStackTrace();
+                    Log.e(TAG, "addWalletRecordTags - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "addWalletRecordTags - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void updateWalletRecordTags(String type, String key, String tags, Promise promise) {
+        try {
+            WalletApi.updateRecordTags(type, key, tags).whenComplete((result, t) -> {
+                if (t != null) {
+                    VcxException ex = (VcxException) t;
+                    ex.printStackTrace();
+                    Log.e(TAG, "updateWalletRecordTags - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "updateWalletRecordTags - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void deleteWalletRecordTags(String type, String key, String tags, Promise promise) {
+        try {
+            WalletApi.deleteRecordTags(type, key, tags).whenComplete((result, t) -> {
+                if (t != null) {
+                    VcxException ex = (VcxException) t;
+                    ex.printStackTrace();
+                    Log.e(TAG, "deleteWalletRecordTags - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "deleteWalletRecordTags - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void openWalletSearch(String type, String query, String options, Promise promise) {
+        Log.d(TAG, "openWalletSearch()");
+        try {
+            WalletApi.openSearch(type, query, options).whenComplete((result, e) -> {
+                if (e != null) {
+                    VcxException ex = (VcxException) e;
+                    ex.printStackTrace();
+                    Log.e(TAG, "openWalletSearch - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    BridgeUtils.resolveIfValid(promise, result);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "openWalletSearch - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void searchNextWalletRecords(int searchHandle, int count, Promise promise) {
+        try {
+            ProofApi.searchNextRecords(searchHandle, count).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "searchNextWalletRecords - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> BridgeUtils.resolveIfValid(promise, result));
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "proofVerifierGetProofMessage - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void closeWalletSearch(int searchHandle, Promise promise) {
+        try {
+            WalletApi.closeSearch(searchHandle).whenComplete((result, t) -> {
+                if (t != null) {
+                    VcxException ex = (VcxException) t;
+                    ex.printStackTrace();
+                    Log.e(TAG, "closeWalletSearch - Error: ", ex);
+                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                } else {
+                    promise.resolve(0);
+                }
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "closeWalletSearch - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }

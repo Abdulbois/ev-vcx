@@ -91,7 +91,7 @@ async def test_wallet_storage():
 
 @pytest.mark.asyncio
 async def test_wallet_search():
-    search_handle = await Wallet.open_search(TYPE, QUERY_JSON, None)
+    search_handle = await Wallet.open_search(TYPE, QUERY_JSON, "{}")
     assert (search_handle == 1)
     searched_record = await Wallet.search_next_records(search_handle, 1)
     assert (json.loads(searched_record) == SEARCHED_RECORD)
