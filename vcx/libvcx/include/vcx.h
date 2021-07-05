@@ -2733,44 +2733,44 @@ vcx_error_t vcx_wallet_add_record(vcx_command_handle_t command_handle,
                                const char *tags_json,
                                void (*cb)(vcx_command_handle_t, vcx_error_t));
 
-// Adds tags to a record.
-// Assumes there is an open wallet and that a type and id pair already exists.
-// #Params
-//
-// command_handle: command handle to map callback to user context.
-//
-// type_: type of record. (e.g. 'data', 'string', 'foobar', 'image')
-//
-// id: the id ("key") of the record.
-//
-// tags: Tags for the record with the associated id and type.
-//
-// cb: Callback that any errors or a receipt of transfer
-//
-// #Returns
-// Error code as a u32
-//
+/// Adds tags to a record.
+/// Assumes there is an open wallet and that a record with specified type and id pair already exists.
+
+/// #Params
+///
+/// command_handle: command handle to map callback to user context.
+///
+/// type_: type of record. (e.g. 'data', 'string', 'foobar', 'image')
+///
+/// id: the id ("key") of the record.
+///
+/// tags: Tags for the record with the associated id and type.
+///
+/// cb: Callback that provides error status of function execution
+///
+/// #Returns
+/// Error code as a u32
 vcx_error_t vcx_wallet_add_record_tags(vcx_command_handle_t command_handle,
                                     const char *type_,
                                     const char *id,
                                     const char *tags,
                                     void (*cb)(vcx_command_handle_t, vcx_error_t));
 
-// Close a search
-//
-// #Params
-//
-// command_handle: command handle to map callback to user context.
-//
-// search_handle: for future use
-//
-// cb: Callback that provides wallet balance
-//
-// #Returns
-// Error code as a u32
+/// Close a search
+///
+/// #Params
+///
+/// command_handle: command handle to map callback to user context.
+///
+/// search_handle: wallet search handle
+///
+/// cb: Callback that provides error status of function execution
+///
+/// #Returns
+/// Error code as a u32
 vcx_error_t vcx_wallet_close_search(vcx_command_handle_t command_handle,
-                                 vcx_wallet_search_handle_t search_handle,
-                                 void (*cb)(vcx_command_handle_t, vcx_error_t));
+                                    int32_t search_handle,
+                                    void (*cb)(vcx_command_handle_t, vcx_error_t));
 
 // Add a payment address to the wallet
 //
@@ -2941,60 +2941,63 @@ vcx_error_t vcx_wallet_import(vcx_command_handle_t command_handle,
                            const char *config,
                            void (*cb)(vcx_command_handle_t, vcx_error_t));
 
-// Opens a storage search handle
-//
-// #Params
-//
-// command_handle: command handle to map callback to user context.
-//
-// type_: type of record. (e.g. 'data', 'string', 'foobar', 'image')
-//
-// query_json: MongoDB style query to wallet record tags:
-// {
-// "tagName": "tagValue",
-// $or: {
-// "tagName2": { $regex: 'pattern' },
-// "tagName3": { $gte: 123 },
-// },
-// }
-// options_json:
-// {
-// retrieveRecords: (optional, true by default) If false only "counts" will be calculated,
-// retrieveTotalCount: (optional, false by default) Calculate total count,
-// retrieveType: (optional, false by default) Retrieve record type,
-// retrieveValue: (optional, true by default) Retrieve record value,
-// retrieveTags: (optional, true by default) Retrieve record tags,
-// }
-// cb: Callback that any errors or a receipt of transfer
-//
-// #Returns
-// Error code as a u32
+/// Search for records in the wallet.
+///
+/// #Params
+///
+/// command_handle: command handle to map callback to user context.
+///
+/// type_: type of record. (e.g. 'data', 'string', 'foobar', 'image')
+///
+/// query_json: MongoDB style query to wallet record tags:
+///  {
+///    "tagName": "tagValue",
+///    $or: {
+///      "tagName2": { $regex: 'pattern' },
+///      "tagName3": { $gte: 123 },
+///    },
+///  }
+/// options_json:
+///  {
+///    retrieveRecords: (optional, true by default) If false only "counts" will be calculated,
+///    retrieveTotalCount: (optional, false by default) Calculate total count,
+///    retrieveType: (optional, false by default) Retrieve record type,
+///    retrieveValue: (optional, true by default) Retrieve record value,
+///    retrieveTags: (optional, true by default) Retrieve record tags,
+///  }
+/// cb: Callback that provides error status of function execution and search handle
+///
+/// #Returns
+/// Error code as a u32
 vcx_error_t vcx_wallet_open_search(int32_t command_handle,
                                 const char *type_,
                                 const char *query_json,
                                 const char *options_json,
                                 void (*cb)(int32_t, vcx_error_t, int32_t));
 
-// Fetch next records for wallet search.
-//
-// Not if there are no records this call returns WalletNoRecords error.
-//
-// #Params
-// wallet_handle: wallet handle (created by open_wallet)
-// wallet_search_handle: wallet wallet handle (created by indy_open_wallet_search)
-// count: Count of records to fetch
-//
-// #Returns
-// wallet records json:
-// {
-// totalCount: <int>, // present only if retrieveTotalCount set to true
-// records: [{ // present only if retrieveRecords set to true
-// id: "Some id",
-// type: "Some type", // present only if retrieveType set to true
-// value: "Some value", // present only if retrieveValue set to true
-// tags: <tags json>, // present only if retrieveTags set to true
-// }],
-// }
+/// Fetch next records for wallet search.
+///
+/// Not if there are no records this call returns WalletNoRecords Indy error.
+///
+/// #Params
+/// wallet_handle: wallet handle (created by open_wallet)
+/// wallet_search_handle: wallet search handle (returned by vcx_wallet_open_search)
+/// count: Count of records to fetch
+///
+///
+/// cb: Callback that provides error status of function execution and wallet records json:
+/// {
+///   totalCount: <int>, // present only if retrieveTotalCount set to true
+///   records: [{ // present only if retrieveRecords set to true
+///       id: "Some id",
+///       type: "Some type", // present only if retrieveType set to true
+///       value: "Some value", // present only if retrieveValue set to true
+///       tags: <tags json>, // present only if retrieveTags set to true
+///   }],
+/// }
+///
+/// #Returns
+/// Error code as a u32
 vcx_error_t vcx_wallet_search_next_records(int32_t command_handle,
                                         int32_t wallet_search_handle,
                                         count_t count,
@@ -3022,23 +3025,23 @@ vcx_error_t vcx_wallet_send_tokens(vcx_command_handle_t command_handle,
                                 const char *recipient,
                                 void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
-// Updates the value of a record already in the wallet.
-// Assumes there is an open wallet and that a type and id pair already exists.
-// #Params
-//
-// command_handle: command handle to map callback to user context.
-//
-// type_: type of record. (e.g. 'data', 'string', 'foobar', 'image')
-//
-// id: the id ("key") of the record.
-//
-// tags: New tags for the record with the associated id and type.
-//
-// cb: Callback that any errors or a receipt of transfer
-//
-// #Returns
-// Error code as a u32
-//
+/// Updates tags of a record in the wallet.
+/// Assumes there is an open wallet and that a record with specified type and id pair already exists.
+///
+/// #Params
+///
+/// command_handle: command handle to map callback to user context.
+///
+/// type_: type of record. (e.g. 'data', 'string', 'foobar', 'image')
+///
+/// id: the id ("key") of the record.
+///
+/// tags: New tags for the record with the associated id and type.
+///
+/// cb: Callback that provides error status of function execution
+///
+/// #Returns
+/// Error code as a u32
 vcx_error_t vcx_wallet_update_record_tags(vcx_command_handle_t command_handle,
                                        const char *type_,
                                        const char *id,

@@ -625,7 +625,7 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
     vcx_error_t ret;
     vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
     ret = vcx_connection_get_state(handle, connectionHandle, VcxWrapperCommonNumberCallback);
-    
+
     if( ret != 0 ) {
         [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
 
@@ -1608,7 +1608,7 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
     vcx_error_t ret;
     vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
     ret = vcx_disclosed_proof_get_state(handle, proofHandle, VcxWrapperCommonNumberCallback);
-    
+
     if( ret != 0 ) {
         [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
 
@@ -2815,6 +2815,139 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 
     if (ret != 0) {
         [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error);
+        });
+    }
+}
+
+- (void)walletAddRecordTags:(NSString *)recordType
+                   recordId:(NSString *)recordId
+                 recordTags:(NSString *)recordTags
+                 completion:(void (^)(NSError *error))completion {
+
+    vcx_error_t ret;
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char * record_type =[recordType cStringUsingEncoding:NSUTF8StringEncoding];
+    const char * record_id = [recordId cStringUsingEncoding:NSUTF8StringEncoding];
+    const char * record_tags =[recordTags cStringUsingEncoding:NSUTF8StringEncoding];
+
+    ret = vcx_wallet_add_record_tags(handle, record_type, record_id, record_tags, VcxWrapperCommonCallback);
+
+    if( ret != 0 )
+    {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error);
+        });
+    }
+}
+
+- (void)walletUpdateRecordTags:(NSString *)recordType
+                      recordId:(NSString *)recordId
+                    recordTags:(NSString *)recordTags
+                    completion:(void (^)(NSError *error))completion {
+
+    vcx_error_t ret;
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char * record_type =[recordType cStringUsingEncoding:NSUTF8StringEncoding];
+    const char * record_id = [recordId cStringUsingEncoding:NSUTF8StringEncoding];
+    const char * record_tags =[recordTags cStringUsingEncoding:NSUTF8StringEncoding];
+
+    ret = vcx_wallet_update_record_tags(handle, record_type, record_id, record_tags, VcxWrapperCommonCallback);
+
+    if( ret != 0 )
+    {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error);
+        });
+    }
+}
+
+- (void)walletDeleteRecordTags:(NSString *)recordType
+                      recordId:(NSString *)recordId
+                    recordTags:(NSString *)recordTags
+                    completion:(void (^)(NSError *error))completion {
+
+    vcx_error_t ret;
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char * record_type =[recordType cStringUsingEncoding:NSUTF8StringEncoding];
+    const char * record_id = [recordId cStringUsingEncoding:NSUTF8StringEncoding];
+    const char * record_tags =[recordTags cStringUsingEncoding:NSUTF8StringEncoding];
+
+    ret = vcx_wallet_delete_record_tags(handle, record_type, record_id, record_tags, VcxWrapperCommonCallback);
+
+    if( ret != 0 )
+    {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error);
+        });
+    }
+}
+
+- (void)walletOpenSearch:(NSString *)type
+                   query:(NSString *)query
+                 options:(NSString *)options
+              completion:(void (^)(NSError *error, NSInteger searchHandle)) completion
+{
+   vcx_error_t ret;
+   vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+   const char *type_char = [type cStringUsingEncoding:NSUTF8StringEncoding];
+   const char *query_char = [query cStringUsingEncoding:NSUTF8StringEncoding];
+   const char *options_char = [options cStringUsingEncoding:NSUTF8StringEncoding];
+
+   ret = vcx_wallet_open_search(handle, type_char, query_char, options_char, VcxWrapperCommonHandleCallback);
+
+   if( ret != 0 )
+   {
+       [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+       NSError *error = [NSError errorFromVcxError:ret];
+       dispatch_async(dispatch_get_main_queue(), ^{
+           completion(error, 0);
+       });
+   }
+}
+
+- (void) walletSearchNextRecords:(NSInteger)searchHandle
+                           count:(NSInteger)count
+                      completion:(void (^)(NSError *error, NSString *records))completion {
+    vcx_error_t ret;
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+
+    ret = vcx_wallet_search_next_records(handle, searchHandle, count, VcxWrapperCommonStringCallback);
+
+    if( ret != 0 )
+    {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error, nil);
+        });
+    }
+}
+
+- (void) walletCloseSearch:(NSInteger)searchHandle
+                completion:(void (^)(NSError *error))completion {
+    vcx_error_t ret;
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+
+    ret = vcx_wallet_close_search(handle, searchHandle, VcxWrapperCommonHandleCallback);
+
+    if( ret != 0 )
+    {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
 
         NSError *error = [NSError errorFromVcxError:ret];
         dispatch_async(dispatch_get_main_queue(), ^{

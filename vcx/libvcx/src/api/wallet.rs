@@ -5,7 +5,7 @@ use utils::libindy::payments::{pay_a_payee, get_wallet_token_info, create_addres
 use utils::libindy::wallet::{export, import, get_wallet_handle};
 use utils::libindy::wallet;
 use utils::threadpool::spawn;
-use std::thread;
+use std::{thread, ptr};
 use std::ptr::null;
 use error::prelude::*;
 use indy::{CommandHandle, SearchHandle};
@@ -20,7 +20,7 @@ const EMPTY_CSTR: *const c_char = "\0".as_ptr().cast();
 ///
 /// payment_handle: for future use
 ///
-/// cb: Callback that provides wallet balance
+/// cb: Callback that provides error status of function execution and wallet balance
 ///
 /// # Example info -> "{"balance":6,"balance_str":"6","addresses":[{"address":"pay:null:9UFgyjuJxi1i1HD","balance":3,"utxo":[{"source":"pay:null:1","paymentAddress":"pay:null:zR3GN9lfbCVtHjp","amount":1,"extra":"yqeiv5SisTeUGkw"}]}]}"
 ///
@@ -63,7 +63,7 @@ pub extern fn vcx_wallet_get_token_info(command_handle: CommandHandle,
 ///
 /// #params
 ///
-/// cb: Callback that provides payment address info
+/// cb: Callback that provides error status of function execution and payment address info
 ///
 /// # Example payment_address -> "pay:null:9UFgyjuJxi1i1HD"
 ///
@@ -117,7 +117,7 @@ pub extern fn vcx_wallet_create_payment_address(command_handle: CommandHandle,
 /// payment_address: payment address of message signer. The key must be created by calling vcx_wallet_create_address
 /// message_raw: a pointer to first byte of message to be signed
 /// message_len: a message length
-/// cb: Callback that takes command result as parameter.
+/// cb: Callback that provides error status of function execution and generated signature
 ///
 /// # Returns:
 /// a signature string
@@ -170,7 +170,7 @@ pub extern fn vcx_wallet_sign_with_address(command_handle: CommandHandle,
 /// message_len: a message length
 /// signature_raw: a pointer to first byte of signature to be verified
 /// signature_len: a signature length
-/// cb: Callback that takes command result as parameter.
+/// cb: Callback that provides error status of function execution and signature verification result
 ///
 /// #Returns
 /// valid: true - if signature is valid, false - otherwise
@@ -236,7 +236,7 @@ pub extern fn vcx_wallet_verify_with_address(command_handle: CommandHandle,
 ///  The tags_json must be valid json, and if no tags are to be associated with the
 /// record, then the empty '{}' json must be passed.
 ///
-/// cb: Callback that any errors or a receipt of transfer
+/// cb: Callback that provides error status of function execution
 ///
 /// #Returns
 /// Error code as a u32
@@ -293,7 +293,7 @@ pub extern fn vcx_wallet_add_record(command_handle: CommandHandle,
 ///
 /// value: New value of the record with the associated id.
 ///
-/// cb: Callback that any errors or a receipt of transfer
+/// cb: Callback that provides error status of function execution
 ///
 /// #Returns
 /// Error code as a u32
@@ -336,8 +336,9 @@ pub extern fn vcx_wallet_update_record_value(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Updates the value of a record already in the wallet.
-/// Assumes there is an open wallet and that a type and id pair already exists.
+/// Updates tags of a record in the wallet.
+/// Assumes there is an open wallet and that a record with specified type and id pair already exists.
+///
 /// #Params
 ///
 /// command_handle: command handle to map callback to user context.
@@ -348,11 +349,10 @@ pub extern fn vcx_wallet_update_record_value(command_handle: CommandHandle,
 ///
 /// tags: New tags for the record with the associated id and type.
 ///
-/// cb: Callback that any errors or a receipt of transfer
+/// cb: Callback that provides error status of function execution
 ///
 /// #Returns
 /// Error code as a u32
-///
 #[no_mangle]
 pub extern fn vcx_wallet_update_record_tags(command_handle: CommandHandle,
                                             type_: *const c_char,
@@ -370,7 +370,20 @@ pub extern fn vcx_wallet_update_record_tags(command_handle: CommandHandle,
            command_handle, secret!(&type_), secret!(&id), secret!(&tags));
 
     spawn(move || {
-        cb(command_handle, error::SUCCESS.code_num);
+        match wallet::update_record_tags(&type_, &id, &tags) {
+            Ok(()) => {
+                trace!("vcx_wallet_update_record_tags(command_handle: {}, rc: {})",
+                       command_handle, error::SUCCESS.as_str());
+
+                cb(command_handle, error::SUCCESS.code_num);
+            }
+            Err(x) => {
+                trace!("vcx_wallet_update_record_tags(command_handle: {}, rc: {})",
+                       command_handle, x);
+
+                cb(command_handle, x.into());
+            }
+        };
 
         Ok(())
     });
@@ -378,8 +391,9 @@ pub extern fn vcx_wallet_update_record_tags(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Adds tags to a record.
-/// Assumes there is an open wallet and that a type and id pair already exists.
+/// Add tags to a record in the wallet.
+/// Assumes there is an open wallet and that a record with specified type and id pair already exists.
+///
 /// #Params
 ///
 /// command_handle: command handle to map callback to user context.
@@ -390,11 +404,10 @@ pub extern fn vcx_wallet_update_record_tags(command_handle: CommandHandle,
 ///
 /// tags: Tags for the record with the associated id and type.
 ///
-/// cb: Callback that any errors or a receipt of transfer
+/// cb: Callback that provides error status of function execution
 ///
 /// #Returns
 /// Error code as a u32
-///
 #[no_mangle]
 pub extern fn vcx_wallet_add_record_tags(command_handle: CommandHandle,
                                          type_: *const c_char,
@@ -411,15 +424,30 @@ pub extern fn vcx_wallet_add_record_tags(command_handle: CommandHandle,
     trace!("vcx_wallet_add_record_tags(command_handle: {}, type_: {}, id: {}, tags: {})",
            command_handle, secret!(&type_), secret!(&id), secret!(&tags));
 
+
     spawn(move || {
-        cb(command_handle, error::SUCCESS.code_num);
+        match wallet::add_record_tags(&type_, &id, &tags) {
+            Ok(()) => {
+                trace!("vcx_wallet_add_record_tags(command_handle: {}, rc: {})",
+                       command_handle, error::SUCCESS.as_str());
+
+                cb(command_handle, error::SUCCESS.code_num);
+            }
+            Err(x) => {
+                trace!("vcx_wallet_add_record_tags(command_handle: {}, rc: {})",
+                       command_handle, x);
+
+                cb(command_handle, x.into());
+            }
+        };
+
         Ok(())
     });
 
     error::SUCCESS.code_num
 }
 
-/// Deletes tags from a record.
+/// Deletes tags from a record in the wallet.
 /// Assumes there is an open wallet and that a type and id pair already exists.
 /// #Params
 ///
@@ -429,9 +457,9 @@ pub extern fn vcx_wallet_add_record_tags(command_handle: CommandHandle,
 ///
 /// id: the id ("key") of the record.
 ///
-/// tags: Tags to remove from the record with the associated id and type.
+/// tags: Tags names as JSON array to remove from the record with the associated id and type.
 ///
-/// cb: Callback that any errors or a receipt of transfer
+/// cb: Callback that provides error status of function execution
 ///
 /// #Returns
 /// Error code as a u32
@@ -453,10 +481,23 @@ pub extern fn vcx_wallet_delete_record_tags(command_handle: CommandHandle,
            command_handle, secret!(&type_), secret!(&id), secret!(&tags));
 
     spawn(move || {
-        cb(command_handle, error::SUCCESS.code_num);
+        match wallet::delete_record_tags(&type_, &id, &tags) {
+            Ok(()) => {
+                trace!("vcx_wallet_delete_record_tags(command_handle: {}, rc: {})",
+                       command_handle, error::SUCCESS.as_str());
+
+                cb(command_handle, error::SUCCESS.code_num);
+            }
+            Err(x) => {
+                trace!("vcx_wallet_delete_record_tags(command_handle: {}, rc: {})",
+                       command_handle, x);
+
+                cb(command_handle, x.into());
+            }
+        };
+
         Ok(())
     });
-
     error::SUCCESS.code_num
 }
 
@@ -470,7 +511,7 @@ pub extern fn vcx_wallet_delete_record_tags(command_handle: CommandHandle,
 ///
 /// id: the id ("key") of the record.
 ///
-/// cb: Callback that any errors or a receipt of transfer
+/// cb: Callback that provides error status of function execution and requested record
 ///
 /// #Returns
 /// Error code as a u32
@@ -526,7 +567,7 @@ pub extern fn vcx_wallet_get_record(command_handle: CommandHandle,
 ///
 /// id: the id ("key") of the record.
 ///
-/// cb: Callback that any errors or a receipt of transfer
+/// cb: Callback that provides error status of function execution
 ///
 /// #Returns
 /// Error code as a u32
@@ -625,7 +666,7 @@ pub extern fn vcx_wallet_send_tokens(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Opens a storage search handle
+/// Search for records in the wallet.
 ///
 /// #Params
 ///
@@ -649,41 +690,54 @@ pub extern fn vcx_wallet_send_tokens(command_handle: CommandHandle,
 ///    retrieveValue: (optional, true by default) Retrieve record value,
 ///    retrieveTags: (optional, true by default) Retrieve record tags,
 ///  }
-/// cb: Callback that any errors or a receipt of transfer
+/// cb: Callback that provides error status of function execution and handle pointing to the opened search
 ///
 /// #Returns
 /// Error code as a u32
 #[no_mangle]
 pub  extern fn vcx_wallet_open_search(command_handle: CommandHandle,
-                                      _type_: *const c_char,
-                                      _query_json: *const c_char,
-                                      _options_json: *const c_char,
+                                      type_: *const c_char,
+                                      query_json: *const c_char,
+                                      options_json: *const c_char,
                                       cb: Option<extern fn(command_handle_: CommandHandle, err: u32,
                                                            search_handle: SearchHandle)>) -> u32 {
     info!("vcx_wallet_open_search >>>");
 
+    check_useful_c_str!(type_, VcxErrorKind::InvalidOption);
+    check_useful_c_str!(query_json, VcxErrorKind::InvalidOption);
+    check_useful_c_str!(options_json, VcxErrorKind::InvalidOption);
     check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
 
-    use utils::constants::DEFAULT_SEARCH_HANDLE;
     spawn(move || {
-        cb(command_handle, error::SUCCESS.code_num, DEFAULT_SEARCH_HANDLE as i32);
+        match wallet::open_search(&type_, &query_json, &options_json) {
+            Ok(handle) => {
+                trace!("vcx_wallet_open_search(command_handle: {}, rc: {}, handle: {}) ",
+                       command_handle, error::SUCCESS.as_str(), handle);
+                cb(command_handle, error::SUCCESS.code_num, handle);
+            }
+            Err(x) => {
+                warn!("vcx_wallet_open_search(command_handle: {}, rc: {}, handle: {})",
+                      command_handle, x, 0);
+                cb(command_handle, x.into(), 0);
+            }
+        };
+
         Ok(())
     });
-
     error::SUCCESS.code_num
 }
 
 /// Fetch next records for wallet search.
 ///
-/// Not if there are no records this call returns WalletNoRecords error.
+/// Not if there are no records this call returns WalletNoRecords Indy error.
 ///
 /// #Params
-/// wallet_handle: wallet handle (created by open_wallet)
-/// wallet_search_handle: wallet wallet handle (created by indy_open_wallet_search)
+/// wallet_search_handle: wallet search handle (returned by vcx_wallet_open_search)
+///
 /// count: Count of records to fetch
 ///
-/// #Returns
-/// wallet records json:
+///
+/// cb: Callback that provides error status of function execution and wallet records json:
 /// {
 ///   totalCount: <int>, // present only if retrieveTotalCount set to true
 ///   records: [{ // present only if retrieveRecords set to true
@@ -693,23 +747,37 @@ pub  extern fn vcx_wallet_open_search(command_handle: CommandHandle,
 ///       tags: <tags json>, // present only if retrieveTags set to true
 ///   }],
 /// }
+///
+/// #Returns
+/// Error code as a u32
 #[no_mangle]
 pub  extern fn vcx_wallet_search_next_records(command_handle: CommandHandle,
                                               wallet_search_handle: i32,
-                                              _count: usize,
+                                              count: usize,
                                               cb: Option<extern fn(command_handle_: CommandHandle, err: u32,
                                                                    records_json: *const c_char)>) -> u32 {
     info!("vcx_wallet_search_next_records >>>");
 
     check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
 
-    trace!("vcx_wallet_search_next_records(command_handle: {}, wallet_search_handle: {})",
-           command_handle, wallet_search_handle);
+    trace!("vcx_wallet_search_next_records(command_handle: {}, wallet_search_handle: {}, count: {})",
+           command_handle, wallet_search_handle, count);
 
     spawn(move || {
-        use utils::constants::DEFAULT_SEARCH_RECORD;
-        let msg = CStringUtils::string_to_cstring(DEFAULT_SEARCH_RECORD.to_string());
-        cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
+        match wallet::search_next_records(wallet_search_handle, count) {
+            Ok(records) => {
+                trace!("vcx_wallet_search_next_records(command_handle: {}, wallet_search_handle: {}, rc: {}, records: {})",
+                       command_handle, wallet_search_handle, error::SUCCESS.as_str(), secret!(records));
+                let records = CStringUtils::string_to_cstring(records);
+                cb(command_handle, error::SUCCESS.code_num, records.as_ptr());
+            }
+            Err(x) => {
+                warn!("vcx_wallet_search_next_records(command_handle: {}, wallet_search_handle: {}, rc: {})",
+                      command_handle, wallet_search_handle, x);
+                cb(command_handle, x.into(), ptr::null_mut());
+            }
+        };
+
         Ok(())
     });
 
@@ -722,15 +790,15 @@ pub  extern fn vcx_wallet_search_next_records(command_handle: CommandHandle,
 ///
 /// command_handle: command handle to map callback to user context.
 ///
-/// search_handle: for future use
+/// search_handle: wallet search handle
 ///
-/// cb: Callback that provides wallet balance
+/// cb: Callback that provides error status of function execution
 ///
 /// #Returns
 /// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_wallet_close_search(command_handle: CommandHandle,
-                                      search_handle: u32,
+                                      search_handle: i32,
                                       cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32)>) -> u32 {
     info!("vcx_wallet_close_search >>>");
 
@@ -739,9 +807,21 @@ pub extern fn vcx_wallet_close_search(command_handle: CommandHandle,
            command_handle, search_handle);
 
     spawn(move || {
-        trace!("vcx_wallet_close_search(command_handle: {}, rc: {})",
-               command_handle, error::SUCCESS.as_str());
-        cb(command_handle, error::SUCCESS.code_num);
+        match wallet::close_search(search_handle) {
+            Ok(()) => {
+                trace!("vcx_wallet_close_search(command_handle: {}, rc: {})",
+                       command_handle, error::SUCCESS.as_str());
+
+                cb(command_handle, error::SUCCESS.code_num);
+            }
+            Err(x) => {
+                trace!("vcx_wallet_close_search(command_handle: {}, rc: {})",
+                       command_handle, x);
+
+                cb(command_handle, x.into());
+            }
+        };
+
         Ok(())
     });
 
@@ -757,7 +837,8 @@ pub extern fn vcx_wallet_close_search(command_handle: CommandHandle,
 /// command_handle: Handle for User's Reference only.
 /// path: Path to export wallet to User's File System.
 /// backup_key: String representing the User's Key for securing (encrypting) the exported Wallet.
-/// cb: Callback that provides the success/failure of the api call.
+/// cb: Callback that provides error status of function execution
+///
 /// #Returns
 /// Error code - success indicates that the api call was successfully created and execution
 /// is scheduled to begin in a separate thread.
