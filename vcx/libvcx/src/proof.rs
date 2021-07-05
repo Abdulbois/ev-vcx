@@ -4,27 +4,27 @@ use openssl;
 use openssl::bn::{BigNum, BigNumRef};
 
 use crate::connection::Connections;
-use settings;
-use api::{VcxStateType, ProofStateType};
-use messages;
-use messages::proofs::proof_message::{ProofMessage, CredInfo};
-use messages::{RemoteMessageType, GeneralMessage};
-use messages::payload::{Payloads, PayloadKinds};
-use messages::thread::Thread;
-use messages::get_message::get_ref_msg;
-use messages::proofs::proof_request::{ProofRequestMessage, ProofRequestVersion};
-use utils::error;
-use utils::constants::*;
-use utils::libindy::anoncreds;
-use object_cache::{ObjectCache, Handle};
-use error::prelude::*;
-use utils::openssl::encode;
-use utils::qualifier;
-use messages::proofs::proof_message::get_credential_info;
+use crate::settings;
+use crate::api::{VcxStateType, ProofStateType};
+use crate::messages;
+use crate::messages::proofs::proof_message::{ProofMessage, CredInfo};
+use crate::messages::{RemoteMessageType, GeneralMessage};
+use crate::messages::payload::{Payloads, PayloadKinds};
+use crate::messages::thread::Thread;
+use crate::messages::get_message::get_ref_msg;
+use crate::messages::proofs::proof_request::{ProofRequestMessage, ProofRequestVersion};
+use crate::utils::error;
+use crate::utils::constants::*;
+use crate::utils::libindy::anoncreds;
+use crate::object_cache::{ObjectCache, Handle};
+use crate::error::prelude::*;
+use crate::utils::openssl::encode;
+use crate::utils::qualifier;
+use crate::messages::proofs::proof_message::get_credential_info;
 
-use v3::handlers::proof_presentation::verifier::verifier::Verifier;
-use utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
-use v3::messages::proof_presentation::presentation_proposal::PresentationProposal;
+use crate::v3::handlers::proof_presentation::verifier::verifier::Verifier;
+use crate::utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
+use crate::v3::messages::proof_presentation::presentation_proposal::PresentationProposal;
 
 lazy_static! {
     static ref PROOF_MAP: ObjectCache<Proofs> = Default::default();
@@ -522,7 +522,7 @@ impl Proof {
 
     #[cfg(test)]
     fn from_str(data: &str) -> VcxResult<Proof> {
-        use messages::ObjectWithVersion;
+        use crate::messages::ObjectWithVersion;
         ObjectWithVersion::deserialize(data)
             .map(|obj: ObjectWithVersion<Proof>| obj.data)
             .map_err(|err| err.extend("Cannot deserialize Proof"))
@@ -886,12 +886,12 @@ pub fn generate_nonce() -> VcxResult<String> {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use connection::tests::build_test_connection;
-    use utils::libindy::pool;
-    use utils::devsetup::*;
-    use utils::httpclient::AgencyMock;
+    use crate::connection::tests::build_test_connection;
+    use crate::utils::libindy::pool;
+    use crate::utils::devsetup::*;
+    use crate::utils::httpclient::AgencyMock;
     
-    use v3::messages::proof_presentation::presentation_proposal::PresentationPreview;
+    use crate::v3::messages::proof_presentation::presentation_proposal::PresentationPreview;
 
     fn default_agent_info(connection_handle: Option<Handle<Connections>>) -> MyAgentInfo {
         if let Some(h) = connection_handle { get_agent_info().unwrap().pw_info(h).unwrap() } else {
@@ -1426,7 +1426,7 @@ pub mod tests {
     fn test_proof_verification() {
         let _setup = SetupLibraryWalletPoolZeroFees::init();
 
-        let (_, _, proof_req, proof) = ::utils::libindy::anoncreds::tests::create_proof();
+        let (_, _, proof_req, proof) = crate::utils::libindy::anoncreds::tests::create_proof();
 
         let mut proof_req_obj = ProofRequestMessage::create();
         proof_req_obj.proof_request_data = serde_json::from_str(&proof_req).unwrap();
@@ -1449,7 +1449,7 @@ pub mod tests {
     fn test_self_attested_proof_verification() {
         let _setup = SetupLibraryWalletPoolZeroFees::init();
 
-        let (proof_req, proof) = ::utils::libindy::anoncreds::tests::create_self_attested_proof();
+        let (proof_req, proof) = crate::utils::libindy::anoncreds::tests::create_self_attested_proof();
 
         let mut proof_req_obj = ProofRequestMessage::create();
         proof_req_obj.proof_request_data = serde_json::from_str(&proof_req).unwrap();
@@ -1487,7 +1487,7 @@ pub mod tests {
            "requested_predicates": {},
         }).to_string();
 
-        let (_, _, _, proof) = ::utils::libindy::anoncreds::tests::create_proof();
+        let (_, _, _, proof) = crate::utils::libindy::anoncreds::tests::create_proof();
 
         let mut proof_req_obj = ProofRequestMessage::create();
         proof_req_obj.proof_request_data = serde_json::from_str(&proof_req).unwrap();
@@ -1521,7 +1521,7 @@ pub mod tests {
     fn test_proof_validate_attribute() {
         let _setup = SetupLibraryWalletPoolZeroFees::init();
 
-        let (_, _, proof_req, proof_json) = ::utils::libindy::anoncreds::tests::create_proof();
+        let (_, _, proof_req, proof_json) = crate::utils::libindy::anoncreds::tests::create_proof();
 
         let mut proof_req_obj = ProofRequestMessage::create();
 

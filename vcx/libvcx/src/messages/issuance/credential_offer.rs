@@ -1,9 +1,9 @@
-use error::prelude::*;
+use crate::error::prelude::*;
 use serde_json::Value;
 
-use issuer_credential::PaymentInfo;
-use messages::thread::Thread;
-use utils::libindy::anoncreds::ensure_credential_definition_contains_offered_attributes;
+use crate::issuer_credential::PaymentInfo;
+use crate::messages::thread::Thread;
+use crate::utils::libindy::anoncreds::ensure_credential_definition_contains_offered_attributes;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct CredentialOffer {

@@ -1,13 +1,13 @@
-use utils::{threadpool, get_temp_dir_path};
-use ::{settings, utils};
+use crate::utils::{threadpool, get_temp_dir_path};
+use crate::{settings, utils};
 use std::fs;
-use utils::libindy::wallet::{reset_wallet_handle, delete_wallet, create_wallet};
-use ::messages::agent_provisioning::agent_provisioning_v0_7::provision;
-use utils::libindy::pool::reset_pool_handles;
-use settings::set_defaults;
+use crate::utils::libindy::wallet::{reset_wallet_handle, delete_wallet, create_wallet};
+use crate::messages::agent_provisioning::agent_provisioning_v0_7::provision;
+use crate::utils::libindy::pool::reset_pool_handles;
+use crate::settings::set_defaults;
 use futures::Future;
 use std::sync::Once;
-use utils::libindy::crypto::sign;
+use crate::utils::libindy::crypto::sign;
 
 pub struct SetupEmpty; // empty
 
@@ -340,18 +340,18 @@ macro_rules! assert_match {
     );
 }
 
-use utils::constants;
-use utils::libindy::wallet;
-use object_cache::{ObjectCache, Handle};
+use crate::utils::constants;
+use crate::utils::libindy::wallet;
+use crate::object_cache::{ObjectCache, Handle};
 
-use indy::WalletHandle;
-use utils::libindy::wallet::init_wallet;
-use utils::plugins::init_plugin;
-use utils::libindy::pool::tests::{open_test_pool, delete_test_pool, create_test_pool};
-use utils::file::write_file;
-use utils::logger::LibvcxDefaultLogger;
-use settings::wallet::get_wallet_name;
-use messages::agent_provisioning;
+use crate::indy::WalletHandle;
+use crate::utils::libindy::wallet::init_wallet;
+use crate::utils::plugins::init_plugin;
+use crate::utils::libindy::pool::tests::{open_test_pool, delete_test_pool, create_test_pool};
+use crate::utils::file::write_file;
+use crate::utils::logger::LibvcxDefaultLogger;
+use crate::settings::wallet::get_wallet_name;
+use crate::messages::agent_provisioning;
 
 static mut INSTITUTION_CONFIG: Handle<String> = Handle::dummy();
 static mut CONSUMER_CONFIG: Handle<String> = Handle::dummy();
@@ -441,13 +441,13 @@ pub fn setup_indy_env(use_zero_fees: bool) {
     settings::set_config_value(settings::CONFIG_GENESIS_PATH, utils::get_temp_dir_path(settings::DEFAULT_GENESIS_PATH).to_str().unwrap());
     open_test_pool();
 
-    ::utils::libindy::anoncreds::libindy_prover_create_master_secret(settings::DEFAULT_LINK_SECRET_ALIAS).unwrap();
+    crate::utils::libindy::anoncreds::libindy_prover_create_master_secret(settings::DEFAULT_LINK_SECRET_ALIAS).unwrap();
 
-    let (my_did, my_vk) = ::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
+    let (my_did, my_vk) = crate::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
     settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &my_did);
     settings::set_config_value(settings::CONFIG_INSTITUTION_VERKEY, &my_vk);
 
-    ::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
+    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
 }
 
 pub fn cleanup_indy_env() {
@@ -517,7 +517,7 @@ pub fn setup_agency_env(protocol_type: &str, use_zero_fees: bool) {
 
     let enterprise_config = agent_provisioning::provision(&config.to_string()).unwrap();
 
-    ::api::vcx::vcx_shutdown(false);
+    crate::api::vcx::vcx_shutdown(false);
 
     let consumer_wallet_name = format!("{}_{}", constants::CONSUMER_PREFIX, settings::DEFAULT_WALLET_NAME);
     let seed2 = create_new_seed();
@@ -559,19 +559,19 @@ pub fn setup_agency_env(protocol_type: &str, use_zero_fees: bool) {
 
     // make enterprise and consumer trustees on the ledger
     wallet::init_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
-    let (trustee_did, _) = ::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
-    let req_nym = ::indy::ledger::build_nym_request(&trustee_did, &did1, Some(&vk1), None, Some("TRUSTEE")).wait().unwrap();
-    ::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
-    let req_nym = ::indy::ledger::build_nym_request(&trustee_did, &did2, Some(&vk2), None, Some("TRUSTEE")).wait().unwrap();
-    ::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
+    let (trustee_did, _) = crate::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
+    let req_nym = crate::indy::ledger::build_nym_request(&trustee_did, &did1, Some(&vk1), None, Some("TRUSTEE")).wait().unwrap();
+    crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
+    let req_nym = crate::indy::ledger::build_nym_request(&trustee_did, &did2, Some(&vk2), None, Some("TRUSTEE")).wait().unwrap();
+    crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
     wallet::delete_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
 
     // as trustees, mint tokens into each wallet
     set_consumer();
-    ::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
+    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
 
     set_institution();
-    ::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
+    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
 }
 
 pub fn sign_provision_token(keys: &str, nonce: &str, time: &str, sponsee_id: &str, sponsor_id: &str) -> String {
@@ -588,9 +588,9 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, use_zero_fees: bool) {
     let sponsor_id = "evernym-test-sponsorabc123";
     let nonce = "nonce";
     let time = chrono::offset::Utc::now().to_rfc3339();
-    let enterprise_wallet_name = format!("{}_{}", ::utils::constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
+    let enterprise_wallet_name = format!("{}_{}", crate::utils::constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
     wallet::init_wallet(&enterprise_wallet_name, None, None, None).unwrap();
-    let keys = ::utils::libindy::crypto::create_key(Some("000000000000000000000000Trustee1")).unwrap();
+    let keys = crate::utils::libindy::crypto::create_key(Some("000000000000000000000000Trustee1")).unwrap();
     let sig = sign_provision_token(&keys, nonce, &time, sponsee_id, sponsor_id);
     wallet::close_wallet().err();
     wallet::delete_wallet(&enterprise_wallet_name, None, None, None).err();
@@ -623,7 +623,7 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, use_zero_fees: bool) {
 
     let enterprise_config = provision(&config.to_string(), &test_token).unwrap();
 
-    ::api::vcx::vcx_shutdown(false);
+    crate::api::vcx::vcx_shutdown(false);
 
     let consumer_wallet_name = format!("{}_{}", constants::CONSUMER_PREFIX, settings::DEFAULT_WALLET_NAME);
     let seed2 = create_new_seed();
@@ -665,19 +665,19 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, use_zero_fees: bool) {
 
     // make enterprise and consumer trustees on the ledger
     wallet::init_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
-    let (trustee_did, _) = ::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
-    let req_nym = ::indy::ledger::build_nym_request(&trustee_did, &did1, Some(&vk1), None, Some("TRUSTEE")).wait().unwrap();
-    ::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
-    let req_nym = ::indy::ledger::build_nym_request(&trustee_did, &did2, Some(&vk2), None, Some("TRUSTEE")).wait().unwrap();
-    ::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
+    let (trustee_did, _) = crate::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
+    let req_nym = crate::indy::ledger::build_nym_request(&trustee_did, &did1, Some(&vk1), None, Some("TRUSTEE")).wait().unwrap();
+    crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
+    let req_nym = crate::indy::ledger::build_nym_request(&trustee_did, &did2, Some(&vk2), None, Some("TRUSTEE")).wait().unwrap();
+    crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
     wallet::delete_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
 
     // as trustees, mint tokens into each wallet
     set_consumer();
-    ::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
+    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
 
     set_institution();
-    ::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
+    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
 
 }
 
@@ -781,7 +781,7 @@ mod tests {
     pub fn test_two_enterprise_connections() {
         let _setup = SetupLibraryAgencyV1ZeroFees::init();
 
-        let (_faber, _alice) = ::connection::tests::create_connected_connections();
-        let (_faber, _alice) = ::connection::tests::create_connected_connections();
+        let (_faber, _alice) = crate::connection::tests::create_connected_connections();
+        let (_faber, _alice) = crate::connection::tests::create_connected_connections();
     }
 }

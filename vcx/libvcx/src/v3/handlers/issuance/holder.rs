@@ -1,28 +1,28 @@
-use api::VcxStateType;
+use crate::api::VcxStateType;
 
-use v3::handlers::issuance::states::{HolderState, OfferReceivedState, RequestSentState, FinishedHolderState};
-use v3::handlers::issuance::messages::CredentialIssuanceMessage;
-use v3::messages::issuance::credential::Credential;
-use v3::messages::issuance::credential_offer::CredentialOffer;
-use v3::messages::issuance::credential_request::CredentialRequest;
-use v3::messages::issuance::credential_ack::CredentialAck;
-use v3::messages::error::{ProblemReport, ProblemReportCodes, Reason};
-use v3::messages::a2a::A2AMessage;
-use v3::messages::status::Status;
-use v3::handlers::connection::types::CompletedConnection;
+use crate::v3::handlers::issuance::states::{HolderState, OfferReceivedState, RequestSentState, FinishedHolderState};
+use crate::v3::handlers::issuance::messages::CredentialIssuanceMessage;
+use crate::v3::messages::issuance::credential::Credential;
+use crate::v3::messages::issuance::credential_offer::CredentialOffer;
+use crate::v3::messages::issuance::credential_request::CredentialRequest;
+use crate::v3::messages::issuance::credential_ack::CredentialAck;
+use crate::v3::messages::error::{ProblemReport, ProblemReportCodes, Reason};
+use crate::v3::messages::a2a::A2AMessage;
+use crate::v3::messages::status::Status;
+use crate::v3::handlers::connection::types::CompletedConnection;
 
-use utils::libindy::anoncreds::{self, libindy_prover_store_credential, libindy_prover_delete_credential, prover_get_credential};
-use error::prelude::*;
+use crate::utils::libindy::anoncreds::{self, libindy_prover_store_credential, libindy_prover_delete_credential, prover_get_credential};
+use crate::error::prelude::*;
 use std::collections::HashMap;
 
 use crate::object_cache::Handle;
 use crate::connection::Connections;
-use ::{credential, settings};
-use v3::handlers::connection::agent::AgentInfo;
-use messages::thread::Thread;
-use v3::handlers::connection::connection::Connection;
-use utils::libindy::signus::create_and_store_my_did;
-use utils::libindy::types::CredentialInfo;
+use crate::{credential, settings};
+use crate::v3::handlers::connection::agent::AgentInfo;
+use crate::messages::thread::Thread;
+use crate::v3::handlers::connection::connection::Connection;
+use crate::utils::libindy::signus::create_and_store_my_did;
+use crate::utils::libindy::types::CredentialInfo;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HolderSM {
@@ -465,14 +465,14 @@ fn _reject_credential(connection: &CompletedConnection, thread: &Thread, comment
 mod test {
     use super::*;
 
-    use utils::devsetup::SetupAriesMocks;
-    use v3::handlers::connection::tests::mock_connection;
-    use v3::test::source_id;
-    use v3::messages::issuance::credential::tests::_credential;
-    use v3::messages::issuance::credential_offer::tests::_credential_offer;
-    use v3::messages::issuance::credential_request::tests::_credential_request;
-    use v3::messages::issuance::credential_proposal::tests::_credential_proposal;
-    use v3::messages::issuance::test::{_ack, _problem_report};
+    use crate::utils::devsetup::SetupAriesMocks;
+    use crate::v3::handlers::connection::tests::mock_connection;
+    use crate::v3::test::source_id;
+    use crate::v3::messages::issuance::credential::tests::_credential;
+    use crate::v3::messages::issuance::credential_offer::tests::_credential_offer;
+    use crate::v3::messages::issuance::credential_request::tests::_credential_request;
+    use crate::v3::messages::issuance::credential_proposal::tests::_credential_proposal;
+    use crate::v3::messages::issuance::test::{_ack, _problem_report};
 
     fn _holder_sm() -> HolderSM {
         HolderSM::new(_credential_offer(), source_id())

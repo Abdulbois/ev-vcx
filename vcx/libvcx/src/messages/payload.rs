@@ -1,11 +1,11 @@
-use messages::message_type::*;
-use messages::i8_as_u8_slice;
-use messages::get_message::MessagePayload;
-use settings::get_protocol_type;
-use settings::protocol::ProtocolTypes;
-use utils::libindy::crypto;
-use error::prelude::*;
-use messages::thread::Thread;
+use crate::messages::message_type::*;
+use crate::messages::i8_as_u8_slice;
+use crate::messages::get_message::MessagePayload;
+use crate::settings::get_protocol_type;
+use crate::settings::protocol::ProtocolTypes;
+use crate::utils::libindy::crypto;
+use crate::error::prelude::*;
+use crate::messages::thread::Thread;
 
 #[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(untagged)]

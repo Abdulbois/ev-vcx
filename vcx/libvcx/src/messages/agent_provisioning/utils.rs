@@ -1,14 +1,14 @@
-use error::prelude::*;
-use messages::agent_provisioning::types::ProvisioningConfig;
-use settings;
-use settings::agency::get_agency_config_values;
-use utils::option_util::get_or_default;
-use utils::libindy::signus::create_and_store_my_did;
-use utils::libindy::{wallet, anoncreds};
-use settings::protocol::ProtocolTypes;
-use messages::{prepare_message_for_agency, parse_response_from_agency, A2AMessage};
-use utils::httpclient;
-use messages::update_agent::update_agent_profile;
+use crate::error::prelude::*;
+use crate::messages::agent_provisioning::types::ProvisioningConfig;
+use crate::settings;
+use crate::settings::agency::get_agency_config_values;
+use crate::utils::option_util::get_or_default;
+use crate::utils::libindy::signus::create_and_store_my_did;
+use crate::utils::libindy::{wallet, anoncreds};
+use crate::settings::protocol::ProtocolTypes;
+use crate::messages::{prepare_message_for_agency, parse_response_from_agency, A2AMessage};
+use crate::utils::httpclient;
+use crate::messages::update_agent::update_agent_profile;
 
 pub fn process_provisioning_config(config_json: &str) -> VcxResult<ProvisioningConfig> {
     let config: ProvisioningConfig = ::serde_json::from_str(&config_json)
@@ -70,7 +70,7 @@ pub fn configure_wallet(my_config: &ProvisioningConfig) -> VcxResult<(String, St
     trace!("initialized wallet");
 
     // If MS is already in wallet then just continue
-    anoncreds::libindy_prover_create_master_secret(::settings::DEFAULT_LINK_SECRET_ALIAS).ok();
+    anoncreds::libindy_prover_create_master_secret(settings::DEFAULT_LINK_SECRET_ALIAS).ok();
 
     let (my_did, my_vk) = create_and_store_my_did(
         my_config.agent_seed.as_ref().map(String::as_str),

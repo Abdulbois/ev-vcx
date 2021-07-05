@@ -1,11 +1,11 @@
-use v3::messages::a2a::{MessageId, A2AMessage};
+use crate::v3::messages::a2a::{MessageId, A2AMessage};
 use chrono::prelude::*;
-use messages::thread::Thread;
-use v3::messages::a2a::message_type::MessageType;
-use v3::messages::a2a::message_family::MessageFamilies;
-use v3::messages::questionanswer::question::Question;
-use utils::libindy::crypto;
-use error::prelude::*;
+use crate::messages::thread::Thread;
+use crate::v3::messages::a2a::message_type::MessageType;
+use crate::v3::messages::a2a::message_family::MessageFamilies;
+use crate::v3::messages::questionanswer::question::Question;
+use crate::utils::libindy::crypto;
+use crate::error::prelude::*;
 use sha2::{Sha512, Digest};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -126,9 +126,9 @@ a2a_message!(Answer);
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::connection::response::tests::*;
-    use utils::libindy::tests::test_setup;
-    use v3::messages::questionanswer::question::tests::_question;
+    use crate::v3::messages::connection::response::tests::*;
+    use crate::utils::libindy::tests::test_setup;
+    use crate::v3::messages::questionanswer::question::tests::_question;
 
     fn _response() -> String {
         String::from("Yes, it's me".to_string())

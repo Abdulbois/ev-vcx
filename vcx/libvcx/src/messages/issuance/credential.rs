@@ -1,8 +1,8 @@
-use messages::issuance::credential_offer::CredentialOffer;
-use error::prelude::*;
-use utils::libindy::types::Credential as IndyCredential;
-use utils::libindy::types::CredentialOffer as IndyCredentialOffer;
-use settings;
+use crate::messages::issuance::credential_offer::CredentialOffer;
+use crate::error::prelude::*;
+use crate::utils::libindy::types::Credential as IndyCredential;
+use crate::utils::libindy::types::CredentialOffer as IndyCredentialOffer;
+use crate::settings;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct CredentialMessage {

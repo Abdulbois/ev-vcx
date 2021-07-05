@@ -1,4 +1,4 @@
-use indy::ErrorCode;
+use crate::indy::ErrorCode;
 
 pub fn init_mysql_wallet() -> Result<(), ErrorCode> {
     debug!("initializing mysql wallet");

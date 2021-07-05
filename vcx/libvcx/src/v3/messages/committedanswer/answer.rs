@@ -1,8 +1,8 @@
-use v3::messages::a2a::{MessageId, A2AMessage};
-use messages::thread::Thread;
-use v3::messages::committedanswer::question::{Question, QuestionResponse};
-use error::VcxResult;
-use utils::libindy::crypto;
+use crate::v3::messages::a2a::{MessageId, A2AMessage};
+use crate::messages::thread::Thread;
+use crate::v3::messages::committedanswer::question::{Question, QuestionResponse};
+use crate::error::VcxResult;
+use crate::utils::libindy::crypto;
 #[cfg(any(not(test)))]
 use chrono::Utc;
 
@@ -92,7 +92,7 @@ threadlike!(Answer);
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::connection::response::tests::*;
+    use crate::v3::messages::connection::response::tests::*;
 
     fn _answer_text() -> String {
         String::from("Yes, it's me".to_string())

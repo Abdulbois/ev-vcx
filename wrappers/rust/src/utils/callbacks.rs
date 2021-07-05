@@ -1,7 +1,7 @@
 #![warn(dead_code)]
 
-use ::{ErrorCode, IndyError};
-use ffi::{WalletHandle, CommandHandle};
+use crate::{ErrorCode, IndyError};
+use crate::ffi::{WalletHandle, CommandHandle};
 
 use libc::c_char;
 
@@ -51,7 +51,7 @@ macro_rules! cb_ec {
 
         let (rx, command_handle) = {
             let (tx, rx) = oneshot::channel();
-            let command_handle : CommandHandle = ::utils::sequence::SequenceUtils::get_next_id();
+            let command_handle : CommandHandle = crate::utils::sequence::SequenceUtils::get_next_id();
             let mut callbacks = $cbs.lock().unwrap();
             callbacks.insert(command_handle, tx);
             (rx, command_handle)
@@ -170,7 +170,8 @@ mod test {
         let (receiver, command_handle, cb) = ClosureHandler::cb_ec_string_opt_string();
 
         let callback = cb.unwrap();
-        callback(command_handle, 0, CString::new("This is a test").unwrap().as_ptr(), null());
+        let cstr = CString::new("This is a test").unwrap();
+        callback(command_handle, 0, cstr.as_ptr(), null());
 
         let (str1, str2) = receiver.wait().unwrap().unwrap();
         assert_eq!(str1, "This is a test".to_string());
@@ -182,7 +183,9 @@ mod test {
         let (receiver, command_handle, cb) = ClosureHandler::cb_ec_string_opt_string();
 
         let callback = cb.unwrap();
-        callback(command_handle, 0, CString::new("This is a test").unwrap().as_ptr(), CString::new("The second string has something").unwrap().as_ptr());
+        let cstr = CString::new("This is a test").unwrap();
+        let cstr2 = CString::new("The second string has something").unwrap();
+        callback(command_handle, 0, cstr.as_ptr(), cstr2.as_ptr());
 
         let (str1, str2) = receiver.wait().unwrap().unwrap();
         assert_eq!(str1, "This is a test".to_string());

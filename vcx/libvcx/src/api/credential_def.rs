@@ -1,14 +1,13 @@
-use serde_json;
 use crate::object_cache::Handle;
 use crate::credential_def::CredentialDef;
 use libc::c_char;
-use utils::cstring::CStringUtils;
-use utils::error;
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
 use std::ptr;
-use credential_def;
-use settings;
-use utils::threadpool::spawn;
-use error::prelude::*;
+use crate::credential_def;
+use crate::settings;
+use crate::utils::threadpool::spawn;
+use crate::error::prelude::*;
 use indy_sys::CommandHandle;
 
 /// Create a new CredentialDef object and publish correspondent record on the ledger
@@ -592,14 +591,12 @@ pub extern fn vcx_credentialdef_get_state(command_handle: CommandHandle,
 
 #[cfg(test)]
 mod tests {
-    extern crate serde_json;
-
     use super::*;
     use std::ffi::CString;
-    use settings;
-    use api::return_types;
-    use utils::constants::{SCHEMA_ID, SCHEMA_ID_CSTR};
-    use utils::devsetup::*;
+    use crate::settings;
+    use crate::api::return_types;
+    use crate::utils::constants::{SCHEMA_ID, SCHEMA_ID_CSTR};
+    use crate::utils::devsetup::*;
 
     const TEST_SOURCE_ID: *const c_char = "Test Source ID\0".as_ptr().cast();
     const TEST_CRED_DEF: *const c_char = "Test Credential Def\0".as_ptr().cast();
@@ -782,7 +779,7 @@ mod tests {
         let (_handle, cred_def_transaction, rev_reg_def_transaction, rev_reg_delta_transaction) = r.recv_short().unwrap();
         let cred_def_transaction = cred_def_transaction.unwrap();
         let cred_def_transaction: serde_json::Value = serde_json::from_str(&cred_def_transaction).unwrap();
-        let expected_cred_def_transaction: serde_json::Value = serde_json::from_str(::utils::constants::REQUEST_WITH_ENDORSER).unwrap();
+        let expected_cred_def_transaction: serde_json::Value = serde_json::from_str(crate::utils::constants::REQUEST_WITH_ENDORSER).unwrap();
         assert_eq!(expected_cred_def_transaction, cred_def_transaction);
         assert!(rev_reg_def_transaction.is_none());
         assert!(rev_reg_delta_transaction.is_none());
@@ -807,7 +804,7 @@ mod tests {
         let (_handle, cred_def_transaction, rev_reg_def_transaction, rev_reg_delta_transaction) = r.recv_short().unwrap();
         let cred_def_transaction = cred_def_transaction.unwrap();
         let cred_def_transaction: serde_json::Value = serde_json::from_str(&cred_def_transaction).unwrap();
-        let expected_cred_def_transaction: serde_json::Value = serde_json::from_str(::utils::constants::REQUEST_WITH_ENDORSER).unwrap();
+        let expected_cred_def_transaction: serde_json::Value = serde_json::from_str(crate::utils::constants::REQUEST_WITH_ENDORSER).unwrap();
         assert_eq!(expected_cred_def_transaction, cred_def_transaction);
         assert!(rev_reg_def_transaction.is_some());
         assert!(rev_reg_delta_transaction.is_some());
@@ -827,17 +824,17 @@ mod tests {
         {
             let (h, cb, r) = return_types::return_u32_u32();
             let _rc = vcx_credentialdef_get_state(h, handle, Some(cb));
-            assert_eq!(r.recv_medium().unwrap(), ::api::PublicEntityStateType::Built as u32)
+            assert_eq!(r.recv_medium().unwrap(), crate::api::PublicEntityStateType::Built as u32)
         }
         {
             let (h, cb, r) = return_types::return_u32_u32();
             let _rc = vcx_credentialdef_update_state(h, handle, Some(cb));
-            assert_eq!(r.recv_medium().unwrap(), ::api::PublicEntityStateType::Published as u32);
+            assert_eq!(r.recv_medium().unwrap(), crate::api::PublicEntityStateType::Published as u32);
         }
         {
             let (h, cb, r) = return_types::return_u32_u32();
             let _rc = vcx_credentialdef_get_state(h, handle, Some(cb));
-            assert_eq!(r.recv_medium().unwrap(), ::api::PublicEntityStateType::Published as u32)
+            assert_eq!(r.recv_medium().unwrap(), crate::api::PublicEntityStateType::Published as u32)
         }
     }
 }

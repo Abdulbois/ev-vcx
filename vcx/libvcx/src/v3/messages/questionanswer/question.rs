@@ -1,7 +1,7 @@
-use v3::messages::a2a::{MessageId, A2AMessage};
-use proof::generate_nonce;
-use error::VcxResult;
-use messages::thread::Thread;
+use crate::v3::messages::a2a::{MessageId, A2AMessage};
+use crate::proof::generate_nonce;
+use crate::error::VcxResult;
+use crate::messages::thread::Thread;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Question {

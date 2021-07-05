@@ -1,5 +1,5 @@
 use libc::c_char;
-use utils::libindy::wallet;
+use crate::utils::libindy::wallet;
 
 extern {
     fn indy_pack_message(command_handle: i32,

@@ -6,12 +6,13 @@ pub mod types;
 
 #[cfg(test)]
 pub mod tests {
-    use v3::messages::connection::invite::Invitation;
-    use v3::messages::connection::response::Response;
-    use v3::messages::connection::did_doc::tests::_service_endpoint;
-    use v3::messages::connection::request::tests::_request;
+    use crate::v3::messages::connection::invite::Invitation;
+    use crate::v3::messages::connection::response::Response;
+    use crate::v3::messages::connection::did_doc::tests::_service_endpoint;
+    use crate::v3::messages::connection::request::tests::_request;
     use crate::connection::Connections;
     use crate::object_cache::Handle;
+    use crate::settings;
 
     pub fn mock_connection() -> Handle<Connections> {
         let key = "GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL".to_string();
@@ -19,7 +20,7 @@ pub mod tests {
             Invitation::default()
                 .set_recipient_keys(vec![key.clone()]);
 
-        let connection_handle = ::connection::create_connection_with_invite("source_id", &json!(invitation).to_string()).unwrap();
+        let connection_handle = crate::connection::create_connection_with_invite("source_id", &json!(invitation).to_string()).unwrap();
 
         connection_handle.connect(None).unwrap();
 
@@ -35,7 +36,7 @@ pub mod tests {
     }
 
     fn _setup() {
-        ::settings::set_config_value(::settings::CONFIG_PROTOCOL_TYPE, "3.0");
+        settings::set_config_value(settings::CONFIG_PROTOCOL_TYPE, "3.0");
     }
 
     fn _source_id() -> &'static str {
@@ -46,15 +47,15 @@ pub mod tests {
     mod aries {
         use super::*;
 
-        use v3::test::{Faber, Alice};
-        use v3::messages::ack::tests::_ack;
-        use v3::messages::a2a::A2AMessage;
-        use v3::messages::connection::invite::tests::_invitation_json;
+        use crate::v3::test::{Faber, Alice};
+        use crate::v3::messages::ack::tests::_ack;
+        use crate::v3::messages::a2a::A2AMessage;
+        use crate::v3::messages::connection::invite::tests::_invitation_json;
 
         #[test]
         fn test_create_connection_works() {
             _setup();
-            let connection_handle = ::connection::create_connection(_source_id()).unwrap();
+            let connection_handle = crate::connection::create_connection(_source_id()).unwrap();
             assert!(connection_handle.is_valid_handle());
             assert_eq!(1, connection_handle.get_state());
         }
@@ -62,7 +63,7 @@ pub mod tests {
         #[test]
         fn test_create_connection_with_invite_works() {
             _setup();
-            let connection_handle = ::connection::create_connection_with_invite(_source_id(), &_invitation_json()).unwrap();
+            let connection_handle = crate::connection::create_connection_with_invite(_source_id(), &_invitation_json()).unwrap();
             assert!(connection_handle.is_valid_handle());
             assert_eq!(2, connection_handle.get_state());
         }
@@ -70,7 +71,7 @@ pub mod tests {
         #[test]
         fn test_get_connection_state_works() {
             _setup();
-            let connection_handle = ::connection::create_connection(_source_id()).unwrap();
+            let connection_handle = crate::connection::create_connection(_source_id()).unwrap();
             assert_eq!(1, connection_handle.get_state());
         }
 
@@ -111,7 +112,7 @@ pub mod tests {
                 }
             }
 
-            let _res = ::messages::get_message::download_messages(None, None, Some(vec![uid.clone()])).unwrap();
+            let _res = crate::messages::get_message::download_messages(None, None, Some(vec![uid.clone()])).unwrap();
 
             // Get Message by id works
             {
@@ -157,9 +158,9 @@ pub mod tests {
 
             // Download Messages
             {
-                use messages::get_message::{download_messages, MessageByConnection, Message};
+                use crate::messages::get_message::{download_messages, MessageByConnection, Message};
 
-                let credential_offer = ::v3::messages::issuance::credential_offer::tests::_credential_offer();
+                let credential_offer = crate::v3::messages::issuance::credential_offer::tests::_credential_offer();
 
                 faber.send_message(&credential_offer.to_a2a_message());
 
@@ -167,9 +168,9 @@ pub mod tests {
 
                 let messages: Vec<MessageByConnection> = download_messages(None, Some(vec!["MS-103".to_string()]), None).unwrap();
                 let message: Message = messages[0].msgs[0].clone();
-                assert_eq!(::messages::RemoteMessageType::Other("aries".to_string()), message.msg_type);
-                let payload: ::messages::payload::PayloadV1 = ::serde_json::from_str(&message.decrypted_payload.unwrap()).unwrap();
-                let _payload: Vec<::messages::issuance::credential_offer::CredentialOffer> = ::serde_json::from_str(&payload.msg).unwrap();
+                assert_eq!(crate::messages::RemoteMessageType::Other("aries".to_string()), message.msg_type);
+                let payload: crate::messages::payload::PayloadV1 = ::serde_json::from_str(&message.decrypted_payload.unwrap()).unwrap();
+                let _payload: Vec<crate::messages::issuance::credential_offer::CredentialOffer> = ::serde_json::from_str(&payload.msg).unwrap();
 
                 alice.update_message_status(message.uid);
 

@@ -1,23 +1,22 @@
-use v3::messages::connection::invite::Invitation;
-use v3::messages::connection::request::Request;
-use v3::messages::connection::response::SignedResponse;
-use v3::messages::connection::problem_report::ProblemReport;
-use v3::messages::trust_ping::ping::Ping;
-use v3::messages::trust_ping::ping_response::PingResponse;
-use v3::messages::ack::Ack;
-use v3::messages::discovery::query::Query;
-use v3::messages::discovery::disclose::Disclose;
-use v3::messages::a2a::A2AMessage;
-use v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
-use v3::messages::outofband::handshake_reuse::HandshakeReuse;
-use v3::messages::outofband::handshake_reuse_accepted::HandshakeReuseAccepted;
-use v3::messages::questionanswer::question::{Question, QuestionResponse};
-use v3::messages::questionanswer::answer::Answer;
-use v3::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
-use v3::messages::committedanswer::answer::Answer as CommitedAnswer;
-use v3::messages::invite_action::invite::{Invite as InviteForAction};
-use connection::ConnectionOptions;
-
+use crate::v3::messages::connection::invite::Invitation;
+use crate::v3::messages::connection::request::Request;
+use crate::v3::messages::connection::problem_report::ProblemReport;
+use crate::v3::messages::trust_ping::ping::Ping;
+use crate::v3::messages::trust_ping::ping_response::PingResponse;
+use crate::v3::messages::ack::Ack;
+use crate::v3::messages::discovery::query::Query;
+use crate::v3::messages::discovery::disclose::Disclose;
+use crate::v3::messages::a2a::A2AMessage;
+use crate::v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
+use crate::v3::messages::outofband::handshake_reuse::HandshakeReuse;
+use crate::v3::messages::outofband::handshake_reuse_accepted::HandshakeReuseAccepted;
+use crate::v3::messages::questionanswer::question::{Question, QuestionResponse};
+use crate::v3::messages::questionanswer::answer::Answer;
+use crate::v3::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
+use crate::v3::messages::committedanswer::answer::Answer as CommitedAnswer;
+use crate::v3::messages::invite_action::invite::Invite as InviteForAction;
+use crate::connection::ConnectionOptions;
+use crate::v3::messages::connection::response::SignedResponse;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DidExchangeMessages {

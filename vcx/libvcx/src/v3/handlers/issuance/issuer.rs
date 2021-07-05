@@ -1,21 +1,21 @@
-use api::VcxStateType;
-use v3::handlers::issuance::messages::CredentialIssuanceMessage;
-use v3::handlers::issuance::states::{IssuerState, InitialState, RequestReceivedState};
-use v3::messages::a2a::A2AMessage;
-use v3::messages::issuance::credential_offer::CredentialOffer;
-use v3::messages::issuance::credential::Credential;
-use v3::messages::error::{ProblemReport, ProblemReportCodes};
-use v3::messages::mime_type::MimeType;
-use v3::messages::status::Status;
-use messages::thread::Thread;
+use crate::api::VcxStateType;
+use crate::v3::handlers::issuance::messages::CredentialIssuanceMessage;
+use crate::v3::handlers::issuance::states::{IssuerState, InitialState, RequestReceivedState};
+use crate::v3::messages::a2a::A2AMessage;
+use crate::v3::messages::issuance::credential_offer::CredentialOffer;
+use crate::v3::messages::issuance::credential::Credential;
+use crate::v3::messages::error::{ProblemReport, ProblemReportCodes};
+use crate::v3::messages::mime_type::MimeType;
+use crate::v3::messages::status::Status;
+use crate::messages::thread::Thread;
 
-use issuer_credential::encode_attributes;
+use crate::issuer_credential::encode_attributes;
 
-use utils::libindy::anoncreds::{self, libindy_issuer_create_credential_offer};
-use error::{VcxResult, VcxError, VcxErrorKind};
+use crate::utils::libindy::anoncreds::{self, libindy_issuer_create_credential_offer};
+use crate::error::{VcxResult, VcxError, VcxErrorKind};
 
 use std::collections::HashMap;
-use v3::handlers::connection::agent::AgentInfo;
+use crate::v3::handlers::connection::agent::AgentInfo;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IssuerSM {
@@ -374,14 +374,14 @@ impl RequestReceivedState {
 pub mod test {
     use super::*;
 
-    use utils::devsetup::SetupAriesMocks;
-    use v3::handlers::connection::tests::mock_connection;
-    use v3::test::source_id;
-    use v3::messages::issuance::test::{_ack, _problem_report};
-    use v3::messages::issuance::credential::tests::_credential;
-    use v3::messages::issuance::credential_request::tests::_credential_request;
-    use v3::messages::issuance::credential_proposal::tests::_credential_proposal;
-    use v3::messages::issuance::credential_offer::tests::_credential_offer;
+    use crate::utils::devsetup::SetupAriesMocks;
+    use crate::v3::handlers::connection::tests::mock_connection;
+    use crate::v3::test::source_id;
+    use crate::v3::messages::issuance::test::{_ack, _problem_report};
+    use crate::v3::messages::issuance::credential::tests::_credential;
+    use crate::v3::messages::issuance::credential_request::tests::_credential_request;
+    use crate::v3::messages::issuance::credential_proposal::tests::_credential_proposal;
+    use crate::v3::messages::issuance::credential_offer::tests::_credential_offer;
 
     fn _issuer_sm() -> IssuerSM {
         IssuerSM::new("test", &json!({"name": "alice"}).to_string(), None, None, &source_id(), "test")
@@ -423,7 +423,7 @@ pub mod test {
 
     mod handle_message {
         use super::*;
-        use v3::messages::issuance::credential_request::CredentialRequest;
+        use crate::v3::messages::issuance::credential_request::CredentialRequest;
 
         #[test]
         fn test_issuer_init() {

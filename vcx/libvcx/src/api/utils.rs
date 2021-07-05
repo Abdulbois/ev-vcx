@@ -1,20 +1,20 @@
 use serde_json;
 use libc::c_char;
-use messages;
+use crate::messages;
 use std::ptr;
-use utils::cstring::CStringUtils;
-use utils::error;
-use utils::threadpool::spawn;
-use utils::libindy::{payments, wallet};
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
+use crate::utils::threadpool::spawn;
+use crate::utils::libindy::{payments, wallet};
 use std::thread;
-use error::prelude::*;
+use crate::error::prelude::*;
 use indy_sys::CommandHandle;
-use utils::httpclient::AgencyMock;
-use utils::constants::*;
-use messages::agent_provisioning::types::ProvisioningConfig;
-use v3::handlers::connection::agent::AgentInfo;
-use messages::{agent_provisioning, update_agent};
-use messages::update_agent::ComMethod;
+use crate::utils::httpclient::AgencyMock;
+use crate::utils::constants::*;
+use crate::messages::agent_provisioning::types::ProvisioningConfig;
+use crate::v3::handlers::connection::agent::AgentInfo;
+use crate::messages::{agent_provisioning, update_agent};
+use crate::messages::update_agent::ComMethod;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
 ///
@@ -378,7 +378,7 @@ pub extern fn vcx_ledger_get_fees(command_handle: CommandHandle,
            command_handle);
 
     spawn(move || {
-        match ::utils::libindy::payments::get_ledger_fees() {
+        match crate::utils::libindy::payments::get_ledger_fees() {
             Ok(x) => {
                 trace!("vcx_ledger_get_fees_cb(command_handle: {}, rc: {}, fees: {})",
                        command_handle, error::SUCCESS.as_str(), x);
@@ -463,7 +463,7 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
            command_handle, message_status, uids);
 
     spawn(move || {
-        match ::messages::get_message::download_agent_messages(message_status, uids) {
+        match crate::messages::get_message::download_agent_messages(message_status, uids) {
             Ok(x) => {
                 match serde_json::to_string(&x) {
                     Ok(x) => {
@@ -568,7 +568,7 @@ pub extern fn vcx_messages_download(command_handle: CommandHandle,
            command_handle, message_status, uids, secret!(pw_dids));
 
     spawn(move || {
-        match ::messages::get_message::download_messages(pw_dids, message_status, uids) {
+        match crate::messages::get_message::download_messages(pw_dids, message_status, uids) {
             Ok(x) => {
                 match serde_json::to_string(&x) {
                     Ok(x) => {
@@ -629,7 +629,7 @@ pub extern fn vcx_download_message(command_handle: CommandHandle,
            command_handle, uid);
 
     spawn(move || {
-        match ::messages::get_message::download_message(uid) {
+        match crate::messages::get_message::download_message(uid) {
             Ok(message) => {
                 trace!("vcx_download_message_cb(command_handle: {}, rc: {}, message: {:?})",
                        command_handle, error::SUCCESS.as_str(), secret!(message));
@@ -688,7 +688,7 @@ pub extern fn vcx_messages_update_status(command_handle: CommandHandle,
            command_handle, message_status, secret!(msg_json));
 
     spawn(move || {
-        match ::messages::update_message::update_agency_messages(&message_status, &msg_json) {
+        match crate::messages::update_message::update_agency_messages(&message_status, &msg_json) {
             Ok(()) => {
                 trace!("vcx_messages_set_status_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -783,7 +783,7 @@ pub extern fn vcx_endorse_transaction(command_handle: CommandHandle,
            command_handle, secret!(transaction));
 
     spawn(move || {
-        match ::utils::libindy::ledger::endorse_transaction(&transaction) {
+        match crate::utils::libindy::ledger::endorse_transaction(&transaction) {
             Ok(()) => {
                 trace!("vcx_endorse_transaction(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -832,7 +832,7 @@ pub extern fn vcx_fetch_public_entities(command_handle: CommandHandle,
     trace!("vcx_fetch_public_entities(command_handle: {})", command_handle);
 
     spawn(move || {
-        match ::utils::libindy::anoncreds::fetch_public_entities() {
+        match crate::utils::libindy::anoncreds::fetch_public_entities() {
             Ok(()) => {
                 trace!("vcx_fetch_public_entities_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -872,7 +872,7 @@ pub extern fn vcx_health_check(command_handle: CommandHandle,
     check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
 
     spawn(move || {
-        match ::utils::health_check::health_check() {
+        match crate::utils::health_check::health_check() {
             Ok(()) => {
                 trace!("vcx_health_check_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -948,10 +948,10 @@ pub extern fn vcx_create_pairwise_agent(command_handle: CommandHandle,
 mod tests {
     use super::*;
     use std::ffi::CString;
-    use api::return_types;
-    use utils::devsetup::*;
-    use utils::httpclient::AgencyMock;
-    use utils::constants::REGISTER_RESPONSE;
+    use crate::api::return_types;
+    use crate::utils::devsetup::*;
+    use crate::utils::httpclient::AgencyMock;
+    use crate::utils::constants::REGISTER_RESPONSE;
 
     static CONFIG: &'static str = r#"{"agency_url":"https://enym-eagency.pdev.evernym.com","agency_did":"Ab8TvZa3Q19VNkQVzAWVL7","agency_verkey":"5LXaR43B1aQyeh94VBP8LG1Sgvjk7aNfqiksBCSjwqbf","wallet_name":"test_provision_agent","agent_seed":null,"enterprise_seed":null,"wallet_key":"key"}"#;
     const CONFIG_CSTR: *const c_char = concat!(r#"{"agency_url":"https://enym-eagency.pdev.evernym.com","agency_did":"Ab8TvZa3Q19VNkQVzAWVL7","agency_verkey":"5LXaR43B1aQyeh94VBP8LG1Sgvjk7aNfqiksBCSjwqbf","wallet_name":"test_provision_agent","agent_seed":null,"enterprise_seed":null,"wallet_key":"key"}"#, "\0").as_ptr().cast();

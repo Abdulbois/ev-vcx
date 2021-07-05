@@ -1,9 +1,9 @@
 use libc::c_char;
-use utils::logger::{EnabledCB, FlushCB, LibvcxLogger, LibvcxDefaultLogger, LogCB, LOGGER_STATE, CVoid};
-use utils::cstring::CStringUtils;
-use utils::error::SUCCESS;
+use crate::utils::logger::{EnabledCB, FlushCB, LibvcxLogger, LibvcxDefaultLogger, LogCB, LOGGER_STATE, CVoid};
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error::SUCCESS;
 use log::LevelFilter;
-use error::prelude::*;
+use crate::error::prelude::*;
 
 /// Set default logger implementation.
 ///

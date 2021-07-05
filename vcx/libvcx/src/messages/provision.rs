@@ -1,5 +1,5 @@
-use messages::A2AMessageKinds;
-use messages::message_type::MessageTypes;
+use crate::messages::A2AMessageKinds;
+use crate::messages::message_type::MessageTypes;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Connect {

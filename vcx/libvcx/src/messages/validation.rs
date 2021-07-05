@@ -1,12 +1,9 @@
-extern crate rust_base58;
-extern crate openssl;
-
-use self::openssl::bn::BigNum;
-use self::rust_base58::FromBase58;
-use utils::qualifier;
+use openssl::bn::BigNum;
+use rust_base58::FromBase58;
+use crate::utils::qualifier;
 use reqwest::Url;
-use error::prelude::*;
-use v3::messages::a2a::protocol_registry::Actors;
+use crate::error::prelude::*;
+use crate::v3::messages::a2a::protocol_registry::Actors;
 
 pub fn validate_did(did: &str) -> VcxResult<String> {
     if qualifier::is_fully_qualified(did) {
@@ -55,7 +52,7 @@ pub fn validate_actors(actors: &str) -> VcxResult<Vec<Actors>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use utils::devsetup::SetupDefaults;
+    use crate::utils::devsetup::SetupDefaults;
 
     #[test]
     fn test_did_is_b58_and_valid_length() {

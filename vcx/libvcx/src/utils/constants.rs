@@ -1,4 +1,4 @@
-use settings::protocol::ProtocolTypes;
+use crate::settings::protocol::ProtocolTypes;
 
 pub static TRUSTEE_SEED: &str = "000000000000000000000000Trustee1";
 pub static DEFAULT_CONNECTION: &str = r#"{ "data": {"source_id":"test_vcx_connection_deserialialize_succeeds","pw_did":"8XFh8yBzrpJQmNyZzgoTqB","pw_verkey":"EkVTa7SCJ5SntpYyX7CSb2pcBhiVGT9kWSagA8a9T69A","did_endpoint":"","state":1,"uuid":"","endpoint":"","invite_detail":{"statusCode":"","connReqId":"","senderDetail":{"name":"","agentKeyDlgProof":{"agentDID":"","agentDelegatedKey":"","signature":""},"DID":"","logoUrl":"","verKey":""},"senderAgencyDetail":{"DID":"","verKey":"","endpoint":""},"targetName":"","statusMsg":""},"agent_did":"U5LXs4U7P9msh647kToezy","agent_vk":"FktSZg8idAVzyQZrdUppK6FTrfAzW3wWVzAjJAfdUvJq","their_pw_did":"","their_pw_verkey":""}, "version": "1.0"}"#;
@@ -185,7 +185,7 @@ pub static REV_REG_JSON: &str = r#"{"ver":"1.0","value":{"accum":"2 0204F2D2B1F2
 pub static TEST_TAILS_FILE: &str = r#"tails_file"#;
 pub static REQUEST_WITH_ENDORSER: &str = r#"{"seqNo":344,"reqId":1522866729726860308,"identifier":"VsKV7grR1BUE29mG2Fm2kX","txnTime":1516284381,"type":"101","endorser":"V4SGRU86Z58d6TV7PBUe6f"}"#;
 pub fn rev_def_json() -> String {
-    use utils::get_temp_dir_path;
+    use crate::utils::get_temp_dir_path;
     json!({
         "ver":"1.0",
         "id":"V4SGRU86Z58d6TV7PBUe6f:4:V4SGRU86Z58d6TV7PBUe6f:3:CL:1281:tag1:CL_ACCUM:tag1",

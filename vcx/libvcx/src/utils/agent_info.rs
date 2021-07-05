@@ -1,9 +1,9 @@
-use error::{VcxResult, VcxErrorKind, VcxError};
-use utils::option_util::get_or_err;
-use settings::{get_config_value, CONFIG_REMOTE_TO_SDK_DID, CONFIG_REMOTE_TO_SDK_VERKEY, CONFIG_AGENCY_DID, CONFIG_AGENCY_VERKEY};
+use crate::error::{VcxResult, VcxErrorKind, VcxError};
+use crate::utils::option_util::get_or_err;
+use crate::settings::{get_config_value, CONFIG_REMOTE_TO_SDK_DID, CONFIG_REMOTE_TO_SDK_VERKEY, CONFIG_AGENCY_DID, CONFIG_AGENCY_VERKEY};
 
 use crate::{connection::Connections, object_cache::Handle};
-use settings::protocol::ProtocolTypes;
+use crate::settings::protocol::ProtocolTypes;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct MyAgentInfo {

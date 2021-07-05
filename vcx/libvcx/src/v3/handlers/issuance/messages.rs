@@ -1,10 +1,10 @@
-use v3::messages::error::ProblemReport;
-use v3::messages::issuance::credential_proposal::CredentialProposal;
-use v3::messages::issuance::credential_offer::CredentialOffer;
-use v3::messages::issuance::credential_request::CredentialRequest;
-use v3::messages::issuance::credential::Credential;
-use v3::messages::issuance::credential_ack::CredentialAck;
-use v3::messages::a2a::A2AMessage;
+use crate::v3::messages::error::ProblemReport;
+use crate::v3::messages::issuance::credential_proposal::CredentialProposal;
+use crate::v3::messages::issuance::credential_offer::CredentialOffer;
+use crate::v3::messages::issuance::credential_request::CredentialRequest;
+use crate::v3::messages::issuance::credential::Credential;
+use crate::v3::messages::issuance::credential_ack::CredentialAck;
+use crate::v3::messages::a2a::A2AMessage;
 
 use crate::connection::Connections;
 use crate::object_cache::Handle;

@@ -1,14 +1,14 @@
-use error::prelude::*;
-use utils::libindy::crypto;
+use crate::error::prelude::*;
+use crate::utils::libindy::crypto;
 use base64;
 use time;
 
-use messages::thread::Thread;
-use v3::messages::connection::did_doc::*;
-use v3::messages::a2a::{A2AMessage, MessageId};
-use v3::messages::a2a::message_family::MessageFamilies;
-use v3::messages::a2a::message_type::MessageType;
-use v3::messages::ack::PleaseAck;
+use crate::messages::thread::Thread;
+use crate::v3::messages::connection::did_doc::*;
+use crate::v3::messages::a2a::{A2AMessage, MessageId};
+use crate::v3::messages::a2a::message_family::MessageFamilies;
+use crate::v3::messages::a2a::message_type::MessageType;
+use crate::v3::messages::ack::PleaseAck;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
 pub struct Response {
@@ -161,8 +161,8 @@ impl Default for ConnectionSignature {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::connection::did_doc::tests::*;
-    use utils::libindy::tests::test_setup;
+    use crate::v3::messages::connection::did_doc::tests::*;
+    use crate::utils::libindy::tests::test_setup;
 
     fn _did() -> String {
         String::from("VsKV7grR1BUE29mG2Fm2kX")

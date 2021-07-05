@@ -2,7 +2,7 @@ use rand::Rng;
 
 use dashmap::DashMap;
 use dashmap::mapref::entry::Entry;
-use error::prelude::*;
+use crate::error::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use super::error::prelude::VcxResult;
@@ -172,9 +172,9 @@ impl<T> ObjectCache<T> {
 
 #[cfg(test)]
 mod tests {
-    use object_cache::ObjectCache;
+    use crate::object_cache::ObjectCache;
     use std::thread;
-    use utils::devsetup::SetupDefaults;
+    use crate::utils::devsetup::SetupDefaults;
 
     lazy_static! {
         static ref TEST_CACHE: ObjectCache<String> = Default::default();

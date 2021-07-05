@@ -1,8 +1,8 @@
-use settings;
-use messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, prepare_message_for_agent_v2};
-use messages::message_type::MessageTypes;
-use error::{VcxResult, VcxErrorKind, VcxError};
-use utils::httpclient;
+use crate::settings;
+use crate::messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, prepare_message_for_agent_v2};
+use crate::messages::message_type::MessageTypes;
+use crate::error::{VcxResult, VcxErrorKind, VcxError};
+use crate::utils::httpclient;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BackupInitParams {
@@ -106,21 +106,21 @@ pub struct BackupProvisioned {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use messages::{wallet_backup_init, RemoteMessageType};
+    use crate::messages::{wallet_backup_init, RemoteMessageType};
     use std::thread;
     use std::time::Duration;
-    use utils::libindy::signus::create_and_store_my_did;
-    use messages::wallet_backup::received_expected_message;
-    use utils::devsetup::*;
+    use crate::utils::libindy::signus::create_and_store_my_did;
+    use crate::messages::wallet_backup::received_expected_message;
+    use crate::utils::devsetup::*;
 
     #[cfg(feature = "wallet_backup")]
     #[test]
     fn test_wallet_backup_provision() {
         let _setup = SetupLibraryWalletPoolZeroFees::init();
 
-        let (_, agent_vk) = create_and_store_my_did(Some(::utils::constants::MY2_SEED), None).unwrap();
-        let (_, my_vk) = create_and_store_my_did(Some(::utils::constants::MY1_SEED), None).unwrap();
-        let (_, agency_vk) = create_and_store_my_did(Some(::utils::constants::MY3_SEED), None).unwrap();
+        let (_, agent_vk) = create_and_store_my_did(Some(crate::utils::constants::MY2_SEED), None).unwrap();
+        let (_, my_vk) = create_and_store_my_did(Some(crate::utils::constants::MY1_SEED), None).unwrap();
+        let (_, agency_vk) = create_and_store_my_did(Some(crate::utils::constants::MY3_SEED), None).unwrap();
 
         settings::set_config_value(settings::CONFIG_AGENCY_VERKEY, &agency_vk);
         settings::set_config_value(settings::CONFIG_REMOTE_TO_SDK_VERKEY, &agent_vk);

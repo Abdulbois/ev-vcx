@@ -1,8 +1,8 @@
-use v3::messages::a2a::message_family::MessageFamilies;
+use crate::v3::messages::a2a::message_family::MessageFamilies;
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
-use error::prelude::*;
+use crate::error::prelude::*;
 use regex::{Regex, Match};
 
 #[derive(Debug, Clone, PartialEq, Default)]

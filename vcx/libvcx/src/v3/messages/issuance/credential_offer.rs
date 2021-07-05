@@ -1,14 +1,14 @@
-use v3::messages::a2a::{MessageId, A2AMessage};
-use v3::messages::issuance::CredentialPreviewData;
-use v3::messages::attachment::{Attachments, AttachmentId};
-use v3::messages::mime_type::MimeType;
-use error::{VcxError, VcxResult, VcxErrorKind};
-use messages::thread::Thread;
-use messages::issuance::credential_offer::CredentialOffer as CredentialOfferV1;
-use messages::payload::PayloadKinds;
+use crate::v3::messages::a2a::{MessageId, A2AMessage};
+use crate::v3::messages::issuance::CredentialPreviewData;
+use crate::v3::messages::attachment::{Attachments, AttachmentId};
+use crate::v3::messages::mime_type::MimeType;
+use crate::error::{VcxError, VcxResult, VcxErrorKind};
+use crate::messages::thread::Thread;
+use crate::messages::issuance::credential_offer::CredentialOffer as CredentialOfferV1;
+use crate::messages::payload::PayloadKinds;
 use std::convert::TryInto;
-use utils::libindy::anoncreds::ensure_credential_definition_contains_offered_attributes;
-use v3::messages::connection::service::Service;
+use crate::utils::libindy::anoncreds::ensure_credential_definition_contains_offered_attributes;
+use crate::v3::messages::connection::service::Service;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Default)]
 pub struct CredentialOffer {
@@ -123,7 +123,7 @@ impl TryInto<CredentialOfferV1> for CredentialOffer {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use utils::constants::CRED_DEF_JSON;
+    use crate::utils::constants::CRED_DEF_JSON;
 
     fn _attachment() -> ::serde_json::Value {
         json!({

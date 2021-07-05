@@ -19,8 +19,8 @@ pub mod update_agent;
 pub mod thread;
 pub mod issuance;
 
-use settings;
-use utils::libindy::crypto;
+use crate::settings;
+use crate::utils::libindy::crypto;
 use self::create_key::{CreateKeyBuilder, CreateKey, CreateKeyResponse};
 use self::update_connection::{DeleteConnectionBuilder, UpdateConnection, UpdateConnectionResponse};
 use self::update_profile::{UpdateProfileDataBuilder, UpdateConfigs, UpdateConfigsResponse};
@@ -38,16 +38,16 @@ use self::wallet_backup::backup_init::{BackupInit, BackupProvisioned, BackupInit
 use self::wallet_backup::backup::{Backup, BackupAck, BackupBuilder};
 use self::wallet_backup::restore::{BackupRestore, BackupRestored, BackupRestoreBuilder};
 use self::message_type::*;
-use error::prelude::*;
+use crate::error::prelude::*;
 
 use serde::{de, Deserialize, Deserializer, ser, Serialize, Serializer};
 use serde_json::Value;
-use settings::protocol::ProtocolTypes;
-use messages::deaddrop::retrieve::{RetrieveDeadDrop, RetrievedDeadDropResult, RetrieveDeadDropBuilder};
-use messages::agent_provisioning::agent_provisioning_v0_7::{AgentCreated, ProvisionAgent};
-use messages::token_provisioning::token_provisioning::{TokenRequest, TokenResponse};
-use messages::provision::ProblemReport;
-use messages::update_agent::{UpdateComMethod, ComMethodUpdated};
+use crate::settings::protocol::ProtocolTypes;
+use crate::messages::deaddrop::retrieve::{RetrieveDeadDrop, RetrievedDeadDropResult, RetrieveDeadDropBuilder};
+use crate::messages::agent_provisioning::agent_provisioning_v0_7::{AgentCreated, ProvisionAgent};
+use crate::messages::token_provisioning::token_provisioning::{TokenRequest, TokenResponse};
+use crate::messages::provision::ProblemReport;
+use crate::messages::update_agent::{UpdateComMethod, ComMethodUpdated};
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
@@ -1315,7 +1315,7 @@ pub fn backup_wallet() -> BackupBuilder { BackupBuilder::create() }
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use utils::devsetup::*;
+    use crate::utils::devsetup::*;
 
     #[test]
     fn test_to_u8() {

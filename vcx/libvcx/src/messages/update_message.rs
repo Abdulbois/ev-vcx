@@ -1,10 +1,10 @@
-use settings;
-use messages::*;
-use messages::message_type::MessageTypes;
-use utils::{httpclient, constants};
-use error::prelude::*;
-use utils::httpclient::AgencyMock;
-use settings::protocol::ProtocolTypes;
+use crate::settings;
+use crate::messages::*;
+use crate::messages::message_type::MessageTypes;
+use crate::utils::{httpclient, constants};
+use crate::error::prelude::*;
+use crate::utils::httpclient::AgencyMock;
+use crate::settings::protocol::ProtocolTypes;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -157,12 +157,12 @@ pub fn update_messages(status_code: MessageStatusCode, uids_by_conns: Vec<UIDsBy
 #[cfg(test)]
 mod tests {
     use super::*;
-    use utils::devsetup::*;
+    use crate::utils::devsetup::*;
     #[test]
     fn test_parse_parse_update_messages_response() {
         let _setup = SetupMocks::init();
 
-        UpdateMessageStatusByConnectionsBuilder::create().parse_response(::utils::constants::UPDATE_MESSAGES_RESPONSE).unwrap();
+        UpdateMessageStatusByConnectionsBuilder::create().parse_response(crate::utils::constants::UPDATE_MESSAGES_RESPONSE).unwrap();
     }
 
     #[cfg(all(feature = "agency", feature = "pool_tests"))]
@@ -173,12 +173,12 @@ mod tests {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
         let institution_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-        let (_faber, alice) = ::connection::tests::create_connected_connections();
+        let (_faber, alice) = crate::connection::tests::create_connected_connections();
 
-        let (_, cred_def_handle) = ::credential_def::tests::create_cred_def_real(false);
+        let (_, cred_def_handle) = crate::credential_def::tests::create_cred_def_real(false);
 
         let credential_data = r#"{"address1": ["123 Main St"], "address2": ["Suite 3"], "city": ["Draper"], "state": ["UT"], "zip": ["84000"]}"#;
-        let credential_offer = ::issuer_credential::issuer_credential_create(cred_def_handle,
+        let credential_offer = crate::issuer_credential::issuer_credential_create(cred_def_handle,
                                                                              "1".to_string(),
                                                                              institution_did.clone(),
                                                                              "credential_name".to_string(),
@@ -188,14 +188,14 @@ mod tests {
         credential_offer.send_credential_offer(alice).unwrap();
         thread::sleep(Duration::from_millis(2000));
         // AS CONSUMER GET MESSAGES
-        ::utils::devsetup::set_consumer();
-        let pending = ::messages::get_message::download_messages(None, Some(vec!["MS-103".to_string()]), None).unwrap();
+        crate::utils::devsetup::set_consumer();
+        let pending = crate::messages::get_message::download_messages(None, Some(vec!["MS-103".to_string()]), None).unwrap();
         assert!(pending.len() > 0);
         let did = pending[0].pairwise_did.clone();
         let uid = pending[0].msgs[0].uid.clone();
         let message = serde_json::to_string(&[UIDsByConn { pairwise_did: did, uids: vec![uid] }]).unwrap();
         update_agency_messages("MS-106", &message).unwrap();
-        let updated = ::messages::get_message::download_messages(None, Some(vec!["MS-106".to_string()]), None).unwrap();
+        let updated = crate::messages::get_message::download_messages(None, Some(vec!["MS-106".to_string()]), None).unwrap();
         assert_eq!(pending[0].msgs[0].uid, updated[0].msgs[0].uid);
     }
 }

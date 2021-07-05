@@ -1,4 +1,4 @@
-use settings::protocol::ProtocolTypes;
+use crate::settings::protocol::ProtocolTypes;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ProvisioningConfig {

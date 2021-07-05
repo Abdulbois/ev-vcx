@@ -6,17 +6,17 @@ pub mod protocol;
 
 use std::collections::HashMap;
 use std::sync::RwLock;
-use utils::{get_temp_dir_path, error};
+use crate::utils::{get_temp_dir_path, error};
 use std::path::Path;
-use messages::validation;
+use crate::messages::validation;
 use serde_json::Value;
 use strum::IntoEnumIterator;
 use std::borrow::Borrow;
 use reqwest::Url;
-use error::prelude::*;
-use utils::file::read_file;
-use v3::messages::a2a::protocol_registry::Actors;
-use settings::protocol::ProtocolTypes;
+use crate::error::prelude::*;
+use crate::utils::file::read_file;
+use crate::v3::messages::a2a::protocol_registry::Actors;
+use crate::settings::protocol::ProtocolTypes;
 
 pub static CONFIG_POOL_NAME: &str = "pool_name";
 pub static CONFIG_PROTOCOL_TYPE: &str = "protocol_type";
@@ -135,7 +135,7 @@ pub fn validate_config(config: &HashMap<String, String>) -> VcxResult<u32> {
     debug!("validating config");
 
     //Mandatory parameters
-    if config.get(CONFIG_WALLET_KEY).is_none() {
+    if !config.contains_key(CONFIG_WALLET_KEY) {
         return Err(VcxError::from(VcxErrorKind::MissingWalletKey));
     }
 
@@ -376,8 +376,8 @@ pub fn clear_config() {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use utils::devsetup::{TempFile, SetupDefaults};
-    use settings::pool::get_pool_networks;
+    use crate::utils::devsetup::{TempFile, SetupDefaults};
+    use crate::settings::pool::get_pool_networks;
 
     fn _institution_name() -> String {
         "enterprise".to_string()

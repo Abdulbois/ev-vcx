@@ -1,12 +1,12 @@
 use futures::Future;
-use indy::{pool, ErrorCode};
+use crate::indy::{pool, ErrorCode};
 
-use settings;
-use error::prelude::*;
+use crate::settings;
+use crate::error::prelude::*;
 use std::sync::RwLock;
 use std::{thread, fs};
-use settings::pool::{PoolConfig, get_pool_networks};
-use utils::libindy::environment::genesis_transactions_path;
+use crate::settings::pool::{PoolConfig, get_pool_networks};
+use crate::utils::libindy::environment::genesis_transactions_path;
 use std::io::Write;
 
 pub const DEFAULT_NETWORK: &'static str = "sov";
@@ -280,12 +280,12 @@ pub mod tests {
     use super::*;
     use std::fs;
     use std::io::Write;
-    use utils::{
+    use crate::utils::{
         constants::{POOL, GENESIS_PATH},
         get_temp_dir_path,
     };
     #[cfg(feature = "pool_tests")]
-    use utils::devsetup::SetupLibraryWalletPoolZeroFees;
+    use crate::utils::devsetup::SetupLibraryWalletPoolZeroFees;
 
     pub fn create_test_pool() {
         create_genesis_txn_file();

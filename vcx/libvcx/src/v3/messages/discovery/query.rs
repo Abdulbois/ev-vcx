@@ -1,4 +1,4 @@
-use v3::messages::a2a::{MessageId, A2AMessage};
+use crate::v3::messages::a2a::{MessageId, A2AMessage};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Query {

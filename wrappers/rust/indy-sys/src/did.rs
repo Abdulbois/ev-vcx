@@ -1,6 +1,6 @@
 use super::*;
 
-use {CString, Error, CommandHandle, WalletHandle, PoolHandle};
+use crate::{CString, Error, CommandHandle, WalletHandle, PoolHandle};
 
 extern {
     pub fn indy_create_and_store_my_did(command_handle: CommandHandle,

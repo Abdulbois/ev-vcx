@@ -1,20 +1,20 @@
-use api::WalletBackupState;
-use settings;
-use messages;
-use object_cache::ObjectCache;
-use error::prelude::*;
-use utils::error;
-use utils::libindy::wallet::{export, get_wallet_handle, RestoreWalletConfigs, add_record, get_record, WalletRecord, import, open_wallet};
-use utils::libindy::crypto::{create_key, sign, pack_message};
-use utils::constants::DEFAULT_SERIALIZE_VERSION;
+use crate::api::WalletBackupState;
+use crate::settings;
+use crate::messages;
+use crate::object_cache::ObjectCache;
+use crate::error::prelude::*;
+use crate::utils::error;
+use crate::utils::libindy::wallet::{export, get_wallet_handle, RestoreWalletConfigs, add_record, get_record, WalletRecord, import, open_wallet};
+use crate::utils::libindy::crypto::{create_key, sign, pack_message};
+use crate::utils::constants::DEFAULT_SERIALIZE_VERSION;
 use std::path::Path;
 use std::fs;
-use messages::{RemoteMessageType, retrieve_dead_drop, parse_message_from_response, wallet_backup_restore};
-use messages::wallet_backup::received_expected_message;
-use messages::get_message::Message;
-use utils::openssl::sha256_hex;
+use crate::messages::{RemoteMessageType, retrieve_dead_drop, parse_message_from_response, wallet_backup_restore};
+use crate::messages::wallet_backup::received_expected_message;
+use crate::messages::get_message::Message;
+use crate::utils::openssl::sha256_hex;
 use std::io::{Write, Error};
-use utils::libindy::wallet;
+use crate::utils::libindy::wallet;
 use std::path::PathBuf;
 use rand::Rng;
 
@@ -260,8 +260,8 @@ fn gen_cloud_address(vk: &str) -> VcxResult<Vec<u8>> {
     if settings::agency_mocks_enabled() { return Ok(Vec::new()); }
     let cloud_address = CloudAddress {
         version: None,
-        agent_did: settings::get_config_value(::settings::CONFIG_REMOTE_TO_SDK_DID)?,
-        agent_vk: settings::get_config_value(::settings::CONFIG_REMOTE_TO_SDK_VERKEY)?,
+        agent_did: settings::get_config_value(settings::CONFIG_REMOTE_TO_SDK_DID)?,
+        agent_vk: settings::get_config_value(settings::CONFIG_REMOTE_TO_SDK_VERKEY)?,
     };
 
     let receiver_keys = json!([vk]).to_string();
@@ -474,9 +474,9 @@ pub mod tests {
     use serde_json::Value;
     use std::thread;
     use std::time::Duration;
-    use utils::libindy::wallet;
+    use crate::utils::libindy::wallet;
     use std::fs::File;
-    use utils::devsetup::*;
+    use crate::utils::devsetup::*;
 
     pub const WALLET_PROVISION_AGENT_RESPONSE: &'static [u8; 2] = &[79, 75];
     static SOURCE_ID: &str = r#"12345"#;
@@ -521,7 +521,7 @@ pub mod tests {
 
     pub fn restore_config(path: Option<String>, backup_key: Option<String>) -> RestoreWalletConfigs {
         RestoreWalletConfigs {
-            wallet_name: ::settings::get_wallet_name().unwrap(),
+            wallet_name: settings::wallet::get_wallet_name().unwrap(),
             wallet_key: settings::DEFAULT_WALLET_KEY.to_string(),
             exported_wallet_path: path.unwrap_or(PATH.to_string()),
             backup_key: backup_key.unwrap_or(BACKUP_KEY.to_string()),
@@ -588,7 +588,7 @@ pub mod tests {
         fn update_state_success() {
             let _setup = SetupMocks::init();
 
-            ::utils::httpclient::AgencyMock::set_next_response(WALLET_PROVISION_AGENT_RESPONSE);
+            crate::utils::httpclient::AgencyMock::set_next_response(WALLET_PROVISION_AGENT_RESPONSE);
 
             let handle = create_wallet_backup(SOURCE_ID, &backup_key_gen()).unwrap();
             assert!(handle.update_state(None).is_ok());
@@ -635,7 +635,7 @@ pub mod tests {
         fn to_string_test() {
             let _setup = SetupMocks::init();
 
-            ::utils::httpclient::AgencyMock::set_next_response(WALLET_PROVISION_AGENT_RESPONSE);
+            crate::utils::httpclient::AgencyMock::set_next_response(WALLET_PROVISION_AGENT_RESPONSE);
 
             let handle = create_wallet_backup(SOURCE_ID, backup_key_gen().as_str()).unwrap();
             let serialized = handle.to_string().unwrap();
@@ -834,19 +834,19 @@ pub mod tests {
             let base = "/tmp/existing/";
             let existing_file = format!("{}/test.txt", base);
 
-            let wallet_name = ::settings::get_wallet_name().unwrap();
+            let wallet_name = settings::wallet::get_wallet_name().unwrap();
 
             let recovery_config = RestoreWalletConfigs {
                 wallet_name: wallet_name.clone(),
-                wallet_key: settings::get_config_value(::settings::CONFIG_WALLET_KEY).unwrap(),
+                wallet_key: settings::get_config_value(settings::CONFIG_WALLET_KEY).unwrap(),
                 exported_wallet_path: existing_file,
-                backup_key: settings::get_config_value(::settings::CONFIG_WALLET_BACKUP_KEY).unwrap_or(backup_key_gen()),
+                backup_key: settings::get_config_value(settings::CONFIG_WALLET_BACKUP_KEY).unwrap_or(backup_key_gen()),
                 key_derivation: None,
             };
             _write_tmp_encrypted_wallet_for_import(&recovery_config, &[1, 2, 3, 4, 5, 6, 7]).unwrap();
 
             restore_wallet(&restore_config(Some(recovery_config.exported_wallet_path.to_string()), Some(wb.encryption_key)).to_string().unwrap()).unwrap();
-            ::std::fs::remove_dir_all(&PathBuf::from(&recovery_config.exported_wallet_path).parent().unwrap()).unwrap_or(println!("No Directory to delete after test"));
+            std::fs::remove_dir_all(&PathBuf::from(&recovery_config.exported_wallet_path).parent().unwrap()).unwrap_or(println!("No Directory to delete after test"));
         }
     }
 
@@ -861,7 +861,7 @@ pub mod tests {
             let _setup = SetupConsumer::init();
 
             // 1.  Provision 1st time (Provision Async) + (Init)
-            consumer_wallet_name = ::settings::get_wallet_name().unwrap();
+            consumer_wallet_name = settings::wallet::get_wallet_name().unwrap();
 
             // 2. Insert test data into non secret portion of the wallet (config data)
             original_config = settings::tests::config_json();
@@ -891,10 +891,10 @@ pub mod tests {
         // 7. Shutdown to clear configuration and close wallet
 
         // 8. Initialize with wallet info (simple init)
-        ::settings::set_config_value(::settings::CONFIG_WALLET_KEY, ::settings::DEFAULT_WALLET_KEY);
-        ::settings::set_config_value(::settings::CONFIG_WALLET_KEY_DERIVATION, ::settings::DEFAULT_WALLET_KEY_DERIVATION);
-        ::settings::set_config_value(::settings::CONFIG_WALLET_NAME, &consumer_wallet_name);
-        ::settings::set_config_value(::settings::CONFIG_WALLET_BACKUP_KEY, backup_key_gen().as_str());
+        settings::set_config_value(settings::CONFIG_WALLET_KEY, settings::DEFAULT_WALLET_KEY);
+        settings::set_config_value(settings::CONFIG_WALLET_KEY_DERIVATION, settings::DEFAULT_WALLET_KEY_DERIVATION);
+        settings::set_config_value(settings::CONFIG_WALLET_NAME, &consumer_wallet_name);
+        settings::set_config_value(settings::CONFIG_WALLET_BACKUP_KEY, backup_key_gen().as_str());
 
         open_wallet(&consumer_wallet_name, None, None, None).unwrap();
 
@@ -909,10 +909,10 @@ pub mod tests {
         assert_eq!(&retrieved_config_p1, &original_config);
 
         // 10. shutdown to clear config
-        ::api::vcx::vcx_shutdown(false);
+        crate::api::vcx::vcx_shutdown(false);
 
         // 11. Full init with previously stored config
-        crate::settings::process_config_string(&retrieved_config_p1, true).unwrap();
+        settings::process_config_string(&retrieved_config_p1, true).unwrap();
         open_wallet(&consumer_wallet_name, None, None, None).unwrap();
 
         let record = serde_json::from_str::<serde_json::Value>(&wallet::get_record(config_wallet_key, config_wallet_key, &options).unwrap()).unwrap();

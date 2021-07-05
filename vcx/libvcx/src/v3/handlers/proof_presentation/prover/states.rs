@@ -1,26 +1,26 @@
-use api::VcxStateType;
+use crate::api::VcxStateType;
 
-use v3::handlers::proof_presentation::prover::messages::ProverMessages;
-use v3::messages::a2a::A2AMessage;
-use v3::messages::proof_presentation::presentation_request::PresentationRequest;
-use v3::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
-use v3::messages::proof_presentation::presentation::Presentation;
-use v3::messages::proof_presentation::presentation_ack::PresentationAck;
-use v3::messages::error::{ProblemReport, ProblemReportCodes, Reason};
-use v3::messages::status::Status;
+use crate::v3::handlers::proof_presentation::prover::messages::ProverMessages;
+use crate::v3::messages::a2a::A2AMessage;
+use crate::v3::messages::proof_presentation::presentation_request::PresentationRequest;
+use crate::v3::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
+use crate::v3::messages::proof_presentation::presentation::Presentation;
+use crate::v3::messages::proof_presentation::presentation_ack::PresentationAck;
+use crate::v3::messages::error::{ProblemReport, ProblemReportCodes, Reason};
+use crate::v3::messages::status::Status;
 
 use std::collections::HashMap;
-use disclosed_proof::DisclosedProof;
+use crate::disclosed_proof::DisclosedProof;
 
 use crate::object_cache::Handle;
 use crate::connection::Connections;
 
-use error::prelude::*;
-use messages::thread::Thread;
-use v3::messages::ack::Ack;
-use v3::handlers::connection::types::CompletedConnection;
-use v3::handlers::connection::agent::AgentInfo;
-use v3::handlers::connection::connection::Connection;
+use crate::error::prelude::*;
+use crate::messages::thread::Thread;
+use crate::v3::messages::ack::Ack;
+use crate::v3::handlers::connection::types::CompletedConnection;
+use crate::v3::handlers::connection::agent::AgentInfo;
+use crate::v3::handlers::connection::connection::Connection;
 
 /// A state machine that tracks the evolution of states for a Prover during
 /// the Present Proof protocol.
@@ -768,13 +768,13 @@ impl ProverSM {
 pub mod test {
     use super::*;
 
-    use utils::devsetup::SetupAriesMocks;
-    use v3::handlers::connection::tests::mock_connection;
-    use v3::test::source_id;
-    use v3::messages::proof_presentation::test::{_ack, _problem_report};
-    use v3::messages::proof_presentation::presentation_request::tests::{_presentation_request, _presentation_request_with_service};
-    use v3::messages::proof_presentation::presentation::tests::_presentation;
-    use v3::messages::proof_presentation::presentation_proposal::tests::{_presentation_proposal, _presentation_preview};
+    use crate::utils::devsetup::SetupAriesMocks;
+    use crate::v3::handlers::connection::tests::mock_connection;
+    use crate::v3::test::source_id;
+    use crate::v3::messages::proof_presentation::test::{_ack, _problem_report};
+    use crate::v3::messages::proof_presentation::presentation_request::tests::{_presentation_request, _presentation_request_with_service};
+    use crate::v3::messages::proof_presentation::presentation::tests::_presentation;
+    use crate::v3::messages::proof_presentation::presentation_proposal::tests::{_presentation_proposal, _presentation_preview};
 
     pub fn _prover_sm() -> ProverSM {
         ProverSM::new(_presentation_request(), source_id())

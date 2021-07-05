@@ -3,7 +3,7 @@ use serde::{de, Serialize, Serializer, Deserialize, Deserializer};
 use serde_json;
 use serde_json::Value;
 
-use error::{VcxResult, VcxError, VcxErrorKind};
+use crate::error::{VcxResult, VcxError, VcxErrorKind};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Attachments(pub Vec<Attachment>);

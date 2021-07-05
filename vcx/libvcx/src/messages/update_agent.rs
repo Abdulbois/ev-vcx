@@ -1,10 +1,10 @@
-use error::prelude::*;
-use messages::message_type::MessageTypes;
-use messages::{A2AMessageKinds, A2AMessage, A2AMessageV1, A2AMessageV2, prepare_message_for_agency, parse_response_from_agency};
-use settings;
-use settings::protocol::ProtocolTypes;
-use utils::{httpclient, constants};
-use utils::httpclient::AgencyMock;
+use crate::error::prelude::*;
+use crate::messages::message_type::MessageTypes;
+use crate::messages::{A2AMessageKinds, A2AMessage, A2AMessageV1, A2AMessageV2, prepare_message_for_agency, parse_response_from_agency};
+use crate::{settings, messages, utils};
+use crate::settings::protocol::ProtocolTypes;
+use crate::utils::{httpclient, constants};
+use crate::utils::httpclient::AgencyMock;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ComMethodUpdated {
@@ -45,7 +45,7 @@ pub fn update_agent_profile(agent_did: &str,
                             public_did: &Option<String>,
                             protocol_type: ProtocolTypes) -> VcxResult<u32> {
     if let Ok(name) = settings::get_config_value(settings::CONFIG_INSTITUTION_NAME) {
-        ::messages::update_data()
+        messages::update_data()
             .to(agent_did)?
             .name(&name)?
             .logo_url(&settings::get_config_value(settings::CONFIG_INSTITUTION_LOGO_URL)?)?
@@ -57,7 +57,7 @@ pub fn update_agent_profile(agent_did: &str,
 
     trace!("Connection::create_agent_pairwise <<<");
 
-    Ok(::utils::error::SUCCESS.code_num)
+    Ok(utils::error::SUCCESS.code_num)
 }
 
 pub fn update_agent_info(com_method: ComMethod) -> VcxResult<()> {
@@ -99,7 +99,7 @@ pub fn update_agent_info(com_method: ComMethod) -> VcxResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use utils::devsetup::*;
+    use crate::utils::devsetup::*;
 
     #[test]
     fn test_update_agent_info() {
@@ -112,13 +112,12 @@ mod tests {
         update_agent_info(com_method).unwrap();
     }
 
-    #[cfg(feature = "agency")]
-    #[cfg(feature = "pool_tests")]
+    #[cfg(all(feature = "agency", feature = "pool_tests"))]
     #[test]
     fn test_update_agent_info_real() {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
 
         let com_method = ComMethod {
             id: "7b7f97f2".to_string(),

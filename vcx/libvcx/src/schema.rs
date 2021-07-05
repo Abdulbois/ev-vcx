@@ -2,14 +2,14 @@ use serde_json;
 
 use std::string::ToString;
 
-use api::PublicEntityStateType;
-use utils::libindy::anoncreds;
-use utils::libindy::ledger;
-use utils::libindy::payments::PaymentTxn;
-use utils::constants::DEFAULT_SERIALIZE_VERSION;
-use object_cache::ObjectCache;
-use messages::ObjectWithVersion;
-use error::prelude::*;
+use crate::api::PublicEntityStateType;
+use crate::utils::libindy::anoncreds;
+use crate::utils::libindy::ledger;
+use crate::utils::libindy::payments::PaymentTxn;
+use crate::utils::constants::DEFAULT_SERIALIZE_VERSION;
+use crate::object_cache::ObjectCache;
+use crate::messages::ObjectWithVersion;
+use crate::error::prelude::*;
 
 use crate::object_cache::Handle;
 
@@ -222,12 +222,12 @@ pub fn release_all() {
 
 #[cfg(test)]
 pub mod tests {
-    use settings;
+    use crate::settings;
 
     use super::*;
     use rand::Rng;
-    use utils::constants::SCHEMA_ID;
-    use utils::devsetup::*;
+    use crate::utils::constants::SCHEMA_ID;
+    use crate::utils::devsetup::*;
 
     fn data() -> Vec<String> {
         vec!["address1".to_string(), "address2".to_string(), "zip".to_string(), "city".to_string(), "state".to_string()]
@@ -327,9 +327,9 @@ pub mod tests {
     #[cfg(feature = "pool_tests")]
     mod pool_tests {
         use super::*;
-        use utils::libindy::payments::add_new_did;
-        use utils::libindy::anoncreds::tests::create_and_write_test_schema;
-        use utils::constants;
+        use crate::utils::libindy::payments::add_new_did;
+        use crate::utils::libindy::anoncreds::tests::create_and_write_test_schema;
+        use crate::utils::constants;
 
         #[test]
         fn test_get_schema_attrs_from_ledger() {

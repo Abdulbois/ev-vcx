@@ -4,9 +4,9 @@ pub mod agent_provisioning_v0_7;
 pub mod types;
 pub mod utils;
 
-use error::prelude::*;
-use messages::agent_provisioning::utils::process_provisioning_config;
-use settings::protocol::ProtocolTypes;
+use crate::error::prelude::*;
+use crate::messages::agent_provisioning::utils::process_provisioning_config;
+use crate::settings::protocol::ProtocolTypes;
 
 
 pub fn provision(config: &str) -> VcxResult<String> {

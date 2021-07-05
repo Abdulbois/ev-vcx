@@ -1,5 +1,5 @@
-use v3::messages::a2a::{A2AMessage, MessageId};
-use v3::messages::connection::did_doc::*;
+use crate::v3::messages::a2a::{A2AMessage, MessageId};
+use crate::v3::messages::connection::did_doc::*;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
 pub struct Request {
@@ -49,7 +49,7 @@ a2a_message!(Request, ConnectionRequest);
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::connection::did_doc::tests::*;
+    use crate::v3::messages::connection::did_doc::tests::*;
 
     fn _did() -> String {
         String::from("VsKV7grR1BUE29mG2Fm2kX")

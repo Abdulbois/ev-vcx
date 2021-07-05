@@ -1,6 +1,7 @@
 [package]
 
 name = "libvcx"
+edition = "2018"
 version = "0.12.0"
 authors = ["Hyperledger Indy Contributors <hyperledger-indy@lists.hyperledger.org>"]
 publish = false

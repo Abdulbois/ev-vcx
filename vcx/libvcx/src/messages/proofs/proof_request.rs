@@ -3,14 +3,14 @@ use serde_json;
 use std::collections::HashMap;
 use std::vec::Vec;
 
-use messages::validation;
-use error::prelude::*;
-use utils::libindy::anoncreds;
-use utils::qualifier;
-use v3::messages::connection::service::Service;
-use messages::get_message::Message;
-use messages::payload::Payloads;
-use messages::thread::Thread;
+use crate::messages::validation;
+use crate::error::prelude::*;
+use crate::utils::libindy::anoncreds;
+use crate::utils::qualifier;
+use crate::v3::messages::connection::service::Service;
+use crate::messages::get_message::Message;
+use crate::messages::payload::Payloads;
+use crate::messages::thread::Thread;
 
 static PROOF_REQUEST: &str = "PROOF_REQUEST";
 static PROOF_DATA: &str = "proof_request_data";
@@ -485,9 +485,9 @@ impl Default for ProofRequestVersion {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use messages::proof_request;
-    use utils::constants::{REQUESTED_ATTRS, REQUESTED_PREDICATES};
-    use utils::devsetup::SetupDefaults;
+    use crate::messages::proof_request;
+    use crate::utils::constants::{REQUESTED_ATTRS, REQUESTED_PREDICATES};
+    use crate::utils::devsetup::SetupDefaults;
 
     #[test]
     fn test_create_proof_request_data() {

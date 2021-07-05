@@ -1,10 +1,10 @@
-use v3::messages::a2a::{A2AMessage, MessageId};
-use v3::messages::a2a::message_type::MessageType;
-use v3::messages::a2a::message_family::MessageFamilies;
-use v3::messages::mime_type::MimeType;
-use messages::thread::Thread;
-use messages::proofs::proof_request::{AttrInfo, Restrictions, PredicateInfo};
-use utils::libindy::types::CredentialInfo;
+use crate::v3::messages::a2a::{A2AMessage, MessageId};
+use crate::v3::messages::a2a::message_type::MessageType;
+use crate::v3::messages::a2a::message_family::MessageFamilies;
+use crate::v3::messages::mime_type::MimeType;
+use crate::messages::thread::Thread;
+use crate::messages::proofs::proof_request::{AttrInfo, Restrictions, PredicateInfo};
+use crate::utils::libindy::types::CredentialInfo;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
 pub struct PresentationProposal {
@@ -161,7 +161,7 @@ a2a_message!(PresentationProposal);
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::proof_presentation::presentation_request::tests::{thread, thread_id};
+    use crate::v3::messages::proof_presentation::presentation_request::tests::{thread, thread_id};
 
     fn _attachment() -> ::serde_json::Value {
         json!({"presentation": {}})

@@ -3,22 +3,22 @@ pub mod states;
 pub mod messages;
 pub mod holder;
 
-use error::prelude::*;
-use v3::messages::a2a::A2AMessage;
-use v3::handlers::issuance::issuer::IssuerSM;
-use v3::handlers::issuance::messages::CredentialIssuanceMessage;
-use v3::handlers::issuance::holder::HolderSM;
-use v3::messages::issuance::credential::Credential;
-use v3::messages::issuance::credential_offer::CredentialOffer;
-use v3::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
+use crate::error::prelude::*;
+use crate::v3::messages::a2a::A2AMessage;
+use crate::v3::handlers::issuance::issuer::IssuerSM;
+use crate::v3::handlers::issuance::messages::CredentialIssuanceMessage;
+use crate::v3::handlers::issuance::holder::HolderSM;
+use crate::v3::messages::issuance::credential::Credential;
+use crate::v3::messages::issuance::credential_offer::CredentialOffer;
+use crate::v3::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
 
 use crate::connection::Connections;
 use crate::credential_def::CredentialDef;
-use utils::libindy::anoncreds::prover_get_credential;
-use v3::messages::error::ProblemReport;
+use crate::utils::libindy::anoncreds::prover_get_credential;
+use crate::v3::messages::error::ProblemReport;
 
 use crate::object_cache::Handle;
-use utils::libindy::types::CredentialInfo;
+use crate::utils::libindy::types::CredentialInfo;
 
 // Issuer
 

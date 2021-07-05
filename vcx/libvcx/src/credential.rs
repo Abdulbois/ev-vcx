@@ -1,15 +1,14 @@
-use serde_json;
 use std::mem::take;
 use crate::connection::Connections;
 use serde_json::Value;
 use std::convert::TryInto;
-use error::prelude::*;
+use crate::error::prelude::*;
 use crate::object_cache::{ObjectCache, Handle};
-use api::VcxStateType;
-use issuer_credential::PaymentInfo;
-use messages::issuance::credential::CredentialMessage;
-use messages::issuance::credential_request::CredentialRequest;
-use messages::{
+use crate::api::VcxStateType;
+use crate::issuer_credential::PaymentInfo;
+use crate::messages::issuance::credential::CredentialMessage;
+use crate::messages::issuance::credential_request::CredentialRequest;
+use crate::messages::{
     self,
     GeneralMessage,
     RemoteMessageType,
@@ -23,19 +22,19 @@ use messages::{
         get_connection_messages,
     },
 };
-use utils::libindy::anoncreds::{libindy_prover_create_credential_req, libindy_prover_store_credential, get_cred_def_json, libindy_prover_delete_credential, prover_get_credential};
-use utils::libindy::payments::{pay_a_payee, PaymentTxn};
-use utils::{error, constants};
+use crate::utils::libindy::anoncreds::{libindy_prover_create_credential_req, libindy_prover_store_credential, get_cred_def_json, libindy_prover_delete_credential, prover_get_credential};
+use crate::utils::libindy::payments::{pay_a_payee, PaymentTxn};
+use crate::utils::{error, constants};
 
-use utils::httpclient::AgencyMock;
+use crate::utils::httpclient::AgencyMock;
 
-use v3::{
+use crate::v3::{
     messages::issuance::credential_offer::CredentialOffer as CredentialOfferV3,
     handlers::issuance::Holder,
 };
-use utils::agent_info::{get_agent_info, get_agent_attr, MyAgentInfo};
-use messages::issuance::credential_offer::{set_cred_offer_ref_message, parse_json_offer, CredentialOffer};
-use v3::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
+use crate::utils::agent_info::{get_agent_info, get_agent_attr, MyAgentInfo};
+use crate::messages::issuance::credential_offer::{set_cred_offer_ref_message, parse_json_offer, CredentialOffer};
+use crate::v3::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
 
 lazy_static! {
     static ref HANDLE_MAP: ObjectCache<Credentials>  = Default::default();
@@ -434,7 +433,7 @@ impl Credential {
 
     #[cfg(test)]
     fn from_str(data: &str) -> VcxResult<Credential> {
-        use messages::ObjectWithVersion;
+        use crate::messages::ObjectWithVersion;
         ObjectWithVersion::deserialize(data)
             .map(|obj: ObjectWithVersion<Credential>| obj.data)
             .map_err(|err| err.extend("Cannot deserialize Credential"))
@@ -1007,15 +1006,15 @@ pub fn get_credential_offer_messages(connection_handle: Handle<Connections>) -> 
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use api::VcxStateType;
-    use utils::devsetup::*;
+    use crate::api::VcxStateType;
+    use crate::utils::devsetup::*;
     use crate::connection;
 
     pub const BAD_CREDENTIAL_OFFER: &str = r#"{"version": "0.1","to_did": "LtMgSjtFcyPwenK9SHCyb8","from_did": "LtMgSjtFcyPwenK9SHCyb8","claim": {"account_num": ["8BEaoLf8TBmK4BUyX8WWnA"],"name_on_account": ["Alice"]},"schema_seq_no": 48,"issuer_did": "Pd4fnFtRBcMKRVC2go5w3j","claim_name": "Account Certificate","claim_id": "3675417066","msg_ref_id": "ymy5nth"}"#;
 
-    use utils::constants::{DEFAULT_SERIALIZED_CREDENTIAL,
+    use crate::utils::constants::{DEFAULT_SERIALIZED_CREDENTIAL,
                            DEFAULT_SERIALIZED_CREDENTIAL_PAYMENT_REQUIRED};
-    use utils::libindy::payments::{build_test_address, get_wallet_token_info};
+    use crate::utils::libindy::payments::{build_test_address, get_wallet_token_info};
 
     pub fn create_credential(offer: &str) -> Credential {
         let mut credential = Credential::create("source_id");
@@ -1102,8 +1101,8 @@ pub mod tests {
 
         assert_eq!(c_h.get_credential_id().unwrap(), "");
 
-        AgencyMock::set_next_response(::utils::constants::CREDENTIAL_RESPONSE);
-        AgencyMock::set_next_response(::utils::constants::UPDATE_CREDENTIAL_RESPONSE);
+        AgencyMock::set_next_response(crate::utils::constants::CREDENTIAL_RESPONSE);
+        AgencyMock::set_next_response(crate::utils::constants::UPDATE_CREDENTIAL_RESPONSE);
 
         c_h.update_state(None).unwrap();
         assert_eq!(c_h.get_state().unwrap(), VcxStateType::VcxStateAccepted as u32);

@@ -1,13 +1,13 @@
-use messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, prepare_message_for_agency, parse_response_from_agency};
-use error::prelude::*;
-use messages::message_type::MessageTypes;
-use utils::httpclient;
-use settings::protocol::ProtocolTypes;
-use settings;
-use utils::libindy::wallet;
-use messages::agent_provisioning::types::ProvisioningConfig;
-use messages::update_agent::ComMethod;
-use messages::agent_provisioning::utils::{process_provisioning_config, configure_wallet};
+use crate::messages::{A2AMessage, A2AMessageV2, A2AMessageKinds, prepare_message_for_agency, parse_response_from_agency};
+use crate::error::prelude::*;
+use crate::messages::message_type::MessageTypes;
+use crate::utils::httpclient;
+use crate::settings::protocol::ProtocolTypes;
+use crate::settings;
+use crate::utils::libindy::wallet;
+use crate::messages::agent_provisioning::types::ProvisioningConfig;
+use crate::messages::update_agent::ComMethod;
+use crate::messages::agent_provisioning::utils::{process_provisioning_config, configure_wallet};
 
 pub static VALID_SIGNATURE_ALGORITHMS: [&'static str; 2] = ["SafetyNet", "DeviceCheck"];
 
@@ -155,19 +155,19 @@ pub fn provision(config: ProvisioningConfig, sponsee_id: &str, sponsor_id: &str,
 #[cfg(all(test, feature = "agency", feature = "pool_tests"))]
 mod tests {
     use super::*;
-    use settings;
-    use utils::constants;
-    use utils::devsetup::{C_AGENCY_DID, C_AGENCY_VERKEY, C_AGENCY_ENDPOINT, cleanup_indy_env};
-    use utils::plugins::init_plugin;
-    use utils::libindy::wallet::delete_wallet;
+    use crate::settings;
+    use crate::utils::constants;
+    use crate::utils::devsetup::{C_AGENCY_DID, C_AGENCY_VERKEY, C_AGENCY_ENDPOINT, cleanup_indy_env};
+    use crate::utils::plugins::init_plugin;
+    use crate::utils::libindy::wallet::delete_wallet;
 
     #[test]
     fn test_token_provisioning() {
         cleanup_indy_env();
-        init_plugin(::settings::DEFAULT_PAYMENT_PLUGIN, ::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
+        init_plugin(crate::settings::DEFAULT_PAYMENT_PLUGIN, crate::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
-        let seed1 = ::utils::devsetup::create_new_seed();
-        let enterprise_wallet_name = format!("{}_{}", ::utils::constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
+        let seed1 = crate::utils::devsetup::create_new_seed();
+        let enterprise_wallet_name = format!("{}_{}", crate::utils::constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
 
         let protocol_type = "2.0";
         let config = json!({

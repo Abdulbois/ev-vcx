@@ -1,22 +1,20 @@
-use serde_json;
 use serde_json::Value;
 use std::collections::HashMap;
-use time;
 use std::convert::TryInto;
 use std::mem::take;
 use crate::connection::Connections;
 
-use object_cache::{ObjectCache, Handle};
-use api::VcxStateType;
-use error::prelude::*;
+use crate::object_cache::{ObjectCache, Handle};
+use crate::api::VcxStateType;
+use crate::error::prelude::*;
 
-use messages::{
+use crate::messages::{
     self,
     GeneralMessage,
     RemoteMessageType,
     thread::Thread,
 };
-use messages::proofs::{
+use crate::messages::proofs::{
     proof_message::ProofMessage,
     proof_request::{
         ProofRequestMessage,
@@ -24,23 +22,23 @@ use messages::proofs::{
         NonRevokedInterval,
     },
 };
-use settings;
-use utils::error;
-use utils::constants::{CREDS_FROM_PROOF_REQ, DEFAULT_GENERATED_PROOF, DEFAULT_REJECTED_PROOF, NEW_PROOF_REQUEST_RESPONSE};
-use utils::libindy::cache::{get_rev_reg_cache, set_rev_reg_cache, RevRegCache, RevState};
-use utils::libindy::anoncreds;
-use utils::libindy::anoncreds::{get_rev_reg_def_json, get_rev_reg_delta_json};
+use crate::settings;
+use crate::utils::error;
+use crate::utils::constants::{CREDS_FROM_PROOF_REQ, DEFAULT_GENERATED_PROOF, DEFAULT_REJECTED_PROOF, NEW_PROOF_REQUEST_RESPONSE};
+use crate::utils::libindy::cache::{get_rev_reg_cache, set_rev_reg_cache, RevRegCache, RevState};
+use crate::utils::libindy::anoncreds;
+use crate::utils::libindy::anoncreds::{get_rev_reg_def_json, get_rev_reg_delta_json};
 
-use v3::{
+use crate::v3::{
     messages::proof_presentation::presentation_request::PresentationRequest,
     handlers::proof_presentation::prover::prover::Prover,
 };
 
-use utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
-use utils::httpclient::AgencyMock;
-use messages::proofs::proof_request::parse_proof_req_message;
-use messages::payload::PayloadKinds;
-use v3::messages::proof_presentation::presentation_proposal::PresentationProposal;
+use crate::utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
+use crate::utils::httpclient::AgencyMock;
+use crate::messages::proofs::proof_request::parse_proof_req_message;
+use crate::messages::payload::PayloadKinds;
+use crate::v3::messages::proof_presentation::presentation_proposal::PresentationProposal;
 
 lazy_static! {
     static ref HANDLE_MAP: ObjectCache<DisclosedProofs>  = Default::default();
@@ -604,7 +602,7 @@ impl DisclosedProof {
 
     #[cfg(test)] // TODO: REMOVE IT
     fn from_str(data: &str) -> VcxResult<DisclosedProof> {
-        use messages::ObjectWithVersion;
+        use crate::messages::ObjectWithVersion;
         ObjectWithVersion::deserialize(data)
             .map(|obj: ObjectWithVersion<DisclosedProof>| obj.data)
             .map_err(|err| err.extend("Cannot deserialize DisclosedProof"))
@@ -1088,12 +1086,10 @@ pub fn get_proof_request_messages(connection_handle: Handle<Connections>, match_
 
 #[cfg(test)]
 mod tests {
-    extern crate serde_json;
-
     use super::*;
-    use connection;
+    use crate::connection;
     use serde_json::Value;
-    use utils::{
+    use crate::utils::{
         constants::{ADDRESS_CRED_ID, LICENCE_CRED_ID, ADDRESS_SCHEMA_ID,
                     ADDRESS_CRED_DEF_ID, CRED_DEF_ID, SCHEMA_ID, ADDRESS_CRED_REV_ID,
                     ADDRESS_REV_REG_ID, REV_REG_ID, CRED_REV_ID, TEST_TAILS_FILE, REV_STATE_JSON},
@@ -1101,7 +1097,7 @@ mod tests {
     };
     #[cfg(feature = "pool_tests")]
     use time;
-    use utils::devsetup::*;
+    use crate::utils::devsetup::*;
 
     fn proof_req_no_interval() -> ProofRequestData {
         let proof_req = json!({
@@ -1130,7 +1126,7 @@ mod tests {
     fn test_create_proof() {
         let _setup = SetupMocks::init();
 
-        assert!(create_proof("1", ::utils::constants::PROOF_REQUEST_JSON).unwrap() > 0);
+        assert!(create_proof("1", crate::utils::constants::PROOF_REQUEST_JSON).unwrap() > 0);
     }
 
     #[test]
@@ -1192,7 +1188,7 @@ mod tests {
         let proof: DisclosedProof = Default::default();
         assert_eq!(VcxStateType::VcxStateNone as u32, proof.get_state());
 
-        let handle = create_proof("id", ::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = create_proof("id", crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
         assert_eq!(VcxStateType::VcxStateRequestReceived as u32, handle.get_state().unwrap())
     }
 
@@ -1200,11 +1196,11 @@ mod tests {
     fn to_string_test() {
         let _setup = SetupMocks::init();
 
-        let handle = create_proof("id", ::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = create_proof("id", crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
 
         let serialized = handle.to_string().unwrap();
         let j: Value = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(j["version"], ::utils::constants::PENDING_OBJECT_SERIALIZE_VERSION);
+        assert_eq!(j["version"], crate::utils::constants::PENDING_OBJECT_SERIALIZE_VERSION);
 
         let handle_2 = from_string(&serialized).unwrap();
         assert_ne!(handle, handle_2);
@@ -1221,7 +1217,7 @@ mod tests {
     fn test_deserialize_succeeds_with_self_attest_allowed() {
         let _setup = SetupDefaults::init();
 
-        let handle = create_proof("id", ::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = create_proof("id", crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
 
         let serialized = handle.to_string().unwrap();
         let p = DisclosedProof::from_str(&serialized).unwrap();
@@ -1410,8 +1406,8 @@ mod tests {
     fn test_retrieve_credentials() {
         let _setup = SetupLibraryWalletPoolZeroFees::init();
 
-        ::utils::libindy::anoncreds::tests::create_and_store_credential(::utils::constants::DEFAULT_SCHEMA_ATTRS, false);
-        let (_, _, req, _) = ::utils::libindy::anoncreds::tests::create_proof();
+        crate::utils::libindy::anoncreds::tests::create_and_store_credential(crate::utils::constants::DEFAULT_SCHEMA_ATTRS, false);
+        let (_, _, req, _) = crate::utils::libindy::anoncreds::tests::create_proof();
 
         let mut proof_req = ProofRequestMessage::create();
         let mut proof: DisclosedProof = Default::default();
@@ -1454,7 +1450,7 @@ mod tests {
     fn test_case_for_proof_req_doesnt_matter_for_retrieve_creds() {
         let _setup = SetupLibraryWalletPoolZeroFees::init();
 
-        ::utils::libindy::anoncreds::tests::create_and_store_credential(::utils::constants::DEFAULT_SCHEMA_ATTRS, false);
+        crate::utils::libindy::anoncreds::tests::create_and_store_credential(crate::utils::constants::DEFAULT_SCHEMA_ATTRS, false);
         let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
         let mut req = json!({
            "nonce":"123432421212",
@@ -1688,7 +1684,7 @@ mod tests {
         let _setup = SetupLibraryWalletPoolZeroFees::init();
 
         let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-        ::utils::libindy::anoncreds::tests::create_and_store_credential(::utils::constants::DEFAULT_SCHEMA_ATTRS, true);
+        crate::utils::libindy::anoncreds::tests::create_and_store_credential(crate::utils::constants::DEFAULT_SCHEMA_ATTRS, true);
         let mut proof_req = ProofRequestMessage::create();
         let to = time::get_time().sec;
         let indy_proof_req = json!({
@@ -1781,7 +1777,7 @@ mod tests {
         let _setup = SetupLibraryWalletPoolZeroFees::init();
 
         let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-        ::utils::libindy::anoncreds::tests::create_and_store_credential(::utils::constants::DEFAULT_SCHEMA_ATTRS, true);
+        crate::utils::libindy::anoncreds::tests::create_and_store_credential(crate::utils::constants::DEFAULT_SCHEMA_ATTRS, true);
         let mut proof_req = ProofRequestMessage::create();
         let to = time::get_time().sec;
         let indy_proof_req = json!({
@@ -1899,7 +1895,7 @@ mod tests {
 
         let attrs = r#"["address1","address2","city","state","zip"]"#;
         let (schema_id, _, cred_def_id, _, _, _, _, cred_id, rev_reg_id, cred_rev_id) =
-            ::utils::libindy::anoncreds::tests::create_and_store_credential(attrs, true);
+            crate::utils::libindy::anoncreds::tests::create_and_store_credential(attrs, true);
         let cred2 = CredInfo {
             requested_attr: "height".to_string(),
             referent: cred_id,
@@ -1941,7 +1937,7 @@ mod tests {
 
         let attrs = r#"["address1","address2","city","state","zip"]"#;
         let (schema_id, _, cred_def_id, _, _, _, _, cred_id, rev_reg_id, cred_rev_id) =
-            ::utils::libindy::anoncreds::tests::create_and_store_credential(attrs, true);
+            crate::utils::libindy::anoncreds::tests::create_and_store_credential(attrs, true);
         let cred2 = CredInfo {
             requested_attr: "height".to_string(),
             referent: cred_id,
@@ -1995,7 +1991,7 @@ mod tests {
 
         let attrs = r#"["address1","address2","city","state","zip"]"#;
         let (schema_id, _, cred_def_id, _, _, _, _, cred_id, rev_reg_id, cred_rev_id) =
-            ::utils::libindy::anoncreds::tests::create_and_store_credential(attrs, true);
+            crate::utils::libindy::anoncreds::tests::create_and_store_credential(attrs, true);
         let cred2 = CredInfo {
             requested_attr: "height".to_string(),
             referent: cred_id,
@@ -2049,7 +2045,7 @@ mod tests {
 
         let attrs = r#"["address1","address2","city","state","zip"]"#;
         let (schema_id, _, cred_def_id, _, _, _, _, cred_id, rev_reg_id, cred_rev_id) =
-            ::utils::libindy::anoncreds::tests::create_and_store_credential(attrs, true);
+            crate::utils::libindy::anoncreds::tests::create_and_store_credential(attrs, true);
         let cred2 = CredInfo {
             requested_attr: "height".to_string(),
             referent: cred_id,

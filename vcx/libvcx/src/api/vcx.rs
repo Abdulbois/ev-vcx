@@ -1,14 +1,14 @@
-use utils::{version_constants, threadpool};
+use crate::utils::{version_constants, threadpool};
 use libc::c_char;
-use utils::cstring::CStringUtils;
-use utils::libindy::{wallet, pool, ledger};
-use utils::error;
-use settings;
+use crate::utils::cstring::CStringUtils;
+use crate::utils::libindy::{wallet, pool, ledger};
+use crate::utils::error;
+use crate::settings;
 use std::ffi::CString;
-use utils::threadpool::spawn;
-use error::prelude::*;
-use indy::{INVALID_WALLET_HANDLE, CommandHandle};
-use utils::libindy::pool::init_pool;
+use crate::utils::threadpool::spawn;
+use crate::error::prelude::*;
+use crate::indy::{INVALID_WALLET_HANDLE, CommandHandle};
+use crate::utils::libindy::pool::init_pool;
 use std::thread;
 
 /// Initializes VCX with config settings
@@ -295,13 +295,13 @@ pub extern fn vcx_shutdown(delete: bool) -> u32 {
         Err(_) => {}
     };
 
-    ::schema::release_all();
-    ::connection::release_all();
-    ::issuer_credential::release_all();
-    ::credential_def::release_all();
-    ::proof::release_all();
-    ::disclosed_proof::release_all();
-    ::credential::release_all();
+    crate::schema::release_all();
+    crate::connection::release_all();
+    crate::issuer_credential::release_all();
+    crate::credential_def::release_all();
+    crate::proof::release_all();
+    crate::disclosed_proof::release_all();
+    crate::credential::release_all();
 
     if delete {
         let wallet_name = settings::get_config_value(settings::CONFIG_WALLET_NAME)
@@ -356,8 +356,8 @@ pub extern fn vcx_update_institution_info(name: *const c_char, logo_url: *const 
 
     trace!("vcx_update_institution_info(name: {}, logo_url: {})", secret!(name), secret!(logo_url));
 
-    settings::set_config_value(::settings::CONFIG_INSTITUTION_NAME, &name);
-    settings::set_config_value(::settings::CONFIG_INSTITUTION_LOGO_URL, &logo_url);
+    settings::set_config_value(crate::settings::CONFIG_INSTITUTION_NAME, &name);
+    settings::set_config_value(crate::settings::CONFIG_INSTITUTION_LOGO_URL, &logo_url);
 
     error::SUCCESS.code_num
 }
@@ -436,7 +436,7 @@ pub extern fn vcx_set_active_txn_author_agreement_meta(text: *const c_char,
     trace!("vcx_set_active_txn_author_agreement_meta(text: {:?}, version: {:?}, hash: {:?}, acc_mech_type: {:?}, time_of_acceptance: {:?})",
            text, version, hash, acc_mech_type, time_of_acceptance);
 
-    match ::utils::author_agreement::set_txn_author_agreement(text, version, hash, acc_mech_type, time_of_acceptance) {
+    match crate::utils::author_agreement::set_txn_author_agreement(text, version, hash, acc_mech_type, time_of_acceptance) {
         Ok(()) => error::SUCCESS.code_num,
         Err(err) => err.into()
     }
@@ -474,16 +474,16 @@ pub extern fn vcx_get_current_error(error_json_p: *mut *const c_char) {
 mod tests {
     use super::*;
     use std::ptr;
-    use utils::libindy::{
+    use crate::utils::libindy::{
         wallet::{import, tests::export_test_wallet},
         pool::get_pool,
     };
-    use api::return_types;
+    use crate::api::return_types;
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
-    use utils::get_temp_dir_path;
-    use utils::devsetup::*;
+    use crate::utils::get_temp_dir_path;
+    use crate::utils::devsetup::*;
     #[cfg(feature = "pool_tests")]
-    use utils::libindy::pool::tests::delete_test_pool;
+    use crate::utils::libindy::pool::tests::delete_test_pool;
 
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     fn config() -> String {
@@ -572,7 +572,7 @@ mod tests {
         let _setup = SetupWallet::init();
 
         // Write invalid genesis.txn
-        let _genesis_transactions = TempFile::create_with_data(::utils::constants::GENESIS_PATH, "{}");
+        let _genesis_transactions = TempFile::create_with_data(crate::utils::constants::GENESIS_PATH, "{}");
 
         let err = _vcx_init_with_config_c_closure(&config()).unwrap_err();
         assert_eq!(err, error::POOL_LEDGER_CONNECT.code_num);
@@ -791,13 +791,13 @@ mod tests {
         let _setup = SetupMocks::init();
 
         let data = r#"["name","male"]"#;
-        let connection = ::connection::tests::build_test_connection();
-        let credentialdef = ::credential_def::create_and_publish_credentialdef("SID".to_string(), "NAME".to_string(), "4fUDR9R7fjwELRvH9JT6HH".to_string(), "id".to_string(), "tag".to_string(), "{}".to_string()).unwrap();
-        let issuer_credential = ::issuer_credential::issuer_credential_create(credentialdef, "1".to_string(), "8XFh8yBzrpJQmNyZzgoTqB".to_owned(), "credential_name".to_string(), "{\"attr\":\"value\"}".to_owned(), 1).unwrap();
-        let proof = ::proof::create_proof("1".to_string(), "[]".to_string(), "[]".to_string(), r#"{"support_revocation":false}"#.to_string(), "Optional".to_owned()).unwrap();
-        let schema = ::schema::create_and_publish_schema("5", "VsKV7grR1BUE29mG2Fm2kX".to_string(), "name".to_string(), "0.1".to_string(), data.to_string()).unwrap();
-        let disclosed_proof = ::disclosed_proof::create_proof("id", ::utils::constants::PROOF_REQUEST_JSON).unwrap();
-        let credential = ::credential::credential_create_with_offer("name", ::utils::constants::CREDENTIAL_OFFER_JSON).unwrap();
+        let connection = crate::connection::tests::build_test_connection();
+        let credentialdef = crate::credential_def::create_and_publish_credentialdef("SID".to_string(), "NAME".to_string(), "4fUDR9R7fjwELRvH9JT6HH".to_string(), "id".to_string(), "tag".to_string(), "{}".to_string()).unwrap();
+        let issuer_credential = crate::issuer_credential::issuer_credential_create(credentialdef, "1".to_string(), "8XFh8yBzrpJQmNyZzgoTqB".to_owned(), "credential_name".to_string(), "{\"attr\":\"value\"}".to_owned(), 1).unwrap();
+        let proof = crate::proof::create_proof("1".to_string(), "[]".to_string(), "[]".to_string(), r#"{"support_revocation":false}"#.to_string(), "Optional".to_owned()).unwrap();
+        let schema = crate::schema::create_and_publish_schema("5", "VsKV7grR1BUE29mG2Fm2kX".to_string(), "name".to_string(), "0.1".to_string(), data.to_string()).unwrap();
+        let disclosed_proof = crate::disclosed_proof::create_proof("id", crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let credential = crate::credential::credential_create_with_offer("name", crate::utils::constants::CREDENTIAL_OFFER_JSON).unwrap();
 
         vcx_shutdown(true);
         assert_eq!(connection.release().unwrap_err().kind(), VcxErrorKind::InvalidConnectionHandle);
@@ -843,20 +843,20 @@ mod tests {
         let new_name = &new_name_cstr[..new_name_cstr.len() - 1];
         let new_url_cstr = "http://www.evernym.com\0";
         let new_url = &new_url_cstr[..new_url_cstr.len() - 1];
-        assert_ne!(new_name, &settings::get_config_value(::settings::CONFIG_INSTITUTION_NAME).unwrap());
-        assert_ne!(new_url, &settings::get_config_value(::settings::CONFIG_INSTITUTION_LOGO_URL).unwrap());
+        assert_ne!(new_name, &settings::get_config_value(crate::settings::CONFIG_INSTITUTION_NAME).unwrap());
+        assert_ne!(new_url, &settings::get_config_value(crate::settings::CONFIG_INSTITUTION_LOGO_URL).unwrap());
 
         assert_eq!(error::SUCCESS.code_num, vcx_update_institution_info(new_name_cstr.as_ptr().cast(), new_url_cstr.as_ptr().cast()));
 
-        assert_eq!(new_name, &settings::get_config_value(::settings::CONFIG_INSTITUTION_NAME).unwrap());
-        assert_eq!(new_url, &settings::get_config_value(::settings::CONFIG_INSTITUTION_LOGO_URL).unwrap());
+        assert_eq!(new_name, &settings::get_config_value(crate::settings::CONFIG_INSTITUTION_NAME).unwrap());
+        assert_eq!(new_url, &settings::get_config_value(crate::settings::CONFIG_INSTITUTION_LOGO_URL).unwrap());
     }
 
     #[test]
     fn get_current_error_works_for_no_error() {
         let _setup = SetupDefaults::init();
 
-        ::error::reset_current_error();
+        crate::error::reset_current_error();
 
         let mut error_json_p: *const c_char = ptr::null();
 
@@ -868,7 +868,7 @@ mod tests {
     fn get_current_error_works_for_sync_error() {
         let _setup = SetupDefaults::init();
 
-        ::api::utils::vcx_provision_agent(ptr::null());
+        crate::api::utils::vcx_provision_agent(ptr::null());
 
         let mut error_json_p: *const c_char = ptr::null();
         vcx_get_current_error(&mut error_json_p);
@@ -888,7 +888,7 @@ mod tests {
         }
 
         let config = CString::new("{}").unwrap();
-        ::api::utils::vcx_agent_provision_async(0, config.as_ptr(), Some(cb));
+        crate::api::utils::vcx_agent_provision_async(0, config.as_ptr(), Some(cb));
         ::std::thread::sleep(::std::time::Duration::from_secs(1));
     }
 
@@ -896,7 +896,7 @@ mod tests {
     fn test_vcx_set_active_txn_author_agreement_meta() {
         let _setup = SetupMocks::init();
 
-        assert!(&settings::get_config_value(::settings::CONFIG_TXN_AUTHOR_AGREEMENT).is_err());
+        assert!(&settings::get_config_value(crate::settings::CONFIG_TXN_AUTHOR_AGREEMENT).is_err());
 
         let text = "text\0";
         let version = "1.0.0\0";
@@ -916,12 +916,12 @@ mod tests {
             "timeOfAcceptance": time_of_acceptance,
         });
 
-        let auth_agreement = settings::get_config_value(::settings::CONFIG_TXN_AUTHOR_AGREEMENT).unwrap();
+        let auth_agreement = settings::get_config_value(crate::settings::CONFIG_TXN_AUTHOR_AGREEMENT).unwrap();
         let auth_agreement = ::serde_json::from_str::<::serde_json::Value>(&auth_agreement).unwrap();
 
         assert_eq!(expected, auth_agreement);
 
-        ::settings::set_defaults();
+        crate::settings::set_defaults();
     }
 
     #[test]
@@ -932,7 +932,7 @@ mod tests {
         assert_eq!(vcx_get_ledger_author_agreement(h,
                                                    Some(cb)), error::SUCCESS.code_num);
         let agreement = r.recv_short().unwrap();
-        assert_eq!(::utils::constants::DEFAULT_AUTHOR_AGREEMENT, agreement.unwrap());
+        assert_eq!(crate::utils::constants::DEFAULT_AUTHOR_AGREEMENT, agreement.unwrap());
     }
 
     #[cfg(feature = "pool_tests")]

@@ -1,10 +1,10 @@
-use error::prelude::*;
-use messages::agent_provisioning::utils::{configure_wallet, get_final_config, send_message_to_agency};
-use settings;
-use utils::libindy::wallet;
-use messages::{A2AMessage, A2AMessageV2};
-use messages::provision::{ConnectResponse, SignUp, SignUpResponse, CreateAgent, CreateAgentResponse, Connect};
-use messages::agent_provisioning::types::ProvisioningConfig;
+use crate::error::prelude::*;
+use crate::messages::agent_provisioning::utils::{configure_wallet, get_final_config, send_message_to_agency};
+use crate::settings;
+use crate::utils::libindy::wallet;
+use crate::messages::{A2AMessage, A2AMessageV2};
+use crate::messages::provision::{ConnectResponse, SignUp, SignUpResponse, CreateAgent, CreateAgentResponse, Connect};
+use crate::messages::agent_provisioning::types::ProvisioningConfig;
 
 
 pub fn provision(config: &ProvisioningConfig) -> VcxResult<String> {

@@ -1,5 +1,5 @@
-use v3::messages::a2a::{A2AMessage, MessageId};
-use messages::thread::Thread;
+use crate::v3::messages::a2a::{A2AMessage, MessageId};
+use crate::messages::thread::Thread;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub struct HandshakeReuse {
@@ -21,7 +21,7 @@ a2a_message!(HandshakeReuse);
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::connection::response::tests::*;
+    use crate::v3::messages::connection::response::tests::*;
 
     pub fn _handshake_reuse() -> HandshakeReuse {
         HandshakeReuse {

@@ -1,6 +1,6 @@
-use v3::messages::a2a::{MessageId, A2AMessage};
-use v3::messages::localization::Localization;
-use messages::thread::Thread;
+use crate::v3::messages::a2a::{MessageId, A2AMessage};
+use crate::v3::messages::localization::Localization;
+use crate::messages::thread::Thread;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ProblemReport {
@@ -61,7 +61,7 @@ impl Default for ProblemCode {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::connection::response::tests::*;
+    use crate::v3::messages::connection::response::tests::*;
 
     fn _problem_code() -> ProblemCode {
         ProblemCode::ResponseProcessingError

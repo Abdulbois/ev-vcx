@@ -1,4 +1,4 @@
-use v3::messages::a2a::{A2AMessage, MessageId};
+use crate::v3::messages::a2a::{A2AMessage, MessageId};
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub struct Invitation {
@@ -65,7 +65,7 @@ a2a_message!(Invitation, ConnectionInvitation);
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::connection::did_doc::tests::*;
+    use crate::v3::messages::connection::did_doc::tests::*;
 
     pub fn _invitation() -> Invitation {
         Invitation {

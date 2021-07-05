@@ -1,21 +1,21 @@
-use error::prelude::*;
+use crate::error::prelude::*;
 use std::collections::HashMap;
 
-use v3::handlers::connection::states::{DidExchangeSM, Actor, ActorDidExchangeState};
-use v3::handlers::connection::messages::DidExchangeMessages;
-use v3::handlers::connection::agent::AgentInfo;
-use v3::messages::a2a::A2AMessage;
-use v3::messages::connection::invite::Invitation;
-use v3::messages::connection::did_doc::DidDoc;
-use v3::messages::basic_message::message::BasicMessage;
-use v3::handlers::connection::types::{SideConnectionInfo, PairwiseConnectionInfo, CompletedConnection, OutofbandMeta, Invitations};
-use v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
-use v3::messages::questionanswer::question::{Question, QuestionResponse};
-use v3::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
-use v3::messages::invite_action::invite::InviteActionData;
-use v3::messages::invite_action::invite::{Invite as InviteForAction};
-use connection::ConnectionOptions;
-use v3::messages::connection::problem_report::ProblemReport;
+use crate::v3::handlers::connection::states::{DidExchangeSM, Actor, ActorDidExchangeState};
+use crate::v3::handlers::connection::messages::DidExchangeMessages;
+use crate::v3::handlers::connection::agent::AgentInfo;
+use crate::v3::messages::a2a::A2AMessage;
+use crate::v3::messages::connection::invite::Invitation;
+use crate::v3::messages::connection::did_doc::DidDoc;
+use crate::v3::messages::basic_message::message::BasicMessage;
+use crate::v3::handlers::connection::types::{SideConnectionInfo, PairwiseConnectionInfo, CompletedConnection, OutofbandMeta, Invitations};
+use crate::v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
+use crate::v3::messages::questionanswer::question::{Question, QuestionResponse};
+use crate::v3::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
+use crate::v3::messages::invite_action::invite::InviteActionData;
+use crate::v3::messages::invite_action::invite::{Invite as InviteForAction};
+use crate::connection::ConnectionOptions;
+use crate::v3::messages::connection::problem_report::ProblemReport;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connection {
@@ -390,8 +390,8 @@ impl Connection {
 
 #[cfg(test)]
 mod tests {
-    use v3::messages::a2a::A2AMessage;
-    use v3::handlers::connection::connection::Connection;
+    use crate::v3::messages::a2a::A2AMessage;
+    use crate::v3::handlers::connection::connection::Connection;
 
     #[test]
     fn test_parse_generic_message_plain_string_should_be_parsed_as_basic_msg() -> Result<(), String> {

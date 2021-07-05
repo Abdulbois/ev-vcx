@@ -1,8 +1,8 @@
-use v3::messages::a2a::{MessageId, A2AMessage};
-use v3::messages::attachment::{Attachments, AttachmentId};
-use error::VcxResult;
-use messages::thread::Thread;
-use v3::messages::transport::Transport;
+use crate::v3::messages::a2a::{MessageId, A2AMessage};
+use crate::v3::messages::attachment::{Attachments, AttachmentId};
+use crate::error::VcxResult;
+use crate::messages::thread::Thread;
+use crate::v3::messages::transport::Transport;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Default)]
 pub struct CredentialRequest {
@@ -41,7 +41,7 @@ a2a_message!(CredentialRequest);
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use v3::messages::issuance::credential_offer::tests::{thread, thread_id};
+    use crate::v3::messages::issuance::credential_offer::tests::{thread, thread_id};
 
     fn _attachment() -> ::serde_json::Value {
         json!({

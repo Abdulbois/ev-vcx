@@ -17,25 +17,25 @@ pub mod test {
     use crate::credential_def::CredentialDef;
     use crate::schema::CreateSchema;
     use rand::Rng;
-    use utils::devsetup::*;
-    use utils::libindy::wallet::*;
+    use crate::utils::devsetup::*;
+    use crate::utils::libindy::wallet::*;
     use indy_sys::WalletHandle;
-    use utils::plugins::init_plugin;
-    use messages::payload::PayloadV1;
-    use api::VcxStateType;
-    use v3::messages::a2a::A2AMessage;
-    use v3::handlers::connection::types::OutofbandMeta;
+    use crate::utils::plugins::init_plugin;
+    use crate::messages::payload::PayloadV1;
+    use crate::api::VcxStateType;
+    use crate::v3::messages::a2a::A2AMessage;
+    use crate::v3::handlers::connection::types::OutofbandMeta;
     
-    use utils::libindy::anoncreds::prover_get_credentials;
-    use utils::libindy::types::CredentialInfo;
-    use messages::agent_provisioning;
+    use crate::utils::libindy::anoncreds::prover_get_credentials;
+    use crate::utils::libindy::types::CredentialInfo;
+    use crate::messages::agent_provisioning;
 
     pub fn source_id() -> String {
         String::from("test source id")
     }
 
     pub mod setup {
-        use settings::{CONFIG_WALLET_KEY_DERIVATION, DEFAULT_WALLET_KEY};
+        use crate::settings::{CONFIG_WALLET_KEY_DERIVATION, DEFAULT_WALLET_KEY};
         use indy_sys::WalletHandle;
 
         pub fn base_config() -> ::serde_json::Value {
@@ -72,23 +72,23 @@ pub mod test {
                 config["wallet_name"] = json!(wallet_name);
                 config["enable_test_mode"] = json!("true");
 
-                ::settings::process_config_string(&config.to_string(), false).unwrap();
+                crate::settings::process_config_string(&config.to_string(), false).unwrap();
 
-                ::utils::libindy::wallet::create_wallet(wallet_name, None, None, None).unwrap();
-                let config = ::utils::devsetup::config_with_wallet_handle(wallet_name, &config.to_string());
+                crate::utils::libindy::wallet::create_wallet(wallet_name, None, None, None).unwrap();
+                let config = crate::utils::devsetup::config_with_wallet_handle(wallet_name, &config.to_string());
 
-                ::settings::process_config_string(&config.to_string(), false).unwrap();
+                crate::settings::process_config_string(&config.to_string(), false).unwrap();
 
                 AgencyModeSetup {
                     wallet_name: wallet_name.to_string(),
-                    wallet_handle: ::utils::libindy::wallet::get_wallet_handle(),
+                    wallet_handle: crate::utils::libindy::wallet::get_wallet_handle(),
                 }
             }
         }
 
         impl Drop for AgencyModeSetup {
             fn drop(&mut self) {
-                ::utils::libindy::wallet::delete_wallet(&self.wallet_name, None, None, None).unwrap();
+                crate::utils::libindy::wallet::delete_wallet(&self.wallet_name, None, None, None).unwrap();
             }
         }
     }
@@ -97,7 +97,7 @@ pub mod test {
 
     impl PaymentPlugin {
         pub fn load() {
-            init_plugin(::settings::DEFAULT_PAYMENT_PLUGIN, ::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
+            init_plugin(crate::settings::DEFAULT_PAYMENT_PLUGIN, crate::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
         }
     }
 
@@ -105,15 +105,15 @@ pub mod test {
 
     impl Pool {
         pub fn open() -> Pool {
-            ::utils::libindy::pool::tests::open_test_pool();
+            crate::utils::libindy::pool::tests::open_test_pool();
             Pool {}
         }
     }
 
     impl Drop for Pool {
         fn drop(&mut self) {
-            ::utils::libindy::pool::close().unwrap();
-            ::utils::libindy::pool::tests::delete_test_pool();
+            crate::utils::libindy::pool::close().unwrap();
+            crate::utils::libindy::pool::tests::delete_test_pool();
         }
     }
 
@@ -124,7 +124,7 @@ pub mod test {
     }
 
     fn download_message(did: String, type_: &str) -> Message {
-        let mut messages = ::messages::get_message::download_messages(Some(vec![did]), Some(vec![String::from("MS-103")]), None).unwrap();
+        let mut messages = crate::messages::get_message::download_messages(Some(vec![did]), Some(vec![String::from("MS-103")]), None).unwrap();
         assert_eq!(1, messages.len());
         let messages = messages.pop().unwrap();
 
@@ -153,7 +153,7 @@ pub mod test {
 
     impl Faber {
         pub fn setup() -> Faber {
-            ::settings::clear_config();
+            crate::settings::clear_config();
             let wallet_name = "faber_wallet";
 
             let config = json!({
@@ -184,8 +184,8 @@ pub mod test {
         }
 
         pub fn activate(&self) {
-            ::settings::clear_config();
-            ::settings::process_config_string(&self.config, false).unwrap();
+            crate::settings::clear_config();
+            crate::settings::process_config_string(&self.config, false).unwrap();
             set_wallet_handle(self.wallet_handle);
         }
 
@@ -202,7 +202,7 @@ pub mod test {
             let name: String = rand::thread_rng().gen_ascii_chars().take(25).collect::<String>();
             let version: String = String::from("1.0");
 
-            self.schema_handle = ::schema::create_and_publish_schema("test_schema", did.clone(), name, version, data).unwrap();
+            self.schema_handle = crate::schema::create_and_publish_schema("test_schema", did.clone(), name, version, data).unwrap();
         }
 
         pub fn create_credential_definition(&mut self) {
@@ -213,7 +213,7 @@ pub mod test {
             let name = String::from("degree");
             let tag = String::from("tag");
 
-            self.cred_def_handle = ::credential_def::create_and_publish_credentialdef(String::from("test_cred_def"), name, did.clone(), schema_id, tag, String::from("{}")).unwrap();
+            self.cred_def_handle = crate::credential_def::create_and_publish_credentialdef(String::from("test_cred_def"), name, did.clone(), schema_id, tag, String::from("{}")).unwrap();
         }
 
         pub fn create_presentation_request(&self) -> Handle<Proofs> {
@@ -224,7 +224,7 @@ pub mod test {
                 {"name": "empty_param", "restrictions": {"attr::empty_param::value": ""}}
             ]).to_string();
 
-            ::proof::create_proof(String::from("alice_degree"),
+            crate::proof::create_proof(String::from("alice_degree"),
                                   requested_attrs,
                                   json!([]).to_string(),
                                   json!({}).to_string(),
@@ -233,7 +233,7 @@ pub mod test {
 
         pub fn create_invite(&mut self) -> String {
             self.activate();
-            self.connection_handle = ::connection::create_connection("alice").unwrap();
+            self.connection_handle = crate::connection::create_connection("alice").unwrap();
             self.connection_handle.connect(None).unwrap();
             self.connection_handle.update_state(None).unwrap();
             assert_eq!(2, self.connection_handle.get_state());
@@ -244,7 +244,7 @@ pub mod test {
         pub fn create_outofband_connection(&mut self, invite: OutofbandMeta) -> String {
             self.activate();
 
-            self.connection_handle = ::connection::create_outofband_connection("alice", invite.goal_code, invite.goal, invite.handshake, invite.request_attach).unwrap();
+            self.connection_handle = crate::connection::create_outofband_connection("alice", invite.goal_code, invite.goal, invite.handshake, invite.request_attach).unwrap();
             self.connection_handle.connect(None).unwrap();
             self.connection_handle.get_invite_details(false).unwrap()
         }
@@ -282,7 +282,7 @@ pub mod test {
                 "empty_param": ""
             }).to_string();
 
-            self.credential_handle = ::issuer_credential::issuer_credential_create(self.cred_def_handle,
+            self.credential_handle = crate::issuer_credential::issuer_credential_create(self.cred_def_handle,
                                                                                    String::from("alice_degree"),
                                                                                    did,
                                                                                    String::from("cred"),
@@ -350,7 +350,7 @@ pub mod test {
 
     impl Alice {
         pub fn setup() -> Alice {
-            ::settings::clear_config();
+            crate::settings::clear_config();
             let wallet_name = "alice_wallet";
 
             let config = json!({
@@ -378,14 +378,14 @@ pub mod test {
         }
 
         pub fn activate(&self) {
-            ::settings::clear_config();
-            ::settings::process_config_string(&self.config, false).unwrap();
+            crate::settings::clear_config();
+            crate::settings::process_config_string(&self.config, false).unwrap();
             set_wallet_handle(self.wallet_handle);
         }
 
         pub fn accept_invite(&mut self, invite: &str) {
             self.activate();
-            self.connection_handle = ::connection::create_connection_with_invite("faber", invite).unwrap();
+            self.connection_handle = crate::connection::create_connection_with_invite("faber", invite).unwrap();
             self.connection_handle.connect(None).unwrap();
             self.connection_handle.update_state(None).unwrap();
             assert_eq!(3, self.connection_handle.get_state());
@@ -393,7 +393,7 @@ pub mod test {
 
         pub fn accept_outofband_invite(&mut self, invite: &str) {
             self.activate();
-            self.connection_handle = ::connection::create_connection_with_outofband_invite("faber", invite).unwrap();
+            self.connection_handle = crate::connection::create_connection_with_outofband_invite("faber", invite).unwrap();
             self.connection_handle.connect(None).unwrap();
         }
 
@@ -411,11 +411,11 @@ pub mod test {
 
         pub fn accept_offer(&mut self) {
             self.activate();
-            let offers = ::credential::get_credential_offer_messages(self.connection_handle).unwrap();
+            let offers = crate::credential::get_credential_offer_messages(self.connection_handle).unwrap();
             let offer = ::serde_json::from_str::<Vec<::serde_json::Value>>(&offers).unwrap()[0].clone();
             let offer_json = ::serde_json::to_string(&offer).unwrap();
 
-            self.credential_handle = ::credential::credential_create_with_offer("degree", &offer_json).unwrap();
+            self.credential_handle = crate::credential::credential_create_with_offer("degree", &offer_json).unwrap();
             assert_eq!(3, self.credential_handle.get_state().unwrap());
 
             self.credential_handle.send_credential_request(self.connection_handle).unwrap();
@@ -430,7 +430,7 @@ pub mod test {
 
         pub fn get_proof_request_messages(&self) -> String {
             self.activate();
-            let presentation_requests = ::disclosed_proof::get_proof_request_messages(self.connection_handle, None).unwrap();
+            let presentation_requests = crate::disclosed_proof::get_proof_request_messages(self.connection_handle, None).unwrap();
             let presentation_request = ::serde_json::from_str::<Vec<::serde_json::Value>>(&presentation_requests).unwrap()[0].clone();
             let presentation_request_json = ::serde_json::to_string(&presentation_request).unwrap();
             presentation_request_json
@@ -462,7 +462,7 @@ pub mod test {
             self.activate();
             let presentation_request_json = self.get_proof_request_messages();
 
-            self.presentation_handle = ::disclosed_proof::create_proof("degree", &presentation_request_json).unwrap();
+            self.presentation_handle = crate::disclosed_proof::create_proof("degree", &presentation_request_json).unwrap();
 
             let credentials = self.get_credentials_for_presentation();
 
@@ -477,7 +477,7 @@ pub mod test {
             self.activate();
             let presentation_request_json = self.get_proof_request_messages();
 
-            self.presentation_handle = ::disclosed_proof::create_proof("degree", &presentation_request_json).unwrap();
+            self.presentation_handle = crate::disclosed_proof::create_proof("degree", &presentation_request_json).unwrap();
             self.presentation_handle.decline_presentation_request(self.connection_handle, Some(String::from("reason")), None).unwrap();
         }
 
@@ -485,7 +485,7 @@ pub mod test {
             self.activate();
             let presentation_request_json = self.get_proof_request_messages();
 
-            self.presentation_handle = ::disclosed_proof::create_proof("degree", &presentation_request_json).unwrap();
+            self.presentation_handle = crate::disclosed_proof::create_proof("degree", &presentation_request_json).unwrap();
             let proposal_data = json!({
                 "attributes": [
                     {
@@ -659,7 +659,7 @@ pub mod test {
             // Alice creates Credential object with message id
             {
                 let message = alice.download_message("credential-offer");
-                let (credential_handle, _credential_offer) = ::credential::credential_create_with_msgid("test", alice.connection_handle, &message.uid).unwrap();
+                let (credential_handle, _credential_offer) = crate::credential::credential_create_with_msgid("test", alice.connection_handle, &message.uid).unwrap();
                 alice.credential_handle = credential_handle;
 
                 alice.credential_handle.send_credential_request(alice.connection_handle).unwrap();
@@ -675,7 +675,7 @@ pub mod test {
             // Alice creates Presentation object with message id
             {
                 let message = alice.download_message("presentation-request");
-                let (presentation_handle, _presentation_request) = ::disclosed_proof::create_proof_with_msgid("test", alice.connection_handle, &message.uid).unwrap();
+                let (presentation_handle, _presentation_request) = crate::disclosed_proof::create_proof_with_msgid("test", alice.connection_handle, &message.uid).unwrap();
                 alice.presentation_handle = presentation_handle;
 
                 let credentials = alice.get_credentials_for_presentation();
@@ -724,7 +724,7 @@ pub mod test {
             {
                 let message = alice.download_message("credential-offer");
 
-                alice.credential_handle = ::credential::credential_create_with_offer("test", &message.message).unwrap();
+                alice.credential_handle = crate::credential::credential_create_with_offer("test", &message.message).unwrap();
 
                 alice.update_message_status(message.uid);
 
@@ -742,7 +742,7 @@ pub mod test {
             {
                 let message = alice.download_message("presentation-request");
 
-                alice.presentation_handle = ::disclosed_proof::create_proof("test", &message.message).unwrap();
+                alice.presentation_handle = crate::disclosed_proof::create_proof("test", &message.message).unwrap();
 
                 alice.update_message_status(message.uid);
 
@@ -758,7 +758,7 @@ pub mod test {
             faber.verify_presentation();
         }
 
-        use v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
+        use crate::v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
 
         #[test]
         fn test_outofband_connection_works() {

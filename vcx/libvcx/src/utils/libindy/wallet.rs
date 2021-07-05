@@ -1,13 +1,11 @@
 use futures::Future;
-use indy::{wallet, ErrorCode};
-
-use settings;
-
-use error::prelude::*;
-use indy::{WalletHandle, INVALID_WALLET_HANDLE};
-use settings::wallet::{get_wallet_config, get_wallet_credentials};
-use utils::constants::DEFAULT_SEARCH_HANDLE;
-use utils::constants;
+use crate::indy::{wallet, ErrorCode};
+use crate::settings;
+use crate::error::prelude::*;
+use crate::indy::{WalletHandle, INVALID_WALLET_HANDLE};
+use crate::settings::wallet::{get_wallet_config, get_wallet_credentials};
+use crate::utils::constants::DEFAULT_SEARCH_HANDLE;
+use crate::utils::constants;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WalletRecord {
@@ -292,7 +290,7 @@ pub fn export(wallet_handle: WalletHandle, path: &str, backup_key: &str) -> VcxR
 pub fn import(config: &str) -> VcxResult<()> {
     trace!("import >>> config {}", secret!(config));
 
-    ::settings::process_config_string(config, false)?;
+    crate::settings::process_config_string(config, false)?;
 
     let restore_config = RestoreWalletConfigs::from_str(config)?;
 
@@ -308,8 +306,8 @@ pub fn import(config: &str) -> VcxResult<()> {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use utils::get_temp_dir_path;
-    use utils::devsetup::{SetupLibraryWallet, SetupDefaults, TempFile, SetupEmpty};
+    use crate::utils::get_temp_dir_path;
+    use crate::utils::devsetup::{SetupLibraryWallet, SetupDefaults, TempFile, SetupEmpty};
 
     fn _record() -> (&'static str, &'static str, &'static str) {
         ("type1", "id1", "value1")
@@ -413,7 +411,7 @@ pub mod tests {
 
         delete_wallet(&wallet_name, None, None, None).unwrap();
 
-        ::settings::clear_config();
+        crate::settings::clear_config();
 
         let (type_, id, value) = _record();
 

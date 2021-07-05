@@ -1,10 +1,10 @@
-use v3::messages::issuance::credential_request::CredentialRequest;
-use v3::messages::issuance::credential_offer::CredentialOffer;
-use v3::messages::issuance::credential::Credential;
-use v3::messages::status::Status;
-use v3::messages::error::{ProblemReport, Reason};
-use v3::handlers::connection::types::CompletedConnection;
-use messages::thread::Thread;
+use crate::v3::messages::issuance::credential_request::CredentialRequest;
+use crate::v3::messages::issuance::credential_offer::CredentialOffer;
+use crate::v3::messages::issuance::credential::Credential;
+use crate::v3::messages::status::Status;
+use crate::v3::messages::error::{ProblemReport, Reason};
+use crate::v3::handlers::connection::types::CompletedConnection;
+use crate::messages::thread::Thread;
 
 // Possible Transitions:
 // Initial -> OfferSent

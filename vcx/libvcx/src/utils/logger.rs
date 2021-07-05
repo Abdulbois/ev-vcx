@@ -1,27 +1,19 @@
-extern crate env_logger;
-extern crate log;
-extern crate libc;
-extern crate indy_sys;
-
-#[cfg(target_os = "android")]
-extern crate android_logger;
-
 use std::io::Write;
-use self::env_logger::Builder as EnvLoggerBuilder;
-use self::log::{Level, LevelFilter, Metadata, Record};
-use self::libc::{c_char};
+use env_logger::Builder as EnvLoggerBuilder;
+use log::{Level, LevelFilter, Metadata, Record};
+use libc::c_char;
 use std::env;
 use std::ptr;
-pub use self::indy_sys::{CVoid, logger::{EnabledCB, LogCB, FlushCB}};
+pub use indy_sys::{CVoid, logger::{EnabledCB, LogCB, FlushCB}};
 use std::ffi::CString;
 
 #[allow(unused_imports)]
 #[cfg(target_os = "android")]
-use self::android_logger::Filter;
-use utils::cstring::CStringUtils;
-use error::prelude::*;
+use android_logger::Filter;
+use crate::utils::cstring::CStringUtils;
+use crate::error::prelude::*;
 
-use utils::libindy;
+use crate::utils::libindy;
 
 #[cfg(debug_assertions)]
 const DEFAULT_MAX_LEVEL: LevelFilter = LevelFilter::Trace;

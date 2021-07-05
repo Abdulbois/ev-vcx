@@ -1,20 +1,16 @@
-use error::prelude::*;
+use crate::error::prelude::*;
 
 #[cfg(all(feature = "mysql"))]
 use std::env;
 
-#[cfg(all(feature = "mysql"))]
-use std::sync::Once;
-use settings;
-
-#[cfg(all(feature = "mysql"))]
-use utils::libindy::mysql_wallet::init_mysql_wallet as do_init_mysql_wallet;
-
-#[cfg(all(feature = "mysql"))]
-static START: Once = Once::new();
+use crate::settings;
 
 #[cfg(all(feature = "mysql"))]
 pub fn init_mysql_wallet() {
+    use std::sync::Once;
+    use crate::utils::libindy::mysql_wallet::init_mysql_wallet as do_init_mysql_wallet;
+
+    static START: Once = Once::new();
     START.call_once(|| {
         let _ = do_init_mysql_wallet();
     });

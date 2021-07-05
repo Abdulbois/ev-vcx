@@ -1,11 +1,11 @@
-use settings;
+use crate::settings;
 
 use serde::{de, Deserializer, Deserialize, Serializer, Serialize};
 use serde_json::Value;
 use regex::{Regex, Match};
-use messages::A2AMessageKinds;
-use error::prelude::*;
-use settings::protocol::ProtocolTypes;
+use crate::messages::A2AMessageKinds;
+use crate::error::prelude::*;
+use crate::settings::protocol::ProtocolTypes;
 
 pub const MESSAGE_VERSION_V1: &str = "1.0";
 pub const DID: &str = "did:sov:123456789abcdefghi1234";

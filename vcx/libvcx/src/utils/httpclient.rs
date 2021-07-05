@@ -1,11 +1,11 @@
-use settings;
+use crate::settings;
 use std::io::Read;
 use std::sync::Mutex;
 use reqwest::header::CONTENT_TYPE;
 use std::env;
-use error::prelude::*;
+use crate::error::prelude::*;
 use reqwest::ClientBuilder;
-use error::agency_error::AgencyError;
+use crate::error::agency_error::AgencyError;
 
 lazy_static! {
     static ref AGENCY_MOCK: Mutex<AgencyMock> = Mutex::new(AgencyMock::default());

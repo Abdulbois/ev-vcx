@@ -1,12 +1,12 @@
-use error::prelude::*;
-use messages::agent_provisioning::utils::{configure_wallet, get_final_config, send_message_to_agency};
-use settings;
-use utils::libindy::wallet;
-use utils::httpclient::AgencyMock;
-use messages::{A2AMessage, A2AMessageV1};
-use utils::constants;
-use messages::provision::{ConnectResponse, SignUp, SignUpResponse, CreateAgent, CreateAgentResponse, Connect};
-use messages::agent_provisioning::types::ProvisioningConfig;
+use crate::error::prelude::*;
+use crate::messages::agent_provisioning::utils::{configure_wallet, get_final_config, send_message_to_agency};
+use crate::settings;
+use crate::utils::libindy::wallet;
+use crate::utils::httpclient::AgencyMock;
+use crate::messages::{A2AMessage, A2AMessageV1};
+use crate::utils::constants;
+use crate::messages::provision::{ConnectResponse, SignUp, SignUpResponse, CreateAgent, CreateAgentResponse, Connect};
+use crate::messages::agent_provisioning::types::ProvisioningConfig;
 
 pub fn provision(config: &ProvisioningConfig) -> VcxResult<String> {
     trace!("provision_0_5 >>> config: {:?}", secret!(config));
@@ -86,10 +86,10 @@ fn onboarding_v1(my_did: &str, my_vk: &str, agency_did: &str) -> VcxResult<(Stri
 mod tests {
     use std::env;
     use super::*;
-    use utils::devsetup::*;
-    use api::vcx::vcx_shutdown;
-    use messages::agent_provisioning::types::ProvisioningConfig;
-    use messages::agent_provisioning;
+    use crate::utils::devsetup::*;
+    use crate::api::vcx::vcx_shutdown;
+    use crate::messages::agent_provisioning::types::ProvisioningConfig;
+    use crate::messages::agent_provisioning;
 
     #[test]
     #[ignore]
