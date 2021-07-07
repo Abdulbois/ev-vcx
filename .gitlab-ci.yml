@@ -49,7 +49,7 @@ variables:
     name: gcr.io/kaniko-project/executor:debug-v0.16.0
     entrypoint: ['']
   script:
-    - if [ "$CI_COMMIT_REF_SLUG" == 'master' ] || [ "$CI_COMMIT_REF_SLUG" == 'stable' ]; then KANIKO_ARGS="--destination $CI_REGISTRY_IMAGE/${DOCKER_IMAGE_NAME}:latest $KANIKO_ARGS"; fi
+    - if [ "$CI_COMMIT_REF_SLUG" == 'main' ] || [ "$CI_COMMIT_REF_SLUG" == 'stable' ]; then KANIKO_ARGS="--destination $CI_REGISTRY_IMAGE/${DOCKER_IMAGE_NAME}:latest $KANIKO_ARGS"; fi
     - echo "${KANIKO_ARGS}"
     - |
       echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" \
@@ -96,7 +96,7 @@ variables:
     KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion} --build-arg LIBINDY_VER=${indyFullDebVersion} --build-arg LIBNULL_VER=${indyFullDebVersion} --build-arg LIBSOVTOKEN_VER=${libsovtokenVersion}'
   only:
     refs:
-      - master
+      - main
       - stable
       - /^docker-.*/
 
@@ -142,7 +142,7 @@ dockerbuild-vcx-libindy-centos:
     KANIKO_ARGS: '--build-arg LIBINDY_VER=${indyFullVersion} --build-arg LIBINDY_SIMPLE_VER=${indySimpleVersion} --build-arg LIBINDY_BRANCH=${indyBranch} --build-arg RUST_VER=${rustVersion}'
   only:
     refs:
-      - master
+      - main
       - stable
       - /^docker-.*/
     changes:
@@ -161,7 +161,7 @@ dockerbuild-vcx-android:
     KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion}'
   only:
     refs:
-      - master
+      - main
       - stable
       - /^docker-.*/
     changes:
@@ -178,7 +178,7 @@ dockerbuild-vcx-android:
     DOCKERFILE_PATH: vcx/ci/python.dockerfile
   only:
     refs:
-      - master
+      - main
       - stable
       - /^docker-.*/
     changes:
@@ -210,7 +210,7 @@ dockerbuild-vcx-java:
     DOCKER_IMAGE_NAME: vcx-java
   only:
     refs:
-      - master
+      - main
       - stable
       - /^docker-.*/
     changes:
@@ -261,6 +261,8 @@ build-ios:
   script:
     - vcx/ci/scripts/androidBuild.sh ${ARCH} ${indyBranch} \
       ${indyFullVersion} ${indyBranch} ${indyFullVersion} ${libsovtokenVersion}-${libsovtokenVersionExtra} ${androidSovtokenArtifact}
+
+
 build-android-x86-from-branch:
   extends: .build_android
   stage: build
@@ -270,6 +272,8 @@ build-android-x86-from-branch:
   only:
     refs:
       - /^docker-.*/
+
+
 build-android-x86-from-latest:
   extends: .build_android
   stage: build
@@ -289,6 +293,7 @@ build-android-x86_64-from-branch:
   only:
     refs:
       - /^docker-.*/
+      
 build-android-x86_64-from-latest:
   extends: .build_android
   stage: build
@@ -346,6 +351,7 @@ build-android-armv7-from-branch:
   only:
     refs:
       - /^docker-.*/
+
 build-android-armv7-from-latest:
   extends: .build_android
   stage: build
@@ -381,6 +387,7 @@ build-consistent-vers-ts:
     - export VCXVERSION=$(${CI_PROJECT_DIR}/vcx/ci/scripts/toml_utils.py ${CI_PROJECT_DIR}/vcx/libvcx/Cargo.toml)
     - cd ${CI_PROJECT_DIR}
     - vcx/ci/scripts/package.sh ${RUSTTESTFLAG} ${VCXVERSION} ${VCXREVISION} ${PACKAGE_TYPE}
+  
 build-libvcx-ubuntu18-from-branch:
   extends: .build-libvcx
   stage: build
@@ -391,13 +398,14 @@ build-libvcx-ubuntu18-from-branch:
     RUSTTESTFLAG: 'mysql'
     PACKAGE_TYPE: 'bionic'
   services:
-    - name: gitlab.corp.evernym.com:4567/dev/containers/indy-pool:1.9.2_1.0.2
+    - name: registry.gitlab.com/evernym/containers/indy-pool:1.9.2_1.0.2
       alias: indy_pool
     - name: mysql:5
       alias: mysql
   only:
     refs:
       - /^docker-.*/
+
 build-libvcx-ubuntu18-from-latest:
   extends: .build-libvcx
   image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
@@ -408,13 +416,14 @@ build-libvcx-ubuntu18-from-latest:
     RUSTTESTFLAG: 'mysql'
     PACKAGE_TYPE: 'bionic'
   services:
-    - name: gitlab.corp.evernym.com:4567/dev/containers/indy-pool:1.9.2_1.0.2
+    - name: registry.gitlab.com/evernym/containers/indy-pool:1.9.2_1.0.2
       alias: indy_pool
     - name: mysql:5
       alias: mysql
   except:
     refs:
       - /^docker-.*/
+
 build-libvcx-ubuntu16-from-branch:
   extends: .build-libvcx
   stage: build
@@ -425,6 +434,7 @@ build-libvcx-ubuntu16-from-branch:
   only:
     refs:
       - /^docker-.*/
+
 build-libvcx-ubuntu16-from-latest:
   extends: .build-libvcx
   image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:latest
@@ -451,6 +461,7 @@ build-libvcx-ubuntu16-from-latest:
     - export VCXVERSION=$(${CI_PROJECT_DIR}/vcx/ci/scripts/toml_utils.py ${CI_PROJECT_DIR}/vcx/libvcx/Cargo.toml)
     - cd ${CI_PROJECT_DIR}
     - vcx/ci/scripts/package-rpm.sh ${RUSTTESTFLAG} ${VCXVERSION} ${VCXREVISION}
+
 build-libvcx-rpm-from-branch:
   extends: .build-libvcx-rpm
   stage: build
@@ -458,6 +469,7 @@ build-libvcx-rpm-from-branch:
   only:
     refs:
       - /^docker-.*/
+
 build-libvcx-rpm-from-latest:
   extends: .build-libvcx-rpm
   image: ${CI_REGISTRY_IMAGE}/vcx-libindy-centos:latest
@@ -475,6 +487,7 @@ build-libvcx-rpm-from-latest:
     - export PYTHONPATH="${CI_PROJECT_DIR}/vcx/wrappers/python3:vcx/wrappers/python3"
     - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*${PACKAGE_TYPE}*.deb
     - vcx/wrappers/python3/ci/test.sh
+
 test-python-wrapper-from-branch:
   extends: .test-python-wrapper
   stage: test
@@ -484,6 +497,7 @@ test-python-wrapper-from-branch:
   only:
     refs:
       - /^docker-.*/
+
 test-python-wrapper-from-latest:
   extends: .test-python-wrapper
   stage: test
@@ -501,6 +515,7 @@ test-python-wrapper-from-latest:
   script:
     - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*${PACKAGE_TYPE}*.deb
     - cd vcx/wrappers/java && ./gradlew --no-daemon test
+
 test-java-wrapper-from-branch:
   extends: .test-java-wrapper
   stage: test
@@ -510,6 +525,7 @@ test-java-wrapper-from-branch:
   only:
     refs:
       - /^docker-.*/
+
 test-java-wrapper-from-latest:
   extends: .test-java-wrapper
   stage: test
@@ -528,6 +544,7 @@ test-java-wrapper-from-latest:
     - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*${PACKAGE_TYPE}*.deb
     - cd vcx/wrappers/node && npm i npm@6.1.0
     - cd ${CI_PROJECT_DIR} && vcx/wrappers/node/ci/test.sh
+
 test-node-wrapper-ubuntu18-from-branch:
   extends: .test-node-wrapper
   stage: test
@@ -537,6 +554,7 @@ test-node-wrapper-ubuntu18-from-branch:
   only:
     refs:
       - /^docker-.*/
+
 test-node-wrapper-ubuntu18-from-latest:
   extends: .test-node-wrapper
   stage: test
@@ -547,7 +565,7 @@ test-node-wrapper-ubuntu18-from-latest:
     refs:
       - /^docker-.*/
 
-## - Jobs : Package - ##
+# ## - Jobs : Package - ##
 .package-android:
   extends: .tags_large
   artifacts:
@@ -559,6 +577,7 @@ test-node-wrapper-ubuntu18-from-latest:
     - ls -al vcx/ci/scripts/androidPackage.sh
     - sudo chmod +x vcx/ci/scripts/androidPackage.sh
     - vcx/ci/scripts/androidPackage.sh
+
 package-android-from-branch:
   extends: .package-android
   stage: package
@@ -566,6 +585,7 @@ package-android-from-branch:
   only:
     refs:
       - /^docker-.*/
+
 package-android-from-latest:
   extends: .package-android
   stage: package
@@ -585,6 +605,7 @@ package-android-from-latest:
     - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
     - cd -
     - vcx/wrappers/python3/ci/package.sh
+
 package-python-wrapper-from-branch:
   extends: .package-python-wrapper
   stage: package
@@ -594,6 +615,7 @@ package-python-wrapper-from-branch:
   only:
     refs:
       - /^docker-.*/
+
 package-python-wrapper-from-latest:
   extends: .package-python-wrapper
   stage: package
@@ -615,6 +637,7 @@ package-python-wrapper-from-latest:
     - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
     - cd -
     - vcx/wrappers/java/ci/buildJar.sh $(python3 vcx/ci/scripts/toml_utils.py vcx/libvcx/Cargo.toml)
+
 package-java-wrapper-from-branch:
   extends: .package-java-wrapper
   stage: package
@@ -624,6 +647,7 @@ package-java-wrapper-from-branch:
   only:
     refs:
       - /^docker-.*/
+
 package-java-wrapper-from-latest:
   extends: .package-java-wrapper
   stage: package
@@ -645,6 +669,7 @@ package-java-wrapper-from-latest:
     - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
     - cd -
     - vcx/wrappers/node/ci/package.sh
+
 package-node-wrapper-from-branch:
   extends: .package-node-wrapper
   stage: package
@@ -654,6 +679,7 @@ package-node-wrapper-from-branch:
   only:
     refs:
       - /^docker-.*/
+
 package-node-wrapper-from-latest:
   extends: .package-node-wrapper
   stage: package
@@ -674,6 +700,7 @@ package-node-wrapper-from-latest:
     - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
     - export vcxRevision=$(git rev-parse --short HEAD)
     - vcx/wrappers/react-native/ci/package.sh ${vcxVersion}-${vcxRevision}
+
 package-react-native-wrapper-from-branch:
   extends: .package-react-native-wrapper
   stage: package
@@ -683,6 +710,7 @@ package-react-native-wrapper-from-branch:
   only:
     refs:
       - /^docker-.*/
+      
 package-react-native-wrapper-from-latest:
   extends: .package-react-native-wrapper
   stage: package
@@ -700,7 +728,7 @@ publish-android:
   extends: .tags_micro
   only:
     refs:
-      - master@dev/vcx/indy-sdk
+      - main@dev/vcx/indy-sdk
       - stable@dev/vcx/indy-sdk
       - vcx-aries-support
   script:
@@ -718,7 +746,7 @@ publish-ios:
   extends: .tags_micro
   only:
     refs:
-      - master@dev/vcx/indy-sdk
+      - main@dev/vcx/indy-sdk
       - stable@dev/vcx/indy-sdk
       - vcx-aries-support
   dependencies:
@@ -737,7 +765,7 @@ publish-java-wrapper:
   extends: .tags_micro
   only:
     refs:
-      - master@dev/vcx/indy-sdk
+      - main@dev/vcx/indy-sdk
       - stable@dev/vcx/indy-sdk
       - vcx-aries-support
   script:
@@ -751,7 +779,7 @@ publish-packages:
   extends: .tags_micro
   only:
     refs:
-      - master@dev/vcx/indy-sdk
+      - main@dev/vcx/indy-sdk
       - stable@dev/vcx/indy-sdk
   script:
     - ls -al ${CI_PROJECT_DIR}/output
@@ -778,7 +806,7 @@ publish-mobile-sdk:
     - if: $CI_COMMIT_REF_SLUG == "stable" && $CI_PROJECT_PATH == "dev/vcx/indy-sdk"
       variables:
         msdkPackageVer: ${msdkVersion}
-    - if: $CI_COMMIT_REF_SLUG == "master" && $CI_PROJECT_PATH == "dev/vcx/indy-sdk"
+    - if: $CI_COMMIT_REF_SLUG == "main" && $CI_PROJECT_PATH == "dev/vcx/indy-sdk"
       variables:
         msdkPackageVer: ${msdkVersion}-${CI_PIPELINE_ID}
   script:
