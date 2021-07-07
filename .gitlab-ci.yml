@@ -14,6 +14,7 @@ cache:
     - cache/
 
 variables:
+  rootProjectPath: "evernym/mobile/indy-sdk"
   staticLibVersion: '20190607'
   rustVersion: '1.45.0'
   libsovtokenVersion: '1.0.5'
@@ -728,8 +729,8 @@ publish-android:
   extends: .tags_micro
   only:
     refs:
-      - main@dev/vcx/indy-sdk
-      - stable@dev/vcx/indy-sdk
+      - main@${rootProjectPath}
+      - stable@${rootProjectPath}
       - vcx-aries-support
   script:
     - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
@@ -746,8 +747,8 @@ publish-ios:
   extends: .tags_micro
   only:
     refs:
-      - main@dev/vcx/indy-sdk
-      - stable@dev/vcx/indy-sdk
+      - main@${rootProjectPath}
+      - stable@${rootProjectPath}
       - vcx-aries-support
   dependencies:
     - build-ios
@@ -765,8 +766,8 @@ publish-java-wrapper:
   extends: .tags_micro
   only:
     refs:
-      - main@dev/vcx/indy-sdk
-      - stable@dev/vcx/indy-sdk
+      - main@${rootProjectPath}
+      - stable@${rootProjectPath}
       - vcx-aries-support
   script:
     - cp ${CLOUDREPO_SETTINGS_XML} ./settings.xml
@@ -779,8 +780,8 @@ publish-packages:
   extends: .tags_micro
   only:
     refs:
-      - main@dev/vcx/indy-sdk
-      - stable@dev/vcx/indy-sdk
+      - main@${rootProjectPath}
+      - stable@${rootProjectPath}
   script:
     - ls -al ${CI_PROJECT_DIR}/output
     #https://gitlab.com/gitlab-org/gitlab-ce/issues/27436
@@ -803,10 +804,10 @@ publish-mobile-sdk:
   image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
   extends: .tags_micro
   rules:
-    - if: $CI_COMMIT_REF_SLUG == "stable" && $CI_PROJECT_PATH == "dev/vcx/indy-sdk"
+    - if: $CI_COMMIT_REF_SLUG == "stable" && $CI_PROJECT_PATH == "${rootProjectPath}"
       variables:
         msdkPackageVer: ${msdkVersion}
-    - if: $CI_COMMIT_REF_SLUG == "main" && $CI_PROJECT_PATH == "dev/vcx/indy-sdk"
+    - if: $CI_COMMIT_REF_SLUG == "main" && $CI_PROJECT_PATH == "${rootProjectPath}"
       variables:
         msdkPackageVer: ${msdkVersion}-${CI_PIPELINE_ID}
   script:
