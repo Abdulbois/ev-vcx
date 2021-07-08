@@ -79,10 +79,6 @@ pub fn get_pools(network: Option<&str>) -> VcxResult<Vec<i32>> {
         }
     };
 
-    if pools.is_empty() {
-        return Err(VcxError::from_msg(VcxErrorKind::NoPoolOpen, "There is no pool opened"));
-    }
-
     match network {
         Some(network) => {
             let pool_handles = pools
