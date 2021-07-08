@@ -97,49 +97,6 @@ if [ -d "${LIBINDY_DIR}/lib" ] ; then
     LIBINDY_DIR="${LIBINDY_DIR}/lib"
 fi
 
-if [ -z "${LIBSOVTOKEN_DIR}" ] ; then
-    LIBSOVTOKEN_DIR="libsovtoken"
-    if [ -d "${LIBSOVTOKEN_DIR}" ] ; then
-        echo "Found ${LIBSOVTOKEN_DIR}"
-    elif [ -z "$8" ] ; then
-        echo STDERR "Missing LIBSOVTOKEN_DIR argument and environment variable"
-        echo STDERR "e.g. set LIBSOVTOKEN_DIR=<path> for environment or libsovtoken"
-        exit 1
-    else
-        LIBSOVTOKEN_DIR=$8
-    fi
-    if [ -d "${LIBSOVTOKEN_DIR}/${CROSS_COMPILE}" ] ; then
-        LIBSOVTOKEN_DIR=${LIBSOVTOKEN_DIR}/${CROSS_COMPILE}
-    fi
-    export LIBSOVTOKEN_DIR=${LIBSOVTOKEN_DIR}
-fi
-if [ -d "${LIBSOVTOKEN_DIR}/lib" ] ; then
-    LIBSOVTOKEN_DIR="${LIBSOVTOKEN_DIR}/lib"
-fi
-
-# if [ -z "${LIBNULLPAY_DIR}" ] ; then
-#     LIBNULLPAY_DIR="libnullpay"
-#     if [ -d "${LIBNULLPAY_DIR}" ] ; then
-#         echo "Found ${LIBNULLPAY_DIR}"
-#     elif [ -z "$9" ] ; then
-#         echo STDERR "Missing LIBNULLPAY_DIR argument and environment variable"
-#         echo STDERR "e.g. set LIBNULLPAY_DIR=<path> for environment or libnullpay"
-#         exit 1
-#     else
-#         LIBNULLPAY_DIR=$9
-#     fi
-#     if [ -d "${LIBNULLPAY_DIR}/${CROSS_COMPILE}" ] ; then
-#         LIBNULLPAY_DIR=${LIBNULLPAY_DIR}/${CROSS_COMPILE}
-#     fi
-#     export LIBNULLPAY_DIR=${LIBNULLPAY_DIR}
-# fi
-# if [ -d "${LIBNULLPAY_DIR}/lib" ] ; then
-#     LIBNULLPAY_DIR="${LIBNULLPAY_DIR}/lib"
-#     echo ${LIBNULLPAY_DIR}
-# fi
-
-
-
 if [ "$(uname)" == "Darwin" ]; then
     echo "Downloading NDK for OSX"
     export TOOLCHAIN_PREFIX=${WORKDIR}/toolchains/darwin
@@ -256,7 +213,6 @@ echo "$CXX -v -shared -o ${LIBVCX_BUILDS}/libvcx.so -Wl,--whole-archive \
 ${LIBVCX}/target/${CROSS_COMPILE}/release/libvcx.a \
 ${TOOLCHAIN_DIR}/sysroot/usr/${NDK_LIB_DIR}/${CROSS_COMPILE_PREFIX}/libm.a \
 ${LIBINDY_DIR}/libindy.a \
-${LIBSOVTOKEN_DIR}/libsovtoken.a \
 ${OPENSSL_DIR}/lib/libssl.a \
 ${OPENSSL_DIR}/lib/libcrypto.a \
 ${SODIUM_LIB_DIR}/libsodium.a \
@@ -270,7 +226,6 @@ $CXX -v -shared -o ${LIBVCX_BUILDS}/libvcx.so -Wl,--whole-archive \
 ${LIBVCX}/target/${CROSS_COMPILE}/release/libvcx.a \
 ${TOOLCHAIN_DIR}/sysroot/usr/${NDK_LIB_DIR}/${CROSS_COMPILE_PREFIX}/libm.a \
 ${LIBINDY_DIR}/libindy.a \
-${LIBSOVTOKEN_DIR}/libsovtoken.a \
 ${OPENSSL_DIR}/lib/libssl.a \
 ${OPENSSL_DIR}/lib/libcrypto.a \
 ${SODIUM_LIB_DIR}/libsodium.a \

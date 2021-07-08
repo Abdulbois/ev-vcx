@@ -1,15 +1,18 @@
 import asyncio
 import json
+import logging
 from time import sleep
+import random
+import string
 
 from vcx.api.connection import Connection
 from vcx.api.credential import Credential
 from vcx.api.disclosed_proof import DisclosedProof
-from vcx.api.utils import vcx_agent_provision
+from vcx.api.utils import vcx_provision_agent_with_token, vcx_get_provision_token
 from vcx.api.vcx_init import vcx_init_with_config
 from vcx.state import State
 
-# logging.basicConfig(level=logging.DEBUG) uncomment to get logs
+# logging.basicConfig(level=logging.DEBUG)
 
 provisionConfig = {
     'agency_url': 'https://agency.pstg.evernym.com',
@@ -24,6 +27,10 @@ provisionConfig = {
     'logo': 'http://robohash.org/456',
     'path': 'docker.txn',
 }
+
+
+def rand_string():
+    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
 
 
 async def main():
@@ -85,7 +92,15 @@ async def main():
 
 async def init():
     print("#7 Provision an agent and wallet, get back configuration details")
-    config = await vcx_agent_provision(json.dumps(provisionConfig))
+    sponcee_id = rand_string()
+    token = await vcx_get_provision_token(json.dumps({
+        'vcx_config': provisionConfig,
+        'source_id': rand_string(),
+        'sponsee_id': sponcee_id,
+        'sponsor_id': 'connectme'
+    }))
+
+    config = await vcx_provision_agent_with_token(json.dumps(provisionConfig), token)
     print("#8 Initialize libvcx with new configuration")
     await vcx_init_with_config(config)
 
