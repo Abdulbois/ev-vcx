@@ -13,7 +13,7 @@ from vcx.api.issuer_credential import IssuerCredential
 from vcx.api.proof import Proof
 from vcx.api.schema import Schema
 from vcx.api.utils import vcx_agent_provision, vcx_get_ledger_author_agreement, \
-    vcx_set_active_txn_author_agreement_meta, vcx_create_pairwise_agent
+    vcx_set_active_txn_author_agreement_meta
 from vcx.api.vcx_init import vcx_init_with_config
 from vcx.state import State, ProofState
 
@@ -38,6 +38,7 @@ provisionConfig = {
     'name': 'Faber',
     'logo': 'https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png',
     'path': 'docker.txn',
+    'payment_method': 'null',
 }
 
 

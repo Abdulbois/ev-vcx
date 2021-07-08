@@ -6,7 +6,6 @@ use crate::settings::protocol::ProtocolTypes;
 use crate::settings;
 use crate::utils::libindy::wallet;
 use crate::messages::agent_provisioning::types::ProvisioningConfig;
-use crate::messages::update_agent::ComMethod;
 use crate::messages::agent_provisioning::utils::{process_provisioning_config, configure_wallet};
 
 pub static VALID_SIGNATURE_ALGORITHMS: [&'static str; 2] = ["SafetyNet", "DeviceCheck"];
@@ -19,8 +18,6 @@ pub struct TokenRequest {
     sponsee_id: String,
     #[serde(rename = "sponsorId")]
     sponsor_id: String,
-    #[serde(rename = "pushId")]
-    push_id: ComMethod,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -42,7 +39,6 @@ pub struct TokenResponse {
 pub struct TokenRequestBuilder {
     sponsee_id: Option<String>,
     sponsor_id: Option<String>,
-    push_id: Option<ComMethod>,
     version: Option<ProtocolTypes>,
     agency_did: Option<String>,
 }
@@ -52,7 +48,6 @@ impl TokenRequestBuilder {
         TokenRequestBuilder {
             sponsee_id: None,
             sponsor_id: None,
-            push_id: None,
             version: None,
             agency_did: None,
         }
@@ -66,10 +61,7 @@ impl TokenRequestBuilder {
         self.sponsor_id = Some(id.to_string());
         self
     }
-    pub fn push_id(&mut self, push_id: ComMethod) -> &mut Self {
-        self.push_id = Some(push_id);
-        self
-    }
+
     pub fn version(&mut self, version: ProtocolTypes) -> &mut Self {
         self.version = Some(version);
         self
@@ -104,7 +96,6 @@ impl TokenRequestBuilder {
                     msg_type: MessageTypes::MessageTypeV2(MessageTypes::build_v2(A2AMessageKinds::TokenRequest)),
                     sponsee_id: self.sponsee_id.clone().ok_or(init_err("sponsee_id"))?,
                     sponsor_id: self.sponsor_id.clone().ok_or(init_err("sponsor_id"))?,
-                    push_id: self.push_id.clone().ok_or(init_err("push_id"))?,
                 }
             )
         );
@@ -129,7 +120,7 @@ impl TokenRequestBuilder {
     }
 }
 
-pub fn provision(config: ProvisioningConfig, sponsee_id: &str, sponsor_id: &str, com_method: ComMethod) -> VcxResult<String> {
+pub fn provision(config: ProvisioningConfig, sponsee_id: &str, sponsor_id: &str) -> VcxResult<String> {
     debug!("***Configuring Library");
     let config = process_provisioning_config(&json!(config).to_string())?;
 
@@ -142,7 +133,6 @@ pub fn provision(config: ProvisioningConfig, sponsee_id: &str, sponsor_id: &str,
     let token = TokenRequestBuilder::build()
         .sponsee_id(sponsee_id)
         .sponsor_id(sponsor_id)
-        .push_id(com_method)
         .version(ProtocolTypes::V2)
         .agency_did(&agency_did)
         .send_secure()?;
@@ -185,15 +175,9 @@ mod tests {
             "protocol_type": protocol_type,
         }).to_string();
 
-        let com_method = ComMethod {
-            id: "7b7f97f2".to_string(),
-            value: "FCM:Value".to_string(),
-            e_type: 1,
-        };
-
         let config: ProvisioningConfig = ::serde_json::from_str(&config).unwrap();
 
-        provision(config, "123", "456", com_method).unwrap();
+        provision(config, "123", "456").unwrap();
 
         delete_wallet(&enterprise_wallet_name, None, None, None).unwrap();
     }
