@@ -480,7 +480,7 @@ build-libvcx-rpm-from-latest:
 
 ## - Jobs : Test - ##
 .test-python-wrapper:
-  extends: .tags_micro
+  extends: .tags_large
   variables:
     PACKAGE_TYPE: 'bionic'
   script:
