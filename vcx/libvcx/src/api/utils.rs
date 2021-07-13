@@ -219,14 +219,7 @@ pub extern fn vcx_agent_provision_async(command_handle: CommandHandle,
 ///                           // See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
 ///     sponsee_id: String,
 ///     sponsor_id: String,
-///     com_method: {
-///         type: u32 // 1 means push notifications, 4 means forward to sponsor app
-///         id: String,
-///         value: String,
-///     },
 /// }
-///
-/// # Example com_method -> "{"type": 1,"id":"123","value":"FCM:Value"}"
 ///
 /// cb: Callback that provides provision token or error status
 ///
@@ -259,13 +252,6 @@ pub extern fn vcx_get_provision_token(command_handle: CommandHandle,
         }
     };
 
-    let com_method: ComMethod = match serde_json::from_value(configs["com_method"].clone()) {
-        Ok(x) => x,
-        Err(e) => {
-            return VcxError::from_msg(VcxErrorKind::InvalidConfiguration, format!("Cannot parse ComMethod from JSON string. Err: {}", e)).into();
-        }
-    };
-
     let sponsee_id: String = match serde_json::from_value(configs["sponsee_id"].clone()) {
         Ok(x) => x,
         Err(_) => {
@@ -281,7 +267,7 @@ pub extern fn vcx_get_provision_token(command_handle: CommandHandle,
     };
 
     spawn(move || {
-        match messages::token_provisioning::token_provisioning::provision(vcx_config, &sponsee_id, &sponsor_id, com_method) {
+        match messages::token_provisioning::token_provisioning::provision(vcx_config, &sponsee_id, &sponsor_id) {
             Ok(token) => {
                 trace!("vcx_get_provision_token_cb(command_handle: {}, rc: {}, token: {})",
                        command_handle, error::SUCCESS.as_str(), secret!(token));

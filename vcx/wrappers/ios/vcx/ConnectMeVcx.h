@@ -210,11 +210,6 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 ///                           // See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
 ///     sponsee_id: String,
 ///     sponsor_id: String,
-///     com_method: {
-///         type: u32 // 1 means push notifications, 4 means forward to sponsor app
-///         id: String,
-///         value: String,
-///     },
 /// }
 ///
 /// #Returns

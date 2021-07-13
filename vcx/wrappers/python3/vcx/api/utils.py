@@ -141,11 +141,6 @@ async def vcx_get_provision_token(config: str) -> str:
                                // See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
          sponsee_id: String,
          sponsor_id: String,
-         com_method: {
-             type: u32 // 1 means push notifications, 4 means forward to sponsor app
-             id: String,
-             value: String,
-         },
          algorithm: Optional[String], // signature algorithm. Can be one of: SafetyNet | DeviceCheck
          signature: Optional[String], // signature matching to specified algorithm
      }
