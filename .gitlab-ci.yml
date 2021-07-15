@@ -739,8 +739,8 @@ publish-android:
   extends: .tags_micro
   only:
     refs:
-      - main@evernym/mobile/indy-sdk
-      - stable@evernym/mobile/indy-sdk
+      - main@evernym/mobile/ev-vcx
+      - stable@evernym/mobile/ev-vcx
       - vcx-aries-support
   script:
     - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
@@ -757,8 +757,8 @@ publish-ios:
   extends: .tags_micro
   only:
     refs:
-      - main@evernym/mobile/indy-sdk
-      - stable@evernym/mobile/indy-sdk
+      - main@evernym/mobile/ev-vcx
+      - stable@evernym/mobile/ev-vcx
       - vcx-aries-support
   dependencies:
     - build-ios
@@ -776,8 +776,8 @@ publish-java-wrapper:
   extends: .tags_micro
   only:
     refs:
-      - main@evernym/mobile/indy-sdk
-      - stable@evernym/mobile/indy-sdk
+      - main@evernym/mobile/ev-vcx
+      - stable@evernym/mobile/ev-vcx
       - vcx-aries-support
   script:
     - cp ${CLOUDREPO_SETTINGS_XML} ./settings.xml
@@ -790,8 +790,8 @@ publish-packages:
   extends: .tags_micro
   only:
     refs:
-      - main@evernym/mobile/indy-sdk
-      - stable@evernym/mobile/indy-sdk
+      - main@evernym/mobile/ev-vcx
+      - stable@evernym/mobile/ev-vcx
   script:
     - ls -al ${CI_PROJECT_DIR}/output
     #https://gitlab.com/gitlab-org/gitlab-ce/issues/27436
@@ -814,10 +814,10 @@ publish-mobile-sdk:
   image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
   extends: .tags_micro
   rules:
-    - if: $CI_COMMIT_REF_SLUG == "stable" && $CI_PROJECT_PATH == "evernym/mobile/indy-sdk"
+    - if: $CI_COMMIT_REF_SLUG == "stable" && $CI_PROJECT_PATH == "evernym/mobile/ev-vcx"
       variables:
         msdkPackageVer: ${msdkVersion}
-    - if: $CI_COMMIT_REF_SLUG == "main" && $CI_PROJECT_PATH == "evernym/mobile/indy-sdk"
+    - if: $CI_COMMIT_REF_SLUG == "main" && $CI_PROJECT_PATH == "evernym/mobile/ev-vcx"
       variables:
         msdkPackageVer: ${msdkVersion}-${CI_PIPELINE_ID}
   script:
