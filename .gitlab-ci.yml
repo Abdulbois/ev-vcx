@@ -1,5 +1,6 @@
 ---
 stages:
+  - check
   - dockerbuild-pre
   - dockerbuild
   - build-pre
@@ -88,6 +89,16 @@ variables:
     - |
       /kaniko/executor ${KANIKO_ARGS} --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/${DOCKERFILE_PATH} \
       --destination $CI_REGISTRY_IMAGE/${DOCKER_IMAGE_NAME}:${CI_COMMIT_REF_SLUG}
+
+
+## - Jobs : dockerbuild-pre - ##
+license-data-check:
+  stage: check
+  image: registry.gitlab.com/evernym/containers/ssh-git:latest
+  script: ./ci/license-date-check.sh
+  tags:
+    - docker-machine
+
 
 ## - Jobs : dockerbuild-pre - ##
 .dockerbuild-vcx-libindy:
@@ -728,8 +739,8 @@ publish-android:
   extends: .tags_micro
   only:
     refs:
-      - main@evernym/mobile/indy-sdk
-      - stable@evernym/mobile/indy-sdk
+      - main@evernym/mobile/ev-vcx
+      - stable@evernym/mobile/ev-vcx
       - vcx-aries-support
   script:
     - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
@@ -746,8 +757,8 @@ publish-ios:
   extends: .tags_micro
   only:
     refs:
-      - main@evernym/mobile/indy-sdk
-      - stable@evernym/mobile/indy-sdk
+      - main@evernym/mobile/ev-vcx
+      - stable@evernym/mobile/ev-vcx
       - vcx-aries-support
   dependencies:
     - build-ios
@@ -765,8 +776,8 @@ publish-java-wrapper:
   extends: .tags_micro
   only:
     refs:
-      - main@evernym/mobile/indy-sdk
-      - stable@evernym/mobile/indy-sdk
+      - main@evernym/mobile/ev-vcx
+      - stable@evernym/mobile/ev-vcx
       - vcx-aries-support
   script:
     - cp ${CLOUDREPO_SETTINGS_XML} ./settings.xml
@@ -779,8 +790,8 @@ publish-packages:
   extends: .tags_micro
   only:
     refs:
-      - main@evernym/mobile/indy-sdk
-      - stable@evernym/mobile/indy-sdk
+      - main@evernym/mobile/ev-vcx
+      - stable@evernym/mobile/ev-vcx
   script:
     - ls -al ${CI_PROJECT_DIR}/output
     #https://gitlab.com/gitlab-org/gitlab-ce/issues/27436
@@ -803,10 +814,10 @@ publish-mobile-sdk:
   image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
   extends: .tags_micro
   rules:
-    - if: $CI_COMMIT_REF_SLUG == "stable" && $CI_PROJECT_PATH == "evernym/mobile/indy-sdk"
+    - if: $CI_COMMIT_REF_SLUG == "stable" && $CI_PROJECT_PATH == "evernym/mobile/ev-vcx"
       variables:
         msdkPackageVer: ${msdkVersion}
-    - if: $CI_COMMIT_REF_SLUG == "main" && $CI_PROJECT_PATH == "evernym/mobile/indy-sdk"
+    - if: $CI_COMMIT_REF_SLUG == "main" && $CI_PROJECT_PATH == "evernym/mobile/ev-vcx"
       variables:
         msdkPackageVer: ${msdkVersion}-${CI_PIPELINE_ID}
   script:
