@@ -111,17 +111,6 @@ license-data-check:
       - stable
       - /^docker-.*/
 
-dockerbuild-libindy-ubuntu16:
-  stage: dockerbuild-pre
-  extends: .dockerbuild-vcx-libindy
-  variables:
-    DOCKERFILE_PATH: libindy/ci/ubuntu.dockerfile
-    DOCKER_IMAGE_NAME: libindy-ubuntu16
-  only:
-    changes:
-      - .gitlab-ci.yml
-      - libindy/ci/ubuntu.dockerfile
-
 dockerbuild-vcx-libindy-ubuntu16:
   stage: dockerbuild-pre
   extends: .dockerbuild-vcx-libindy
@@ -180,13 +169,17 @@ dockerbuild-vcx-android:
       - vcx/ci/libindy-ubuntu16.dockerfile
       - vcx/wrappers/java/ci/android.dockerfile
   before_script:
-    - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/android.dockerfile
+    - sed -i "s|^FROM vcx-libindy-ubuntu16.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/android.dockerfile
     - grep '^FROM' vcx/wrappers/java/ci/android.dockerfile
 
-.dockerbuild-vcx-python:
+dockerbuild-vcx-python-ubuntu18:
+  stage: dockerbuild
   extends: .kaniko_micro
+  dependencies:
+    - dockerbuild-vcx-libindy-ubuntu18
   variables:
     DOCKERFILE_PATH: vcx/ci/python.dockerfile
+    DOCKER_IMAGE_NAME: vcx-python-ubuntu18
   only:
     refs:
       - main
@@ -194,21 +187,10 @@ dockerbuild-vcx-android:
       - /^docker-.*/
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/python.dockerfile
-
-dockerbuild-vcx-python-ubuntu18:
-  stage: dockerbuild
-  extends: .dockerbuild-vcx-python
-  dependencies:
-    - dockerbuild-vcx-libindy-ubuntu18
-  variables:
-    DOCKER_IMAGE_NAME: vcx-python-ubuntu18
-  only:
-    changes:
-      - .gitlab-ci.yml
       - vcx/ci/libindy-ubuntu18.dockerfile
+      - vcx/ci/python.dockerfile
   before_script:
-    - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/ci/python.dockerfile
+    - sed -i "s|^FROM vcx-libindy-ubuntu18.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/ci/python.dockerfile
     - grep '^FROM' vcx/ci/python.dockerfile
 
 dockerbuild-vcx-java:
@@ -229,7 +211,7 @@ dockerbuild-vcx-java:
       - vcx/ci/libindy-ubuntu18.dockerfile
       - vcx/wrappers/java/ci/java.dockerfile
   before_script:
-    - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/java.dockerfile
+    - sed -i "s|^FROM vcx-libindy-ubuntu18.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/java.dockerfile
     - grep '^FROM' vcx/wrappers/java/ci/java.dockerfile
 
 ## - Jobs : Build - ##
@@ -324,6 +306,7 @@ build-android-arm-from-branch:
   only:
     refs:
       - /^docker-.*/
+
 build-android-arm-from-latest:
   extends: .build_android
   stage: build
@@ -343,6 +326,7 @@ build-android-arm64-from-branch:
   only:
     refs:
       - /^docker-.*/
+
 build-android-arm64-from-latest:
   extends: .build_android
   stage: build
@@ -753,7 +737,7 @@ publish-android:
 
 publish-ios:
   stage: publish
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:latest
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
   extends: .tags_micro
   only:
     refs:
@@ -821,7 +805,7 @@ publish-mobile-sdk:
       variables:
         msdkPackageVer: ${msdkVersion}-${CI_PIPELINE_ID}
   script:
-#    - vcx/ci/scripts/githubArtifacts.py ${msdkVersion} vcx/wrappers/java/artifacts/aar/*.aar IOSBuilds/libvcx{partial,all}/vcx.libvcx*.zip output/evernym-react-native-sdk*.tgz
+    # - vcx/ci/scripts/githubArtifacts.py ${msdkVersion} vcx/wrappers/java/artifacts/aar/*.aar IOSBuilds/libvcx{partial,all}/vcx.libvcx*.zip output/evernym-react-native-sdk*.tgz
     - >
       find ./vcx/wrappers/java/artifacts/aar/ -name "*.aar" -exec
       curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
