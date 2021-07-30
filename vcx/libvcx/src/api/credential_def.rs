@@ -489,9 +489,10 @@ pub extern fn vcx_credentialdef_release(credentialdef_handle: Handle<CredentialD
                 trace!("vcx_credentialdef_release(credentialdef_handle: {}, rc: {})",
                        credentialdef_handle, error::SUCCESS.as_str());
             }
-            Err(e) => {
-                warn!("vcx_credentialdef_release(credentialdef_handle: {}), rc: {})",
-                      credentialdef_handle, e);
+            Err(_e) => {
+                // FIXME logging here results in panic while python tests
+                // warn!("vcx_credentialdef_release(credentialdef_handle: {}), rc: {})",
+                //       credentialdef_handle, e);
             }
         };
         Ok(())

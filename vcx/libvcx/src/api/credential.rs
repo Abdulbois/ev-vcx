@@ -834,10 +834,10 @@ pub extern fn vcx_credential_release(handle: Handle<Credentials>) -> u32 {
                 trace!("vcx_credential_release(handle: {}, rc: {})",
                        handle, error::SUCCESS.as_str());
             }
-
-            Err(e) => {
-                error!("vcx_credential_release(handle: {}, rc: {})",
-                       handle, e);
+            Err(_e) => {
+                // FIXME logging here results in panic while python tests
+                // error!("vcx_credential_release(handle: {}, rc: {})",
+                //        handle, e);
             }
         };
         Ok(())
