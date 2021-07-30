@@ -499,9 +499,10 @@ pub extern fn vcx_proof_release(proof_handle: Handle<Proofs>) -> u32 {
                 trace!("vcx_proof_release(proof_handle: {}, rc: {})",
                        proof_handle, error::SUCCESS.as_str());
             }
-            Err(e) => {
-                warn!("vcx_proof_release(proof_handle: {}), rc: {})",
-                      proof_handle, e);
+            Err(_e) => {
+                // FIXME logging here results in panic while python tests
+                // warn!("vcx_proof_release(proof_handle: {}), rc: {})",
+                //       proof_handle, e);
             }
         };
         Ok(())

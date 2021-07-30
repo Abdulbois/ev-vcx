@@ -1037,9 +1037,10 @@ pub extern fn vcx_disclosed_proof_release(handle: Handle<DisclosedProofs>) -> u3
                 trace!("vcx_disclosed_proof_release(handle: {}, rc: {})",
                        handle, error::SUCCESS.as_str());
             }
-            Err(e) => {
-                warn!("vcx_disclosed_proof_release(handle: {}), rc: {})",
-                      handle, e);
+            Err(_e) => {
+                // FIXME logging here results in panic while python tests
+                // warn!("vcx_disclosed_proof_release(handle: {}), rc: {})",
+                //       handle, e);
             }
         };
         Ok(())

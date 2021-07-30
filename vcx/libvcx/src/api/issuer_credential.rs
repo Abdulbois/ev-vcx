@@ -625,9 +625,10 @@ pub extern fn vcx_issuer_credential_release(credential_handle: Handle<IssuerCred
                 trace!("vcx_issuer_credential_release(credential_handle: {}, rc: {})",
                        credential_handle, error::SUCCESS.as_str());
             }
-            Err(e) => {
-                warn!("vcx_issuer_credential_release(credential_handle: {}), rc: {})",
-                      credential_handle, e);
+            Err(_e) => {
+                // FIXME logging here results in panic while python tests
+                // warn!("vcx_issuer_credential_release(credential_handle: {}), rc: {})",
+                //       credential_handle, e);
             }
         };
         Ok(())

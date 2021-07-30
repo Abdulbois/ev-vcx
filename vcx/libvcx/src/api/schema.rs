@@ -259,9 +259,10 @@ pub extern fn vcx_schema_release(schema_handle: Handle<CreateSchema>) -> u32 {
                 trace!("vcx_schema_release(schema_handle: {}, rc: {})",
                        schema_handle, error::SUCCESS.as_str());
             }
-            Err(e) => {
-                warn!("vcx_schema_release(schema_handle: {}), rc: {})",
-                      schema_handle, e);
+            Err(_e) => {
+                // FIXME logging here results in panic while python tests
+                // warn!("vcx_schema_release(schema_handle: {}), rc: {})",
+                //       schema_handle, e);
             }
         };
         Ok(())

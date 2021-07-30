@@ -1306,9 +1306,10 @@ pub extern fn vcx_connection_release(connection_handle: Handle<Connections>) -> 
                 trace!("vcx_connection_release(connection_handle: {}, rc: {})",
                        connection_handle, error::SUCCESS.as_str());
             }
-            Err(e) => {
-                warn!("vcx_connection_release(connection_handle: {}), rc: {})",
-                      connection_handle, e);
+            Err(_e) => {
+                // FIXME logging here results in panic while python tests
+                // warn!("vcx_connection_release(connection_handle: {}), rc: {})",
+                //       connection_handle, e);
             }
         };
         Ok(())

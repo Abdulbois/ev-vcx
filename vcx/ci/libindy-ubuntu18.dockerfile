@@ -40,7 +40,7 @@ RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
 
 # Install Rust
 ARG RUST_VER
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.40.0
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VER}
 ENV PATH /root/.cargo/bin:$PATH
 RUN cargo install cargo-deb --color=never --version=1.21.1 #TEMPORARY - REMOVE WHEN 1.22 COMPILES
 
