@@ -22,7 +22,7 @@ variables:
   indyBranch: 'rc' # RPM stream
   indySimpleVersion: '1.16.0' # RPM package name
   indyFullVersion: '1.16.0-170' # RPM directory
-  indyFullDebVersion: '1.16.0~170' # DEB package name
+  indyFullDebVersion: '1.95.0~88' # DEB package name
   androidSovtokenArtifact: 'libsovtoken_1.0.5-201912281255-e39929e_all.zip'
   iosSovtokenArtifact: 'libsovtoken_1.0.5-201912281252-e39929e_all.zip'
   msdkVersion: '2.0.0' # CHANGE_ME for every VCX stable release (0.11.2 VCX)
@@ -104,7 +104,7 @@ license-data-check:
 .dockerbuild-vcx-libindy:
   extends: .kaniko_large
   variables:
-    KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion} --build-arg LIBINDY_VER=${indyFullDebVersion} --build-arg LIBNULL_VER=${indyFullDebVersion} --build-arg LIBSOVTOKEN_VER=${libsovtokenVersion}'
+    KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion} --build-arg LIBINDY_VER=${indyFullDebVersion}'
   only:
     refs:
       - main
