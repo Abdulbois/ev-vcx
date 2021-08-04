@@ -57,19 +57,11 @@ RUN apt-get install rpm -y
 COPY ./vcx/ci/scripts/installCert.sh /tmp
 RUN /tmp/installCert.sh
 
-# Add sovrin to sources.list
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys CE7709D068DB5E88 && \
-    add-apt-repository "deb https://repo.sovrin.org/sdk/deb xenial master" && \
-    add-apt-repository "deb https://repo.sovrin.org/sdk/deb xenial stable" && \
-    add-apt-repository "deb https://repo.sovrin.org/sdk/deb xenial rc" && \
-    add-apt-repository 'deb https://repo.sovrin.org/deb xenial master' && \
-    add-apt-repository 'deb https://repo.sovrin.org/deb xenial stable' && \
-    add-apt-repository 'deb https://repo.corp.evernym.com/deb evernym-agency-dev-ubuntu main' && \
+# Add evernym.corp to sources.list
+RUN add-apt-repository 'deb https://repo.corp.evernym.com/deb evernym-agency-dev-ubuntu main' && \
     curl https://repo.corp.evernym.com/repo.corp.evenym.com-sig.key | apt-key add -
 
 ARG LIBINDY_VER
-ARG LIBSOVTOKEN_VER
 
 RUN apt-get update && apt-get install -y \
-    libindy=${LIBINDY_VER}-xenial \
-    libsovtoken=${LIBSOVTOKEN_VER}
+    libindy-async=${LIBINDY_VER}-xenial

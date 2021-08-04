@@ -72,7 +72,6 @@ toml = "0.4"
 [package.metadata.deb]
 maintainer = "Evernym, Inc."
 copyright = "2018, Evernym Inc."
-depends = "$auto, libindy (=1.16.0~170)"
 extended-description = """\
 This is the official SDK for Hyperledger Indy, which provides a\
   distributed-ledger-based foundation for self-sovereign identity.\
@@ -94,10 +93,12 @@ assets = [
 maintainer-scripts = "./scripts"
 
 [package.metadata.deb.variants.libvcx-xenial]
+depends = "$auto, libindy (=1.95.0~88-xenial)"
 name = "libvcx"
 provides = "libvcx (= 0.12.0)"
 
 [package.metadata.deb.variants.libvcx-bionic]
+depends = "$auto, libindy (=1.95.0~88-bionic)"
 name = "libvcx"
 provides = "libvcx (= 0.12.0)"
 
