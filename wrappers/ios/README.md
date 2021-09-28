@@ -1,120 +1,20 @@
-# How to install
-A wrapper is a private pod, so private podspec must be set. Put at the top of the Podfile: 
-    
-    source 'https://github.com/hyperledger/indy-sdk.git'
-    
-Cocoapod will search for spec files in the root Specs folder.
-           
-# Binaries
+# VCX Pod for iOS
+how to get a archive of vcx.framework
 
-* There are 2 types of automatically built archives containing libindy core library which can be used for your iOS application.
-    * library built for aarch64-apple-ios and armv7-apple-ios targets.
-    * universal libindy built for all architectures.
-    
-    Add pod to target:
-    
-        pod 'libindy'
-       
-    These archives are located at `https://repo.sovrin.org/ios/libindy/{release-channel}/libindy-core/`.
-    
-* There is manually built and published archive containing libindy objective C wrapper.
-   This archive is located at `https://repo.sovrin.org/ios/libindy/{release-channel}/indy-objc/`.
+1) open /Users/norm/forge/work/code/evernym/sdk-evernym/vcx/wrappers/ios/vcx/vcx.xcodeproj in xcode
+2) Select vcx as the target in Xcode
+3) Select generic iOS device as Build only device
+4) Select the menu Product -> archive
+3) If every thing compiled successfully then folder with `vcx.framework` will be opened 
+4) Copy libvcx.a file to vcx.framework/lib/
+5) Copy ConnectMeVcx.h,libvcx.h,vcx.h files to vcx.framework/headers
+6) Copy vcx.framework into a folder with name vcx
 
-    Add pod to target:
-        
-        pod 'libindy-objc'    
-  
-{release channel} must be replaced with master, rc or stable to define corresponded release channel.
+  $ mkdir -p /Users/username/path to sdk/vcx/wrappers/ios/vcx/tmp/vcx/
+  $ cp -rp vcx.framewrok /Users/username/path to sdk/vcx/wrappers/ios/vcx/tmp/vcx/
+  $ cd /Users/username/path to sdk/vcx/wrappers/ios/vcx/tmp/
+  $ zip -r vcx.framework_[version]_[arch].zip vcx (i.e. zip -r vcx.framework_20180522.1635_universal.zip vcx)
 
-# How to manually build
-
-## Core library
-
-1. Install Rust and rustup (https://www.rust-lang.org/install.html).
-1. Install toolchains using command:
-
-   ```
-   rustup target add aarch64-apple-ios armv7-apple-ios armv7s-apple-ios i386-apple-ios x86_64-apple-ios
-   ```
-1. Install cargo-lipo:
-   
-   ```
-   cargo install cargo-lipo
-   ```
-1. Install required native libraries and utilities:
-   
-   ```
-   brew install libsodium
-   brew install zeromq
-   brew install openssl (1.0.2q can be any fresh version)
-   ```
-1. Setup environment variables:
-   
-   ```
-   export PKG_CONFIG_ALLOW_CROSS=1
-   export CARGO_INCREMENTAL=1
-   ```
-1. Edit script ci/ios-build.sh: set the following variables to fit your environment:
-   
-   ```
-   export OPENSSL_DIR=/usr/local/Cellar/openssl/1.0.2q
-   export LIBINDY_POD_VERSION=0.0.1
-   ```
-   OPENSSL_DIR - path to installed openssl library
-      
-   LIBINDY_POD_VERSION - version of libindy-core pod to be built
-1. Run the script Validate the output that all goes well. 
-   
-   Parameters:
-   * package - target package to build.
-        * libindy
-        * libnullpay
-   * targets - target architectures.
-        * one of aarch64-apple-ios armv7-apple-ios armv7s-apple-ios i386-apple-ios x86_64-apple-ios
-        * leave empty to build for all architectures.
-1. Go to `Specs/libindy` dir.
-1. Create directory with name defined in LIBINDY_POD_VERSION:
-   
-   ```
-   mkdir LIBINDY_POD_VERSION
-   ```
-1. Copy libindy.podspec.json to that new directory from some previous version.
-1. Edit this json -> change version field to LIBINDY_POD_VERSION.
-1. Add new directory and file inside to git repository.
-1. Commit to master branch.
-1. for all projects which using libindy do not forget to make:
-
-   ```
-   pod repo update
-   pod install
-   ```
-   
-   
-## Wrapper Cocoapod
-
-Run Archive process for `Indy` target. Custom post-action shell script `universal_framework.sh` will be triggered and you get universal framework. Then put it to folder: `libindy-objc/Indy.framework` and upload to repo.
-
-# Wrapper usage 
-
-Import header starting from 0.1.3:
-
-```
-#import <Indy/Indy.h> 
-```
-For 0.1.1 and 0.1.2 versions:
-
-```
-#import <libindy/libindy.h>
-```
-
-All wrapper types and classes have prefix `Indy`.
-
-## Troubleshooting
-* Enable Logging - Use `setLogger` to pass a callback that will be used by Libindy to log a record.
-* [IS-1058](https://jira.hyperledger.org/browse/IS-1058) 
-    * OpenSSL cp: file.tgz: No such file or directory - 
-    ```
-    sudo gem uninstall cocoapods-downloader
-    sudo gem install cocoapods-downloader -v 1.2.0
-    ```
-    * Multiple commands produce `*/Debug-iphonesimulator/Indy-demo.app/PlugIns/Indy-demoTests.xctest/Info.plist` - remove **Info.plist** from there: Solution -> Target -> Build phases -> **Copy Bundle Resources** 
+7) upload vcx.framework_[version]_[arch].zip to repo to get a url.
+$ curl --insecure -u normjarvis -X POST -F file=@./vcx.framework_20180522.1635_universal.zip https://kraken.corp.evernym.com/repo/ios/upload
+8) Download the file at https://repo.corp.evernym.com/filely/ios/vcx.framework_20180522.1635_universal.zip
