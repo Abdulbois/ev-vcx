@@ -663,7 +663,9 @@ checksum = "7e81a7c05f79578dbc15793d8b619db9ba32b4577003ef3af1a91c416798c58d"
 
 [[package]]
 name = "indy"
-version = "1.15.0"
+version = "1.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5194ac62bab75f57a2ccd1ad6764844ebaae9c4550f8841708b434fa9539d2a"
 dependencies = [
  "failure",
  "futures",
@@ -680,10 +682,13 @@ dependencies = [
 
 [[package]]
 name = "indy-sys"
-version = "1.15.0"
+version = "1.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "262b2993279ec9e7339c127d9d45f72422416ebe6ee0b6cc56680d571a11fdd9"
 dependencies = [
  "libc",
  "pkg-config",
+ "regex",
  "serde",
  "serde_derive",
  "vcpkg",
