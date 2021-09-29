@@ -9,7 +9,7 @@ import re
 SO_FILE = 'libvcx.so'
 
 def valid_line(line):
-    return ('version =' in line or 'version=' in line) and ('uuid' not in line and 'rusqlite' not in line and 'indy-sys' not in line and 'rust' not in line)
+    return ('version =' in line or 'version=' in line) and ('uuid' not in line and 'rusqlite' not in line and 'indy' not in line and 'indy-sys' not in line and 'rust' not in line)
 
 
 
