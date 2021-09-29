@@ -93,12 +93,12 @@ assets = [
 maintainer-scripts = "./scripts"
 
 [package.metadata.deb.variants.libvcx-xenial]
-depends = "$auto, libindy (=1.95.0~88-xenial)"
+depends = "$auto, libindy (=1.16.0~170-xenial)"
 name = "libvcx"
 provides = "libvcx (= 0.12.0)"
 
 [package.metadata.deb.variants.libvcx-bionic]
-depends = "$auto, libindy (=1.95.0~88-bionic)"
+depends = "$auto, libindy (=1.16.0~170-bionic)"
 name = "libvcx"
 provides = "libvcx (= 0.12.0)"
 
