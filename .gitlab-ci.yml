@@ -22,7 +22,7 @@ variables:
   indyBranch: 'rc' # RPM stream
   indySimpleVersion: '1.16.0' # RPM package name
   indyFullVersion: '1.16.0-170' # RPM directory
-  indyFullDebVersion: '1.95.0~88' # DEB package name
+  indyFullDebVersion: '1.16.0~170' # DEB package name
   androidSovtokenArtifact: 'libsovtoken_1.0.5-201912281255-e39929e_all.zip'
   iosSovtokenArtifact: 'libsovtoken_1.0.5-201912281252-e39929e_all.zip'
   msdkVersion: '2.0.0' # CHANGE_ME for every VCX stable release (0.11.2 VCX)
@@ -50,7 +50,7 @@ variables:
     name: gcr.io/kaniko-project/executor:debug-v0.16.0
     entrypoint: ['']
   script:
-    - if [ "$CI_COMMIT_REF_SLUG" == 'main' ] || [ "$CI_COMMIT_REF_SLUG" == 'stable' ]; then KANIKO_ARGS="--destination $CI_REGISTRY_IMAGE/${DOCKER_IMAGE_NAME}:latest $KANIKO_ARGS"; fi
+    - if [ "$CI_COMMIT_REF_SLUG" == 'main' ] || [ "$CI_COMMIT_REF_SLUG" == 'cheqd' ] || [ "$CI_COMMIT_REF_SLUG" == 'cheqddebug' ] || [ "$CI_COMMIT_REF_SLUG" == 'stable' ]; then KANIKO_ARGS="--destination $CI_REGISTRY_IMAGE/${DOCKER_IMAGE_NAME}:latest $KANIKO_ARGS"; fi
     - echo "${KANIKO_ARGS}"
     - |
       echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" \
@@ -101,120 +101,148 @@ license-data-check:
 
 
 ## - Jobs : dockerbuild-pre - ##
-.dockerbuild-vcx-libindy:
-  extends: .kaniko_large
-  variables:
-    KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion} --build-arg LIBINDY_VER=${indyFullDebVersion}'
-  only:
-    refs:
-      - main
-      - stable
-      - /^docker-.*/
+#.dockerbuild-vcx-libindy:
+#  extends: .kaniko_large
+#  variables:
+#    KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion} --build-arg LIBINDY_VER=${indyFullDebVersion} --build-arg LIBNULL_VER=${indyFullDebVersion} --build-arg LIBSOVTOKEN_VER=${libsovtokenVersion}'
+#  only:
+#    refs:
+#      - main
+#      - stable
+#      - cheqd
+#      - cheqddebug
+#      - /^docker-.*/
+#
+#dockerbuild-libindy-ubuntu16:
+#  stage: dockerbuild-pre
+#  extends: .dockerbuild-vcx-libindy
+#  variables:
+#    DOCKERFILE_PATH: libindy/ci/ubuntu.dockerfile
+#    DOCKER_IMAGE_NAME: libindy-ubuntu16
+#  only:
+#    changes:
+#      - .gitlab-ci.yml
+#      - libindy/ci/ubuntu.dockerfile
+#
+#dockerbuild-vcx-libindy-ubuntu16:
+#  stage: dockerbuild-pre
+#  extends: .dockerbuild-vcx-libindy
+#  variables:
+#    DOCKERFILE_PATH: vcx/ci/libindy-ubuntu16.dockerfile
+#    DOCKER_IMAGE_NAME: vcx-libindy-ubuntu16
+#  only:
+#    changes:
+#      - .gitlab-ci.yml
+#      - vcx/ci/libindy-ubuntu16.dockerfile
+#
+#dockerbuild-vcx-libindy-ubuntu18:
+#  stage: dockerbuild-pre
+#  extends: .dockerbuild-vcx-libindy
+#  variables:
+#    DOCKERFILE_PATH: vcx/ci/libindy-ubuntu18.dockerfile
+#    DOCKER_IMAGE_NAME: vcx-libindy-ubuntu18
+#  only:
+#    changes:
+#      - .gitlab-ci.yml
+#      - vcx/ci/libindy-ubuntu18.dockerfile
+#
+#dockerbuild-vcx-libindy-centos:
+#  stage: dockerbuild-pre
+#  extends: .kaniko_micro
+#  variables:
+#    DOCKERFILE_PATH: vcx/ci/libindy-centos.dockerfile
+#    DOCKER_IMAGE_NAME: vcx-libindy-centos
+#    KANIKO_ARGS: '--build-arg LIBINDY_VER=${indyFullVersion} --build-arg LIBINDY_SIMPLE_VER=${indySimpleVersion} --build-arg LIBINDY_BRANCH=${indyBranch} --build-arg RUST_VER=${rustVersion}'
+#  only:
+#    refs:
+#      - main
+#      - cheqd
+#      - cheqddebug
+#      - stable
+#      - /^docker-.*/
+#    changes:
+#      - .gitlab-ci.yml
+#      - vcx/ci/libindy-centos.dockerfile
+#
+### - Jobs : dockerbuild - ##
+#dockerbuild-vcx-android:
+#  stage: dockerbuild
+#  extends: .kaniko_large
+#  dependencies:
+#    - dockerbuild-vcx-libindy-ubuntu16
+#  variables:
+#    DOCKERFILE_PATH: vcx/wrappers/java/ci/android.dockerfile
+#    DOCKER_IMAGE_NAME: vcx-android
+#    KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion}'
+#  only:
+#    refs:
+#      - main
+#      - cheqd
+#      - cheqddebug
+#      - stable
+#      - /^docker-.*/
+#    changes:
+#      - .gitlab-ci.yml
+#      - vcx/ci/libindy-ubuntu16.dockerfile
+#      - vcx/wrappers/java/ci/android.dockerfile
+#  before_script:
+#    - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/android.dockerfile
+#    - grep '^FROM' vcx/wrappers/java/ci/android.dockerfile
+#
+#.dockerbuild-vcx-python:
+#  extends: .kaniko_micro
+#  variables:
+#    DOCKERFILE_PATH: vcx/ci/python.dockerfile
+#  only:
+#    refs:
+#      - main
+#      - cheqd
+#      - cheqddebug
+#      - stable
+#      - /^docker-.*/
+#    changes:
+#      - .gitlab-ci.yml
+#      - vcx/ci/python.dockerfile
+#
+#dockerbuild-vcx-python-ubuntu18:
+#  stage: dockerbuild
+#  extends: .dockerbuild-vcx-python
+#  dependencies:
+#    - dockerbuild-vcx-libindy-ubuntu18
+#  variables:
+#    DOCKER_IMAGE_NAME: vcx-python-ubuntu18
+#  only:
+#    changes:
+#      - .gitlab-ci.yml
+#      - vcx/ci/libindy-ubuntu18.dockerfile
+#  before_script:
+#    - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/ci/python.dockerfile
+#    - grep '^FROM' vcx/ci/python.dockerfile
+#
+#dockerbuild-vcx-java:
+#  stage: dockerbuild
+#  extends: .kaniko_micro
+#  dependencies:
+#    - dockerbuild-vcx-libindy-ubuntu18
+#  variables:
+#    DOCKERFILE_PATH: vcx/wrappers/java/ci/java.dockerfile
+#    DOCKER_IMAGE_NAME: vcx-java
+#  only:
+#    refs:
+#      - main
+#      - cheqd
+#      - cheqddebug
+#      - stable
+#      - /^docker-.*/
+#    changes:
+#      - .gitlab-ci.yml
+#      - vcx/ci/libindy-ubuntu18.dockerfile
+#      - vcx/wrappers/java/ci/java.dockerfile
+#  before_script:
+#    - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/java.dockerfile
+#    - grep '^FROM' vcx/wrappers/java/ci/java.dockerfile
 
-dockerbuild-vcx-libindy-ubuntu16:
-  stage: dockerbuild-pre
-  extends: .dockerbuild-vcx-libindy
-  variables:
-    DOCKERFILE_PATH: ci/libindy-ubuntu16.dockerfile
-    DOCKER_IMAGE_NAME: vcx-libindy-ubuntu16
-  only:
-    changes:
-      - .gitlab-ci.yml
-      - ci/libindy-ubuntu16.dockerfile
-
-dockerbuild-vcx-libindy-ubuntu18:
-  stage: dockerbuild-pre
-  extends: .dockerbuild-vcx-libindy
-  variables:
-    DOCKERFILE_PATH: ci/libindy-ubuntu18.dockerfile
-    DOCKER_IMAGE_NAME: vcx-libindy-ubuntu18
-  only:
-    changes:
-      - .gitlab-ci.yml
-      - ci/libindy-ubuntu18.dockerfile
-
-dockerbuild-vcx-libindy-centos:
-  stage: dockerbuild-pre
-  extends: .kaniko_micro
-  variables:
-    DOCKERFILE_PATH: ci/libindy-centos.dockerfile
-    DOCKER_IMAGE_NAME: vcx-libindy-centos
-    KANIKO_ARGS: '--build-arg LIBINDY_VER=${indyFullVersion} --build-arg LIBINDY_SIMPLE_VER=${indySimpleVersion} --build-arg LIBINDY_BRANCH=${indyBranch} --build-arg RUST_VER=${rustVersion}'
-  only:
-    refs:
-      - main
-      - stable
-      - /^docker-.*/
-    changes:
-      - .gitlab-ci.yml
-      - ci/libindy-centos.dockerfile
-
-## - Jobs : dockerbuild - ##
-dockerbuild-vcx-android:
-  stage: dockerbuild
-  extends: .kaniko_large
-  dependencies:
-    - dockerbuild-vcx-libindy-ubuntu16
-  variables:
-    DOCKERFILE_PATH: vcx/wrappers/java/ci/android.dockerfile
-    DOCKER_IMAGE_NAME: vcx-android
-    KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion}'
-  only:
-    refs:
-      - main
-      - stable
-      - /^docker-.*/
-    changes:
-      - .gitlab-ci.yml
-      - ci/libindy-ubuntu16.dockerfile
-      - vcx/wrappers/java/ci/android.dockerfile
-  before_script:
-    - sed -i "s|^FROM vcx-libindy-ubuntu16.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/android.dockerfile
-    - grep '^FROM' vcx/wrappers/java/ci/android.dockerfile
-
-dockerbuild-vcx-python-ubuntu18:
-  stage: dockerbuild
-  extends: .kaniko_micro
-  dependencies:
-    - dockerbuild-vcx-libindy-ubuntu18
-  variables:
-    DOCKERFILE_PATH: ci/python.dockerfile
-    DOCKER_IMAGE_NAME: vcx-python-ubuntu18
-  only:
-    refs:
-      - main
-      - stable
-      - /^docker-.*/
-    changes:
-      - .gitlab-ci.yml
-      - ci/libindy-ubuntu18.dockerfile
-      - ci/python.dockerfile
-  before_script:
-    - sed -i "s|^FROM vcx-libindy-ubuntu18.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" ci/python.dockerfile
-    - grep '^FROM' ci/python.dockerfile
-
-dockerbuild-vcx-java:
-  stage: dockerbuild
-  extends: .kaniko_micro
-  dependencies:
-    - dockerbuild-vcx-libindy-ubuntu18
-  variables:
-    DOCKERFILE_PATH: vcx/wrappers/java/ci/java.dockerfile
-    DOCKER_IMAGE_NAME: vcx-java
-  only:
-    refs:
-      - main
-      - stable
-      - /^docker-.*/
-    changes:
-      - .gitlab-ci.yml
-      - ci/libindy-ubuntu18.dockerfile
-      - vcx/wrappers/java/ci/java.dockerfile
-  before_script:
-    - sed -i "s|^FROM vcx-libindy-ubuntu18.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/java.dockerfile
-    - grep '^FROM' vcx/wrappers/java/ci/java.dockerfile
-
-## - Jobs : Build - ##
+# - Jobs : Build - ##
 build-ios:
   #TODO: break tests out into another pipeline. parallelize architecture builds.
   stage: build
@@ -245,117 +273,117 @@ build-ios:
       ${indyFullVersion} ${libsovtokenVersion}~${libsovtokenVersionExtra} ${iosSovtokenArtifact} ${rustVersion} ${full_vcx_version}
     - mv ~/IOSBuilds ./
 
-.build_android:
-  extends: .tags_large
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - runtime_android_build/libvcx_${ARCH}/*.so
-  script:
-    - vcx/ci/scripts/androidBuild.sh ${ARCH} ${indyBranch} \
-      ${indyFullVersion} ${indyBranch} ${indyFullVersion} ${libsovtokenVersion}-${libsovtokenVersionExtra} ${androidSovtokenArtifact}
-
-
-build-android-x86-from-branch:
-  extends: .build_android
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:${CI_COMMIT_REF_SLUG}
-  variables:
-    ARCH: 'x86'
-  only:
-    refs:
-      - /^docker-.*/
-
-
-build-android-x86-from-latest:
-  extends: .build_android
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
-  variables:
-    ARCH: 'x86'
-  except:
-    refs:
-      - /^docker-.*/
-
-build-android-x86_64-from-branch:
-  extends: .build_android
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:${CI_COMMIT_REF_SLUG}
-  variables:
-    ARCH: 'x86_64'
-  only:
-    refs:
-      - /^docker-.*/
-
-build-android-x86_64-from-latest:
-  extends: .build_android
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
-  variables:
-    ARCH: 'x86_64'
-  except:
-    refs:
-      - /^docker-.*/
-
-build-android-arm-from-branch:
-  extends: .build_android
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:${CI_COMMIT_REF_SLUG}
-  variables:
-    ARCH: 'arm'
-  only:
-    refs:
-      - /^docker-.*/
-
-build-android-arm-from-latest:
-  extends: .build_android
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
-  variables:
-    ARCH: 'arm'
-  except:
-    refs:
-      - /^docker-.*/
-
-build-android-arm64-from-branch:
-  extends: .build_android
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:${CI_COMMIT_REF_SLUG}
-  variables:
-    ARCH: 'arm64'
-  only:
-    refs:
-      - /^docker-.*/
-
-build-android-arm64-from-latest:
-  extends: .build_android
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
-  variables:
-    ARCH: 'arm64'
-  except:
-    refs:
-      - /^docker-.*/
-
-build-android-armv7-from-branch:
-  extends: .build_android
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:${CI_COMMIT_REF_SLUG}
-  variables:
-    ARCH: 'armv7'
-  only:
-    refs:
-      - /^docker-.*/
-
-build-android-armv7-from-latest:
-  extends: .build_android
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
-  variables:
-    ARCH: 'armv7'
-  except:
-    refs:
-      - /^docker-.*/
+#.build_android:
+#  extends:
+#    - .tags_large
+#    - .cheqd-submodules
+#  artifacts:
+#    expire_in: 1 week
+#    paths:
+#      - runtime_android_build/libvcx_${ARCH}/*.so
+#  script:
+#    - vcx/ci/scripts/androidBuild.sh ${ARCH} ${indyBranch} \
+#      ${indyFullVersion} ${indyBranch} ${indyFullVersion} ${libsovtokenVersion}-${libsovtokenVersionExtra} ${androidSovtokenArtifact}
+#
+#
+#build-android-x86-from-branch:
+#  extends: .build_android
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:${CI_COMMIT_REF_SLUG}
+#  variables:
+#    ARCH: 'x86'
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#
+#build-android-x86-from-latest:
+#  extends: .build_android
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
+#  variables:
+#    ARCH: 'x86'
+#  except:
+#    refs:
+#      - /^docker-.*/
+#
+#build-android-x86_64-from-branch:
+#  extends: .build_android
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:${CI_COMMIT_REF_SLUG}
+#  variables:
+#    ARCH: 'x86_64'
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#build-android-x86_64-from-latest:
+#  extends: .build_android
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
+#  variables:
+#    ARCH: 'x86_64'
+#  except:
+#    refs:
+#      - /^docker-.*/
+#
+#build-android-arm-from-branch:
+#  extends: .build_android
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:${CI_COMMIT_REF_SLUG}
+#  variables:
+#    ARCH: 'arm'
+#  only:
+#    refs:
+#      - /^docker-.*/
+#build-android-arm-from-latest:
+#  extends: .build_android
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
+#  variables:
+#    ARCH: 'arm'
+#  except:
+#    refs:
+#      - /^docker-.*/
+#
+#build-android-arm64-from-branch:
+#  extends: .build_android
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:${CI_COMMIT_REF_SLUG}
+#  variables:
+#    ARCH: 'arm64'
+#  only:
+#    refs:
+#      - /^docker-.*/
+#build-android-arm64-from-latest:
+#  extends: .build_android
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
+#  variables:
+#    ARCH: 'arm64'
+#  except:
+#    refs:
+#      - /^docker-.*/
+#
+#build-android-armv7-from-branch:
+#  extends: .build_android
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:${CI_COMMIT_REF_SLUG}
+#  variables:
+#    ARCH: 'armv7'
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#build-android-armv7-from-latest:
+#  extends: .build_android
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
+#  variables:
+#    ARCH: 'armv7'
+#  except:
+#    refs:
+#      - /^docker-.*/
 
 build-consistent-vers-ts:
   extends: .tags_micro
@@ -369,452 +397,495 @@ build-consistent-vers-ts:
   script:
     - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
 
-.build-libvcx:
-  extends: .tags_large
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - output/*
-  script:
-    - mkdir -p ${CI_PROJECT_DIR}/output
-    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
-    - export VCXREVISION=$(git rev-parse HEAD | cut -c 1-7)
-    - export VCXVERSION=$(${CI_PROJECT_DIR}/vcx/ci/scripts/toml_utils.py ${CI_PROJECT_DIR}/vcx/libvcx/Cargo.toml)
-    - cd ${CI_PROJECT_DIR}
-    - vcx/ci/scripts/package.sh ${RUSTTESTFLAG} ${VCXVERSION} ${VCXREVISION} ${PACKAGE_TYPE}
+#.cheqd-submodules:
+#  before_script:
+#    # The only working solution for private submodules fetching via ssh:
+#    # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/2075
+#
+#    # install ssh-agent
+#    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+#
+#    # run ssh-agent
+#    - eval $(ssh-agent -s)
+#
+#    # add ssh key stored in SSH_PRIVATE_KEY variable to the agent store
+#    - chmod 600 $CHEQD_GITHUB_SSH_PRIVATE_KEY || true
+#    - ssh-add $CHEQD_GITHUB_SSH_PRIVATE_KEY
+#
+#    # disable host key checking (NOTE: makes you susceptible to man-in-the-middle attacks)
+#    # WARNING: use only in docker container, if you use it with shell you will overwrite your user's ssh config
+#    - mkdir -p ~/.ssh
+#    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+#
+#    # Fetch submodules
+#    - git submodule sync --recursive
+#    - git submodule update --init --recursive
+#
+#.build-libvcx:
+#  extends:
+#    - .tags_large
+#    - .cheqd-submodules
+#  artifacts:
+#    expire_in: 1 week
+#    paths:
+#      - output/*
+#  script:
+#    - mkdir -p ${CI_PROJECT_DIR}/output
+#    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
+#    - export VCXREVISION=$(git rev-parse HEAD | cut -c 1-7)
+#    - export VCXVERSION=$(${CI_PROJECT_DIR}/vcx/ci/scripts/toml_utils.py ${CI_PROJECT_DIR}/vcx/libvcx/Cargo.toml)
+#    - cd ${CI_PROJECT_DIR}
+#    - vcx/ci/scripts/package.sh ${RUSTTESTFLAG} ${VCXVERSION} ${VCXREVISION} ${PACKAGE_TYPE}
 
-build-libvcx-ubuntu18-from-branch:
-  extends: .build-libvcx
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
-  variables:
-    MYSQL_DATABASE: 'wallet'
-    MYSQL_ROOT_PASSWORD: 'root'
-    RUSTTESTFLAG: 'mysql'
-    PACKAGE_TYPE: 'bionic'
-  services:
-    - name: registry.gitlab.com/evernym/containers/indy-pool:1.9.2_1.0.2
-      alias: indy_pool
-    - name: mysql:5
-      alias: mysql
-  only:
-    refs:
-      - /^docker-.*/
+#build-libvcx-ubuntu18-from-branch:
+#  extends: .build-libvcx
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
+#  variables:
+#    MYSQL_DATABASE: 'wallet'
+#    MYSQL_ROOT_PASSWORD: 'root'
+#    RUSTTESTFLAG: 'mysql'
+#    PACKAGE_TYPE: 'bionic'
+#  services:
+#    - name: registry.gitlab.com/evernym/containers/indy-pool:1.9.2_1.0.2
+#      alias: indy_pool
+#    - name: mysql:5
+#      alias: mysql
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#build-libvcx-ubuntu18-from-latest:
+#  extends: .build-libvcx
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
+#  stage: build
+#  variables:
+#    MYSQL_DATABASE: 'wallet'
+#    MYSQL_ROOT_PASSWORD: 'root'
+#    RUSTTESTFLAG: 'mysql'
+#    PACKAGE_TYPE: 'bionic'
+#  services:
+#    - name: registry.gitlab.com/evernym/containers/indy-pool:1.9.2_1.0.2
+#      alias: indy_pool
+#    - name: mysql:5
+#      alias: mysql
+#  except:
+#    refs:
+#      - /^docker-.*/
+#
+#build-libvcx-ubuntu16-from-branch:
+#  extends: .build-libvcx
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:${CI_COMMIT_REF_SLUG}
+#  variables:
+#    RUSTTESTFLAG: 'basic-tests'
+#    PACKAGE_TYPE: 'xenial'
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#build-libvcx-ubuntu16-from-latest:
+#  extends: .build-libvcx
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:latest
+#  stage: build
+#  variables:
+#    RUSTTESTFLAG: 'basic-tests'
+#    PACKAGE_TYPE: 'xenial'
+#  except:
+#    refs:
+#      - /^docker-.*/
 
-build-libvcx-ubuntu18-from-latest:
-  extends: .build-libvcx
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
-  stage: build
-  variables:
-    MYSQL_DATABASE: 'wallet'
-    MYSQL_ROOT_PASSWORD: 'root'
-    RUSTTESTFLAG: 'mysql'
-    PACKAGE_TYPE: 'bionic'
-  services:
-    - name: registry.gitlab.com/evernym/containers/indy-pool:1.9.2_1.0.2
-      alias: indy_pool
-    - name: mysql:5
-      alias: mysql
-  except:
-    refs:
-      - /^docker-.*/
+#.build-libvcx-rpm:
+#  extends:
+#    - .tags_large
+#    - .cheqd-submodules
+#  variables:
+#    RUSTTESTFLAG: 'test'
+#  artifacts:
+#    expire_in: 1 week
+#    paths:
+#      - output/*
+#  script:
+#    - mkdir -p ${CI_PROJECT_DIR}/output
+##    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
+#    - export VCXREVISION=$(git rev-parse --short HEAD)
+#    - export VCXVERSION=$(${CI_PROJECT_DIR}/vcx/ci/scripts/toml_utils.py ${CI_PROJECT_DIR}/vcx/libvcx/Cargo.toml)
+#    - cd ${CI_PROJECT_DIR}
+#    - vcx/ci/scripts/package-rpm.sh ${RUSTTESTFLAG} ${VCXVERSION} ${VCXREVISION}
 
-build-libvcx-ubuntu16-from-branch:
-  extends: .build-libvcx
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:${CI_COMMIT_REF_SLUG}
-  variables:
-    RUSTTESTFLAG: 'basic-tests'
-    PACKAGE_TYPE: 'xenial'
-  only:
-    refs:
-      - /^docker-.*/
+#build-libvcx-rpm-from-branch:
+#  extends: .build-libvcx-rpm
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-centos:${CI_COMMIT_REF_SLUG}
+#  only:
+#    refs:
+#      - /^docker-.*/
 
-build-libvcx-ubuntu16-from-latest:
-  extends: .build-libvcx
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:latest
-  stage: build
-  variables:
-    RUSTTESTFLAG: 'basic-tests'
-    PACKAGE_TYPE: 'xenial'
-  except:
-    refs:
-      - /^docker-.*/
-
-.build-libvcx-rpm:
-  extends: .tags_large
-  variables:
-    RUSTTESTFLAG: 'test'
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - output/*
-  script:
-    - mkdir -p ${CI_PROJECT_DIR}/output
-    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
-    - export VCXREVISION=$(git rev-parse --short HEAD)
-    - export VCXVERSION=$(${CI_PROJECT_DIR}/vcx/ci/scripts/toml_utils.py ${CI_PROJECT_DIR}/vcx/libvcx/Cargo.toml)
-    - cd ${CI_PROJECT_DIR}
-    - vcx/ci/scripts/package-rpm.sh ${RUSTTESTFLAG} ${VCXVERSION} ${VCXREVISION}
-
-build-libvcx-rpm-from-branch:
-  extends: .build-libvcx-rpm
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-centos:${CI_COMMIT_REF_SLUG}
-  only:
-    refs:
-      - /^docker-.*/
-
-build-libvcx-rpm-from-latest:
-  extends: .build-libvcx-rpm
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-centos:latest
-  stage: build
-  except:
-    refs:
-      - /^docker-.*/
+#build-libvcx-rpm-from-latest:
+#  extends: .build-libvcx-rpm
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-centos:latest
+#  stage: build
+#  except:
+#    refs:
+#      - /^docker-.*/
 
 ## - Jobs : Test - ##
-.test-python-wrapper:
-  extends: .tags_large
-  variables:
-    PACKAGE_TYPE: 'bionic'
-  script:
-    - export PYTHONPATH="${CI_PROJECT_DIR}/vcx/wrappers/python3:vcx/wrappers/python3"
-    - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*${PACKAGE_TYPE}*.deb
-    - vcx/wrappers/python3/ci/test.sh
-
-test-python-wrapper-from-branch:
-  extends: .test-python-wrapper
-  stage: test
-  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:${CI_COMMIT_REF_SLUG}
-  dependencies:
-    - build-libvcx-ubuntu18-from-branch
-  only:
-    refs:
-      - /^docker-.*/
-
-test-python-wrapper-from-latest:
-  extends: .test-python-wrapper
-  stage: test
-  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
-  dependencies:
-    - build-libvcx-ubuntu18-from-latest
-  except:
-    refs:
-      - /^docker-.*/
-
-.test-java-wrapper:
-  extends: .tags_micro
-  variables:
-    PACKAGE_TYPE: 'bionic'
-  script:
-    - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*${PACKAGE_TYPE}*.deb
-    - cd vcx/wrappers/java && ./gradlew --no-daemon test
-
-test-java-wrapper-from-branch:
-  extends: .test-java-wrapper
-  stage: test
-  image: ${CI_REGISTRY_IMAGE}/vcx-java:${CI_COMMIT_REF_SLUG}
-  dependencies:
-    - build-libvcx-ubuntu18-from-branch
-  only:
-    refs:
-      - /^docker-.*/
-
-test-java-wrapper-from-latest:
-  extends: .test-java-wrapper
-  stage: test
-  image: ${CI_REGISTRY_IMAGE}/vcx-java:latest
-  dependencies:
-    - build-libvcx-ubuntu18-from-latest
-  except:
-    refs:
-      - /^docker-.*/
-
-.test-node-wrapper:
-  extends: .tags_micro
-  variables:
-    PACKAGE_TYPE: 'bionic'
-  script:
-    - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*${PACKAGE_TYPE}*.deb
-    - cd vcx/wrappers/node && npm i npm@6.1.0
-    - cd ${CI_PROJECT_DIR} && vcx/wrappers/node/ci/test.sh
-
-test-node-wrapper-ubuntu18-from-branch:
-  extends: .test-node-wrapper
-  stage: test
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
-  dependencies:
-    - build-libvcx-ubuntu18-from-branch
-  only:
-    refs:
-      - /^docker-.*/
-
-test-node-wrapper-ubuntu18-from-latest:
-  extends: .test-node-wrapper
-  stage: test
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
-  dependencies:
-    - build-libvcx-ubuntu18-from-latest
-  except:
-    refs:
-      - /^docker-.*/
+#.test-python-wrapper:
+#  extends:
+#    - .tags_large
+#    - .cheqd-submodules
+#  variables:
+#    PACKAGE_TYPE: 'bionic'
+#  script:
+#    - export PYTHONPATH="${CI_PROJECT_DIR}/vcx/wrappers/python3:vcx/wrappers/python3"
+#    - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*${PACKAGE_TYPE}*.deb
+#    - vcx/wrappers/python3/ci/test.sh
+#
+#test-python-wrapper-from-branch:
+#  extends: .test-python-wrapper
+#  stage: test
+#  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:${CI_COMMIT_REF_SLUG}
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-branch
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#test-python-wrapper-from-latest:
+#  extends: .test-python-wrapper
+#  stage: test
+#  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-latest
+#  except:
+#    refs:
+#      - /^docker-.*/
+#
+#.test-java-wrapper:
+#  extends:
+#    - .tags_large
+#    - .cheqd-submodules
+#  variables:
+#    PACKAGE_TYPE: 'bionic'
+#  script:
+#    - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*${PACKAGE_TYPE}*.deb
+#    - cd vcx/wrappers/java && ./gradlew --no-daemon test
+#
+#test-java-wrapper-from-branch:
+#  extends: .test-java-wrapper
+#  stage: test
+#  image: ${CI_REGISTRY_IMAGE}/vcx-java:${CI_COMMIT_REF_SLUG}
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-branch
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#test-java-wrapper-from-latest:
+#  extends: .test-java-wrapper
+#  stage: test
+#  image: ${CI_REGISTRY_IMAGE}/vcx-java:latest
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-latest
+#  except:
+#    refs:
+#      - /^docker-.*/
+#
+#.test-node-wrapper:
+#  extends:
+#    - .tags_large
+#    - .cheqd-submodules
+#  variables:
+#    PACKAGE_TYPE: 'bionic'
+#  script:
+#    - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*${PACKAGE_TYPE}*.deb
+#    - cd vcx/wrappers/node && npm i npm@6.1.0
+#    - cd ${CI_PROJECT_DIR} && vcx/wrappers/node/ci/test.sh
+#
+#test-node-wrapper-ubuntu18-from-branch:
+#  extends: .test-node-wrapper
+#  stage: test
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-branch
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#test-node-wrapper-ubuntu18-from-latest:
+#  extends: .test-node-wrapper
+#  stage: test
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-latest
+#  except:
+#    refs:
+#      - /^docker-.*/
 
 ## - Jobs : Package - ##
-.package-android:
-  extends: .tags_large
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - vcx/wrappers/java/artifacts/aar/*.aar
-      - vcx/wrappers/java/artifacts/aar/*.jar
-  script:
-    - ls -al vcx/ci/scripts/androidPackage.sh
-    - sudo chmod +x vcx/ci/scripts/androidPackage.sh
-    - vcx/ci/scripts/androidPackage.sh
+#.package-android:
+#  extends:
+#    - .tags_large
+#    - .cheqd-submodules
+#  artifacts:
+#    expire_in: 1 week
+#    paths:
+#      - vcx/wrappers/java/artifacts/aar/*.aar
+#      - vcx/wrappers/java/artifacts/aar/*.jar
+#  script:
+#    - ls -al vcx/ci/scripts/androidPackage.sh
+#    - sudo chmod +x vcx/ci/scripts/androidPackage.sh
+#    - vcx/ci/scripts/androidPackage.sh
+#
+#package-android-from-branch:
+#  extends: .package-android
+#  stage: package
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:${CI_COMMIT_REF_SLUG}
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#package-android-from-latest:
+#  extends: .package-android
+#  stage: package
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
+#  except:
+#    refs:
+#      - /^docker-.*/
 
-package-android-from-branch:
-  extends: .package-android
-  stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:${CI_COMMIT_REF_SLUG}
-  only:
-    refs:
-      - /^docker-.*/
+#.package-python-wrapper:
+#  extends: .tags_micro
+#  artifacts:
+#    expire_in: 1 week
+#    paths:
+#      - output/*
+#  script:
+#    - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*bionic*.deb
+#    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
+#    - cd -
+#    - vcx/wrappers/python3/ci/package.sh
+#
+#package-python-wrapper-from-branch:
+#  extends: .package-python-wrapper
+#  stage: package
+#  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:${CI_COMMIT_REF_SLUG}
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-branch
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#package-python-wrapper-from-latest:
+#  extends: .package-python-wrapper
+#  stage: package
+#  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-latest
+#  except:
+#    refs:
+#      - /^docker-.*/
 
-package-android-from-latest:
-  extends: .package-android
-  stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
-  except:
-    refs:
-      - /^docker-.*/
-
-.package-python-wrapper:
-  extends: .tags_micro
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - output/*
-  script:
-    - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*bionic*.deb
-    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
-    - cd -
-    - vcx/wrappers/python3/ci/package.sh
-
-package-python-wrapper-from-branch:
-  extends: .package-python-wrapper
-  stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:${CI_COMMIT_REF_SLUG}
-  dependencies:
-    - build-libvcx-ubuntu18-from-branch
-  only:
-    refs:
-      - /^docker-.*/
-
-package-python-wrapper-from-latest:
-  extends: .package-python-wrapper
-  stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
-  dependencies:
-    - build-libvcx-ubuntu18-from-latest
-  except:
-    refs:
-      - /^docker-.*/
-
-.package-java-wrapper:
-  extends: .tags_micro
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - vcx/wrappers/java/artifacts/
-  script:
-    - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*bionic*.deb
-    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
-    - cd -
-    - vcx/wrappers/java/ci/buildJar.sh $(python3 vcx/ci/scripts/toml_utils.py vcx/libvcx/Cargo.toml)
-
-package-java-wrapper-from-branch:
-  extends: .package-java-wrapper
-  stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-java:${CI_COMMIT_REF_SLUG}
-  dependencies:
-    - build-libvcx-ubuntu18-from-branch
-  only:
-    refs:
-      - /^docker-.*/
-
-package-java-wrapper-from-latest:
-  extends: .package-java-wrapper
-  stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-java:latest
-  dependencies:
-    - build-libvcx-ubuntu18-from-latest
-  except:
-    refs:
-      - /^docker-.*/
-
-.package-node-wrapper:
-  extends: .tags_micro
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - output/*
-  script:
-    - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*bionic*.deb
-    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
-    - cd -
-    - vcx/wrappers/node/ci/package.sh
-
-package-node-wrapper-from-branch:
-  extends: .package-node-wrapper
-  stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
-  dependencies:
-    - build-libvcx-ubuntu18-from-branch
-  only:
-    refs:
-      - /^docker-.*/
-
-package-node-wrapper-from-latest:
-  extends: .package-node-wrapper
-  stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
-  dependencies:
-    - build-libvcx-ubuntu18-from-latest
-  except:
-    refs:
-      - /^docker-.*/
-
-.package-react-native-wrapper:
-  extends: .tags_micro
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - output/*
-  script:
-    - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
-    - export vcxRevision=$(git rev-parse --short HEAD)
-    - vcx/wrappers/react-native/ci/package.sh ${vcxVersion}-${vcxRevision}
-
-package-react-native-wrapper-from-branch:
-  extends: .package-react-native-wrapper
-  stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
-  dependencies:
-    - build-libvcx-ubuntu18-from-branch
-  only:
-    refs:
-      - /^docker-.*/
-
-package-react-native-wrapper-from-latest:
-  extends: .package-react-native-wrapper
-  stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
-  dependencies:
-    - build-libvcx-ubuntu18-from-latest
-  except:
-    refs:
-      - /^docker-.*/
+#.package-java-wrapper:
+#  extends: .tags_micro
+#  artifacts:
+#    expire_in: 1 week
+#    paths:
+#      - vcx/wrappers/java/artifacts/
+#  script:
+#    - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*bionic*.deb
+#    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
+#    - cd -
+#    - vcx/wrappers/java/ci/buildJar.sh $(python3 vcx/ci/scripts/toml_utils.py vcx/libvcx/Cargo.toml)
+#
+#package-java-wrapper-from-branch:
+#  extends: .package-java-wrapper
+#  stage: package
+#  image: ${CI_REGISTRY_IMAGE}/vcx-java:${CI_COMMIT_REF_SLUG}
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-branch
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#package-java-wrapper-from-latest:
+#  extends: .package-java-wrapper
+#  stage: package
+#  image: ${CI_REGISTRY_IMAGE}/vcx-java:latest
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-latest
+#  except:
+#    refs:
+#      - /^docker-.*/
+#
+#.package-node-wrapper:
+#  extends: .tags_micro
+#  artifacts:
+#    expire_in: 1 week
+#    paths:
+#      - output/*
+#  script:
+#    - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*bionic*.deb
+#    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
+#    - cd -
+#    - vcx/wrappers/node/ci/package.sh
+#
+#package-node-wrapper-from-branch:
+#  extends: .package-node-wrapper
+#  stage: package
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-branch
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#package-node-wrapper-from-latest:
+#  extends: .package-node-wrapper
+#  stage: package
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-latest
+#  except:
+#    refs:
+#      - /^docker-.*/
+#
+#.package-react-native-wrapper:
+#  extends: .tags_micro
+#  artifacts:
+#    expire_in: 1 week
+#    paths:
+#      - output/*
+#  script:
+#    - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
+#    - export vcxRevision=$(git rev-parse --short HEAD)
+#    - vcx/wrappers/react-native/ci/package.sh ${vcxVersion}-${vcxRevision}
+#
+#package-react-native-wrapper-from-branch:
+#  extends: .package-react-native-wrapper
+#  stage: package
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-branch
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#package-react-native-wrapper-from-latest:
+#  extends: .package-react-native-wrapper
+#  stage: package
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
+#  dependencies:
+#    - build-libvcx-ubuntu18-from-latest
+#  except:
+#    refs:
+#      - /^docker-.*/
 
 ## - Jobs : Publish - ##
-publish-android:
-  stage: publish
-  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
-  extends: .tags_micro
-  only:
-    refs:
-      - main@evernym/mobile/ev-vcx
-      - stable@evernym/mobile/ev-vcx
-      - vcx-aries-support
-  script:
-    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
-    - export vcxRevision=$(git rev-parse --short HEAD)
-    - cd -
-    - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
-    - cp ${CLOUDREPO_SETTINGS_XML} ./settings.xml
-    - sudo chmod +x vcx/ci/scripts/androidPublish.sh
-    - vcx/ci/scripts/androidPublish.sh ${vcxVersion}-${vcxRevision}
+#publish-android:
+#  stage: publish
+#  image: ${CI_REGISTRY_IMAGE}/vcx-android:latest
+#  extends: .tags_micro
+#  only:
+#    refs:
+#      - main@evernym/mobile/ev-vcx
+#      - stable@evernym/mobile/ev-vcx
+#      - cheqd@evernym/mobile/ev-vcx
+#      - cheqddebug@evernym/mobile/ev-vcx
+#      - vcx-aries-support
+#  script:
+#    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
+#    - export vcxRevision=$(git rev-parse --short HEAD)
+#    - cd -
+#    - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
+#    - cp ${CLOUDREPO_SETTINGS_XML} ./settings.xml
+#    - sudo chmod +x vcx/ci/scripts/androidPublish.sh
+#    - vcx/ci/scripts/androidPublish.sh ${vcxVersion}-${vcxRevision}
 
-publish-ios:
-  stage: publish
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
-  extends: .tags_micro
-  only:
-    refs:
-      - main@evernym/mobile/ev-vcx
-      - stable@evernym/mobile/ev-vcx
-      - vcx-aries-support
-  dependencies:
-    - build-ios
-  script:
-    #https://gitlab.com/gitlab-org/gitlab-ce/issues/27436
-    - export KRAKEN_CREDENTIALS=${KRK_USERNAME}:${KRK_PASSWORD}
-    - find ./IOSBuilds/libvcxx86_64/ -type f -name 'vcx.libvcxx86_64_*_universal.zip' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
-    - find ./IOSBuilds/libvcxx86_64/ -type f -name 'libvcx.a.libvcxx86_64_*_universal.tar.gz' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
-    - find ./IOSBuilds/libvcxarm64/ -type f -name 'vcx.libvcxarm64_*_universal.zip' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
-    - find ./IOSBuilds/libvcxarm64/ -type f -name 'libvcx.a.libvcxarm64_*_universal.tar.gz' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
+#publish-ios:
+#  stage: publish
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:latest
+#  extends: .tags_micro
+#  only:
+#    refs:
+#      - main@evernym/mobile/ev-vcx
+#      - stable@evernym/mobile/ev-vcx
+#      - cheqd@evernym/mobile/ev-vcx
+#      - vcx-aries-support
+#  dependencies:
+#    - build-ios
+#  script:
+#    #https://gitlab.com/gitlab-org/gitlab-ce/issues/27436
+#    - export KRAKEN_CREDENTIALS=${KRK_USERNAME}:${KRK_PASSWORD}
+#    - find ./IOSBuilds/libvcxx86_64/ -type f -name 'vcx.libvcxx86_64_*_universal.zip' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
+#    - find ./IOSBuilds/libvcxx86_64/ -type f -name 'libvcx.a.libvcxx86_64_*_universal.tar.gz' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
+#    - find ./IOSBuilds/libvcxarm64/ -type f -name 'vcx.libvcxarm64_*_universal.zip' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
+#    - find ./IOSBuilds/libvcxarm64/ -type f -name 'libvcx.a.libvcxarm64_*_universal.tar.gz' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
 
-publish-java-wrapper:
-  stage: publish
-  image: ${CI_REGISTRY_IMAGE}/vcx-java:latest
-  extends: .tags_micro
-  only:
-    refs:
-      - main@evernym/mobile/ev-vcx
-      - stable@evernym/mobile/ev-vcx
-      - vcx-aries-support
-  script:
-    - cp ${CLOUDREPO_SETTINGS_XML} ./settings.xml
-    - sudo chmod +x vcx/wrappers/java/ci/publishJar.sh
-    - vcx/wrappers/java/ci/publishJar.sh
+#publish-java-wrapper:
+#  stage: publish
+#  image: ${CI_REGISTRY_IMAGE}/vcx-java:latest
+#  extends: .tags_micro
+#  only:
+#    refs:
+#      - main@evernym/mobile/ev-vcx
+#      - stable@evernym/mobile/ev-vcx
+#      - vcx-aries-support
+#      - cheqd
+#      - cheqddebug
+#  script:
+#    - cp ${CLOUDREPO_SETTINGS_XML} ./settings.xml
+#    - sudo chmod +x vcx/wrappers/java/ci/publishJar.sh
+#    - vcx/wrappers/java/ci/publishJar.sh
 
-publish-packages:
-  stage: publish
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
-  extends: .tags_micro
-  only:
-    refs:
-      - main@evernym/mobile/ev-vcx
-      - stable@evernym/mobile/ev-vcx
-  script:
-    - ls -al ${CI_PROJECT_DIR}/output
-    #https://gitlab.com/gitlab-org/gitlab-ce/issues/27436
-    - export KRAKEN_CREDENTIALS=${KRK_USERNAME}:${KRK_PASSWORD}
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*xenial*.deb https://kraken.corp.evernym.com/repo/portal_dev/upload
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*xenial*.deb https://kraken.corp.evernym.com/repo/agency_dev/upload
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*bionic*.deb https://kraken.corp.evernym.com/repo/portal_dev/upload
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*bionic*.deb https://kraken.corp.evernym.com/repo/agency_dev/upload
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*.rpm https://kraken.corp.evernym.com/repo/portal_dev/upload
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*.rpm https://kraken.corp.evernym.com/repo/centos7/upload
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" node-vcx-*.tgz https://kraken.corp.evernym.com/repo/portal_dev/upload
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" node-vcx-*.tgz https://kraken.corp.evernym.com/repo/npm/upload
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" python3-vcx-*.tar.gz https://kraken.corp.evernym.com/repo/portal_dev/upload
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" python3-vcx-*.tar.gz https://kraken.corp.evernym.com/repo/python/upload
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" evernym-react-native-sdk*.tgz https://kraken.corp.evernym.com/repo/portal_dev/upload
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" evernym-react-native-sdk*.tgz https://kraken.corp.evernym.com/repo/npm/upload
+#publish-packages:
+#  stage: publish
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
+#  extends: .tags_micro
+#  only:
+#    refs:
+#      - main@evernym/mobile/ev-vcx
+#      - stable@evernym/mobile/ev-vcx
+#      - cheqd@evernym/mobile/ev-vcx
+#      - cheqddebug@evernym/mobile/ev-vcx
+#  script:
+#    - ls -al ${CI_PROJECT_DIR}/output
+#    #https://gitlab.com/gitlab-org/gitlab-ce/issues/27436
+#    - export KRAKEN_CREDENTIALS=${KRK_USERNAME}:${KRK_PASSWORD}
+#    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*xenial*.deb https://kraken.corp.evernym.com/repo/portal_dev/upload
+#    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*xenial*.deb https://kraken.corp.evernym.com/repo/agency_dev/upload
+#    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*bionic*.deb https://kraken.corp.evernym.com/repo/portal_dev/upload
+#    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*bionic*.deb https://kraken.corp.evernym.com/repo/agency_dev/upload
+##    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*.rpm https://kraken.corp.evernym.com/repo/portal_dev/upload
+##    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*.rpm https://kraken.corp.evernym.com/repo/centos7/upload
+#    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" node-vcx-*.tgz https://kraken.corp.evernym.com/repo/portal_dev/upload
+#    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" node-vcx-*.tgz https://kraken.corp.evernym.com/repo/npm/upload
+#    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" python3-vcx-*.tar.gz https://kraken.corp.evernym.com/repo/portal_dev/upload
+#    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" python3-vcx-*.tar.gz https://kraken.corp.evernym.com/repo/python/upload
+##    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" evernym-react-native-sdk*.tgz https://kraken.corp.evernym.com/repo/portal_dev/upload
+##    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" evernym-react-native-sdk*.tgz https://kraken.corp.evernym.com/repo/npm/upload
 
-publish-mobile-sdk:
-  stage: publish
-  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
-  extends: .tags_micro
-  rules:
-    - if: $CI_COMMIT_REF_SLUG == "stable" && $CI_PROJECT_PATH == "evernym/mobile/ev-vcx"
-      variables:
-        msdkPackageVer: ${msdkVersion}
-    - if: $CI_COMMIT_REF_SLUG == "main" && $CI_PROJECT_PATH == "evernym/mobile/ev-vcx"
-      variables:
-        msdkPackageVer: ${msdkVersion}-${CI_PIPELINE_ID}
-  script:
-    # - vcx/ci/scripts/githubArtifacts.py ${msdkVersion} vcx/wrappers/java/artifacts/aar/*.aar IOSBuilds/libvcx{partial,all}/vcx.libvcx*.zip output/evernym-react-native-sdk*.tgz
-    - >
-      find ./vcx/wrappers/java/artifacts/aar/ -name "*.aar" -exec
-      curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
-      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
-    - >
-      find ./IOSBuilds/libvcx{x86_64,arm64}/ -name "vcx.libvcx*.zip" -exec
-      curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
-      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
-    - >
-      find ./output/ -name "evernym-react-native-sdk*.tgz" -exec
-      curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
-      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
+#publish-mobile-sdk:
+#  stage: publish
+#  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
+#  extends: .tags_micro
+#  rules:
+#    - if: $CI_COMMIT_REF_SLUG == "stable" && $CI_PROJECT_PATH == "evernym/mobile/ev-vcx"
+#      variables:
+#        msdkPackageVer: ${msdkVersion}
+#    - if: $CI_COMMIT_REF_SLUG == "main" && $CI_PROJECT_PATH == "evernym/mobile/ev-vcx"
+#      variables:
+#        msdkPackageVer: ${msdkVersion}-${CI_PIPELINE_ID}
+#  script:
+##    - vcx/ci/scripts/githubArtifacts.py ${msdkVersion} vcx/wrappers/java/artifacts/aar/*.aar IOSBuilds/libvcx{partial,all}/vcx.libvcx*.zip output/evernym-react-native-sdk*.tgz
+#    - >
+#      find ./vcx/wrappers/java/artifacts/aar/ -name "*.aar" -exec
+#      curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
+#      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
+#    - >
+#      find ./IOSBuilds/libvcx{x86_64,arm64}/ -name "vcx.libvcx*.zip" -exec
+#      curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
+#      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
+#    - >
+#      find ./output/ -name "evernym-react-native-sdk*.tgz" -exec
+#      curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
+#      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;

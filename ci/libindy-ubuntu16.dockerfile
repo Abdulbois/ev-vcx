@@ -63,5 +63,6 @@ RUN add-apt-repository 'deb https://repo.corp.evernym.com/deb evernym-agency-dev
 
 ARG LIBINDY_VER
 
-RUN apt-get update && apt-get install -y \
-    libindy-async=${LIBINDY_VER}-xenial
+RUN apt update && apt install -y libmysqlstorage=0.1.13 \
+    libindy-async=1.95.0~208-xenial
+
