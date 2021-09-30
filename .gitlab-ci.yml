@@ -115,29 +115,29 @@ dockerbuild-vcx-libindy-ubuntu16:
   stage: dockerbuild-pre
   extends: .dockerbuild-vcx-libindy
   variables:
-    DOCKERFILE_PATH: vcx/ci/libindy-ubuntu16.dockerfile
+    DOCKERFILE_PATH: ci/libindy-ubuntu16.dockerfile
     DOCKER_IMAGE_NAME: vcx-libindy-ubuntu16
   only:
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/libindy-ubuntu16.dockerfile
+      - ci/libindy-ubuntu16.dockerfile
 
 dockerbuild-vcx-libindy-ubuntu18:
   stage: dockerbuild-pre
   extends: .dockerbuild-vcx-libindy
   variables:
-    DOCKERFILE_PATH: vcx/ci/libindy-ubuntu18.dockerfile
+    DOCKERFILE_PATH: ci/libindy-ubuntu18.dockerfile
     DOCKER_IMAGE_NAME: vcx-libindy-ubuntu18
   only:
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/libindy-ubuntu18.dockerfile
+      - ci/libindy-ubuntu18.dockerfile
 
 dockerbuild-vcx-libindy-centos:
   stage: dockerbuild-pre
   extends: .kaniko_micro
   variables:
-    DOCKERFILE_PATH: vcx/ci/libindy-centos.dockerfile
+    DOCKERFILE_PATH: ci/libindy-centos.dockerfile
     DOCKER_IMAGE_NAME: vcx-libindy-centos
     KANIKO_ARGS: '--build-arg LIBINDY_VER=${indyFullVersion} --build-arg LIBINDY_SIMPLE_VER=${indySimpleVersion} --build-arg LIBINDY_BRANCH=${indyBranch} --build-arg RUST_VER=${rustVersion}'
   only:
@@ -147,7 +147,7 @@ dockerbuild-vcx-libindy-centos:
       - /^docker-.*/
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/libindy-centos.dockerfile
+      - ci/libindy-centos.dockerfile
 
 ## - Jobs : dockerbuild - ##
 dockerbuild-vcx-android:
@@ -166,7 +166,7 @@ dockerbuild-vcx-android:
       - /^docker-.*/
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/libindy-ubuntu16.dockerfile
+      - ci/libindy-ubuntu16.dockerfile
       - vcx/wrappers/java/ci/android.dockerfile
   before_script:
     - sed -i "s|^FROM vcx-libindy-ubuntu16.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/android.dockerfile
@@ -178,7 +178,7 @@ dockerbuild-vcx-python-ubuntu18:
   dependencies:
     - dockerbuild-vcx-libindy-ubuntu18
   variables:
-    DOCKERFILE_PATH: vcx/ci/python.dockerfile
+    DOCKERFILE_PATH: ci/python.dockerfile
     DOCKER_IMAGE_NAME: vcx-python-ubuntu18
   only:
     refs:
@@ -187,11 +187,11 @@ dockerbuild-vcx-python-ubuntu18:
       - /^docker-.*/
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/libindy-ubuntu18.dockerfile
-      - vcx/ci/python.dockerfile
+      - ci/libindy-ubuntu18.dockerfile
+      - ci/python.dockerfile
   before_script:
-    - sed -i "s|^FROM vcx-libindy-ubuntu18.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/ci/python.dockerfile
-    - grep '^FROM' vcx/ci/python.dockerfile
+    - sed -i "s|^FROM vcx-libindy-ubuntu18.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" ci/python.dockerfile
+    - grep '^FROM' ci/python.dockerfile
 
 dockerbuild-vcx-java:
   stage: dockerbuild
@@ -208,7 +208,7 @@ dockerbuild-vcx-java:
       - /^docker-.*/
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/libindy-ubuntu18.dockerfile
+      - ci/libindy-ubuntu18.dockerfile
       - vcx/wrappers/java/ci/java.dockerfile
   before_script:
     - sed -i "s|^FROM vcx-libindy-ubuntu18.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/java.dockerfile
@@ -286,7 +286,7 @@ build-android-x86_64-from-branch:
   only:
     refs:
       - /^docker-.*/
-      
+
 build-android-x86_64-from-latest:
   extends: .build_android
   stage: build
@@ -382,7 +382,7 @@ build-consistent-vers-ts:
     - export VCXVERSION=$(${CI_PROJECT_DIR}/vcx/ci/scripts/toml_utils.py ${CI_PROJECT_DIR}/vcx/libvcx/Cargo.toml)
     - cd ${CI_PROJECT_DIR}
     - vcx/ci/scripts/package.sh ${RUSTTESTFLAG} ${VCXVERSION} ${VCXREVISION} ${PACKAGE_TYPE}
-  
+
 build-libvcx-ubuntu18-from-branch:
   extends: .build-libvcx
   stage: build
@@ -705,7 +705,7 @@ package-react-native-wrapper-from-branch:
   only:
     refs:
       - /^docker-.*/
-      
+
 package-react-native-wrapper-from-latest:
   extends: .package-react-native-wrapper
   stage: package

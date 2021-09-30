@@ -2,8 +2,6 @@
 
 ## A Developer Guide for Building Indy Clients Using Libvcx
 
-![logo](https://raw.githubusercontent.com/hyperledger/indy-node/master/collateral/logos/indy-logo.png)
-
 * [Getting Started with Libvcx](#getting-started-with-libvcx)
   * [What Indy, Libindy and Libvcx are and Why They Matter](#what-indy-libindy-and-libvcx-are-and-why-they-matter)
   * [What We'll Cover](#what-well-cover)
