@@ -801,25 +801,26 @@ build-consistent-vers-ts:
 #    - sudo chmod +x vcx/ci/scripts/androidPublish.sh
 #    - vcx/ci/scripts/androidPublish.sh ${vcxVersion}-${vcxRevision}
 
-#publish-ios:
-#  stage: publish
-#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:latest
-#  extends: .tags_micro
-#  only:
-#    refs:
-#      - main@evernym/mobile/ev-vcx
-#      - stable@evernym/mobile/ev-vcx
-#      - cheqd@evernym/mobile/ev-vcx
-#      - vcx-aries-support
-#  dependencies:
-#    - build-ios
-#  script:
-#    #https://gitlab.com/gitlab-org/gitlab-ce/issues/27436
-#    - export KRAKEN_CREDENTIALS=${KRK_USERNAME}:${KRK_PASSWORD}
-#    - find ./IOSBuilds/libvcxx86_64/ -type f -name 'vcx.libvcxx86_64_*_universal.zip' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
-#    - find ./IOSBuilds/libvcxx86_64/ -type f -name 'libvcx.a.libvcxx86_64_*_universal.tar.gz' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
-#    - find ./IOSBuilds/libvcxarm64/ -type f -name 'vcx.libvcxarm64_*_universal.zip' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
-#    - find ./IOSBuilds/libvcxarm64/ -type f -name 'libvcx.a.libvcxarm64_*_universal.tar.gz' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
+publish-ios:
+  stage: publish
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:latest
+  extends: .tags_micro
+  only:
+    refs:
+      - main@evernym/mobile/ev-vcx
+      - stable@evernym/mobile/ev-vcx
+      - cheqd@evernym/mobile/ev-vcx
+      - msdk-512/remove-unused-code@evernym/mobile/ev-vcx
+      - vcx-aries-support
+  dependencies:
+    - build-ios
+  script:
+    #https://gitlab.com/gitlab-org/gitlab-ce/issues/27436
+    - export KRAKEN_CREDENTIALS=${KRK_USERNAME}:${KRK_PASSWORD}
+    - find ./IOSBuilds/libvcxx86_64/ -type f -name 'vcx.libvcxx86_64_*_universal.zip' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
+    - find ./IOSBuilds/libvcxx86_64/ -type f -name 'libvcx.a.libvcxx86_64_*_universal.tar.gz' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
+    - find ./IOSBuilds/libvcxarm64/ -type f -name 'vcx.libvcxarm64_*_universal.zip' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
+    - find ./IOSBuilds/libvcxarm64/ -type f -name 'libvcx.a.libvcxarm64_*_universal.tar.gz' -exec curl -u "${KRAKEN_CREDENTIALS}" -X POST https://kraken.corp.evernym.com/repo/ios/upload -F 'file=@{}' \;
 
 #publish-java-wrapper:
 #  stage: publish
