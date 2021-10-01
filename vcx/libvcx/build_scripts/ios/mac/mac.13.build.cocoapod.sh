@@ -59,41 +59,33 @@ done
 #export GEM_HOME=${HOME}/.gem
 #export PATH=${GEM_HOME}/bin:$PATH
 # Test the libvcx.a file if the ${IOS_ARCHS} contains i386 or x86_64
-#if [[ "${IOS_ARCHS}" == *"x86_64"* ]]; then
-#    #xcodebuild -project vcx.xcodeproj -scheme vcx-demo -sdk iphonesimulator build-for-testing
-#    echo "Right Before Emulator"
-#    xcodebuild -project vcx.xcodeproj -scheme vcx-demo -destination 'platform=iOS Simulator,name=iPhone 8' test
-#    echo "Right After Emulator"
-#
-#    ## Need to do:
-#    ## a) gem install cocoapods -- sudo may be needed
-#    #if [ -z "$(which pod)" ]; then
-#    #    gem install cocoapods
-#    #fi
-#    ## b) pod setup
-#     echo "Right Before IF"
-#     if [ ! -d "${HOME}/.cocoapods/repos/master" ]; then
-#        echo "Inside IF"
-#        pod setup
-#    fi
-#    echo "Right After IF"
-#    ## c) brew install xctool
-#    #if [ -z "$(which xctool)" ]; then
-#    #    brew install xctool
-#    #fi
-#    #xctool -project vcx.xcodeproj -scheme vcx-demo run-tests -sdk iphonesimulator
-#fi
-echo "111"
+if [[ "${IOS_ARCHS}" == *"x86_64"* ]]; then
+    #xcodebuild -project vcx.xcodeproj -scheme vcx-demo -sdk iphonesimulator build-for-testing
+    xcodebuild -project vcx.xcodeproj -scheme vcx-demo -destination 'platform=iOS Simulator,name=iPhone 8' test
+
+    ## Need to do:
+    ## a) gem install cocoapods -- sudo may be needed
+    #if [ -z "$(which pod)" ]; then
+    #    gem install cocoapods
+    #fi
+    ## b) pod setup
+    #     if [ ! -d "${HOME}/.cocoapods/repos/master" ]; then
+    #        pod setup
+    #    fi
+    ## c) brew install xctool
+    #if [ -z "$(which xctool)" ]; then
+    #    brew install xctool
+    #fi
+    #xctool -project vcx.xcodeproj -scheme vcx-demo run-tests -sdk iphonesimulator
+fi
 
 #mv lib/libvcx.a.original lib/libvcx.a
 rm lib/libvcx.a
 rm -rf vcx.framework.previousbuild
-echo "222"
 
 mkdir -p vcx.framework/lib
 # IMPORTANT: DO NOT PUT THE libvcx.a FILE INSIDE THE cocoapod AT ALL!!!!!
 #cp -v lib/${COMBINED_LIB}.a vcx.framework/lib/libvcx.a
-echo "333"
 
 mkdir -p vcx.framework/Headers
 cp -v ConnectMeVcx.h vcx.framework/Headers
@@ -106,15 +98,11 @@ if [ -d $VCX_SDK/vcx/wrappers/ios/vcx/tmp ]; then
     rm -rf $VCX_SDK/vcx/wrappers/ios/vcx/tmp
 fi
 
-echo "444"
-
 mkdir -p $VCX_SDK/vcx/wrappers/ios/vcx/tmp/vcx/
 cp -rvp vcx.framework $VCX_SDK/vcx/wrappers/ios/vcx/tmp/vcx/
 cd $VCX_SDK/vcx/wrappers/ios/vcx/tmp
 cp $WORK_DIR/evernym.vcx-sdk.git.commit.log $VCX_SDK/vcx/wrappers/ios/vcx/tmp/vcx/ || true
 cp $WORK_DIR/hyperledger.indy-sdk.git.commit.log $VCX_SDK/vcx/wrappers/ios/vcx/tmp/vcx/ || true
-
-echo "555"
 
 zip -r vcx.${COMBINED_LIB}_${VCX_VERSION}_universal.zip vcx
 mkdir -p ~/IOSBuilds/${COMBINED_LIB}
