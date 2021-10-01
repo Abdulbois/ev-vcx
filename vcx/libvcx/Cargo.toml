@@ -62,9 +62,6 @@ strum_macros = "0.16.0"
 sha2 = "0.9.1"
 dashmap = "3.11.10"
 dirs = "3.0.2"
-ring = { git = "https://github.com/Artemkaaas/ring.git", branch = "extert" }
-winapi = "0.3.8"
-
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.5"

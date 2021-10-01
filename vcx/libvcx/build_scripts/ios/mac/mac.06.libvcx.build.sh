@@ -83,9 +83,6 @@ do
 
     cargo build --target "${target}" --release --no-default-features --features "ci"
     to_combine="${to_combine} ./target/${target}/release/libvcx.a"
-
-    nm target/${target}/release/libvcx.a | grep memcmp
-    nm target/${target}/release/libvcx.a | grep GFp_memcmp
 done
 mkdir -p ./target/universal/release
 lipo -create $to_combine -o ./target/universal/release/libvcx.a

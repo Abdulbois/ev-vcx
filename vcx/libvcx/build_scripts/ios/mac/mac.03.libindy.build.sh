@@ -34,6 +34,7 @@ if [ "$#" -gt 0 ]; then
         echo "libindy cleanbuild"
 
         git checkout .
+        git checkout patch-ring
         git clean -f
         git clean -fd
         git pull
