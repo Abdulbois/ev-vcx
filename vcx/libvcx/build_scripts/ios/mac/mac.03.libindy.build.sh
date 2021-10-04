@@ -12,6 +12,8 @@ SHA_HASH_DIR=$(abspath "$SHA_HASH_DIR")
 
 source ./mac.02.libindy.env.sh
 
+echo "mac.0.3.liibndy"
+
 if [ "$#" -gt 0 ]; then
     CLEAN_BUILD="cleanbuild"
     if [ ! -z "$3" ]; then
@@ -19,23 +21,34 @@ if [ "$#" -gt 0 ]; then
     fi
 
     if [ -d $WORK_DIR/vcx-indy-sdk ]; then
+        echo "vcx-indy-sdk dir"
+
         cd $WORK_DIR/vcx-indy-sdk
     else
-        git clone https://github.com/hyperledger/indy-sdk.git $WORK_DIR/vcx-indy-sdk
+        echo "git clone vdr-tools"
+        git clone https://gitlab.com/evernym/verity/vdr-tools.git $WORK_DIR/vcx-indy-sdk
         cd $WORK_DIR/vcx-indy-sdk
     fi
 
     if [ "$CLEAN_BUILD" = "cleanbuild" ]; then
+        echo "libindy cleanbuild"
+
         git checkout .
-        git checkout master
+        git checkout patch-ring
         git clean -f
         git clean -fd
         git pull
-        git checkout `cat $SHA_HASH_DIR/libindy.commit.sha1.hash.txt`
+#        git checkout `cat $SHA_HASH_DIR/libindy.commit.sha1.hash.txt`
     else
+        echo "libindy NOT cleanbuild"
+
         git checkout -- libindy/Cargo.toml
         git checkout -- libnullpay/Cargo.toml
     fi
+
+    # Fetch submodules
+#    git submodule sync --recursive
+#    git submodule update --init --recursive
 
     git log -1 > $WORK_DIR/hyperledger.indy-sdk.git.commit.log
 
