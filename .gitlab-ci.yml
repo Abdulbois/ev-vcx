@@ -128,29 +128,29 @@ dockerbuild-vcx-libindy-ubuntu16:
   stage: dockerbuild-pre
   extends: .dockerbuild-vcx-libindy
   variables:
-    DOCKERFILE_PATH: vcx/ci/libindy-ubuntu16.dockerfile
+    DOCKERFILE_PATH: ci/libindy-ubuntu16.dockerfile
     DOCKER_IMAGE_NAME: vcx-libindy-ubuntu16
   only:
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/libindy-ubuntu16.dockerfile
+      - ci/libindy-ubuntu16.dockerfile
 
 dockerbuild-vcx-libindy-ubuntu18:
   stage: dockerbuild-pre
   extends: .dockerbuild-vcx-libindy
   variables:
-    DOCKERFILE_PATH: vcx/ci/libindy-ubuntu18.dockerfile
+    DOCKERFILE_PATH: ci/libindy-ubuntu18.dockerfile
     DOCKER_IMAGE_NAME: vcx-libindy-ubuntu18
   only:
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/libindy-ubuntu18.dockerfile
+      - ci/libindy-ubuntu18.dockerfile
 
 dockerbuild-vcx-libindy-centos:
   stage: dockerbuild-pre
   extends: .kaniko_micro
   variables:
-    DOCKERFILE_PATH: vcx/ci/libindy-centos.dockerfile
+    DOCKERFILE_PATH: ci/libindy-centos.dockerfile
     DOCKER_IMAGE_NAME: vcx-libindy-centos
     KANIKO_ARGS: '--build-arg LIBINDY_VER=${indyFullRpmVersion} --build-arg LIBINDY_SIMPLE_VER=${indySimpleVersion} --build-arg LIBINDY_BRANCH=${indyBranch} --build-arg RUST_VER=${rustVersion}'
   only:
@@ -162,7 +162,7 @@ dockerbuild-vcx-libindy-centos:
       - /^docker-.*/
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/libindy-centos.dockerfile
+      - ci/libindy-centos.dockerfile
 
 ## - Jobs : dockerbuild - ##
 dockerbuild-vcx-android:
@@ -183,7 +183,7 @@ dockerbuild-vcx-android:
       - /^docker-.*/
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/libindy-ubuntu16.dockerfile
+      - ci/libindy-ubuntu16.dockerfile
       - vcx/wrappers/java/ci/android.dockerfile
   before_script:
     - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/android.dockerfile
@@ -192,7 +192,7 @@ dockerbuild-vcx-android:
 .dockerbuild-vcx-python:
   extends: .kaniko_micro
   variables:
-    DOCKERFILE_PATH: vcx/ci/python.dockerfile
+    DOCKERFILE_PATH: ci/python.dockerfile
   only:
     refs:
       - main
@@ -202,7 +202,7 @@ dockerbuild-vcx-android:
       - /^docker-.*/
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/python.dockerfile
+      - ci/python.dockerfile
 
 dockerbuild-vcx-python-ubuntu18:
   stage: dockerbuild
@@ -214,10 +214,10 @@ dockerbuild-vcx-python-ubuntu18:
   only:
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/libindy-ubuntu18.dockerfile
+      - ci/libindy-ubuntu18.dockerfile
   before_script:
-    - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/ci/python.dockerfile
-    - grep '^FROM' vcx/ci/python.dockerfile
+    - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" ci/python.dockerfile
+    - grep '^FROM' ci/python.dockerfile
 
 dockerbuild-vcx-java:
   stage: dockerbuild
@@ -236,7 +236,7 @@ dockerbuild-vcx-java:
       - /^docker-.*/
     changes:
       - .gitlab-ci.yml
-      - vcx/ci/libindy-ubuntu18.dockerfile
+      - ci/libindy-ubuntu18.dockerfile
       - vcx/wrappers/java/ci/java.dockerfile
   before_script:
     - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/java.dockerfile
