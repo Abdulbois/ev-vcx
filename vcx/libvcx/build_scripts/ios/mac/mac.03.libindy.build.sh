@@ -46,8 +46,8 @@ if [ "$#" -gt 0 ]; then
     fi
 
     # Fetch submodules
-#    git submodule sync --recursive
-#    git submodule update --init --recursive
+    git submodule sync --recursive
+    git submodule update --init --recursive
 
     git log -1 > $WORK_DIR/hyperledger.indy-sdk.git.commit.log
 
