@@ -29,6 +29,10 @@ interface IGetRequestRedirectionUrlData {
   url: string
 }
 
+interface IExtractAttachedMessage {
+  message: string
+}
+
 export class Utils {
   /**
    * Get ledger fees from the network
@@ -167,5 +171,16 @@ export class Utils {
    */
   public static async healthCheck(): Promise<void> {
     return await RNIndy.healthCheck()
+  }
+
+  /**
+   * Extract content of Aries message containing attachment decorator.
+   * RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+   * @return                  string - attached message as JSON string
+   *
+   * @throws VcxException   If an exception occurred in Libvcx library.
+   */
+  public static async extractAttachedMessage({ message }: IExtractAttachedMessage): Promise<string> {
+    return await RNIndy.extractAttachedMessage(message)
   }
 }

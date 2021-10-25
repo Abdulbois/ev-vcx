@@ -3365,6 +3365,22 @@ vcx_error_t vcx_fetch_public_entities(vcx_u32_t command_handle,
 vcx_error_t vcx_create_pairwise_agent(vcx_command_handle_t command_handle,
                                       void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
+/// Extract content of Aries message containing attachment decorator.
+/// RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+///
+/// #params
+///
+/// message: aries message containing attachment decorator
+/// command_handle: command handle to map callback to user context.
+///
+/// cb: Callback that provides attached message
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_extract_attached_message(vcx_command_handle_t command_handle,
+                               const char *message,
+                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

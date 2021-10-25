@@ -2106,4 +2106,22 @@ RCT_EXPORT_METHOD(healthCheck:(RCTPromiseResolveBlock) resolve
     }
   }];
 }
+
+RCT_EXPORT_METHOD(extractAttachedMessage: (NSString *)message
+                           resolver: (RCTPromiseResolveBlock) resolve
+                           rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] extractAttachedMessage:message completion:^(NSError *error, NSString *attachedMessage) {
+    NSLog(@"extractAttachedMessage callback:%@",attachedMessage);
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, [NSString stringWithFormat:@"Error occurred while extracting attached message: %@ :: %ld",error.domain, (long)error.code], error);
+
+    }else{
+      resolve(attachedMessage);
+    }
+  }];
+}
+
 @end

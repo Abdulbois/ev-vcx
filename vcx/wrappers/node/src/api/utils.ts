@@ -547,3 +547,35 @@ export async function createPairwiseAgent(): Promise<string> {
     throw new VCXInternalError(err)
   }
 }
+
+export interface IExtractAttachedMessage {
+  message: string, // aries message containing attachment decorator
+}
+
+export async function extractAttachedMessage({ message }: IExtractAttachedMessage): Promise<string> {
+  /**
+   *  Extract content of Aries message containing attachment decorator.
+   */
+  try {
+    return await createFFICallbackPromise<string>(
+      (resolve, reject, cb) => {
+        const rc = rustAPI().vcx_extract_attached_message(0, message, cb)
+        if (rc) {
+          reject(rc)
+        }
+      },
+      (resolve, reject) => Callback(
+        'void',
+        ['uint32','uint32','string'],
+        (xhandle: number, err: number, messages: string) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(messages)
+        })
+    )
+  } catch (err) {
+    throw new VCXInternalError(err)
+  }
+}
