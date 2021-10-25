@@ -110,17 +110,6 @@ license-data-check:
       - cheqddebug
       - /^docker-.*/
 
-dockerbuild-libindy-ubuntu16:
-  stage: dockerbuild-pre
-  extends: .dockerbuild-vcx-libindy
-  variables:
-    DOCKERFILE_PATH: libindy/ci/ubuntu.dockerfile
-    DOCKER_IMAGE_NAME: libindy-ubuntu16
-  only:
-    changes:
-      - .gitlab-ci.yml
-      - libindy/ci/ubuntu.dockerfile
-
 dockerbuild-vcx-libindy-ubuntu16:
   stage: dockerbuild-pre
   extends: .dockerbuild-vcx-libindy
