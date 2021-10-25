@@ -776,10 +776,22 @@ impl Handle<DisclosedProofs> {
             match obj {
                 DisclosedProofs::Pending(obj) => obj.generate_proof_msg(),
                 DisclosedProofs::V1(obj) => obj.generate_proof_msg(),
-                DisclosedProofs::V3(obj) => obj.generate_presentation_msg()
+                DisclosedProofs::V3(obj) => {
+                    let presentation = obj.generate_presentation_msg()?;
+
+                    // strict aries protocol is set. return aries formatted Proof
+                    if settings::is_strict_aries_protocol_set() {
+                        return Ok(json!(presentation.to_a2a_message()).to_string())
+                    }
+
+                    // convert Proof into proprietary format
+                    let proof: ProofMessage = presentation.to_owned().try_into()?;
+                    Ok(json!(proof).to_string())
+                }
             }
         }).map_err(handle_err)
     }
+
 
     pub fn send_proof(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
         HANDLE_MAP.get_mut(self, |proof| {
@@ -1041,15 +1053,16 @@ pub fn get_proof_request_messages(connection_handle: Handle<Connections>, match_
     if connection_handle.is_v3_connection()? {
         let presentation_requests = Prover::get_presentation_request_messages(connection_handle, match_name)?;
 
-        let msgs: Vec<ProofRequestMessage> = presentation_requests
-            .into_iter()
-            .map(|presentation_request| presentation_request.try_into())
-            .collect::<VcxResult<Vec<ProofRequestMessage>>>()?;
-
-        return serde_json::to_string(&msgs).
-            map_err(|err| {
-                VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize ProofRequest messages. Err: {:?}", err))
-            });
+        let mut msgs: Vec<Value> = Vec::new();
+        for presentation_request in presentation_requests {
+            if settings::is_strict_aries_protocol_set() {
+                msgs.push(json!(presentation_request.to_a2a_message()));
+            } else {
+                let presentation_request: ProofRequestMessage = presentation_request.try_into()?;
+                msgs.push(json!(presentation_request));
+            }
+        }
+        return Ok(json!(msgs).to_string());
     }
 
     AgencyMock::set_next_response(NEW_PROOF_REQUEST_RESPONSE);

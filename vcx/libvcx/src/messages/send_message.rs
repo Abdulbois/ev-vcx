@@ -125,7 +125,8 @@ impl SendMessageBuilder {
                 1
             }
             ProtocolTypes::V2 |
-            ProtocolTypes::V3 => 0
+            ProtocolTypes::V3 |
+            ProtocolTypes::V4 => 0
         };
 
         match response.remove(index) {
@@ -170,7 +171,8 @@ impl GeneralMessage for SendMessageBuilder {
                          A2AMessage::Version1(A2AMessageV1::MessageDetail(MessageDetail::General(detail)))]
                 }
                 ProtocolTypes::V2 |
-                ProtocolTypes::V3 => {
+                ProtocolTypes::V3 |
+                ProtocolTypes::V4 => {
                     let msg: ::serde_json::Value = ::serde_json::from_slice(self.payload.as_slice())
                         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
                                                           format!("Could not parse JSON from bytes. Err: {:?}", err)))?;

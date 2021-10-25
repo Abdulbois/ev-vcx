@@ -38,7 +38,8 @@ impl MessageTypes {
         match settings::get_protocol_type() {
             ProtocolTypes::V1 => MessageTypes::MessageTypeV1(MessageTypes::build_v1(kind)),
             ProtocolTypes::V2 |
-            ProtocolTypes::V3 => MessageTypes::MessageTypeV2(MessageTypes::build_v2(kind))
+            ProtocolTypes::V3 |
+            ProtocolTypes::V4 => MessageTypes::MessageTypeV2(MessageTypes::build_v2(kind))
         }
     }
 

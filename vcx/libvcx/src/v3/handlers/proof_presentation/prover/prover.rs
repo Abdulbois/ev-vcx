@@ -1,14 +1,11 @@
 use crate::error::prelude::*;
 use crate::utils::libindy::anoncreds;
-use std::convert::TryInto;
 
 use crate::v3::handlers::proof_presentation::prover::states::ProverSM;
 use crate::v3::handlers::proof_presentation::prover::messages::ProverMessages;
 use crate::v3::messages::a2a::A2AMessage;
 use crate::v3::messages::proof_presentation::presentation_proposal::{PresentationPreview, PresentationProposal};
 use crate::v3::messages::proof_presentation::presentation_request::PresentationRequest;
-
-use crate::messages::proofs::proof_message::ProofMessage;
 
 use crate::v3::messages::proof_presentation::presentation::Presentation;
 use crate::v3::messages::error::ProblemReport;
@@ -55,14 +52,10 @@ impl Prover {
         self.step(ProverMessages::PreparePresentation((credentials, self_attested_attrs)))
     }
 
-    pub fn generate_presentation_msg(&self) -> VcxResult<String> {
+    pub fn generate_presentation_msg(&self) -> VcxResult<&Presentation> {
         trace!("Prover::generate_presentation_msg >>>");
         debug!("Prover {}: Generating presentation message", self.get_source_id());
-
-        let proof: ProofMessage = self.prover_sm.presentation()?.clone().try_into()?;
-
-        ::serde_json::to_string(&proof)
-            .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize ProofMessage. Err: {:?}", err)))
+        self.prover_sm.presentation()
     }
 
     pub fn set_presentation(&mut self, presentation: Presentation) -> VcxResult<()> {

@@ -585,7 +585,8 @@ impl Forward {
                 )))
             }
             ProtocolTypes::V2 |
-            ProtocolTypes::V3 => {
+            ProtocolTypes::V3 |
+            ProtocolTypes::V4 => {
                 let msg = serde_json::from_slice(msg.as_slice())
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
                                                       format!("Could not parse JSON object from bytes. Err: {:?}", err)))?;
@@ -951,7 +952,8 @@ pub fn prepare_message_for_agency(message: &A2AMessage, agency_did: &str, versio
     match version {
         ProtocolTypes::V1 => bundle_for_agency_v1(message, &agency_did),
         ProtocolTypes::V2 |
-        ProtocolTypes::V3 => pack_for_agency_v2(message, agency_did)
+        ProtocolTypes::V3 |
+        ProtocolTypes::V4 => pack_for_agency_v2(message, agency_did)
     }
 }
 
@@ -999,7 +1001,8 @@ fn parse_response_from_agency(response: &[u8], version: &ProtocolTypes) -> VcxRe
     match version {
         ProtocolTypes::V1 => parse_response_from_agency_v1(response),
         ProtocolTypes::V2 |
-        ProtocolTypes::V3 => parse_response_from_agency_v2(response)
+        ProtocolTypes::V3 |
+        ProtocolTypes::V4 => parse_response_from_agency_v2(response)
     }
 }
 
@@ -1165,7 +1168,8 @@ pub fn prepare_message_for_agent(messages: Vec<A2AMessage>, pw_vk: &str, agent_d
     match version {
         ProtocolTypes::V1 => prepare_message_for_agent_v1(messages, pw_vk, agent_did, agent_vk),
         ProtocolTypes::V2 |
-        ProtocolTypes::V3 => prepare_message_for_agent_v2(messages, pw_vk, agent_did, agent_vk)
+        ProtocolTypes::V3 |
+        ProtocolTypes::V4 => prepare_message_for_agent_v2(messages, pw_vk, agent_did, agent_vk)
     }
 }
 

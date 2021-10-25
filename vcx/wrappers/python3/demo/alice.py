@@ -15,14 +15,14 @@ from vcx.state import State
 # logging.basicConfig(level=logging.DEBUG)
 
 provisionConfig = {
-    'agency_url': 'https://agency.pstg.evernym.com',
-    'agency_did': 'LqnB96M6wBALqRZsrTTwda',
-    'agency_verkey': 'BpDPZHLbJFu67sWujecoreojiWZbi2dgf4xnYemUzFvB',
+    'agency_url': 'http://agency.pps.evernym.com',
+    'agency_did': '3mbwr7i85JNSL3LoNQecaW',
+    'agency_verkey': '2WXxo6y1FJvXWgZnoYUP5BJej2mceFrqBDNPE3p6HDPf',
     'wallet_name': 'alice_wallet',
     'wallet_key': '123',
     'payment_method': 'null',
     'enterprise_seed': '000000000000000000000000Trustee1',
-    'protocol_type': '3.0',
+    'protocol_type': '4.0',
     'name': 'alice',
     'logo': 'http://robohash.org/456',
     'path': 'docker.txn',
@@ -132,6 +132,14 @@ async def accept_offer(connection_to_faber, credential):
         sleep(2)
         await credential.update_state()
         credential_state = await credential.get_state()
+
+    cred_message = await credential.get_credential()
+    print("Credential")
+    print(cred_message)
+
+    cred_message = await credential.vcx_credential_get_info()
+    print("Credential Info")
+    print(cred_message)
 
     return credential
 

@@ -351,7 +351,8 @@ impl SendInviteBuilder {
             match self.version {
                 ProtocolTypes::V1 => AgencyMock::set_next_response(SEND_INVITE_RESPONSE),
                 ProtocolTypes::V2 |
-                ProtocolTypes::V3 => AgencyMock::set_next_response(SEND_INVITE_V2_RESPONSE),
+                ProtocolTypes::V3 |
+                ProtocolTypes::V4 => AgencyMock::set_next_response(SEND_INVITE_V2_RESPONSE),
             }
         }
 
@@ -372,7 +373,8 @@ impl SendInviteBuilder {
         let index = match self.version {
             ProtocolTypes::V1 => 1,
             ProtocolTypes::V2 |
-            ProtocolTypes::V3 => 0
+            ProtocolTypes::V3 |
+            ProtocolTypes::V4 => 0
         };
 
         match response.swap_remove(index) {
@@ -472,7 +474,8 @@ impl AcceptInviteBuilder {
             match self.version {
                 ProtocolTypes::V1 => AgencyMock::set_next_response(ACCEPT_INVITE_RESPONSE),
                 ProtocolTypes::V2 |
-                ProtocolTypes::V3 => AgencyMock::set_next_response(ACCEPT_INVITE_V2_RESPONSE),
+                ProtocolTypes::V3 |
+                ProtocolTypes::V4 => AgencyMock::set_next_response(ACCEPT_INVITE_V2_RESPONSE),
             }
         }
 
@@ -590,7 +593,8 @@ impl RedirectConnectionBuilder {
             match self.version {
                 ProtocolTypes::V1 => AgencyMock::set_next_response(ACCEPT_INVITE_RESPONSE),
                 ProtocolTypes::V2 |
-                ProtocolTypes::V3 => AgencyMock::set_next_response(ACCEPT_INVITE_V2_RESPONSE),
+                ProtocolTypes::V3 |
+                ProtocolTypes::V4 => AgencyMock::set_next_response(ACCEPT_INVITE_V2_RESPONSE),
             }
         }
 
@@ -655,7 +659,8 @@ impl GeneralMessage for SendInviteBuilder {
                          A2AMessage::Version1(A2AMessageV1::MessageDetail(MessageDetail::ConnectionRequest(details)))]
                 }
                 ProtocolTypes::V2 |
-                ProtocolTypes::V3 => {
+                ProtocolTypes::V3 |
+                ProtocolTypes::V4 => {
                     let msg = ConnectionRequest {
                         msg_type: MessageTypes::build_v2(A2AMessageKinds::ConnectionRequest),
                         send_msg: true,
@@ -714,7 +719,8 @@ impl GeneralMessage for AcceptInviteBuilder {
                          A2AMessage::Version1(A2AMessageV1::MessageDetail(MessageDetail::ConnectionRequestAnswer(self.payload.clone())))]
                 }
                 ProtocolTypes::V2 |
-                ProtocolTypes::V3 => {
+                ProtocolTypes::V3 |
+                ProtocolTypes::V4 => {
                     let msg = ConnectionRequestAnswer {
                         msg_type: MessageTypes::build_v2(A2AMessageKinds::ConnectionRequestAnswer),
                         send_msg: true,
@@ -773,7 +779,8 @@ impl GeneralMessage for RedirectConnectionBuilder {
                          A2AMessage::Version1(A2AMessageV1::MessageDetail(MessageDetail::ConnectionRequestRedirect(self.payload.clone())))]
                 }
                 ProtocolTypes::V2 |
-                ProtocolTypes::V3 => {
+                ProtocolTypes::V3 |
+                ProtocolTypes::V4 => {
                     let msg = ConnectionRequestRedirect {
                         msg_type: MessageTypes::build_v2(A2AMessageKinds::ConnectionRequestRedirect),
                         send_msg: true,

@@ -34,11 +34,10 @@ provisionConfig = {
     'wallet_name': 'faber_wallet',
     'wallet_key': '123',
     'enterprise_seed': '000000000000000000000000Trustee2',
-    'protocol_type': '3.0',
+    'protocol_type': '4.0',
     'name': 'Faber',
     'logo': 'https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png',
     'path': 'docker.txn',
-    'payment_method': 'null',
 }
 
 

@@ -1,11 +1,7 @@
 use crate::error::prelude::*;
-use std::convert::TryInto;
 
 use crate::connection::Connections;
 use crate::object_cache::Handle;
-
-use crate::messages::proofs::proof_request::ProofRequestMessage;
-use crate::messages::proofs::proof_message::ProofMessage;
 
 use crate::v3::messages::proof_presentation::presentation_request::*;
 use crate::v3::messages::proof_presentation::presentation::Presentation;
@@ -146,15 +142,10 @@ impl Verifier {
         self.step(VerifierMessages::RequestPresentation(connection_handle, presentation_request))
     }
 
-    pub fn get_presentation_request(&self) -> VcxResult<String> {
+    pub fn get_presentation_request(&self) -> VcxResult<PresentationRequest> {
         trace!("Verifier::get_presentation_request >>>");
         debug!("Verifier {}: Getting presentation request", self.get_source_id());
-
-        let proof_request: ProofRequestMessage = self.verifier_sm.presentation_request()?.try_into()?;
-
-        ::serde_json::to_string(&proof_request)
-            .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError,
-                                              format!("Cannot serialize ProofMessage. Err: {:?}", err)))
+        self.verifier_sm.presentation_request()
     }
 
     pub fn get_presentation_request_attach(&self) -> VcxResult<String> {
@@ -192,15 +183,10 @@ impl Verifier {
                                               format!("Cannot serialize PresentationProposal. Err: {:?}", err)))
     }
 
-    pub fn get_presentation(&self) -> VcxResult<String> {
+    pub fn get_presentation(&self) -> VcxResult<Presentation> {
         trace!("Verifier::get_presentation >>>");
         debug!("Verifier {}: Getting presentation", self.get_source_id());
-
-        let proof: ProofMessage = self.verifier_sm.presentation()?.try_into()?;
-
-        ::serde_json::to_string(&proof)
-            .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError,
-                                              format!("Cannot serialize ProofMessage. Err: {:?}", err)))
+        self.verifier_sm.presentation()
     }
 
     pub fn get_problem_report_message(&self) -> VcxResult<String> {

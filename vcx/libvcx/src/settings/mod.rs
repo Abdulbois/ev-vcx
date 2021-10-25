@@ -334,7 +334,12 @@ pub fn get_payment_method() -> VcxResult<String> {
 }
 
 pub fn is_aries_protocol_set() -> bool {
-    get_protocol_type() == ProtocolTypes::V3
+    let protocol_type = get_protocol_type();
+    protocol_type == ProtocolTypes::V3 || protocol_type == ProtocolTypes::V4
+}
+
+pub fn is_strict_aries_protocol_set() -> bool {
+    get_protocol_type() == ProtocolTypes::V4
 }
 
 pub fn get_actors() -> Vec<Actors> {

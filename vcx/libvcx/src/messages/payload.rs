@@ -55,7 +55,8 @@ impl Payloads {
                 crypto::prep_msg(&my_vk, &their_vk, &bytes)
             }
             (ProtocolTypes::V2, Some(thread)) |
-            (ProtocolTypes::V3, Some(thread)) => {
+            (ProtocolTypes::V3, Some(thread)) |
+            (ProtocolTypes::V4, Some(thread)) => {
                 let payload = PayloadV2 {
                     type_: PayloadTypes::build_v2(msg_type),
                     id: String::new(),
@@ -96,7 +97,8 @@ impl Payloads {
                 trace!("Sending payload: {:?}", secret!(message.as_bytes()));
                 crypto::pack_message(Some(my_vk), &receiver_keys, message.as_bytes())
             }
-            (ProtocolTypes::V3, None) => {
+            (ProtocolTypes::V3, None) |
+            (ProtocolTypes::V4, None) => {
                 Err(VcxError::from_msg(VcxErrorKind::InvalidState, "Thread info not found"))
             }
         }
@@ -212,7 +214,8 @@ impl PayloadKinds {
                 }
             }
             ProtocolTypes::V2 |
-            ProtocolTypes::V3 => {
+            ProtocolTypes::V3 |
+            ProtocolTypes::V4 => {
                 match self {
                     PayloadKinds::CredOffer => "credential-offer",
                     PayloadKinds::CredReq => "credential-request",
