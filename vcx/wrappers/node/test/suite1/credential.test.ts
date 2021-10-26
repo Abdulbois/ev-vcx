@@ -1,17 +1,15 @@
 import '../module-resolver-helper'
 
 import { assert } from 'chai'
-import { validatePaymentTxn } from 'helpers/asserts'
 import {
   connectionCreateConnect,
   credentialCreateWithMsgId,
   credentialCreateWithOffer,
-  credentialOffer,
   dataCredentialCreateWithMsgId,
   dataCredentialCreateWithOffer
 } from 'helpers/entities'
 import { initVcxTestMode, shouldThrow } from 'helpers/utils'
-import { Credential, CredentialPaymentManager, StateType, VCXCode, VCXMock, VCXMockMessage } from 'src'
+import { Credential, StateType, VCXCode, VCXMock, VCXMockMessage } from 'src'
 
 describe('Credential:', () => {
   before(() => initVcxTestMode())
@@ -184,44 +182,6 @@ describe('Credential:', () => {
       const credential = await credentialCreateWithOffer()
       const paymentInfo = await credential.getPaymentInfo()
       assert.ok(paymentInfo)
-    })
-  })
-
-  describe('paymentManager:', () => {
-    it('exists', async () => {
-      const credential = await credentialCreateWithOffer()
-      assert.instanceOf(credential.paymentManager, CredentialPaymentManager)
-      assert.equal(credential.paymentManager.handle, credential.handle)
-    })
-
-    describe('getPaymentTxn:', () => {
-      it('success', async () => {
-        const data = await dataCredentialCreateWithOffer()
-        const credential = await credentialCreateWithOffer(data)
-        await credential.sendRequest({ connection: data.connection, payment: 0 })
-        assert.equal(await credential.getState(), StateType.OfferSent)
-        VCXMock.setVcxMock(VCXMockMessage.CredentialResponse)
-        VCXMock.setVcxMock(VCXMockMessage.UpdateIssuerCredential)
-        await credential.updateState()
-        assert.equal(await credential.getState(), StateType.Accepted)
-        const paymentTxn = await credential.paymentManager.getPaymentTxn()
-        validatePaymentTxn(paymentTxn)
-      })
-
-      it('throws: no paymentTxn', async () => {
-        const data = await dataCredentialCreateWithOffer()
-        data.offer = JSON.stringify([credentialOffer[0]])
-        const credential = await credentialCreateWithOffer(data)
-        await credential.sendRequest({ connection: data.connection, payment: 0 })
-        assert.equal(await credential.getState(), StateType.OfferSent)
-        VCXMock.setVcxMock(VCXMockMessage.CredentialResponse)
-        VCXMock.setVcxMock(VCXMockMessage.UpdateIssuerCredential)
-        await credential.updateState()
-        assert.equal(await credential.getState(), StateType.Accepted)
-        const error = await shouldThrow(() => credential.paymentManager.getPaymentTxn())
-        // Change to equal a specific payment related code
-        assert.equal(error.vcxCode, VCXCode.NO_PAYMENT_INFORMATION)
-      })
     })
   })
 

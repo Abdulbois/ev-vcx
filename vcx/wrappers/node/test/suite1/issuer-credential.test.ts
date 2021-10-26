@@ -1,7 +1,6 @@
 import '../module-resolver-helper'
 
 import { assert } from 'chai'
-import { validatePaymentTxn } from 'helpers/asserts'
 import {
   connectionCreateConnect,
   dataIssuerCredentialCreate,
@@ -12,7 +11,6 @@ import {
   Connection,
   Credential,
   IssuerCredential,
-  IssuerCredentialPaymentManager,
   StateType,
   VCXCode,
   VCXMock,
@@ -224,30 +222,6 @@ describe('IssuerCredential:', () => {
       assert.equal(await issuerCredential.getState(), StateType.RequestReceived)
       const message = await issuerCredential.getCredentialMsg('44x8p4HubxzUK1dwxcc5FU')
       assert(message.length > 0)
-    })
-  })
-
-  describe('paymentManager:', () => {
-    it('exists', async () => {
-      const issuerCredential = await issuerCredentialCreate()
-      assert.instanceOf(issuerCredential.paymentManager, IssuerCredentialPaymentManager)
-      assert.equal(issuerCredential.paymentManager.handle, issuerCredential.handle)
-    })
-
-    describe('getPaymentTxn:', () => {
-      it('success', async () => {
-        const connection = await connectionCreateConnect()
-        const issuerCredential = await issuerCredentialCreate()
-        await issuerCredential.sendOffer(connection)
-        VCXMock.setVcxMock(VCXMockMessage.IssuerCredentialReq)
-        VCXMock.setVcxMock(VCXMockMessage.UpdateIssuerCredential)
-        await issuerCredential.updateState()
-        assert.equal(await issuerCredential.getState(), StateType.RequestReceived)
-        await issuerCredential.sendCredential(connection)
-        assert.equal(await issuerCredential.getState(), StateType.Accepted)
-        const paymentTxn = await issuerCredential.paymentManager.getPaymentTxn()
-        validatePaymentTxn(paymentTxn)
-      })
     })
   })
 
