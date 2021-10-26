@@ -109,7 +109,6 @@ license-data-check:
       - cheqd
       - cheqddebug
       - /^docker-.*/
-      - refactoring/connection-state-machine
 
 dockerbuild-vcx-libindy-ubuntu16:
   stage: dockerbuild-pre
@@ -434,7 +433,6 @@ build-libvcx-ubuntu18-from-latest:
   except:
     refs:
       - /^docker-.*/
-      - refactoring/connection-state-machine
 
 build-libvcx-ubuntu16-from-branch:
   extends: .build-libvcx
@@ -521,7 +519,6 @@ test-python-wrapper-from-latest:
   except:
     refs:
       - /^docker-.*/
-      - refactoring/connection-state-machine
 
 .test-java-wrapper:
   extends:
@@ -551,7 +548,6 @@ test-java-wrapper-from-latest:
   except:
     refs:
       - /^docker-.*/
-      - refactoring/connection-state-machine
 
 .test-node-wrapper:
   extends:
@@ -582,7 +578,6 @@ test-node-wrapper-ubuntu18-from-latest:
   except:
     refs:
       - /^docker-.*/
-      - refactoring/connection-state-machine
 
 # - Jobs : Package - ##
 .package-android:
@@ -645,7 +640,6 @@ package-python-wrapper-from-latest:
   except:
     refs:
       - /^docker-.*/
-      - refactoring/connection-state-machine
 
 .package-java-wrapper:
   extends: .tags_micro
@@ -678,7 +672,6 @@ package-java-wrapper-from-latest:
   except:
     refs:
       - /^docker-.*/
-      - refactoring/connection-state-machine
 
 .package-node-wrapper:
   extends: .tags_micro
@@ -711,7 +704,6 @@ package-node-wrapper-from-latest:
   except:
     refs:
       - /^docker-.*/
-      - refactoring/connection-state-machine
 
 .package-react-native-wrapper:
   extends: .tags_micro
@@ -743,7 +735,6 @@ package-react-native-wrapper-from-latest:
   except:
     refs:
       - /^docker-.*/
-      - refactoring/connection-state-machine
 
 # - Jobs : Publish - ##
 publish-android:
