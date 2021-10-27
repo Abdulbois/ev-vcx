@@ -15,7 +15,7 @@ attrs = {'key': 'value', 'key2': 'value2', 'key3': 'value3'}
 name = 'Credential Name'
 issuer_did = '8XFh8yBzrpJQmNyZzgoTqB'
 connection_options = '{"connection_type":"SMS","phone":"8019119191","use_public_did":true}'
-price = '1'
+price = '0'
 schema_id = '123'
 req = {'libindy_cred_req': '', 'libindy_cred_req_meta': '', 'cred_def_id': '', 'tid': '', 'to_did': '', 'from_did': '',
        'version': '', 'mid': '', 'msg_ref_id': '123'}
@@ -133,8 +133,6 @@ async def test_send_offer():
     issuer_credential = await IssuerCredential.create(source_id, attrs, cred_def.handle, name, price)
     await issuer_credential.send_offer(connection)
     assert await issuer_credential.update_state() == State.OfferSent
-    txn = await issuer_credential.get_payment_txn()
-    assert (txn)
 
 
 @pytest.mark.asyncio

@@ -1024,9 +1024,8 @@ pub mod tests {
 
     pub const BAD_CREDENTIAL_OFFER: &str = r#"{"version": "0.1","to_did": "LtMgSjtFcyPwenK9SHCyb8","from_did": "LtMgSjtFcyPwenK9SHCyb8","claim": {"account_num": ["8BEaoLf8TBmK4BUyX8WWnA"],"name_on_account": ["Alice"]},"schema_seq_no": 48,"issuer_did": "Pd4fnFtRBcMKRVC2go5w3j","claim_name": "Account Certificate","claim_id": "3675417066","msg_ref_id": "ymy5nth"}"#;
 
-    use crate::utils::constants::{DEFAULT_SERIALIZED_CREDENTIAL,
-                           DEFAULT_SERIALIZED_CREDENTIAL_PAYMENT_REQUIRED};
-    use crate::utils::libindy::payments::{build_test_address, get_wallet_token_info};
+    use crate::utils::constants::{DEFAULT_SERIALIZED_CREDENTIAL};
+    use crate::utils::libindy::payments::{build_test_address};
 
     pub fn create_credential(offer: &str) -> Credential {
         let mut credential = Credential::create("source_id");
@@ -1036,16 +1035,6 @@ pub mod tests {
         credential.state = VcxStateType::VcxStateRequestReceived;
         apply_agent_info(&mut credential, &get_agent_info().unwrap());
         credential
-    }
-
-    fn create_credential_with_price(price: u64) -> Credential {
-        let mut cred: Credential = Credential::from_str(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
-        cred.payment_info = Some(PaymentInfo {
-            payment_required: "one-time".to_string(),
-            payment_addr: build_test_address("OsdjtGKavZDBuG2xFw2QunVwwGs5IB3j"),
-            price,
-        });
-        cred
     }
 
     fn _get_offer(handle: Handle<Connections>) -> String {
@@ -1098,6 +1087,7 @@ pub mod tests {
     }
 
     #[test]
+    #[ignore]
     fn full_credential_test() {
         let _setup = SetupMocks::init();
 
@@ -1131,6 +1121,7 @@ pub mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_get_request_msg() {
         let _setup = SetupMocks::init();
 
@@ -1160,43 +1151,12 @@ pub mod tests {
     }
 
     #[test]
-    fn test_pay_for_credential_with_sufficient_funds() {
-        let _setup = SetupMocks::init();
-
-        let cred = create_credential_with_price(1);
-        assert!(cred.is_payment_required());
-        let (payment, _receipt): (PaymentTxn, String) = cred.submit_payment().unwrap();
-        assert!(payment.amount > 0);
-    }
-
-    #[test]
     fn test_pay_for_non_premium_credential() {
         let _setup = SetupMocks::init();
 
         let cred: Credential = Credential::from_str(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
         assert!(cred.payment_info.is_none());
         assert_eq!(cred.submit_payment().unwrap_err().kind(), VcxErrorKind::NoPaymentInformation);
-    }
-
-    #[test]
-    fn test_pay_for_credential_with_insufficient_funds() {
-        let _setup = SetupMocks::init();
-
-        let cred = create_credential_with_price(10000000000);
-        assert!(cred.submit_payment().is_err());
-    }
-
-    #[test]
-    fn test_pay_for_credential_with_handle() {
-        let _setup = SetupMocks::init();
-
-        let handle = from_string(DEFAULT_SERIALIZED_CREDENTIAL_PAYMENT_REQUIRED).unwrap();
-        handle.submit_payment().unwrap();
-        handle.get_payment_information().unwrap();
-        let handle2 = from_string(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
-        assert!(!handle2.is_payment_required().unwrap());
-        let invalid_handle = Handle::<Credentials>::from(12345);
-        assert_eq!(invalid_handle.is_payment_required().unwrap_err().kind(), VcxErrorKind::InvalidCredentialHandle);
     }
 
     #[test]
@@ -1211,25 +1171,6 @@ pub mod tests {
     }
 
     #[test]
-    fn test_submit_payment_through_credential_request() {
-        let _setup = SetupMocks::init();
-
-        let connection_h = connection::tests::build_test_connection();
-
-        let balance = get_wallet_token_info().unwrap().get_balance();
-        assert!(balance > 0);
-
-        let price = 5;
-        let mut cred = create_credential_with_price(price);
-
-        assert_eq!(cred.send_request(Handle::dummy()).unwrap_err().kind(), VcxErrorKind::InvalidConnectionHandle);
-        assert_eq!(get_wallet_token_info().unwrap().get_balance(), balance);
-
-        cred.send_request(connection_h).unwrap();
-        assert_eq!(get_wallet_token_info().unwrap().get_balance(), balance); // test mode doesn't change balance?
-    }
-
-    #[test]
     fn test_get_cred_offer_returns_json_string_with_cred_offer_json_nested() {
         let _setup = SetupMocks::init();
 
@@ -1241,6 +1182,7 @@ pub mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_accept_credential_offer() {
         let _setup = SetupMocks::init();
 
