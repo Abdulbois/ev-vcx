@@ -11,7 +11,7 @@ source ./mac.02.libindy.env.sh
 if [ -d $WORK_DIR/vcx-indy-sdk ]; then
     rm -rf $WORK_DIR/vcx-indy-sdk
 fi
-git clone https://github.com/hyperledger/indy-sdk.git $WORK_DIR/vcx-indy-sdk
+git clone https://gitlab.com/evernym/verity/vdr-tools.git $WORK_DIR/vcx-indy-sdk
 cd $WORK_DIR/vcx-indy-sdk
 #git checkout tags/v1.3.0
 cd $WORK_DIR/vcx-indy-sdk/libindy

@@ -431,7 +431,7 @@ pub fn create_new_seed() -> String {
     format!("{:032}", x)
 }
 
-pub fn setup_indy_env(use_zero_fees: bool) {
+pub fn setup_indy_env(_use_zero_fees: bool) {
     settings::set_config_value(settings::CONFIG_ENABLE_TEST_MODE, "false");
 
     init_plugin(settings::DEFAULT_PAYMENT_PLUGIN, settings::DEFAULT_PAYMENT_INIT_FUNCTION);
@@ -446,8 +446,6 @@ pub fn setup_indy_env(use_zero_fees: bool) {
     let (my_did, my_vk) = crate::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
     settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &my_did);
     settings::set_config_value(settings::CONFIG_INSTITUTION_VERKEY, &my_vk);
-
-    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
 }
 
 pub fn cleanup_indy_env() {
@@ -492,7 +490,7 @@ fn change_wallet_handle() {
     unsafe { wallet::WALLET_HANDLE = WalletHandle(wallet_handle.parse::<i32>().unwrap()) }
 }
 
-pub fn setup_agency_env(protocol_type: &str, use_zero_fees: bool) {
+pub fn setup_agency_env(protocol_type: &str, _use_zero_fees: bool) {
     settings::clear_config();
 
     init_plugin(settings::DEFAULT_PAYMENT_PLUGIN, settings::DEFAULT_PAYMENT_INIT_FUNCTION);
@@ -568,10 +566,6 @@ pub fn setup_agency_env(protocol_type: &str, use_zero_fees: bool) {
 
     // as trustees, mint tokens into each wallet
     set_consumer();
-    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
-
-    set_institution();
-    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
 }
 
 pub fn sign_provision_token(keys: &str, nonce: &str, time: &str, sponsee_id: &str, sponsor_id: &str) -> String {
@@ -580,7 +574,7 @@ pub fn sign_provision_token(keys: &str, nonce: &str, time: &str, sponsee_id: &st
 }
 
 //TODO: This will be removed once libvcx only supports provisioning 0.7
-pub fn setup_agency_env_new_protocol(protocol_type: &str, use_zero_fees: bool) {
+pub fn setup_agency_env_new_protocol(protocol_type: &str, _use_zero_fees: bool) {
     settings::clear_config();
 
     init_plugin(settings::DEFAULT_PAYMENT_PLUGIN, settings::DEFAULT_PAYMENT_INIT_FUNCTION);
@@ -672,12 +666,7 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, use_zero_fees: bool) {
     crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
     wallet::delete_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
 
-    // as trustees, mint tokens into each wallet
-    set_consumer();
-    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
-
     set_institution();
-    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
 
 }
 

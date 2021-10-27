@@ -1109,51 +1109,6 @@ pub mod tests {
     }
 
     #[test]
-    fn test_retry_send_credential_offer() {
-        let _setup = SetupMocks::init();
-
-        let connection_handle = build_test_connection();
-
-        let handle = _issuer_credential_create();
-        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateInitialized as u32);
-
-        LibindyMock::set_next_result(error::TIMEOUT_LIBINDY_ERROR.code_num);
-
-        let res = handle.send_credential_offer(connection_handle).unwrap_err();
-        assert_eq!(res.kind(), VcxErrorKind::InvalidState);
-        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateInitialized as u32);
-        assert_eq!(handle.get_offer_uid().unwrap(), "");
-
-        // Can retry after initial failure
-        assert_eq!(handle.send_credential_offer(connection_handle).unwrap(), error::SUCCESS.code_num);
-        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateOfferSent as u32);
-        assert_eq!(handle.get_offer_uid().unwrap(), "ntc2ytb");
-    }
-
-    #[test]
-    fn test_credential_can_be_resent_after_failure() {
-        let _setup = SetupMocks::init();
-
-        settings::set_config_value(settings::CONFIG_INSTITUTION_DID, "QTrbV4raAcND4DWWzBmdsh");
-
-        let mut credential = create_standard_issuer_credential(None);
-        credential.state = VcxStateType::VcxStateRequestReceived;
-
-        let connection_handle = build_test_connection();
-
-        LibindyMock::set_next_result(error::TIMEOUT_LIBINDY_ERROR.code_num);
-
-        assert_eq!(credential.send_credential(connection_handle).unwrap_err().kind(), VcxErrorKind::Common(1038));
-        assert_eq!(credential.msg_uid, "1234");
-        assert_eq!(credential.state, VcxStateType::VcxStateRequestReceived);
-
-        // Retry sending the credential, use the mocked http. Show that you can retry sending the credential
-        credential.send_credential(connection_handle).unwrap();
-        assert_eq!(credential.msg_uid, "ntc2ytb");
-        assert_eq!(credential.state, VcxStateType::VcxStateAccepted);
-    }
-
-    #[test]
     fn test_from_string_succeeds() {
         let _setup = SetupMocks::init();
 
@@ -1225,19 +1180,6 @@ pub mod tests {
     }
 
     #[test]
-    fn test_that_test_mode_enabled_bypasses_libindy_create_credential() {
-        let _setup = SetupMocks::init();
-
-        let mut credential = create_standard_issuer_credential(None);
-        credential.state = VcxStateType::VcxStateRequestReceived;
-
-        let connection_handle = build_test_connection();
-
-        credential.send_credential(connection_handle).unwrap();
-        assert_eq!(credential.state, VcxStateType::VcxStateAccepted);
-    }
-
-    #[test]
     fn test_release_all() {
         let _setup = SetupMocks::init();
 
@@ -1282,50 +1224,6 @@ pub mod tests {
                                                                 1).unwrap();
 
         let _encoded_attributes = issuer_credential_handle.get_encoded_attributes().unwrap();
-    }
-
-    #[test]
-    fn test_verify_payment() {
-        let _setup = SetupMocks::init();
-
-        let mut credential = create_standard_issuer_credential(None);
-
-        // Success
-        credential.price = 3;
-        credential.payment_address = Some(payments::build_test_address("9UFgyjuJxi1i1HD"));
-        assert!(credential.verify_payment().is_ok());
-
-        // Err - Wrong payment amount
-        credential.price = 200;
-        assert_eq!(credential.verify_payment().unwrap_err().kind(), VcxErrorKind::InsufficientTokenAmount);
-
-        // Err - address not set
-        credential.payment_address = None;
-        assert_eq!(credential.verify_payment().unwrap_err().kind(), VcxErrorKind::InvalidPaymentAddress);
-    }
-
-    #[test]
-    fn test_send_credential_with_payments() {
-        let _setup = SetupMocks::init();
-
-        let mut credential = create_standard_issuer_credential(None);
-        credential.state = VcxStateType::VcxStateRequestReceived;
-        credential.price = 3;
-        credential.payment_address = Some(payments::build_test_address("9UFgyjuJxi1i1HD"));
-
-        let connection_handle = build_test_connection();
-
-        // Success
-        credential.send_credential(connection_handle).unwrap();
-        assert_eq!(credential.msg_uid, "ntc2ytb");
-        assert_eq!(credential.state, VcxStateType::VcxStateAccepted);
-
-        // Amount wrong
-        credential.state = VcxStateType::VcxStateRequestReceived;
-        credential.price = 200;
-        assert!(credential.send_credential(connection_handle).is_err());
-        let payment = serde_json::to_string(&credential.get_payment_txn().unwrap()).unwrap();
-        assert!(payment.len() > 20);
     }
 
     #[test]
