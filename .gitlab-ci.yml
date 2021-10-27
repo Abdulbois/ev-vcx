@@ -18,13 +18,10 @@ variables:
   staticLibVersion: '20190607'
   rustVersion: '1.51.0'
   libsovtokenVersion: '1.0.5'
-  libsovtokenVersionExtra: '15'
   indyBranch: 'rc' # RPM stream
-  indySimpleVersion: '1.16.0' # RPM package name
-  indyFullRpmVersion: '1.16.0-170' # RPM directory
+#  indySimpleVersion: '1.16.0' # RPM package name
+#  indyFullRpmVersion: '1.16.0-170' # RPM directory
   indyFullDebVersion: '1.95.0~208' # DEB package name
-  androidSovtokenArtifact: 'libsovtoken_1.0.5-201912281255-e39929e_all.zip'
-  iosSovtokenArtifact: 'libsovtoken_1.0.5-201912281252-e39929e_all.zip'
   msdkVersion: '2.0.0' # CHANGE_ME for every VCX stable release (0.11.2 VCX)
 
 ## - Anchors - ##
@@ -135,23 +132,23 @@ dockerbuild-vcx-libindy-ubuntu18:
       - .gitlab-ci.yml
       - ci/libindy-ubuntu18.dockerfile
 
-dockerbuild-vcx-libindy-centos:
-  stage: dockerbuild-pre
-  extends: .kaniko_micro
-  variables:
-    DOCKERFILE_PATH: ci/libindy-centos.dockerfile
-    DOCKER_IMAGE_NAME: vcx-libindy-centos
-    KANIKO_ARGS: '--build-arg LIBINDY_VER=${indyFullRpmVersion} --build-arg LIBINDY_SIMPLE_VER=${indySimpleVersion} --build-arg LIBINDY_BRANCH=${indyBranch} --build-arg RUST_VER=${rustVersion}'
-  only:
-    refs:
-      - main
-      - cheqd
-      - cheqddebug
-      - stable
-      - /^docker-.*/
-    changes:
-      - .gitlab-ci.yml
-      - ci/libindy-centos.dockerfile
+#dockerbuild-vcx-libindy-centos:
+#  stage: dockerbuild-pre
+#  extends: .kaniko_micro
+#  variables:
+#    DOCKERFILE_PATH: ci/libindy-centos.dockerfile
+#    DOCKER_IMAGE_NAME: vcx-libindy-centos
+#    KANIKO_ARGS: '--build-arg LIBINDY_VER=${indyFullRpmVersion} --build-arg LIBINDY_SIMPLE_VER=${indySimpleVersion} --build-arg LIBINDY_BRANCH=${indyBranch} --build-arg RUST_VER=${rustVersion}'
+#  only:
+#    refs:
+#      - main
+#      - cheqd
+#      - cheqddebug
+#      - stable
+#      - /^docker-.*/
+#    changes:
+#      - .gitlab-ci.yml
+#      - ci/libindy-centos.dockerfile
 
 ## - Jobs : dockerbuild - ##
 dockerbuild-vcx-android:
@@ -246,6 +243,8 @@ build-ios:
       - IOSBuilds/libvcxx86_64/*.gz
       - IOSBuilds/libvcxarm64/*.zip
       - IOSBuilds/libvcxarm64/*.gz
+  variables:
+    indyFullVersion: '1.16.0-170' # FIXME: drop IT!!!!
   script:
     - curl -s https://repo.corp.evernym.com/filely/ios/vcx-build-static-libs_${staticLibVersion}.tar.gz | tar -C ~/ -xvzf -
     - which rustup-init || brew install rustup-init
@@ -258,8 +257,7 @@ build-ios:
     - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
     - export full_vcx_version="${vcxVersion}-${vcxRevision}"
     - chmod +x vcx/ci/scripts/iosBuild.sh
-    - vcx/ci/scripts/iosBuild.sh ${indyBranch} ${indyFullRpmVersion} ${indyBranch} \
-      ${indyFullRpmVersion} ${libsovtokenVersion}~${libsovtokenVersionExtra} ${iosSovtokenArtifact} ${rustVersion} ${full_vcx_version}
+    - vcx/ci/scripts/iosBuild.sh ${indyBranch} ${indyFullVersion} ${rustVersion} ${full_vcx_version}
     - mv ~/IOSBuilds ./
 
 .build_android:
@@ -458,38 +456,38 @@ build-libvcx-ubuntu16-from-latest:
     refs:
       - /^docker-.*/
 
-.build-libvcx-rpm:
-  extends:
-    - .tags_large
-  variables:
-    RUSTTESTFLAG: 'test'
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - output/*
-  script:
-    - mkdir -p ${CI_PROJECT_DIR}/output
-    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
-    - export VCXREVISION=$(git rev-parse --short HEAD)
-    - export VCXVERSION=$(${CI_PROJECT_DIR}/vcx/ci/scripts/toml_utils.py ${CI_PROJECT_DIR}/vcx/libvcx/Cargo.toml)
-    - cd ${CI_PROJECT_DIR}
-    - vcx/ci/scripts/package-rpm.sh ${RUSTTESTFLAG} ${VCXVERSION} ${VCXREVISION}
-
-build-libvcx-rpm-from-branch:
-  extends: .build-libvcx-rpm
-  stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-centos:${CI_COMMIT_REF_SLUG}
-  only:
-    refs:
-      - /^docker-.*/
-
-build-libvcx-rpm-from-latest:
-  extends: .build-libvcx-rpm
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-centos:latest
-  stage: build
-  except:
-    refs:
-      - /^docker-.*/
+#.build-libvcx-rpm:
+#  extends:
+#    - .tags_large
+#  variables:
+#    RUSTTESTFLAG: 'test'
+#  artifacts:
+#    expire_in: 1 week
+#    paths:
+#      - output/*
+#  script:
+#    - mkdir -p ${CI_PROJECT_DIR}/output
+#    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
+#    - export VCXREVISION=$(git rev-parse --short HEAD)
+#    - export VCXVERSION=$(${CI_PROJECT_DIR}/vcx/ci/scripts/toml_utils.py ${CI_PROJECT_DIR}/vcx/libvcx/Cargo.toml)
+#    - cd ${CI_PROJECT_DIR}
+#    - vcx/ci/scripts/package-rpm.sh ${RUSTTESTFLAG} ${VCXVERSION} ${VCXREVISION}
+#
+#build-libvcx-rpm-from-branch:
+#  extends: .build-libvcx-rpm
+#  stage: build
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-centos:${CI_COMMIT_REF_SLUG}
+#  only:
+#    refs:
+#      - /^docker-.*/
+#
+#build-libvcx-rpm-from-latest:
+#  extends: .build-libvcx-rpm
+#  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-centos:latest
+#  stage: build
+#  except:
+#    refs:
+#      - /^docker-.*/
 
 # - Jobs : Test - ##
 .test-python-wrapper:
@@ -834,7 +832,6 @@ publish-mobile-sdk:
       variables:
         msdkPackageVer: ${msdkVersion}-${CI_PIPELINE_ID}
   script:
-#    - vcx/ci/scripts/githubArtifacts.py ${msdkVersion} vcx/wrappers/java/artifacts/aar/*.aar IOSBuilds/libvcx{partial,all}/vcx.libvcx*.zip output/evernym-react-native-sdk*.tgz
     - >
       find ./vcx/wrappers/java/artifacts/aar/ -name "*.aar" -exec
       curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}

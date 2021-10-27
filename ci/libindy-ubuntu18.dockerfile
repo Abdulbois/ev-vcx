@@ -61,6 +61,7 @@ RUN /tmp/installCert.sh
 RUN add-apt-repository "deb https://repo.corp.evernym.com/deb evernym-agency-dev-ubuntu main"
 
 ARG LIBINDY_VER
+RUN echo "Libindy Version: ${LIBINDY_VER}"
 
 RUN apt update && apt install -y libmysqlstorage=0.1.13 \
     libindy-async=${LIBINDY_VER}-bionic
