@@ -1013,7 +1013,6 @@ pub mod tests {
     pub const BAD_CREDENTIAL_OFFER: &str = r#"{"version": "0.1","to_did": "LtMgSjtFcyPwenK9SHCyb8","from_did": "LtMgSjtFcyPwenK9SHCyb8","claim": {"account_num": ["8BEaoLf8TBmK4BUyX8WWnA"],"name_on_account": ["Alice"]},"schema_seq_no": 48,"issuer_did": "Pd4fnFtRBcMKRVC2go5w3j","claim_name": "Account Certificate","claim_id": "3675417066","msg_ref_id": "ymy5nth"}"#;
 
     use crate::utils::constants::{DEFAULT_SERIALIZED_CREDENTIAL};
-    use crate::utils::libindy::payments::{build_test_address};
 
     pub fn create_credential(offer: &str) -> Credential {
         let mut credential = Credential::create("source_id");

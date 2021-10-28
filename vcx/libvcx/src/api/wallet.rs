@@ -958,7 +958,6 @@ pub  extern fn vcx_wallet_validate_payment_address(command_handle: i32,
 pub mod tests {
     use super::*;
     use crate::api::return_types;
-    use std::ptr;
     use std::ffi::CString;
     use crate::utils::libindy::wallet::{delete_wallet, init_wallet};
     #[cfg(feature = "pool_tests")]

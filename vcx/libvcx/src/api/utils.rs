@@ -15,6 +15,7 @@ use crate::messages::agent_provisioning::types::ProvisioningConfig;
 use crate::v3::handlers::connection::agent::AgentInfo;
 use crate::messages::{agent_provisioning, update_agent};
 use crate::messages::update_agent::ComMethod;
+use crate::v3::messages::attachment::extract_attached_message;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
 ///
