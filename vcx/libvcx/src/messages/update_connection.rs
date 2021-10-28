@@ -150,7 +150,8 @@ impl GeneralMessage for DeleteConnectionBuilder {
                     )
                 ),
             ProtocolTypes::V2 |
-            ProtocolTypes::V3 =>
+            ProtocolTypes::V3 |
+            ProtocolTypes::V4 =>
                 A2AMessage::Version2(
                     A2AMessageV2::UpdateConnection(
                         UpdateConnection {

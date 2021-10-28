@@ -17,6 +17,7 @@ pub fn provision(config: &str) -> VcxResult<String> {
     match config.protocol_type {
         ProtocolTypes::V1 => agent_provisioning_v0_5::provision(&config),
         ProtocolTypes::V2 |
-        ProtocolTypes::V3=> agent_provisioning_v0_6::provision(&config),
+        ProtocolTypes::V3 |
+        ProtocolTypes::V4 => agent_provisioning_v0_6::provision(&config),
     }
 }

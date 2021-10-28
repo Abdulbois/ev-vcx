@@ -6,13 +6,13 @@ use crate::utils::{httpclient, constants};
 use crate::error::prelude::*;
 use crate::settings::protocol::ProtocolTypes;
 use crate::utils::httpclient::AgencyMock;
-use crate::messages::issuance::credential_offer::set_cred_offer_ref_message;
-use crate::messages::proofs::proof_request::set_proof_req_ref_message;
+use crate::messages::issuance::credential_offer::{set_cred_offer_ref_message, CredentialOffer};
+use crate::messages::proofs::proof_request::{set_proof_req_ref_message, ProofRequestMessage};
 use crate::messages::issuance::credential_request::set_cred_req_ref_message;
 use crate::v3::messages::a2a::A2AMessage as AriesA2AMessage;
 use crate::v3::utils::encryption_envelope::EncryptionEnvelope;
-use crate::messages::issuance::credential_offer::CredentialOffer;
 use std::convert::TryInto;
+use crate::messages::issuance::credential::CredentialMessage;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -183,7 +183,8 @@ impl GetMessagesBuilder {
                     )
                 ),
             ProtocolTypes::V2 |
-            ProtocolTypes::V3 =>
+            ProtocolTypes::V3 |
+            ProtocolTypes::V4 =>
                 A2AMessage::Version2(
                     A2AMessageV2::GetMessages(
                         GetMessages {
@@ -219,12 +220,13 @@ impl GetMessagesBuilder {
             .into_iter()
             .map(|connection| {
                 crate::utils::libindy::signus::get_local_verkey(&connection.pairwise_did)
-                    .map(|vk|  {
+                    .map(|vk| {
                         let msgs = connection.msgs.iter().map(|message| message.decrypt(&vk)).collect();
                         MessageByConnection {
                             pairwise_did: connection.pairwise_did,
                             msgs,
-                        }})
+                        }
+                    })
             })
             .collect()
     }
@@ -256,7 +258,8 @@ impl GeneralMessage for GetMessagesBuilder {
                     )
                 ),
             ProtocolTypes::V2 |
-            ProtocolTypes::V3 =>
+            ProtocolTypes::V3 |
+            ProtocolTypes::V4 =>
                 A2AMessage::Version2(
                     A2AMessageV2::GetMessages(
                         GetMessages {
@@ -413,17 +416,31 @@ impl Message {
 
         let (kind, msg) = match a2a_message {
             AriesA2AMessage::PresentationRequest(presentation_request) => {
-                let mut proof_req: ProofRequestMessage = presentation_request.try_into()?;
-                proof_req.msg_ref_id = Some(self.uid.clone());
-                (PayloadKinds::ProofRequest, json!(&proof_req).to_string())
+                if settings::is_strict_aries_protocol_set() {
+                    let presentation_request = AriesA2AMessage::PresentationRequest(presentation_request);
+                    (PayloadKinds::ProofRequest, json!(&presentation_request).to_string())
+                } else {
+                    let converted_message: ProofRequestMessage = presentation_request.try_into()?;
+                    (PayloadKinds::ProofRequest, json!(&converted_message).to_string())
+                }
             }
             AriesA2AMessage::CredentialOffer(offer) => {
-                let mut cred_offer: CredentialOffer = offer.try_into()?;
-                cred_offer.msg_ref_id = Some(self.uid.clone());
-                (PayloadKinds::CredOffer, json!(vec![cred_offer]).to_string())
+                if settings::is_strict_aries_protocol_set() {
+                    let offer = AriesA2AMessage::CredentialOffer(offer);
+                    (PayloadKinds::CredOffer, json!(&offer).to_string())
+                } else {
+                    let cred_offer: CredentialOffer = offer.try_into()?;
+                    (PayloadKinds::CredOffer, json!(vec![cred_offer]).to_string())
+                }
             }
-            credential @ AriesA2AMessage::Credential(_) => {
-                (PayloadKinds::Other(String::from("credential")), json!(&credential).to_string())
+            AriesA2AMessage::Credential(credential) => {
+                if settings::is_strict_aries_protocol_set() {
+                    let credential = AriesA2AMessage::Credential(credential);
+                    (PayloadKinds::Cred, json!(&credential).to_string())
+                } else {
+                    let credential: CredentialMessage = credential.try_into()?;
+                    (PayloadKinds::Cred, json!(&credential).to_string())
+                }
             }
             presentation_proposal @ AriesA2AMessage::PresentationProposal(_) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::PROPOSE_PRESENTATION)), json!(&presentation_proposal).to_string())

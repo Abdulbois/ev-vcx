@@ -18,8 +18,7 @@ def set_logger(cdll):
         level_mapping = {1: ERROR, 2: WARNING, 3: INFO, 4: DEBUG, 5: TRACE, }
 
         libvcx_logger.log(level_mapping[level],
-                          "\t%s:%d | %s",
-                          file.decode(),
+                          "\t%d | %s",
                           line,
                           message.decode())
 

@@ -6,6 +6,8 @@ pub enum ProtocolTypes {
     V2,
     #[serde(rename = "3.0")]
     V3,
+    #[serde(rename = "4.0")]
+    V4,
 }
 
 impl Default for ProtocolTypes {
@@ -20,6 +22,7 @@ impl From<String> for ProtocolTypes {
             "1.0" => ProtocolTypes::V1,
             "2.0" => ProtocolTypes::V2,
             "3.0" => ProtocolTypes::V3,
+            "4.0" => ProtocolTypes::V4,
             type_ @ _ => {
                 error!("Unknown protocol type: {:?}. Use default", type_);
                 ProtocolTypes::default()
@@ -34,6 +37,7 @@ impl ::std::string::ToString for ProtocolTypes {
             ProtocolTypes::V1 => "1.0".to_string(),
             ProtocolTypes::V2 => "2.0".to_string(),
             ProtocolTypes::V3 => "3.0".to_string(),
+            ProtocolTypes::V4 => "4.0".to_string(),
         }
     }
 }

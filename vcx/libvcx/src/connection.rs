@@ -402,7 +402,7 @@ impl Connection {
 
                     self.process_redirect_message(&message)?;
                 } else {
-                    warn!("Connection {}: Received unexpected message: {:?}", self.source_id, message);
+                    debug!("Connection {}: No message received", self.source_id);
                 }
             }
         };

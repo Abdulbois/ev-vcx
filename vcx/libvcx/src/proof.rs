@@ -2,6 +2,7 @@ use ::serde_json;
 use serde_json::Value;
 use openssl;
 use openssl::bn::{BigNum, BigNumRef};
+use std::convert::TryInto;
 
 use crate::connection::Connections;
 use crate::settings;
@@ -542,12 +543,12 @@ pub fn create_proof(source_id: String,
                     requested_predicates: String,
                     revocation_details: String,
                     name: String) -> VcxResult<Handle<Proofs>> {
-//    // Initiate proof of new format -- redirect to v3 folder
-//    if settings::is_aries_protocol_set() {
-//        let verifier = Verifier::create(source_id, requested_attrs, requested_predicates, revocation_details, name)?;
-//        return PROOF_MAP.add(Proofs::V3(verifier))
-//            .or(Err(VcxError::from(VcxErrorKind::CreateProof)));
-//    }
+    // Initiate proof of new format -- redirect to v3 folder
+    if settings::is_strict_aries_protocol_set() {
+        let verifier = Verifier::create(source_id, requested_attrs, requested_predicates, revocation_details, name)?;
+        return PROOF_MAP.add(Proofs::V3(verifier))
+            .or(Err(VcxError::from(VcxErrorKind::CreateProof)));
+    }
 
     trace!("create_proof >>> source_id: {}, requested_attrs: {}, requested_predicates: {}, name: {}",
            source_id, secret!(requested_attrs), secret!(requested_predicates), secret!(name));
@@ -688,12 +689,20 @@ impl Handle<Proofs> {
                 Proofs::V1(obj) => obj.generate_proof_request_msg(),
                 Proofs::V3(obj) => {
                     obj.generate_presentation_request()?;
-                    obj.get_presentation_request()
+
+                    let presentation_request = obj.get_presentation_request()?;
+
+                    // strict aries protocol is set. Return aries formatted Credential Offers
+                    if settings::is_strict_aries_protocol_set() {
+                        return Ok(json!(presentation_request.to_a2a_message()).to_string());
+                    }
+
+                    let proof_request: ProofRequestMessage = presentation_request.try_into()?;
+                    return Ok(json!(proof_request).to_string());
                 }
             }
         }).map_err(handle_err)
     }
-
 
     pub fn generate_request_attach(self) -> VcxResult<String> {
         PROOF_MAP.get_mut(self, |obj| {
@@ -835,10 +844,21 @@ impl Handle<Proofs> {
             match obj {
                 Proofs::Pending(obj) => obj.get_proof(),
                 Proofs::V1(obj) => obj.get_proof(),
-                Proofs::V3(obj) => obj.get_presentation()
+                Proofs::V3(obj) => {
+                    let presentation = obj.get_presentation()?;
+
+                    // strict aries protocol is set. Return aries formatted Credential Offers
+                    if settings::is_strict_aries_protocol_set() {
+                        return Ok(json!(presentation.to_a2a_message()).to_string());
+                    }
+
+                    let proof: ProofMessage = presentation.try_into()?;
+                    Ok(json!(proof).to_string())
+                }
             }
         }).map_err(handle_err)
     }
+
 
     pub fn set_connection(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
         PROOF_MAP.get_mut(self, |obj| {

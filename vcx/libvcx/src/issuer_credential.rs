@@ -4,7 +4,7 @@ use crate::connection::Connections;
 use std::mem::take;
 use std::collections::HashMap;
 use crate::api::VcxStateType;
-use crate::messages;
+use crate::{messages, v3};
 use crate::settings;
 use crate::messages::{RemoteMessageType, MessageStatusCode, GeneralMessage};
 use crate::messages::payload::{Payloads, PayloadKinds};
@@ -633,11 +633,11 @@ pub fn issuer_credential_create(cred_def_handle: Handle<CredentialDef>,
            cred_def_handle, source_id, secret!(issuer_did), secret!(credential_name), secret!(&credential_data), price);
     debug!("creating issuer credential {} state object", source_id);
 
-//    // Initiate connection of new format -- redirect to v3 folder
-//    if settings::is_aries_protocol_set() {
-//        let issuer = v3::handlers::issuance::Issuer::create(cred_def_handle, &credential_data, &source_id)?;
-//        return ISSUER_CREDENTIAL_MAP.add(IssuerCredentials::V3(issuer));
-//    }
+    // Initiate connection of new format -- redirect to v3 folder
+    if settings::is_strict_aries_protocol_set() {
+        let issuer = v3::handlers::issuance::Issuer::create(cred_def_handle, &credential_data, &source_id, &credential_name)?;
+        return ISSUER_CREDENTIAL_MAP.add(IssuerCredentials::V3(issuer));
+    }
 
     let issuer_credential = IssuerCredential::create(cred_def_handle, source_id, issuer_did, credential_name, credential_data, price)?;
 
@@ -728,15 +728,24 @@ impl Handle<IssuerCredentials> {
             match obj {
                 IssuerCredentials::Pending(obj) => obj.generate_credential_offer_msg(),
                 IssuerCredentials::V1(obj) => obj.generate_credential_offer_msg(),
-                IssuerCredentials::V3(obj) =>  {
+                IssuerCredentials::V3(obj) => {
                     let cred_offer = obj.get_credential_offer()?;
+
+                    // strict aries protocol is set. Return aries formatted Credential Offers
+                    if settings::is_strict_aries_protocol_set() {
+                        return Ok(json!(cred_offer.to_a2a_message()).to_string());
+                    }
+
                     let cred_offer: CredentialOffer = cred_offer.try_into()?;
-                    let cred_offer = json!(vec![cred_offer]).to_string();
-                    return Ok(cred_offer);
-                },
+                    let cred_offer = json!({
+                        "credential_offer": cred_offer
+                    });
+                    return Ok(cred_offer.to_string());
+                }
             }
         }).map_err(handle_err)
     }
+
 
     pub fn send_credential_offer(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
         ISSUER_CREDENTIAL_MAP.get_mut(self, |credential| {

@@ -35,6 +35,7 @@ use crate::v3::{
 use crate::utils::agent_info::{get_agent_info, get_agent_attr, MyAgentInfo};
 use crate::messages::issuance::credential_offer::{set_cred_offer_ref_message, parse_json_offer, CredentialOffer};
 use crate::v3::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
+use crate::settings;
 
 lazy_static! {
     static ref HANDLE_MAP: ObjectCache<Credentials>  = Default::default();
@@ -641,12 +642,17 @@ impl Handle<Credentials> {
                     }
                     Credentials::V3(credential) => {
                         let (cred_id, credential) = credential.get_credential()?;
-                        let credential: CredentialMessage = credential.try_into()?;
 
+                        // strict aries protocol is set. Return aries formatted Credential Offers
+                        if settings::is_strict_aries_protocol_set() {
+                            return Ok(json!(credential.to_a2a_message()).to_string());
+                        }
+
+                        let credential: CredentialMessage = credential.try_into()?;
                         let mut json = serde_json::Map::new();
                         json.insert("credential_id".to_string(), Value::String(cred_id));
                         json.insert("credential".to_string(), Value::String(json!(credential).to_string()));
-                        return Ok(serde_json::Value::from(json).to_string());
+                        Ok(serde_json::Value::from(json).to_string())
                     }
                 }
             }).map_err(handle_err)
@@ -684,8 +690,13 @@ impl Handle<Credentials> {
                     Credentials::V1(obj) => obj.get_credential_offer(),
                     Credentials::V3(obj) => {
                         let cred_offer = obj.get_credential_offer()?;
-                        let cred_offer: CredentialOffer = cred_offer.try_into()?;
 
+                        // strict aries protocol is set. Return aries formatted Credential Offers
+                        if settings::is_strict_aries_protocol_set() {
+                            return Ok(json!(cred_offer.to_a2a_message()).to_string());
+                        }
+
+                        let cred_offer: CredentialOffer = cred_offer.try_into()?;
                         let cred_offer = json!({
                             "credential_offer": cred_offer
                         });
@@ -954,18 +965,17 @@ pub fn get_credential_offer_messages(connection_handle: Handle<Connections>) -> 
 
     if connection_handle.is_v3_connection()? {
         let credential_offers = Holder::get_credential_offer_messages(connection_handle)?;
-        let msgs: Vec<Vec<::serde_json::Value>> = credential_offers
-            .into_iter()
-            .map(|credential_offer| credential_offer.try_into())
-            .collect::<VcxResult<Vec<CredentialOffer>>>()?
-            .into_iter()
-            .map(|msg| vec![json!(msg)])
-            .collect();
 
-        return serde_json::to_string(&msgs).
-            map_err(|err| {
-                VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize CredentialOffers. Err: {:?}", err))
-            });
+        let mut msgs: Vec<Value> = Vec::new();
+        for credential_offer in credential_offers {
+            if settings::is_strict_aries_protocol_set() {
+                msgs.push(json!(credential_offer.to_a2a_message()));
+            } else {
+                let credential_offer: CredentialOffer = credential_offer.try_into()?;
+                msgs.push(json!(vec![credential_offer]));
+            }
+        }
+        return Ok(json!(msgs).to_string());
     }
 
     let my_agent = get_agent_info()?.pw_info(connection_handle)?;
@@ -1001,6 +1011,8 @@ pub fn get_credential_offer_messages(connection_handle: Handle<Connections>) -> 
     trace!("get_credential_offer_messages >>> offers: {}", secret!(offers));
     Ok(offers)
 }
+
+
 
 
 #[cfg(test)]
