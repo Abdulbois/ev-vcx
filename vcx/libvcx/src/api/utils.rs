@@ -15,6 +15,7 @@ use crate::messages::agent_provisioning::types::ProvisioningConfig;
 use crate::v3::handlers::connection::agent::AgentInfo;
 use crate::messages::{agent_provisioning, update_agent};
 use crate::messages::update_agent::ComMethod;
+use crate::v3::messages::attachment::extract_attached_message;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
 ///
@@ -919,6 +920,55 @@ pub extern fn vcx_create_pairwise_agent(command_handle: CommandHandle,
             }
             Err(e) => {
                 warn!("vcx_create_pairwise_agent_cb(command_handle: {}, rc: {})",
+                      command_handle, e);
+                cb(command_handle, e.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
+/// Extract content of Aries message containing attachment decorator.
+/// RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+///
+/// #params
+///
+/// message: aries message containing attachment decorator
+/// command_handle: command handle to map callback to user context.
+///
+///
+/// cb: Callback that provides attached message
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_extract_attached_message(command_handle: CommandHandle,
+                                           message: *const c_char,
+                                           cb: Option<extern fn(xcommand_handle: CommandHandle,
+                                                                err: u32,
+                                                                attachment_content: *const c_char)>) -> u32 {
+    info!("vcx_extract_attached_message >>>");
+
+    check_useful_c_str!(message, VcxErrorKind::InvalidOption);
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_extract_attached_message(command_handle: {}, message: {:?})",
+           command_handle, message);
+
+    spawn(move || {
+        match extract_attached_message(&message) {
+            Ok(attachment_content) => {
+                trace!("vcx_extract_attached_message_cb(command_handle: {}, rc: {}, message: {:?})",
+                       command_handle, error::SUCCESS.as_str(), secret!(attachment_content));
+
+                let attachment_content = CStringUtils::string_to_cstring(attachment_content);
+                cb(command_handle, error::SUCCESS.code_num, attachment_content.as_ptr());
+            }
+            Err(e) => {
+                warn!("vcx_extract_attached_message_cb(command_handle: {}, rc: {})",
                       command_handle, e);
                 cb(command_handle, e.into(), ptr::null_mut());
             }

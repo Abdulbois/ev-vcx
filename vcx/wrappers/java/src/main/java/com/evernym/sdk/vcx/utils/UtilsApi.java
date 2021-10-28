@@ -88,7 +88,7 @@ public class UtilsApi extends VcxJava.API {
      * @return                populated config that can be used for library initialization.
      *
      * @throws VcxException   If an exception occurred in Libvcx library.
-     * 
+     *
      **/
       public static String vcxAgentProvisionWithToken(String config, String token) throws VcxException {
         ParamGuard.notNullOrWhiteSpace(config, "config");
@@ -419,7 +419,7 @@ public class UtilsApi extends VcxJava.API {
      * Set some accepted agreement as active.
      * <p>
      * Either combination text/version ot hash must be passed.
-     * 
+     *
      * @param  text                 Optional(string) text of transaction agreement
      * @param  version              Optional(string) version of transaction agreement
      * @param  hash                 Optional(string) hash on text and version. This parameter is required if text and version parameters are ommited.
@@ -625,6 +625,42 @@ public class UtilsApi extends VcxJava.API {
         int result = LibVcx.api.vcx_create_pairwise_agent(
                 commandHandle,
                 vcxCreatePairwiseAgentCB
+        );
+        checkResult(result);
+        return future;
+    }
+
+    private static Callback vcxExtractAttachedMessageCB = new Callback() {
+        @SuppressWarnings({"unused", "unchecked"})
+        public void callback(int commandHandle, int err, String attachedMessage) {
+            logger.debug("callback() called with: commandHandle = [" + commandHandle + "], err = [" + err + "], attachedMessage = [****]");
+            CompletableFuture<String> future = (CompletableFuture<String>) removeFuture(commandHandle);
+            if (!checkCallback(future, err)) return;
+            String result = attachedMessage;
+            future.complete(result);
+        }
+    };
+
+    /**
+     * Extract content of Aries message containing attachment decorator.
+     * RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+     *
+     * @param  message        Aries message containing attachment decorator
+     *
+     * @return                Attached message as JSON string
+     *
+     * @throws VcxException   If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> vcxExtractAttachedMessage(String message) throws VcxException {
+        ParamGuard.notNull(message, "message");
+        logger.debug("vcxExtractAttachedMessage() called with: message = [****]");
+        CompletableFuture<String> future = new CompletableFuture<String>();
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_extract_attached_message(
+                commandHandle,
+                message,
+                vcxExtractAttachedMessageCB
         );
         checkResult(result);
         return future;

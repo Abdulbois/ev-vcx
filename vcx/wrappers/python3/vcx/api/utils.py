@@ -312,7 +312,7 @@ def vcx_set_active_txn_author_agreement_meta(text: Optional[str],
     """
     Set some accepted agreement as active.
     As result of successful call of this function appropriate metadata will be appended to each write request.
-    
+
     :param text and version - (optional) raw data about TAA from ledger.
                These parameters should be passed together.
                These parameters are required if hash parameter is ommited.
@@ -435,10 +435,10 @@ async def vcx_fetch_public_entities() -> None:
         1) Retrieves the list of all credentials stored in the opened wallet.
         2) Fetch and cache Schemas / Credential Definitions / Revocation Registry Definitions
            correspondent to received credentials from the connected Ledger.
-   
+
     This helper function can be used, for instance as a background task, to refresh library cache.
     This allows us to reduce the time taken for Proof generation by using already cached entities instead of queering the Ledger.
-   
+
     NOTE: Library must be already initialized (wallet and pool must be opened).
 
     :return: None
@@ -476,8 +476,8 @@ async def vcx_health_check() -> None:
 
     logger.debug("vcx_health_check completed")
     return result
-    
-    
+
+
 async def vcx_create_pairwise_agent() -> str:
     """
     Create pairwise agent which can be later used for connection establishing.
@@ -509,3 +509,27 @@ async def vcx_create_pairwise_agent() -> str:
 
     logger.debug("vcx_create_pairwise_agent completed")
     return result.decode()
+
+
+async def vcx_extract_attached_message(message: str) -> str:
+    """
+    Extract content of Aries message containing attachment decorator.
+    RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+
+    :param message: aries message containing attachment decorator
+    :return: attached message as JSON string
+    """
+    logger = logging.getLogger(__name__)
+
+    if not hasattr(vcx_extract_attached_message, "cb"):
+        logger.debug("vcx_extract_attached_message: Creating callback")
+        vcx_extract_attached_message.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
+
+    c_message = c_char_p(message.encode('utf-8'))
+
+    result = await do_call('vcx_extract_attached_message',
+                           c_message,
+                           vcx_extract_attached_message.cb)
+
+    logger.debug("vcx_extract_attached_message completed")
+    return result

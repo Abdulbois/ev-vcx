@@ -2744,6 +2744,17 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 - (void) walletCloseSearch:(NSInteger)searchHandle
                 completion:(void (^)(NSError *error))completion;
 
+/// Extract content of Aries message containing attachment decorator.
+/// RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+///
+/// #params
+/// message: aries message containing attachment decorator
+///
+/// #Returns
+/// Attached message as JSON string
+- (void)extractAttachedMessage:(NSString *)message
+             completion:(void (^)(NSError *error, NSString* attachedMessage))completion;
+
 @end
 
 #endif /* init_h */

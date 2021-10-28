@@ -2956,4 +2956,22 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
     }
 }
 
+- (void)extractAttachedMessage:(NSString *)message
+             completion:(void (^)(NSError *error, NSString* attachedMessage))completion{
+    vcx_error_t ret;
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char * message_ = [message cStringUsingEncoding:NSUTF8StringEncoding];
+    ret = vcx_extract_attached_message(handle, message_, VcxWrapperCommonStringCallback);
+
+    if( ret != 0 )
+    {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error, nil);
+        });
+    }
+}
+
 @end

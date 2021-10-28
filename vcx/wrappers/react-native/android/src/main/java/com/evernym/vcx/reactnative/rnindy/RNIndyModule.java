@@ -2338,4 +2338,23 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
 
         }
     }
+
+    @ReactMethod
+    public void extractAttachedMessage(String message, Promise promise) {
+        try {
+            UtilsApi.extractAttachedMessage(message).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "extractAttachedMessage - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "extractAttachedMessage - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
 }

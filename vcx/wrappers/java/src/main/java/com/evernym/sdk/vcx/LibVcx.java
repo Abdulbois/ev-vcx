@@ -863,6 +863,9 @@ public abstract class LibVcx {
         /** Check the health of LibVCX and EAS/CAS */
         public int vcx_health_check(int command_handle, Callback cb);
 
+        /** Extract content of Aries message containing attachment decorator. */
+        int vcx_extract_attached_message(int command_handle, String message, Callback cb);
+
         /**
          * Object representing Credential Definition publishing on the Ledger and used for the Issuance.
          */
