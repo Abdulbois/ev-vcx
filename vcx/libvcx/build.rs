@@ -29,7 +29,7 @@ fn main() {
                     .join("lib")
             });
         println!("cargo:rustc-link-search=native={}", libindy_lib_path);
-        println!("cargo:rustc-link-lib=static=indy");
+        println!("cargo:rustc-link-lib=static=vdrtools");
         println!("cargo:rustc-link-search=native={}", openssl.display());
         println!("cargo:rustc-link-lib=static=crypto");
         println!("cargo:rustc-link-lib=static=ssl");

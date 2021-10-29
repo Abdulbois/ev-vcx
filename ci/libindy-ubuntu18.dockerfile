@@ -60,9 +60,9 @@ RUN /tmp/installCert.sh
 # Add evernym repo to sources.lis
 RUN add-apt-repository "deb https://repo.corp.evernym.com/deb evernym-agency-dev-ubuntu main"
 
-ARG LIBINDY_VER
-RUN echo "Libindy Version: ${LIBINDY_VER}"
+ARG LIBVDRTOOLS_VER
+RUN echo "Libvdrtools Version: ${LIBVDRTOOLS_VER}"
 
 RUN apt update && apt install -y libmysqlstorage=0.1.13 \
-    libindy-async=${LIBINDY_VER}-bionic
+    libvdrtools=${LIBVDRTOOLS_VER}-bionic
 

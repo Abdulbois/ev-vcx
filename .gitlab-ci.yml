@@ -21,7 +21,7 @@ variables:
   indyBranch: 'rc' # RPM stream
 #  indySimpleVersion: '1.16.0' # RPM package name
 #  indyFullRpmVersion: '1.16.0-170' # RPM directory
-  indyFullDebVersion: '1.95.0~208' # DEB package name
+  vdrtoolsFullDebVersion: '0.8.0' # DEB package name
   msdkVersion: '2.0.0' # CHANGE_ME for every VCX stable release (0.11.2 VCX)
 
 ## - Anchors - ##
@@ -101,7 +101,7 @@ license-data-check:
 .dockerbuild-vcx-libindy:
   extends: .kaniko_large
   variables:
-    KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion} --build-arg LIBINDY_VER=${indyFullDebVersion} --build-arg LIBNULL_VER=${indyFullDebVersion} --build-arg LIBSOVTOKEN_VER=${libsovtokenVersion}'
+    KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion} --build-arg LIBVDRTOOLS_VER=${vdrtoolsFullDebVersion} --build-arg --build-arg LIBSOVTOKEN_VER=${libsovtokenVersion}'
   only:
     refs:
       - main
@@ -244,7 +244,7 @@ build-ios:
       - IOSBuilds/libvcxarm64/*.zip
       - IOSBuilds/libvcxarm64/*.gz
   variables:
-    indyFullVersion: '1.16.0-170' # FIXME: drop IT!!!!
+    indyFullVersion: '0.8.0' # FIXME: drop IT!!!!
   script:
     - curl -s https://repo.corp.evernym.com/filely/ios/vcx-build-static-libs_${staticLibVersion}.tar.gz | tar -C ~/ -xvzf -
     - which rustup-init || brew install rustup-init
