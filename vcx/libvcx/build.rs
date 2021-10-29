@@ -29,7 +29,7 @@ fn main() {
                     .join("lib")
             });
         println!("cargo:rustc-link-search=native={}", libindy_lib_path);
-        println!("cargo:rustc-link-lib=static=vdrtools");
+        println!("cargo:rustc-link-lib=static=indy");
         println!("cargo:rustc-link-search=native={}", openssl.display());
         println!("cargo:rustc-link-lib=static=crypto");
         println!("cargo:rustc-link-lib=static=ssl");
@@ -42,7 +42,7 @@ fn main() {
         println!("cargo:rustc-link-search=native=/usr/local/lib");
     } else if target.contains("-linux-") {
         // Linux specific logic
-        println!("cargo:rustc-link-lib=indy");
+        println!("cargo:rustc-link-lib=vdrtools");
         println!("cargo:rustc-link-search=native=/usr/lib");
     } else if target.contains("-windows-") {
         println!("cargo:rustc-link-lib=indy.dll");
