@@ -84,8 +84,8 @@ get_libindy() {
             unzip download
 
         fi
-        mv libindy_${ARCH}/lib/libindy.so libindy_${ARCH}/lib/libvdrtools.so
-        mv libindy_${ARCH}/lib/libindy.a libindy_${ARCH}/lib/libvdrtools.a
+#        mv libindy_${ARCH}/lib/libindy.so libindy_${ARCH}/lib/libvdrtools.so
+#        mv libindy_${ARCH}/lib/libindy.a libindy_${ARCH}/lib/libvdrtools.a
 
         export LIBINDY_DIR="${PWD}/libindy_${ARCH}"
     fi
