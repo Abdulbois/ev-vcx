@@ -63,6 +63,5 @@ RUN add-apt-repository 'deb https://repo.corp.evernym.com/deb evernym-agency-dev
 
 ARG LIBVDRTOOLS_VER
 
-RUN apt update && apt install -y libmysqlstorage=0.1.13 \
-    libvdrtools=${LIBVDRTOOLS_VER}-xenial
+RUN apt update && apt install -y libvdrtools=${LIBVDRTOOLS_VER}-xenial
 
