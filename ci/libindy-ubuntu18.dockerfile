@@ -60,7 +60,7 @@ RUN /tmp/installCert.sh
 # Add evernym repo to sources.lis
 RUN add-apt-repository "deb https://repo.corp.evernym.com/deb evernym-agency-dev-ubuntu main"
 
-ENV LIBVDRTOOLS_VER 0.8.0
+ARG LIBVDRTOOLS_VER
 RUN echo "Libvdrtools Version: ${LIBVDRTOOLS_VER}"
 
 RUN apt update && apt install -y libmysqlstorage=0.1.13 \

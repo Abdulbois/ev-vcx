@@ -101,7 +101,7 @@ license-data-check:
 .dockerbuild-vcx-libindy:
   extends: .kaniko_large
   variables:
-    KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion} --build-arg LIBVDRTOOLS_VER=${vdrtoolsFullDebVersion} --build-arg --build-arg LIBSOVTOKEN_VER=${libsovtokenVersion}'
+    KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion} --build-arg LIBVDRTOOLS_VER=${vdrtoolsFullDebVersion}'
   only:
     refs:
       - main
