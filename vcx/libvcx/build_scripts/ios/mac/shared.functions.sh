@@ -3,7 +3,7 @@
 vdrtoolsBranch=${VDRTOOLS_BRANCH:?"Indy branch needs to be set i.e (stbale or master)"}
 indyVersion=${INDY_VERSION:?"Indy version needs to be set"}
 
-export LIBINDY_IOS_BUILD_URL="https://gitlab.com/evernym/verity/vdr-tools/-/package_files/20056547/download"
+export LIBINDY_IOS_BUILD_URL="https://repo.sovrin.org/ios/libindy/${vdrtoolsBranch}/libindy-core/${indyVersion}/libindy.tar.gz"
 
 export LIBINDY_FILE=$(basename ${LIBINDY_IOS_BUILD_URL})
 export LIBINDY_VERSION=$(basename $(dirname ${LIBINDY_IOS_BUILD_URL}))
