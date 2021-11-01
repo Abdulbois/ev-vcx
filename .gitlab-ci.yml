@@ -102,13 +102,13 @@ license-data-check:
   extends: .kaniko_large
   variables:
     KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion} --build-arg LIBVDRTOOLS_VER=${vdrtoolsFullDebVersion}'
-  only:
-    refs:
-      - main
-      - stable
-      - cheqd
-      - cheqddebug
-      - /^docker-.*/
+#  only:
+#    refs:
+#      - main
+#      - stable
+#      - cheqd
+#      - cheqddebug
+#      - /^docker-.*/
 
 dockerbuild-vcx-libindy-ubuntu16:
   stage: dockerbuild-pre
