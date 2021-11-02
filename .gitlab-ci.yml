@@ -555,6 +555,7 @@ test-java-wrapper-from-latest:
   variables:
     PACKAGE_TYPE: 'bionic'
   script:
+    - sudo dpkg -l
     - sudo dpkg -i ${CI_PROJECT_DIR}/output/libvcx*${PACKAGE_TYPE}*.deb
     - cd vcx/wrappers/node && npm i npm@6.1.0
     - cd ${CI_PROJECT_DIR} && vcx/wrappers/node/ci/test.sh
