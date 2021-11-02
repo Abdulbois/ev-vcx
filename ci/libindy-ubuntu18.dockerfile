@@ -65,6 +65,3 @@ RUN echo "Libvdrtools Version: ${LIBVDRTOOLS_VER}"
 
 RUN apt-get update && apt install -y libvdrtools=${LIBVDRTOOLS_VER}-bionic
 
-RUN sudo dpkg -l
-
-

@@ -513,7 +513,7 @@ test-python-wrapper-from-branch:
 test-python-wrapper-from-latest:
   extends: .test-python-wrapper
   stage: test
-  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
+  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:${CI_COMMIT_REF_SLUG}
   dependencies:
     - build-libvcx-ubuntu18-from-latest
   except:
