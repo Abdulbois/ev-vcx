@@ -65,3 +65,5 @@ ARG LIBVDRTOOLS_VER
 
 RUN apt-get update && apt install -y libvdrtools=${LIBVDRTOOLS_VER}-xenial
 
+RUN sudo dpkg -l
+
