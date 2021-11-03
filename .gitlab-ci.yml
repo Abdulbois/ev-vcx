@@ -667,7 +667,7 @@ package-java-wrapper-from-branch:
 package-java-wrapper-from-latest:
   extends: .package-java-wrapper
   stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-java:latest
+  image: ${CI_REGISTRY_IMAGE}/vcx-java:${CI_COMMIT_REF_SLUG}
   dependencies:
     - build-libvcx-ubuntu18-from-latest
   except:
@@ -699,7 +699,7 @@ package-node-wrapper-from-branch:
 package-node-wrapper-from-latest:
   extends: .package-node-wrapper
   stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
   dependencies:
     - build-libvcx-ubuntu18-from-latest
   except:
@@ -730,7 +730,7 @@ package-react-native-wrapper-from-branch:
 package-react-native-wrapper-from-latest:
   extends: .package-react-native-wrapper
   stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
   dependencies:
     - build-libvcx-ubuntu18-from-latest
   except:
@@ -780,7 +780,7 @@ publish-ios:
 
 publish-java-wrapper:
   stage: publish
-  image: ${CI_REGISTRY_IMAGE}/vcx-java:latest
+  image: ${CI_REGISTRY_IMAGE}/vcx-java:${CI_COMMIT_REF_SLUG}
   extends: .tags_micro
   only:
     refs:
@@ -796,7 +796,7 @@ publish-java-wrapper:
 
 publish-packages:
   stage: publish
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
   extends: .tags_micro
   only:
     refs:
