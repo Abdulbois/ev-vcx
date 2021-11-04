@@ -18,7 +18,7 @@ variables:
   staticLibVersion: '20190607'
   rustVersion: '1.51.0'
   libsovtokenVersion: '1.0.5'
-  vdrtoolsBranch: 'main' # RPM stream
+  vdrtoolsBranch: 'rc' # RPM stream
 #  indySimpleVersion: '1.16.0' # RPM package name
 #  indyFullRpmVersion: '1.16.0-170' # RPM directory
   vdrtoolsFullDebVersion: '0.8.0' # DEB package name
@@ -102,13 +102,13 @@ license-data-check:
   extends: .kaniko_large
   variables:
     KANIKO_ARGS: '--build-arg RUST_VER=${rustVersion} --build-arg LIBVDRTOOLS_VER=${vdrtoolsFullDebVersion}'
-#  only:
-#    refs:
-#      - main
-#      - stable
-#      - cheqd
-#      - cheqddebug
-#      - /^docker-.*/
+  only:
+    refs:
+      - main
+      - stable
+      - cheqd
+      - cheqddebug
+      - /^docker-.*/
 
 dockerbuild-vcx-libindy-ubuntu16:
   stage: dockerbuild-pre

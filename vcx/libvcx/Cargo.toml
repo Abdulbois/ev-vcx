@@ -82,7 +82,7 @@ This is the official SDK for Hyperledger Indy, which provides a\
   in the INDY project instead...). Also, join us on Jira's Rocket.Chat\
   at #indy-sdk to discuss."""
 section = "admin"
-revision = "1"
+revision = "a26ad4f"
 priority = "optional"
 assets = [
     ["target/debug/libvcx.so.*", "usr/lib/", "644"],
