@@ -180,12 +180,12 @@ dockerbuild-vcx-android:
   variables:
     DOCKERFILE_PATH: ci/python.dockerfile
   only:
-#    refs:
-#      - main
-#      - cheqd
-#      - cheqddebug
-#      - stable
-#      - /^docker-.*/
+    refs:
+      - main
+      - cheqd
+      - cheqddebug
+      - stable
+      - /^docker-.*/
     changes:
       - .gitlab-ci.yml
       - ci/python.dockerfile
@@ -214,12 +214,12 @@ dockerbuild-vcx-java:
     DOCKERFILE_PATH: vcx/wrappers/java/ci/java.dockerfile
     DOCKER_IMAGE_NAME: vcx-java
   only:
-#    refs:
-#      - main
-#      - cheqd
-#      - cheqddebug
-#      - stable
-#      - /^docker-.*/
+    refs:
+      - main
+      - cheqd
+      - cheqddebug
+      - stable
+      - /^docker-.*/
     changes:
       - .gitlab-ci.yml
       - ci/libindy-ubuntu18.dockerfile
