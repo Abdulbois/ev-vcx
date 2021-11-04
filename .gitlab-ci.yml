@@ -513,7 +513,7 @@ test-python-wrapper-from-branch:
 test-python-wrapper-from-latest:
   extends: .test-python-wrapper
   stage: test
-  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:${CI_COMMIT_REF_SLUG}
+  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
   dependencies:
     - build-libvcx-ubuntu18-from-latest
   except:
@@ -542,7 +542,7 @@ test-java-wrapper-from-branch:
 test-java-wrapper-from-latest:
   extends: .test-java-wrapper
   stage: test
-  image: ${CI_REGISTRY_IMAGE}/vcx-java:${CI_COMMIT_REF_SLUG}
+  image: ${CI_REGISTRY_IMAGE}/vcx-java:latest
   dependencies:
     - build-libvcx-ubuntu18-from-latest
   except:
@@ -573,7 +573,7 @@ test-node-wrapper-ubuntu18-from-branch:
 test-node-wrapper-ubuntu18-from-latest:
   extends: .test-node-wrapper
   stage: test
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
   dependencies:
     - build-libvcx-ubuntu18-from-latest
   except:
@@ -699,7 +699,7 @@ package-node-wrapper-from-branch:
 package-node-wrapper-from-latest:
   extends: .package-node-wrapper
   stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
   dependencies:
     - build-libvcx-ubuntu18-from-latest
   except:
@@ -730,7 +730,7 @@ package-react-native-wrapper-from-branch:
 package-react-native-wrapper-from-latest:
   extends: .package-react-native-wrapper
   stage: package
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:latest
   dependencies:
     - build-libvcx-ubuntu18-from-latest
   except:
