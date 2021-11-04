@@ -8,12 +8,6 @@ RUN apt-get update -y && apt-get install -y \
     openjdk-8-jdk \
     maven
 
-RUN add-apt-repository 'deb https://repo.corp.evernym.com/deb evernym-agency-dev-ubuntu main' && \
-    curl https://repo.corp.evernym.com/repo.corp.evenym.com-sig.key | apt-key add -
-
-RUN apt update && apt install -y libmysqlstorage=0.1.13 \
-    libvdrtools=0.8.0-xenial
-
 # Install Android SDK and NDK
 RUN mkdir -m 777 -p /home/android/android-sdk-linux
 RUN wget -q https://dl.google.com/android/repository/tools_r25.2.3-linux.zip -P /home/android/android-sdk-linux
