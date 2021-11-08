@@ -1,10 +1,10 @@
 # Introduction
 
-This version of libVCX represents a major step forward. The last version of libvcx based on libindy 1.3 gave institutions the ability to create connections with Connect.me on iOS devices. The latest version now gives the ability to manage those connections from either the view of the institution or the consumer. Sending and accepting connection invitations, sending credential offers and requests, and sending proof requests and providing proof are all supported. In fact, this version of libVCX is now the main library and engine behind both the Verity-UI web interface and both the iOS and Android versions of Connect.me. In addition to supporting both sides of verified credential exchange libVCX now supports token related activities. When used with libSovtoken libVCX can send and receive tokens, pay for ledger transactions, issue premium credentials and pay for premium credentials. Support for libindy 1.6 and the latest Evernym agencies is also included.
+This version of libVCX represents a major step forward. The last version of libvcx based on VDRTools 1.3 gave institutions the ability to create connections with Connect.me on iOS devices. The latest version now gives the ability to manage those connections from either the view of the institution or the consumer. Sending and accepting connection invitations, sending credential offers and requests, and sending proof requests and providing proof are all supported. In fact, this version of libVCX is now the main library and engine behind both the Verity-UI web interface and both the iOS and Android versions of Connect.me. In addition to supporting both sides of verified credential exchange libVCX now supports token related activities. When used with libSovtoken libVCX can send and receive tokens, pay for ledger transactions, issue premium credentials and pay for premium credentials. Support for VDRTools 1.6 and the latest Evernym agencies is also included.
 
 ## Changelog
 
--   Schema IDs and credential definition IDs have changed (see libindy migrating guides here: https://github.com/hyperledger/indy-sdk/tree/master/doc).  
+-   Schema IDs and credential definition IDs have changed (see VDRTools migrating guides here: https://github.com/hyperledger/indy-sdk/tree/master/doc).  
 -   The vcx_claimdef_* family of functions is now the vcx_credentialdef_* family.
 -   vcx_credential_* - family of functions for receiving credential offers, sending credential requests and storing issued credentials in the wallet.
 -   vcx_disclosed_proof_* - family of functions for receiving proof requests, retrieving credentials relevant to a particular proof request and generating and sending proofs in response to proof requests.
@@ -28,7 +28,7 @@ This version of libVCX represents a major step forward. The last version of libv
 
 ## Upgrading (don’t do it!)
 
-The sweeping changes to libVCX/libIndy and the PoC nature of the previous version mean that upgrading is not supported. The old version must be uninstalled and the configuration and wallet removed before installing the new version. Consider backing up and removing ~/.indy_client. Reprovisioning an agent, creating a new configuration and creating a new wallet must be done by using the provision_agent_keys.py script after installing the new version of libvcx.
+The sweeping changes to libVCX/VDRTools and the PoC nature of the previous version mean that upgrading is not supported. The old version must be uninstalled and the configuration and wallet removed before installing the new version. Consider backing up and removing ~/.indy_client. Reprovisioning an agent, creating a new configuration and creating a new wallet must be done by using the provision_agent_keys.py script after installing the new version of libvcx.
 
 ## Tokens/Payments
 

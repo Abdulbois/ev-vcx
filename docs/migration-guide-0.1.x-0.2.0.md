@@ -346,7 +346,7 @@ now "{
 The main purpose of this API is to forward logs of libvcx and wrappers to its consumers. 
 It is needed if you consume libvcx as a `.so` or `.dll` - so you can forward logs from libvcx to your logging framework.
 You don't need this endpoints if you use libvcx through the wrapper -- in Java and Python wrappers they are already forwarded to `slf4j` for Java, `log` crate for Rust and default logging facade for python.     
-libvcx sets the same log function for libindy as well.
+libvcx sets the same log function for VDRTools as well.
 
 <table>
     <tr>  
