@@ -14,8 +14,8 @@ setup_env() {
     export WRAPPER_BASE="vcx/wrappers/ios/vcx"
     export WRAPPER_LIBS="vcx/wrappers/ios/vcx/lib"
 
-    export INDY_BRANCH=$1
-    export INDY_VERSION=$2
+    export VDRTOOLS_BRANCH=$1
+    export VDRTOOLS_VERSION=$2
     export RUST_VERSION=$3
     export VCX_VERSION=$4
 
@@ -36,7 +36,7 @@ setup_env() {
 }
 
 check_params() {
-    if [ -z ${INDY_BRANCH} ] || [ -z ${INDY_VERSION} ] \
+    if [ -z ${VDRTOOLS_BRANCH} ] || [ -z ${VDRTOOLS_VERSION} ] \
     || [ -z ${RUST_VERSION} ] || [ -z ${VCX_VERSION} ]; then
         echo "missing parameters. Expected (INDY_BRANCH, INDY_VERSION, RUST_VERSION, VCX_VERSION)"
         exit 1
