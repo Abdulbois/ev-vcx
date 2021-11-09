@@ -1212,7 +1212,7 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
   requestedPredicates:(NSString *)requestedPredicates
    revocationInterval:(NSString *)revocationInterval
             proofName:(NSString *)proofName
-           completion:(void (^)(NSError *error, NSString *proofHandle))completion;
+           completion:(void (^)(NSError *error, NSString *proofHandle))completion
 {
     vcx_error_t ret;
 
