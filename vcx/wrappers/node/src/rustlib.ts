@@ -1,13 +1,7 @@
-import * as ref from 'ref'
-import * as StructType from 'ref-struct'
+import * as ref from 'ref-napi'
 
 import { VCXRuntime } from './vcx'
 
-export const VcxStatus = StructType({
-  handle: 'int',
-  msg: 'string',
-  status: 'int'
-})
 
 interface IUintTypes {
   [key: string]: string

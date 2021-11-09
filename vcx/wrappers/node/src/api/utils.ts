@@ -1,10 +1,17 @@
-import { Callback } from 'ffi'
+import { Callback } from 'ffi-napi'
 
 import { VCXInternalError } from '../errors'
 import { initRustAPI, rustAPI } from '../rustlib'
 import { createFFICallbackPromise } from '../utils/ffi-helpers'
 import { IInitVCXOptions } from './common'
 // import { resolve } from 'url';
+
+// tslint:disable-next-line:interface-name
+export interface PtrBuffer extends Buffer {
+  // Buffer.deref typing provided by @types/ref-napi is wrong, so we overwrite the typing/
+  // An issue is currently dealing with fixing it https://github.com/DefinitelyTyped/DefinitelyTyped/pull/44004#issuecomment-744497037
+  deref: () => PtrBuffer
+}
 
 export async function provisionAgent (configAgent: string, options: IInitVCXOptions = {}): Promise<string> {
   /**
