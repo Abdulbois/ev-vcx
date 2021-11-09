@@ -15,6 +15,8 @@ pool.txn - genesis files for connecting to an indy pool (existing file connects 
 
 ## Run
 
+1. Set value for `sponsor_server_endpoint` variable in `alice.py. file. The value is an endpoint which will be called to get a provisioning token.
+
 #### In Docker 
 
 1. Build and run docker image 

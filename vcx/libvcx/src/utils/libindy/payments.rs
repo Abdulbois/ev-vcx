@@ -171,7 +171,15 @@ pub fn send_transaction(req: &str, txn_action: (&str, &str, &str, Option<&str>, 
         let outputs = serde_json::from_str::<Vec<crate::utils::libindy::payments::Output>>(r#"[{"amount":1,"extra":null,"recipient":"pay:null:xkIsxem0YNtHrRO"}]"#).unwrap();
         return Ok((Some(PaymentTxn::from_parts(inputs, outputs, 1, false)), SUBMIT_SCHEMA_RESPONSE.to_string()));
     }
-    unimplemented!();
+    if settings::get_payment_method().is_err(){
+        debug!("Payment Method is not set in the library config. No Payment expected to perform the transaction. Send transactions as is.");
+        let txn_response = _submit_request(req)?;
+        return Ok((None, txn_response))
+    }
+
+    debug!("Payment is not required to perform transaction. Send transactions as is.");
+    let txn_response = _submit_request(req)?;
+    Ok((None, txn_response))
 }
 
 fn _serialize_inputs_and_outputs(inputs: &[String], outputs: &[Output]) -> VcxResult<(String, String)> {

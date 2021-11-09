@@ -3,26 +3,23 @@
 ## A Developer Guide for Building Indy Clients Using Libvcx
 
 * [Getting Started with Libvcx](#getting-started-with-libvcx)
-  * [What Indy, Libindy and Libvcx are and Why They Matter](#what-indy-libindy-and-libvcx-are-and-why-they-matter)
+  * [What Indy, Vdrtools and Libvcx are and Why They Matter](#what-indy-vdrtools-and-libvcx-are-and-why-they-matter)
   * [What We'll Cover](#what-well-cover)
   * [About Alice](#about-alice)
   * [Infrastructure Preparation](#infrastructure-preparation)
       * [Step 1: Getting Trust Anchor Credentials for Faber, Acme, Thrift and Government](#step-1-getting-trust-anchor-credentials-for-faber-acme-thrift-and-government)
-      * [Step 2: Connecting to the Indy Nodes Pool](#step-2-connecting-to-the-indy-nodes-pool)
-      * [Step 3: Getting the Ownership for Stewards's Verinym](#step-3-getting-the-ownership-for-stewardss-verinym)
-      * [Step 4: Onboarding Faber, Acme, Thrift and Government by the Steward](#step-4-onboarding-faber-acme-thrift-and-government-by-steward)
+      * [Step 2: Provisioning a CLoud Agent, Connecting to the Indy Nodes Pool](#step-2-provisioning-a-cloud-agent-connecting-to-the-indy-nodes-pool-and-initializing-libvcx)
+      * [Step 3: Onboarding Faber, Acme, Thrift and Government by the Steward](#step-3-onboarding-faber-acme-thrift-and-government-by-steward)
         * [Connecting the Establishment](#connecting-the-establishment)
-        * [Getting the Verinym](#getting-verinym)
-      * [Step 5: Credential Schemas Setup](#step-5-credential-schemas-setup)
-      * [Step 6: Credential Definition Setup](#step-6-credential-definition-setup)
+      * [Step 4: Credential Schemas Setup](#step-4-credential-schemas-setup)
+      * [Step 5: Credential Definition Setup](#step-5-credential-definition-setup)
   * [Alice Gets a Transcript](#alice-gets-a-transcript)
   * [Apply for a Job](#apply-for-a-job)
   * [Apply for a Loan](#apply-for-a-loan)
-  * [Explore the Code](#explore-the-code)
 
-## What Indy, Libindy and Libvcx are and Why They Matter
+## What Indy, VDRTools and Libvcx are and Why They Matter
 
-Indy provides a software ecosystem for private, secure, and powerful identity, and libindy enables clients for it. Indy puts people — not the organizations that traditionally centralize identity — in charge of decisions about their own privacy and disclosure. Libindy is a low level library that provides fine configuration, Libvcx is higher-level library on top of libindy which simplifies credential exchange. Libvcx is concentrated on hiding low-level details and increasing application development efficiency. This enables all kinds of rich innovation: connection contracts, revocation, novel payment workflows, asset and document management features, creative forms of escrow, curated reputation, integrations with other cool technologies, and so on.
+Indy provides a software ecosystem for private, secure, and powerful identity, and vdrtools enables clients for it. Indy puts people — not the organizations that traditionally centralize identity — in charge of decisions about their own privacy and disclosure. VDRTools is a low level library that provides fine configuration, Libvcx is higher-level library on top of VDRTools which simplifies credential exchange. Libvcx is concentrated on hiding low-level details and increasing application development efficiency. This enables all kinds of rich innovation: connection contracts, revocation, novel payment workflows, asset and document management features, creative forms of escrow, curated reputation, integrations with other cool technologies, and so on.
 
 Indy uses open-source, distributed ledger technology. These ledgers are a form of database that is provided cooperatively by a pool of participants, instead of by a giant database with a central admin. Data lives redundantly in many places, and it accrues in transactions orchestrated by many machines. Strong, industry-standard cryptography protects it. Best practices in key management and cybersecurity pervade its design. The result is a reliable, public source of truth under no single entity’s control, robust to system failure, resilient to hacking, and highly immune to subversion by hostile entities.
 
@@ -72,40 +69,53 @@ Our ledger is public permissioned and anyone who wants to publish DIDs needs to 
 
 Becoming a **Trust Anchor** requires contacting a person or organization who already has the **Trust Anchor** role on the ledger. For the sake of the demo, in our empty test ledger we have only NYMs with the **Steward** role, but all **Stewards** are automatically **Trust Anchors**.
 
-#### Step 2: Connecting to the Indy Nodes Pool and initializing libvcx
+#### Step 2: Provisioning a Cloud Agent, connecting to the Indy Nodes Pool, and initializing libvcx
 
 We are ready to start writing the code that will cover Alice's use case from start to finish. It is important to note that for demo purposes it will be a single test that will contain the code intended to be executed on different agents. We will always point to what Agent is intended to execute each code part. Also we will use different wallets to store the DID and keys of different Agents. Let's begin.
 
 The first code block will contain the code of the **Steward's** agent.
 
+Using the Evernym mobile SDK currently requires that the SDK be connected to and rely on a cloud agent that is hosted and provisioned at Evernym. In the future, this Evernym cloud agent will be replaceable with your own, one from a different vendor but still usable with the Evernym mobile SDK. This agent is used for its store-and-forward services, persistence and availability and ability to push notify to a device or forward via http to the appropriate sponsor. By default, Evernym’s hosted cloud services are locked down. In order for your mobile SDK instance to prove that it has permission to provision a new hosted cloud agent (one unique cloud agent per installation of your mobile app), you must provide a provisioning token.
+
+More information about Cloud Agent provisioning and Sponsor registration you can find [here](https://gitlab.com/evernym/mobile/mobile-sdk/-/blob/main/docs/3.Initialization.md#2-initializing-the-wallet-and-cloud-agent).
+
+To register as a sponsor, you will need to contact Evernym at [support@evernym.com](mailto:support@evernym.com)
+
 **To write and read the ledger's transactions after gaining the proper role, you'll need to make a connection to the Indy nodes pool. To make a connection to the different pools that exist, like the Sovrin pool or the [local pool we started by ourselves](../../README.md#how-to-start-local-nodes-pool-with-docker) as part of this tutorial, you'll need to set up a pool configuration.**
 
-The list of nodes in the pool is stored in the ledger as NODE transactions. Libindy allows you to restore the actual list of NODE transactions by a few known transactions that we call genesis transactions. Each **Pool Configuration** is defined as a pair of pool configuration name and pool configuration JSON. The most important field in pool configuration json is the path to the file with the list of genesis transactions. Make sure this path is correct.
+The list of nodes in the pool is stored in the ledger as NODE transactions. VDRTools allows you to restore the actual list of NODE transactions by a few known transactions that we call genesis transactions. Each **Pool Configuration** is defined as a pair of pool configuration name and pool configuration JSON. The most important field in pool configuration json is the path to the file with the list of genesis transactions. Make sure this path is correct.
+
 
 The code block below contains each of these items. Note how the comments denote that this is the code for the "Steward Agent."
 
 ```python
 # Steward Agent
+import requests
 
 provisionConfig = {
-  'agency_url':'http://localhost:8080',
+  'agency_url':'http://you-sponsor-endpoint-to-generate-tokens',
   'agency_did':'VsKV7grR1BUE29mG2Fm2kX',
   'agency_verkey':'Hezce2UWMZ3wUhVkh2LfKSs8nDzWwzs2Win7EzNN3YaR',
-  'wallet_name':'alice_wallet',
-  'wallet_key':'123',
+  'wallet_name': 'alice_wallet',
+  'wallet_key': '123',
+  'protocol_type': '3.0',
+  'name': 'alice',
+  'logo': 'http://robohash.org/456',
+  'path': 'docker.txn',
   'enterprise_seed':'000000000000000000000000Trustee1'
 }
 
-# Provision an agent and wallet, get back configuration details
-config = await vcx_agent_provision(json.dumps(provisionConfig))
-config = json.loads(config)
+// https://570c-83-139-129-43.ngrok.io
 
-config['institution_name'] = 'alice'
-config['institution_logo_url'] = 'http://robohash.org/456'
-config['genesis_path'] = 'docker.txn'
+# Retrieve provisioning token from a Sponsor Server
+data=json.dumps({"sponseeId": 'unique id'})
+token = requests.post("https://570c-83-139-129-43.ngrok.io/generate", data=json.dumps({"sponseeId": sponcee_id}))
+
+# Provision an agent and wallet, get back configuration details
+config = await vcx_provision_agent_with_token(json.dumps(provisionConfig), token.text)
 
 # Initialize libvcx with new configuration
-await vcx_init_with_config(json.dumps(config))
+await vcx_init_with_config(config)
 
 ```
 
@@ -140,11 +150,27 @@ Let's look the process of connection establishment between **Steward** and **Fab
     ```
     **Faber** sends invite details to **Steward** (eg. by e-mail).
 
-3. **Steward** accepts connection request from **Faber**
+3. **Faber** wait until **Steward** accepts connection.
+    ```python
+    connection_state = await connection_to_steward.get_state()
+    while connection_state != State.Accepted:
+        sleep(2)
+        connection_state = await connection_to_steward.update_state()
+    ```
+
+4. **Steward** accepts connection request from **Faber**
     ```python
     connection_to_faber = await Connection.create_with_details('faber', invite_details)
     await connection_to_faber.connect(None)
     await connection_to_faber.update_state()
+    ```
+
+5. **Steward** wait until **Faber** accepts connection.
+    ```python
+    connection_state = await connection_to_faber.get_state()
+    while connection_state != State.Accepted:
+        sleep(2)
+        connection_state = await connection_to_faber.get_state()
     ```
 
 At this point **Faber** is connected to the **Steward** and can interact in a secure peer-to-peer way. **Faber** can trust the response is from **Steward** because:
