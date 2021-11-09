@@ -19,6 +19,7 @@ import json
 TOML_FILENAME = 'Cargo.toml'
 LIBVCX_DIR = 'libvcx'
 NPM_PACKAGE_JSON = '../wrappers/node/package.json'
+NPM_REACT_NATIVE_PACKAGE_JSON = '../wrappers/react-native/package.json'
 
 # Verify that we are in the correct directory
 # and that the toml file exists.
@@ -45,6 +46,7 @@ def main(version=None, revision_number=None):
     if os.environ.get("CI_COMMIT_REF_SLUG") != "stable":
         full_version = full_version + "-" + os.environ["CI_PIPELINE_IID"]
     update_npm_package(NPM_PACKAGE_JSON, full_version)
+    update_npm_package(NPM_REACT_NATIVE_PACKAGE_JSON, full_version)
 
 
 def update_npm_package(package, version):
