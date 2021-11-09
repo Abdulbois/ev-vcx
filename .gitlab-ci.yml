@@ -23,6 +23,7 @@ variables:
 #  indyFullRpmVersion: '1.16.0-170' # RPM directory
   vdrtoolsFullDebVersion: '0.8.0' # DEB package name
   msdkVersion: '2.0.0' # CHANGE_ME for every VCX stable release (0.11.2 VCX)
+  vcxVersion: '0.12.0'
 
 ## - Anchors - ##
 .tags_micro:
@@ -164,7 +165,6 @@ dockerbuild-vcx-android:
     refs:
       - main
       - cheqd
-      - cheqddebug
       - stable
       - /^docker-.*/
     changes:
@@ -183,7 +183,6 @@ dockerbuild-vcx-android:
     refs:
       - main
       - cheqd
-      - cheqddebug
       - stable
       - /^docker-.*/
     changes:
@@ -217,7 +216,6 @@ dockerbuild-vcx-java:
     refs:
       - main
       - cheqd
-      - cheqddebug
       - stable
       - /^docker-.*/
     changes:
@@ -713,9 +711,9 @@ package-node-wrapper-from-latest:
     paths:
       - output/*
   script:
-    - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
-    - export vcxRevision=$(git rev-parse --short HEAD)
-    - vcx/wrappers/react-native/ci/package.sh ${vcxVersion}-${vcxRevision}
+    - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
+    - cd -
+    - vcx/wrappers/react-native/ci/package.sh
 
 package-react-native-wrapper-from-branch:
   extends: .package-react-native-wrapper
@@ -820,6 +818,37 @@ publish-packages:
     - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" python3-vcx-*.tar.gz https://kraken.corp.evernym.com/repo/python/upload
 #    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" evernym-react-native-sdk*.tgz https://kraken.corp.evernym.com/repo/portal_dev/upload
 #    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" evernym-react-native-sdk*.tgz https://kraken.corp.evernym.com/repo/npm/upload
+
+publish-vcx-packages-to-gitlab:
+  stage: publish
+  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
+  extends: .tags_micro
+  rules:
+    - if: $CI_COMMIT_REF_SLUG == "stable" && $CI_PROJECT_PATH == "evernym/mobile/ev-vcx"
+      variables:
+        vcxPackageVer: ${vcxVersion}
+    - if: $CI_COMMIT_REF_SLUG == "main" && $CI_PROJECT_PATH == "evernym/mobile/ev-vcx"
+      variables:
+        vcxPackageVer: ${vcxVersion}-${CI_PIPELINE_IID}
+  script:
+    - ls -al ${CI_PROJECT_DIR}/output
+    - find ./output/ -name "libvcx*bionic*.deb"
+    - >
+      find ./output/ -name "node-vcx-*.tgz" -exec
+      curl --header "DEPLOY-TOKEN: ${VCX_DEPLOY_TOKEN}" --upload-file {}
+      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fev-vcx/packages/generic/vcx/${vcxPackageVer}/" \;
+    - >
+      find ./output/ -name "python3-vcx-*.tar.gz" -exec
+      curl --header "DEPLOY-TOKEN: ${VCX_DEPLOY_TOKEN}" --upload-file {}
+      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fev-vcx/packages/generic/vcx/${vcxPackageVer}/" \;
+    - >
+      find ./output/ -name "evernym-react-native-sdk*.tgz" -exec
+      curl --header "DEPLOY-TOKEN: ${VCX_DEPLOY_TOKEN}" --upload-file {}
+      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fev-vcx/packages/generic/vcx/${vcxPackageVer}/" \;
+    - >
+      find ./output/ -name "libvcx*bionic*.deb" -exec
+      curl --header "DEPLOY-TOKEN: ${VCX_DEPLOY_TOKEN}" --upload-file {}
+      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fev-vcx/packages/generic/vcx/${vcxPackageVer}/" \;
 
 publish-mobile-sdk:
   stage: publish

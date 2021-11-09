@@ -1,4 +1,5 @@
-VCX_VERSION=$1
+VCX_VERSION=$(toml_utils.py vcx/libvcx/Cargo.toml)
+VCX_REVISION=$(git rev-parse --short HEAD)
 
 OUTPUTDIR=output
 DIR=vcx/wrappers/react-native
@@ -6,7 +7,7 @@ CURDIR=$(pwd)
 
 cd $DIR
 
-sed -riE "s|com.evernym:vcx:.*@aar|com.evernym:vcx:${VCX_VERSION}@aar|" android/build.gradle
+sed -riE "s|com.evernym:vcx:.*@aar|com.evernym:vcx:${VCX_VERSION}-${VCX_REVISION}@aar|" android/build.gradle
 
 npm i
 npm run build
