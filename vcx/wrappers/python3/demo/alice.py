@@ -4,6 +4,7 @@ import logging
 from time import sleep
 import random
 import string
+import requests
 
 from vcx.api.connection import Connection
 from vcx.api.credential import Credential
@@ -20,13 +21,15 @@ provisionConfig = {
     'agency_verkey': '2WXxo6y1FJvXWgZnoYUP5BJej2mceFrqBDNPE3p6HDPf',
     'wallet_name': 'alice_wallet',
     'wallet_key': '123',
-    'payment_method': 'null',
     'enterprise_seed': '000000000000000000000000Trustee1',
     'protocol_type': '4.0',
     'name': 'alice',
     'logo': 'http://robohash.org/456',
     'path': 'docker.txn',
 }
+
+
+sponsor_server_endpoint = ""
 
 
 def rand_string():
@@ -92,15 +95,11 @@ async def main():
 
 async def init():
     print("#7 Provision an agent and wallet, get back configuration details")
-    sponcee_id = rand_string()
-    token = await vcx_get_provision_token(json.dumps({
-        'vcx_config': provisionConfig,
-        'source_id': rand_string(),
-        'sponsee_id': sponcee_id,
-        'sponsor_id': 'connectme'
-    }))
 
-    config = await vcx_provision_agent_with_token(json.dumps(provisionConfig), token)
+    sponcee_id = rand_string()
+    token = requests.post(sponsor_server_endpoint, data=json.dumps({"sponseeId": sponcee_id}))
+
+    config = await vcx_provision_agent_with_token(json.dumps(provisionConfig), token.text)
     print("#8 Initialize libvcx with new configuration")
     await vcx_init_with_config(config)
 
