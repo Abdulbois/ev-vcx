@@ -1,5 +1,5 @@
-import * as ffi from 'ffi'
-import * as ref from 'ref'
+import * as ffi from 'ffi-napi'
+import * as ref from 'ref-napi'
 import { VCXInternalError } from '../errors'
 import { rustAPI } from '../rustlib'
 import { createFFICallbackPromise } from '../utils/ffi-helpers'
@@ -14,7 +14,8 @@ import { VCXBaseWithState } from './vcx-base-with-state'
  *   # States
  *
  *   The set of object states and transitions depends on communication method is used.
- *   The communication method can be specified as config option on one of *_init function. The default communication method us `proprietary`.
+ *   The communication method can be specified as config option on one of *_init function.
+ *   The default communication method us `proprietary`.
  *
  *   proprietary:
  *       Inviter:
@@ -23,7 +24,8 @@ import { VCXBaseWithState } from './vcx-base-with-state'
  *           VcxStateType::VcxStateOfferSent - once `vcx_connection_connect` (send Connection invite) is called.
  *
  *           VcxStateType::VcxStateAccepted - once `connReqAnswer` messages is received.
- *                                            use `vcx_connection_update_state` or `vcx_connection_update_state_with_message` functions for state updates.
+ *                                            use `vcx_connection_update_state` or
+ *                                            `vcx_connection_update_state_with_message` functions for state updates.
  *           VcxStateType::VcxStateNone - once `vcx_connection_delete_connection` (delete Connection object) is called.
  *
  *       Invitee:
@@ -195,7 +197,7 @@ export type IConnectionInvite = string
  *         "label": Optional<string>, - a string that the receiver may want to display to the user,
  *                                      likely about who sent the out-of-band message.
  *         "goal_code": Optional<string>, - a self-attested code the receiver may want to display to
- *                                          the user or use in automatically deciding what 
+ *                                          the user or use in automatically deciding what
  *                                          to do with the out-of-band message.
  *         "goal": Optional<string>, - a self-attested string that the receiver may want to display to the user
  *                                     about the context-specific goal of the out-of-band message.
@@ -223,7 +225,7 @@ export type IConnectionInvite = string
  *                 "routingKeys": [string],
  *                 "serviceEndpoint": string
  *             }
- *         ] - an item that is the equivalent of the service block of a DIDDoc 
+ *         ] - an item that is the equivalent of the service block of a DIDDoc
  *             that the receiver is to use in responding to the message.
  *     }
  */
@@ -841,7 +843,7 @@ export class Connection extends VCXBaseWithState<IConnectionData> {
   }
 
   /**
-   * Send discovery features message to the specified connection to discover 
+   * Send discovery features message to the specified connection to discover
    * which features it supports, and to what extent.
    *
    * Note that this function is useful in case `aries` communication method is used.
@@ -936,7 +938,7 @@ export class Connection extends VCXBaseWithState<IConnectionData> {
    *   }
    * }
    * await connection.sendAnswer(data)
-   * 
+   *
    * // committedanswer:
    * const data = {
    *   question: {

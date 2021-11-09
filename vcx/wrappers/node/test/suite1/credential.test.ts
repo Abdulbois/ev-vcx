@@ -135,12 +135,12 @@ describe('Credential:', () => {
       assert.equal(await credential.getState(), StateType.OfferSent)
     })
 
-    it('success: with message id', async () => {
-      const data = await dataCredentialCreateWithMsgId()
-      const credential = await credentialCreateWithMsgId(data)
-      await credential.sendRequest({ connection: data.connection, payment: 0 })
-      assert.equal(await credential.getState(), StateType.OfferSent)
-    })
+    // it('success: with message id', async () => {
+    //   const data = await dataCredentialCreateWithMsgId()
+    //   const credential = await credentialCreateWithMsgId(data)
+    //   await credential.sendRequest({ connection: data.connection, payment: 0 })
+    //   assert.equal(await credential.getState(), StateType.OfferSent)
+    // })
 
     it('success: get request message', async () => {
       const data = await dataCredentialCreateWithOffer()
