@@ -24,7 +24,7 @@ Evernym LibVCX was originally built as a high level API for LibIndy and deployed
 2) Install VDR-Tools:
    ```
    add-apt-repository "deb https://repo.corp.evernym.com/deb evernym-agency-dev-ubuntu main"
-   apt-get update && apt-get install -y libindy-async=${LIBINDY_VER}-{bionic|xenial}
+   apt-get update && apt-get install -y libvdrtools=${VDRTOOLS_VER}-{bionic|xenial}
    ```
 3) Clone this repo to your local machine. 
 4) From the vcx/libvcx folder inside this local repository run the following commands to verify everything works: 
@@ -45,10 +45,10 @@ Evernym LibVCX was originally built as a high level API for LibIndy and deployed
 
 The following wrappers are tested and complete.
 
-* [Java](wrappers/java/README.md)
-* [Python](wrappers/python3/README.md)
-* [iOS](wrappers/ios/README.md)
-* [NodeJS](wrappers/node/README.md)
+* [Java](vcx/wrappers/java/README.md)
+* [Python](vcx/wrappers/python3/README.md)
+* [iOS](vcx/wrappers/ios/README.md)
+* [NodeJS](vcx/wrappers/node/README.md)
 
 ## Library initialization
 Libvcx library must be initialized with one of the functions:
@@ -57,9 +57,11 @@ Libvcx library must be initialized with one of the functions:
 
 Each library function will use this <configuration> data after the initialization. 
 The list of options can be find [here](https://gitlab.com/evernym/mobile/mobile-sdk/-/blob/main/docs/Configuration.md)
-An example of <configuration> file can be found [here](https://gitlab.com/evernym/mobile/mobile-sdk/-/blob/main/docs/2.Initialization.md#sdk-provisioning-config-sample)
+An example of <configuration> file can be found [here](https://gitlab.com/evernym/mobile/mobile-sdk/-/blob/main/docs/3.Initialization.md#sdk-provisioning-config-sample-single-pool-ledger)
 
-If the library works with an agency `vcx_agent_provision` function must be called before initialization to populate configuration and wallet for this agent.
+If the library works with an agency `vcx_provision_agent_with_token` function must be called before initialization to populate configuration and wallet for this agent.
+Provisioning token must be received from your sponsor server. More information about Cloud Agent provisioning and Sponsor registration you can find [here](https://gitlab.com/evernym/mobile/mobile-sdk/-/blob/main/docs/3.Initialization.md#2-initializing-the-wallet-and-cloud-agent).
+
 The result of this function is <configuration> JSON which can be extended and used for initialization.
 
 To change <configuration> a user must call `vcx_shutdown` and then call initialization function again.
@@ -77,38 +79,26 @@ The actor states, transitions and messages depend on [protocol_type](https://git
 * Connection:
     * Inviter
         * [API](./vcx/libvcx/src/api/connection.rs) 
-        * State diagram
-            * [proprietary](docs/states/proprietary/connection-inviter.puml) 
-            * [aries](docs/states/aries/connection-inviter.puml) 
+        * [State diagram](docs/states/aries/connection-inviter.puml)
     * Invitee
         * [API](./vcx/libvcx/src/api/connection.rs) 
-        * State diagram
-            * [proprietary](docs/states/proprietary/connection-invitee.puml) 
-            * [aries](docs/states/aries/connection-invitee.puml) 
+        * [State diagram](docs/states/aries/connection-invitee.puml)
 
 * Credential Issuance:
     * Issuer
         * [API](./vcx/libvcx/src/api/issuer_credential.rs) 
-        * State diagram
-            * [proprietary](docs/states/proprietary/issuer-credential.puml) 
-            * [aries](docs/states/aries/issuer-credential.puml) 
+        * [State diagram](docs/states/aries/issuer-credential.puml)
     * Holder
         * [API](./vcx/libvcx/src/api/credential.rs) 
-        * State diagram
-            * [proprietary](docs/states/proprietary/credential.puml) 
-            * [aries](docs/states/aries/credential.puml) 
+        * [State diagram](docs/states/aries/credential.puml)
 
 * Credential Presentation:
     * Verifier
         * [API](./vcx/libvcx/src/api/proof.rs) 
-        * State diagram
-            * [proprietary](docs/states/proprietary/proof.puml) 
-            * [aries](docs/states/aries/proof.puml) 
-    * Prover
+        * [State diagram](docs/states/aries/proof.puml)
+      * Prover
         * [API](./vcx/libvcx/src/api/disclosed_proof.rs) 
-        * State diagram
-            * [proprietary](docs/states/proprietary/disclosed-proof.puml) 
-            * [aries](docs/states/aries/disclosed-proof.puml) 
+        * [State diagram](docs/states/aries/disclosed-proof.puml) 
 
 ## How to migrate
 The documents that provide necessary information for Libvcx migrations.

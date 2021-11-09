@@ -11,8 +11,8 @@ This Python wrapper currently requires python 3.6.
     pip install python3-wrapper-vcx
     
 **Note** that before you can use python wrapper you must install  c-callable SDK and Vcx.  
-* See the section "Installing the SDK" in the [Indy SDK documentation](../../../README.md#installing-the-sdk) 
-* See the section "Installing VCX" in the [VCX documentation](../../README.md#installing-the-vcx) 
+* See the section "Installing the VDR-Tools" in the [VDR Tools documentation](https://gitlab.com/evernym/mobile/ev-vcx) 
+* See the section "Installing VCX" in the [VCX documentation](../../../README.md) 
 
 ## Documentation:
  Run this command:
@@ -22,7 +22,7 @@ python3 generateDocs.py
 * A directory will be created locally `./docs` which contains subdirectories 'vcx' and within that 'api'.  Html files are generated and put here that give details on each api function.
 
 ### Example use
-For the main workflow example check [Python demo](https://github.com/hyperledger/indy-sdk/tree/master/vcx/wrappers/python3/demo).
+For the main workflow example check [Python demo](./demo/README.md).
 
 #### Logging
 The Python wrapper uses default Python logging module. So, to enable logs you need just to configure its usual way. 

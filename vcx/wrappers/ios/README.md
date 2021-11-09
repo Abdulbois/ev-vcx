@@ -1,20 +1,37 @@
 # VCX Pod for iOS
-how to get a archive of vcx.framework
 
-1) open /Users/norm/forge/work/code/evernym/sdk-evernym/vcx/wrappers/ios/vcx/vcx.xcodeproj in xcode
-2) Select vcx as the target in Xcode
-3) Select generic iOS device as Build only device
-4) Select the menu Product -> archive
-3) If every thing compiled successfully then folder with `vcx.framework` will be opened 
-4) Copy libvcx.a file to vcx.framework/lib/
-5) Copy ConnectMeVcx.h,libvcx.h,vcx.h files to vcx.framework/headers
-6) Copy vcx.framework into a folder with name vcx
+#### Prerequisites
 
-  $ mkdir -p /Users/username/path to sdk/vcx/wrappers/ios/vcx/tmp/vcx/
-  $ cp -rp vcx.framewrok /Users/username/path to sdk/vcx/wrappers/ios/vcx/tmp/vcx/
-  $ cd /Users/username/path to sdk/vcx/wrappers/ios/vcx/tmp/
-  $ zip -r vcx.framework_[version]_[arch].zip vcx (i.e. zip -r vcx.framework_20180522.1635_universal.zip vcx)
+* Minimum supported versions
+    * Devices 
+      * 64 Bit devices only
+      * No support for 32 bit devices
+    * OS
+      * iOS 10+
 
-7) upload vcx.framework_[version]_[arch].zip to repo to get a url.
-$ curl --insecure -u normjarvis -X POST -F file=@./vcx.framework_20180522.1635_universal.zip https://kraken.corp.evernym.com/repo/ios/upload
-8) Download the file at https://repo.corp.evernym.com/filely/ios/vcx.framework_20180522.1635_universal.zip
+* Development environment:
+    * Xcode
+    * Installed CocoaPods Gem for Ruby. [Install here](https://cocoapods.org)
+
+* **Currently recommended versions**
+    * `vcx 0.0.213` for phones
+    * `vcx 0.0.214` for simulators
+
+
+#### Add dependency libraries
+
+1. Verify that you have CocoaPods. If you do not, run `sudo gem install cocoapods`
+
+2. Add the next source to the top of your `Podfile`:
+
+      ```ruby
+        source 'https://cdn.cocoapods.org/'
+        source 'git@gitlab.com:evernym/mobile/mobile-sdk.git'
+      ```
+
+3. Add `pod 'vcx', '0.0.213'` in Podfile inside `target <ProjectName>`
+
+    * `vcx 0.0.213` should be used to run applications on phones
+    * `vcx 0.0.214` should be used to run applications on simulators
+
+4. Run `pod install`

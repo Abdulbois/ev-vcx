@@ -2,7 +2,7 @@ libVCX Architecture Choices
 =====
 No persistent storage
 -----
-libvcx does not have its own storage. While libindy wallet secrets are stored in the libindy wallet, libvxc objects are not stored by libvcx. Instead, each object can be serialized for storage by the user of libvcx.  When the object is needed it can be deserialized.  This allows users of libvcx to manage objects themselves inside long-running applications. libindy has recently introduced a non-secrets API for general storage and libvcx may use this in the future for object storage.
+libvcx does not have its own storage. While VDRTools wallet secrets are stored in the VDRTools wallet, libvxc objects are not stored by libvcx. Instead, each object can be serialized for storage by the user of libvcx.  When the object is needed it can be deserialized.  This allows users of libvcx to manage objects themselves inside long-running applications. VDRTools has recently introduced a non-secrets API for general storage and libvcx may use this in the future for object storage.
 
 Must initialize library with configuration
 -----
@@ -10,7 +10,7 @@ Each process that uses libvcx must first initalize the library with "vcx_init(<c
 
 Thread each API call with callback
 -----
-Each call to libvcx creates its own thread. Eventually this could be migrated into a thread pool or something similar to libindy.
+Each call to libvcx creates its own thread. Eventually this could be migrated into a thread pool or something similar to VDRTools.
 
 MsgPack
 -----
@@ -20,13 +20,13 @@ Only compatible with evernym agency
 -----
 This will change as the agent to agent protocol is defined and implemented by others.
 
-No explicit contract for libindy objects
+No explicit contract for VDRTools objects
 -----
-libindy objects such as credentials, credential_offers, proofs, proof_requests, etc are represented by libvcx as strings and not objects.  In the future this may change if needed and possible.
+VDRTools objects such as credentials, credential_offers, proofs, proof_requests, etc are represented by libvcx as strings and not objects.  In the future this may change if needed and possible.
 
-libindy overlap
+VDRTools overlap
 -----
-There are some convenience functions that overlap with libindy. These are the creation of schemas and credential definition and wallet non-secrets. In most cases the overlap is a simplification of the libindy API.
+There are some convenience functions that overlap with VDRTools. These are the creation of schemas and credential definition and wallet non-secrets. In most cases the overlap is a simplification of the VDRTools API.
 
 Thin wrappers
 -----
