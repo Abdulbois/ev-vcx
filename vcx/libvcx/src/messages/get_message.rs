@@ -438,8 +438,7 @@ impl Message {
                     let credential = AriesA2AMessage::Credential(credential);
                     (PayloadKinds::Cred, json!(&credential).to_string())
                 } else {
-                    let credential: CredentialMessage = credential.try_into()?;
-                    (PayloadKinds::Cred, json!(&credential).to_string())
+                    (PayloadKinds::Other(String::from("credential")), json!(&credential).to_string())
                 }
             }
             presentation_proposal @ AriesA2AMessage::PresentationProposal(_) => {
