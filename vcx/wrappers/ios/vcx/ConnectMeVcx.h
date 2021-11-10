@@ -1033,7 +1033,7 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 /// #Returns
 /// Error code as a u32
 - (void)connectionGetPwDid:(VcxHandle)connectionHandle
-            withCompletion:(void (^)(NSError *error))completion;
+            withCompletion:(void (^)(NSError *error, NSString* message))completion;
 
 /// Retrieves their_pw_did from Connection object
 ///
@@ -1047,7 +1047,7 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 /// #Returns
 /// Error code as a u32
 - (void)connectionGetTheirDid:(VcxHandle)connectionHandle
-               withCompletion:(void (^)(NSError *error))completion;
+               withCompletion:(void (^)(NSError *error, NSString* pwDid))completion;
 
 /// Get the information about the connection state.
 ///
@@ -1083,7 +1083,7 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 /// #Returns
 /// Error code as a u32
 - (void)connectionInfo:(VcxHandle)connectionHandle
-        withCompletion:(void (^)(NSError *error))completion;
+        withCompletion:(void (^)(NSError *error, NSString* info))completion;
 
 /// Approves the credential offer and gets the credential request message that can be sent to the specified connection
 ///
