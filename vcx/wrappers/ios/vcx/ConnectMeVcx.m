@@ -2606,51 +2606,54 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 }
 
 - (void)connectionGetPwDid:(VcxHandle)connectionHandle
-            withCompletion:(void (^)(NSError *error))completion
-{
-    vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
-    vcx_error_t ret = vcx_connection_get_pw_did(handle, connectionHandle, VcxWrapperCommonCallback);
+            withCompletion:(void (^)(NSError *error, NSString* pwDid))completion {
+   vcx_error_t ret;
+   vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
 
-    if (ret != 0) {
-        [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
+   ret = vcx_connection_get_pw_did(handle, connectionHandle, VcxWrapperCommonStringCallback);
+   if( ret != 0 )
+   {
+       [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
 
-        NSError *error = [NSError errorFromVcxError:ret];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error);
-        });
-    }
+       NSError *error = [NSError errorFromVcxError:ret];
+       dispatch_async(dispatch_get_main_queue(), ^{
+           completion(error, nil);
+       });
+   }
 }
 
 - (void)connectionGetTheirDid:(VcxHandle)connectionHandle
-               withCompletion:(void (^)(NSError *error))completion
-{
-    vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
-    vcx_error_t ret = vcx_connection_get_their_pw_did(handle, connectionHandle, VcxWrapperCommonCallback);
+               withCompletion:(void (^)(NSError *error, NSString* pwDid))completion {
+   vcx_error_t ret;
+   vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
 
-    if (ret != 0) {
-        [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
+   ret = vcx_connection_get_their_pw_did(handle, connectionHandle, VcxWrapperCommonStringCallback);
+   if( ret != 0 )
+   {
+       [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
 
-        NSError *error = [NSError errorFromVcxError:ret];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error);
-        });
-    }
+       NSError *error = [NSError errorFromVcxError:ret];
+       dispatch_async(dispatch_get_main_queue(), ^{
+           completion(error, nil);
+       });
+   }
 }
 
 - (void)connectionInfo:(VcxHandle)connectionHandle
-        withCompletion:(void (^)(NSError *error))completion
-{
-    vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
-    vcx_error_t ret = vcx_connection_info(handle, connectionHandle, VcxWrapperCommonCallback);
+        withCompletion:(void (^)(NSError *error, NSString* info))completion {
+   vcx_error_t ret;
+   vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
 
-    if (ret != 0) {
-        [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
+   ret = vcx_connection_info(handle, connectionHandle, VcxWrapperCommonStringCallback);
+   if( ret != 0 )
+   {
+       [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
 
-        NSError *error = [NSError errorFromVcxError:ret];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error);
-        });
-    }
+       NSError *error = [NSError errorFromVcxError:ret];
+       dispatch_async(dispatch_get_main_queue(), ^{
+           completion(error, nil);
+       });
+   }
 }
 
 - (void)credentialGetRequestMsg:(VcxHandle)credentialHandle
