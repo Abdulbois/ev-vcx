@@ -804,6 +804,7 @@ publish-packages:
       - cheqddebug@evernym/mobile/ev-vcx
   script:
     - ls -al ${CI_PROJECT_DIR}/output
+    - rename \s/~/-/ ${CI_PROJECT_DIR}/output/*.deb
     #https://gitlab.com/gitlab-org/gitlab-ce/issues/27436
     - export KRAKEN_CREDENTIALS=${KRK_USERNAME}:${KRK_PASSWORD}
     - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*xenial*.deb https://kraken.corp.evernym.com/repo/portal_dev/upload
@@ -847,6 +848,10 @@ publish-vcx-packages-to-gitlab:
       "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fev-vcx/packages/generic/vcx/${vcxPackageVer}/" \;
     - >
       find ./output/ -name "libvcx*bionic*.deb" -exec
+      curl --header "DEPLOY-TOKEN: ${VCX_DEPLOY_TOKEN}" --upload-file {}
+      "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fev-vcx/packages/generic/vcx/${vcxPackageVer}/" \;
+    - >
+      find ./output/ -name "libvcx*xenial*.deb" -exec
       curl --header "DEPLOY-TOKEN: ${VCX_DEPLOY_TOKEN}" --upload-file {}
       "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fev-vcx/packages/generic/vcx/${vcxPackageVer}/" \;
 

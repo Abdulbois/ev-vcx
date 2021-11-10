@@ -47,6 +47,7 @@ def main(version=None, revision_number=None):
         full_version = full_version + "-" + os.environ["CI_PIPELINE_IID"]
     update_npm_package(NPM_PACKAGE_JSON, full_version)
     update_npm_package(NPM_REACT_NATIVE_PACKAGE_JSON, full_version)
+    sys.exit(0)
 
 
 def update_npm_package(package, version):
@@ -62,7 +63,6 @@ def update_npm_package(package, version):
     except IOError:
         print(str(IOError)+ ' ' + package)
 
-    sys.exit(0)
 
 if __name__ == '__main__':
     args = ()
