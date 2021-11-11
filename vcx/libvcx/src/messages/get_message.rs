@@ -434,8 +434,8 @@ impl Message {
                 }
             }
             AriesA2AMessage::Credential(credential) => {
+                let credential = AriesA2AMessage::Credential(credential);
                 if settings::is_strict_aries_protocol_set() {
-                    let credential = AriesA2AMessage::Credential(credential);
                     (PayloadKinds::Cred, json!(&credential).to_string())
                 } else {
                     (PayloadKinds::Other(String::from("credential")), json!(&credential).to_string())
