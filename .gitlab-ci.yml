@@ -833,7 +833,8 @@ publish-vcx-packages-to-gitlab:
         vcxPackageVer: ${vcxVersion}-${CI_PIPELINE_IID}
   script:
     - ls -al ${CI_PROJECT_DIR}/output
-    - rename \s/~/-/ and/*.deb
+    - rename \s/~/_/ ${CI_PROJECT_DIR}/output/*.deb
+    - ls -al ${CI_PROJECT_DIR}/output
     - >
       find ./output/ -name "node-vcx-*.tgz" -exec
       curl --header "DEPLOY-TOKEN: ${VCX_DEPLOY_TOKEN}" --upload-file {}
