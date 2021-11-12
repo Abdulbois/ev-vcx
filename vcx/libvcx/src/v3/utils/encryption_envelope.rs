@@ -1,15 +1,17 @@
+use std::fmt::Debug;
 use crate::utils::libindy::crypto;
 
 use crate::error::prelude::*;
-use crate::v3::messages::a2a::A2AMessage;
 use crate::v3::messages::connection::did_doc::DidDoc;
 use crate::v3::messages::forward::Forward;
+use crate::v3::messages::a2a::A2AMessage;
+use serde::Serialize;
 
 #[derive(Debug)]
 pub struct EncryptionEnvelope(pub Vec<u8>);
 
 impl EncryptionEnvelope {
-    pub fn create(message: &A2AMessage,
+    pub fn create<T: Serialize + Debug>(message: &T,
                   pw_verkey: Option<&str>,
                   did_doc: &DidDoc) -> VcxResult<EncryptionEnvelope> {
         trace!("EncryptionEnvelope::create >>> message: {:?}, pw_verkey: {:?}, did_doc: {:?}", secret!(message), secret!(pw_verkey), secret!(did_doc));
@@ -22,20 +24,20 @@ impl EncryptionEnvelope {
             .map(|message| EncryptionEnvelope(message))
     }
 
-    fn encrypt_for_pairwise(message: &A2AMessage,
+    fn encrypt_for_pairwise<T: Serialize + Debug>(message: &T,
                             pw_verkey: Option<&str>,
                             did_doc: &DidDoc) -> VcxResult<Vec<u8>> {
         trace!("EncryptionEnvelope::encrypt_for_pairwise >>> pw_verkey: {:?}, did_doc: {:?}", secret!(pw_verkey), secret!(did_doc));
         debug!("EncryptionEnvelope: Encryption for recipient");
 
-        let message = match message {
-            A2AMessage::Generic(message_) => message_.to_string(),
-            message => json!(message).to_string()
-        };
-
         let receiver_keys = json!(did_doc.recipient_keys()).to_string();
+        let json = serde_json::to_string(message)
+            .map_err(|err| VcxError::from_msg(
+                VcxErrorKind::InvalidJson,
+                format!("Unable to serialize message. Err: {:?}", err)
+            ))?;
 
-        crypto::pack_message(pw_verkey, &receiver_keys, message.as_bytes())
+        crypto::pack_message(pw_verkey, &receiver_keys, json.to_string().as_bytes())
     }
 
     fn wrap_into_forward_messages(mut message: Vec<u8>,
@@ -111,8 +113,7 @@ pub mod tests {
         _setup();
         let setup = test_setup::key();
 
-        let message = A2AMessage::Ack(_ack());
-
+        let message = json!(A2AMessage::Ack(_ack())).to_string();
         let res = EncryptionEnvelope::create(&message, Some(&setup.key), &DidDoc::default());
         assert_eq!(res.unwrap_err().kind(), VcxErrorKind::InvalidLibindyParam);
     }
@@ -122,10 +123,9 @@ pub mod tests {
         _setup();
         let setup = test_setup::key();
 
-        let message = A2AMessage::Ack(_ack());
-
+        let message = _ack();
         let envelope = EncryptionEnvelope::create(&message, Some(&setup.key), &_did_doc_4()).unwrap();
-        assert_eq!(message, EncryptionEnvelope::open(envelope.0).unwrap());
+        assert_eq!(A2AMessage::Ack(message), EncryptionEnvelope::open(envelope.0).unwrap());
     }
 
     #[test]
@@ -139,8 +139,7 @@ pub mod tests {
         did_doc.set_service_endpoint(_service_endpoint());
         did_doc.set_keys(_recipient_keys(), vec![key_1.clone(), key_2.clone()]);
 
-        let ack = A2AMessage::Ack(_ack());
-
+        let ack = _ack();
         let envelope = EncryptionEnvelope::create(&ack, Some(&setup.key), &did_doc).unwrap();
 
         let message_1 = EncryptionEnvelope::open(envelope.0).unwrap();
@@ -163,6 +162,6 @@ pub mod tests {
             _ => return assert!(false)
         };
 
-        assert_eq!(ack, EncryptionEnvelope::open(message_2).unwrap());
+        assert_eq!(A2AMessage::Ack(ack), EncryptionEnvelope::open(message_2).unwrap());
     }
 }

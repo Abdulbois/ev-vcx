@@ -1,9 +1,17 @@
 use crate::v3::messages::a2a::{A2AMessage, MessageId};
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Invitation {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     pub label: String,
     #[serde(rename = "recipientKeys")]
     pub recipient_keys: Vec<String>,
@@ -60,7 +68,25 @@ impl Invitation {
     }
 }
 
-a2a_message!(Invitation, ConnectionInvitation);
+impl Default for Invitation {
+    fn default() -> Invitation {
+        Invitation {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::Connections,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::CONNECTION_INVITATION.to_string()
+            },
+            label: Default::default(),
+            recipient_keys: Default::default(),
+            routing_keys: Default::default(),
+            service_endpoint: Default::default(),
+            profile_url: Default::default(),
+            public_did: Default::default()
+        }
+    }
+}
 
 #[cfg(test)]
 pub mod tests {
@@ -75,12 +101,13 @@ pub mod tests {
             routing_keys: _routing_keys(),
             service_endpoint: _service_endpoint(),
             profile_url: None,
-            public_did: None
+            public_did: None,
+            ..Invitation::default()
         }
     }
 
     pub fn _invitation_json() -> String {
-        ::serde_json::to_string(&_invitation().to_a2a_message()).unwrap()
+        ::serde_json::to_string(&_invitation()).unwrap()
     }
 
     #[test]
@@ -92,5 +119,7 @@ pub mod tests {
             .set_routing_keys(_routing_keys());
 
         assert_eq!(_invitation(), invitation);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/invitation","label":"test","recipientKeys":["GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL"],"routingKeys":["Hezce2UWMZ3wUhVkh2LfKSs8nDzWwzs2Win7EzNN3YaR","3LYuxJBJkngDbvJj4zjx13DBUdZ2P96eNybwd2n9L9AU"],"serviceEndpoint":"http://localhost:8080"}"#;
+        assert_eq!(expected, json!(invitation).to_string());
     }
 }

@@ -30,7 +30,7 @@ pub mod tests {
                 .set_keys(vec![key.to_string()], vec![])
                 .set_thread_id(&_request().id.0)
                 .encode(&key).unwrap();
-        connection_handle.update_state(Some(json!(response.to_a2a_message()).to_string())).unwrap();
+        connection_handle.update_state(Some(json!(response).to_string())).unwrap();
 
         connection_handle
     }
@@ -93,7 +93,7 @@ pub mod tests {
 
             // Send Message works
             {
-                faber.send_message(&message.to_a2a_message());
+                faber.send_message(&message);
             }
 
             {
@@ -162,7 +162,7 @@ pub mod tests {
 
                 let credential_offer = crate::v3::messages::issuance::credential_offer::tests::_credential_offer();
 
-                faber.send_message(&credential_offer.to_a2a_message());
+                faber.send_message(&credential_offer);
 
                 alice.activate();
 

@@ -1,9 +1,17 @@
 use crate::v3::messages::a2a::{MessageId, A2AMessage};
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Query {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub query: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -24,9 +32,21 @@ impl Query {
         self.comment = comment;
         self
     }
+}
 
-    pub fn to_a2a_message(&self) -> A2AMessage {
-        A2AMessage::Query(self.clone()) // TODO: THINK how to avoid clone
+impl Default for Query {
+    fn default() -> Query {
+        Query {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::DiscoveryFeatures,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::QUERY.to_string()
+            },
+            query: Default::default(),
+            comment: Default::default(),
+        }
     }
 }
 
@@ -48,6 +68,7 @@ pub mod tests {
             id: MessageId::id(),
             query: Some(_query_string()),
             comment: Some(_comment()),
+            ..Query::default()
         }
     }
 
@@ -58,5 +79,7 @@ pub mod tests {
             .set_comment(Some(_comment()));
 
         assert_eq!(_query(), query);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/discover-features/1.0/query","comment":"I'm wondering if we can...","query":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/"}"#;
+        assert_eq!(expected, json!(query).to_string());
     }
 }

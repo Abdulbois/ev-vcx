@@ -21,6 +21,7 @@ use crate::v3::messages::ack::Ack;
 use crate::v3::handlers::connection::types::CompletedConnection;
 use crate::v3::handlers::connection::agent::AgentInfo;
 use crate::v3::handlers::connection::connection::Connection;
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
 /// A state machine that tracks the evolution of states for a Prover during
 /// the Present Proof protocol.
@@ -43,7 +44,7 @@ impl ProverSM {
                 RequestReceivedState {
                     thread,
                     presentation_request,
-                    presentation_proposal: None
+                    presentation_proposal: None,
                 }
             ),
         }
@@ -67,9 +68,9 @@ impl ProverSM {
             state: ProverState::ProposalPrepared(
                 ProposalPreparedState {
                     presentation_proposal,
-                    thread
+                    thread,
                 }
-            )
+            ),
         }
     }
 }
@@ -400,7 +401,7 @@ impl ProverSM {
                 ProverState::ProposalSent(ref state) => {
                     match message {
                         A2AMessage::PresentationRequest(request) => {
-                            return Some((uid, A2AMessage::PresentationRequest(request)))
+                            return Some((uid, A2AMessage::PresentationRequest(request)));
                         }
                         A2AMessage::CommonProblemReport(problem_report) => {
                             if problem_report.from_thread(&state.thread.thid.clone().unwrap_or_default()) {
@@ -481,7 +482,7 @@ impl ProverSM {
                             let thread = state.thread.clone();
                             let service = state.presentation_request.service.clone().unwrap().into();
                             let presentation = state.presentation.clone().reset_ack();
-                            Connection::send_message_to_self_endpoint(&presentation.to_a2a_message(), &service)?;
+                            Connection::send_message_to_self_endpoint(&presentation, &service)?;
                             ProverState::Finished((state, thread).into())
                         } else {
                             // regular proof request
@@ -493,7 +494,7 @@ impl ProverSM {
                             let presentation = state.presentation.clone()
                                 .set_thread(thread.clone());
 
-                            connection.data.send_message(&presentation.to_a2a_message(), &connection.agent)?;
+                            connection.data.send_message(&presentation, &connection.agent)?;
                             ProverState::PresentationSent((state, connection, presentation, thread).into())
                         }
                     }
@@ -522,10 +523,10 @@ impl ProverSM {
                         let error_kind = state.error_kind
                             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Prover object state: `error_kind` not found", source_id)))?;
 
-                        let problem_report = A2AMessage::PresentationReject(
+                        let problem_report =
                             state.problem_report.clone()
-                                .set_thread(thread.clone())
-                        );
+                                .set_thread(thread)
+                                .set_message_family(MessageTypeFamilies::PresentProof);
 
                         match state.presentation_request.service.clone() {
                             None => {
@@ -559,9 +560,10 @@ impl ProverSM {
                                 let problem_report = ProblemReport::create()
                                     .set_description(ProblemReportCodes::Other(String::from("invalid-message-state")))
                                     .set_comment(format!("error occurred: {:?}", err))
+                                    .set_message_family(MessageTypeFamilies::PresentProof)
                                     .set_thread(thread.clone());
 
-                                state.connection.data.send_message(&A2AMessage::PresentationReject(problem_report.clone()), &state.connection.agent)?;
+                                state.connection.data.send_message(&problem_report, &state.connection.agent)?;
                                 return Err(err);
                             }
                         }
@@ -589,7 +591,7 @@ impl ProverSM {
                         let thread = state.thread.clone().update_received_order(&connection.data.did_doc.id);
                         let presentation_proposal = state.presentation_proposal.clone();
 
-                        connection.data.send_message(&presentation_proposal.to_a2a_message(), &connection.agent)?;
+                        connection.data.send_message(&presentation_proposal, &connection.agent)?;
 
                         ProverState::ProposalSent((state, connection, presentation_proposal, thread).into())
                     }
@@ -597,7 +599,6 @@ impl ProverSM {
                         warn!("Prover: Unexpected action to update state {:?}", message_);
                         ProverState::ProposalPrepared(state)
                     }
-
                 }
             }
             ProverState::ProposalSent(state) => {
@@ -619,7 +620,6 @@ impl ProverSM {
                         warn!("Prover: Unexpected action to update state {:?}", message_);
                         ProverState::ProposalSent(state)
                     }
-
                 }
             }
         };
@@ -636,11 +636,12 @@ impl ProverSM {
         let mut problem_report = ProblemReport::create()
             .set_description(ProblemReportCodes::PresentationRejected)
             .set_comment(reason.to_string())
+            .set_message_family(MessageTypeFamilies::PresentProof)
             .set_thread(thread.clone());
 
         if presentation_request.service.is_some() && connection_handle == 0 {
             // ephemeral proof request
-            Connection::send_message_to_self_endpoint(&A2AMessage::PresentationReject(problem_report.clone()), &presentation_request.service.clone().unwrap().into())?;
+            Connection::send_message_to_self_endpoint(&problem_report, &presentation_request.service.clone().unwrap().into())?;
         } else {
             // regular proof request
             let connection = connection_handle.get_completed_connection()?;
@@ -648,7 +649,7 @@ impl ProverSM {
             thread = thread.update_received_order(&connection.data.did_doc.id);
             problem_report = problem_report.set_thread(thread.clone());
 
-            connection.data.send_message(&A2AMessage::PresentationReject(problem_report.clone()), &connection.agent)?;
+            connection.data.send_message(&problem_report, &connection.agent)?;
         }
 
         trace!("ProverSM::_handle_reject_presentation_request <<<");
@@ -664,8 +665,8 @@ impl ProverSM {
             .set_thread(thread.clone());
 
         match presentation_request.service.clone() {
-            None => connection.data.send_message(&proposal.to_a2a_message(), &connection.agent)?,
-            Some(service) => Connection::send_message_to_self_endpoint(&proposal.to_a2a_message(), &service.into())?
+            None => connection.data.send_message(&proposal, &connection.agent)?,
+            Some(service) => Connection::send_message_to_self_endpoint(&proposal, &service.into())?
         }
 
         trace!("ProverSM::_handle_presentation_proposal <<<");
@@ -687,7 +688,7 @@ impl ProverSM {
                     _ => VcxStateType::VcxStateNone as u32,
                 }
             }
-            ProverState::ProposalPrepared(_) =>  VcxStateType::VcxStateInitialized as u32,
+            ProverState::ProposalPrepared(_) => VcxStateType::VcxStateInitialized as u32,
             ProverState::ProposalSent(_) => VcxStateType::VcxStateOfferSent as u32,
         }
     }
@@ -724,9 +725,9 @@ impl ProverSM {
             ProverState::PresentationSent(ref state) => Ok(&state.presentation_request),
             ProverState::Finished(ref state) => Ok(&state.presentation_request),
             ProverState::ProposalPrepared(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                                      format!("Prover object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
+                                                                       format!("Prover object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
             ProverState::ProposalSent(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                                      format!("Prover object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
+                                                                   format!("Prover object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
         }
     }
 
@@ -739,9 +740,9 @@ impl ProverSM {
             ProverState::PresentationSent(ref state) => Ok(&state.presentation),
             ProverState::Finished(ref state) => Ok(&state.presentation),
             ProverState::ProposalPrepared(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                                      format!("Prover object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
+                                                                       format!("Prover object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
             ProverState::ProposalSent(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
-                                                                      format!("Prover object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
+                                                                   format!("Prover object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
         }
     }
 

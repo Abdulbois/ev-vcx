@@ -23,6 +23,7 @@ use crate::messages::thread::Thread;
 use crate::v3::handlers::connection::connection::Connection;
 use crate::utils::libindy::signus::create_and_store_my_did;
 use crate::utils::libindy::types::CredentialInfo;
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HolderSM {
@@ -160,8 +161,10 @@ impl HolderSM {
                     match state_data.store_credential(&credential) {
                         Ok(cred_id) => {
                             if credential.please_ack.is_some() {
-                                let ack = CredentialAck::create().set_thread(thread.clone());
-                                state_data.connection.data.send_message(&A2AMessage::CredentialAck(ack), &state_data.connection.agent)?;
+                                let ack = CredentialAck::create()
+                                    .set_message_family(MessageTypeFamilies::CredentialIssuance)
+                                    .set_thread(thread.clone());
+                                state_data.connection.data.send_message(&ack, &state_data.connection.agent)?;
                             }
 
                             HolderState::Finished((state_data, cred_id, credential, thread).into())
@@ -170,9 +173,10 @@ impl HolderSM {
                             let problem_report = ProblemReport::create()
                                 .set_description(ProblemReportCodes::InvalidCredential)
                                 .set_comment(format!("error occurred: {:?}", err))
+                                .set_message_family(MessageTypeFamilies::CredentialIssuance)
                                 .set_thread(thread.clone());
 
-                            state_data.connection.data.send_message(&A2AMessage::CredentialReject(problem_report.clone()), &state_data.connection.agent)?;
+                            state_data.connection.data.send_message(&problem_report, &state_data.connection.agent)?;
                             return Err(err);
                         }
                     }
@@ -393,7 +397,7 @@ impl OfferReceivedState {
 
         let did_doc = self.offer.service.clone().unwrap().into();
         let (_, pw_vk) = create_and_store_my_did(None, None)?;
-        let message = Connection::send_message_and_wait_result(&cred_request.to_a2a_message(), &did_doc, &pw_vk)?;
+        let message = Connection::send_message_and_wait_result(&cred_request, &did_doc, &pw_vk)?;
 
         match message {
             A2AMessage::Credential(credential) => {
@@ -423,16 +427,17 @@ impl OfferReceivedState {
         match self.make_credential_request() {
             Ok((cred_request, req_meta, cred_def_json)) => {
                 let cred_request = cred_request.set_thread(thread.clone());
-                connection.data.send_message(&cred_request.to_a2a_message(), &connection.agent)?;
+                connection.data.send_message(&cred_request, &connection.agent)?;
                 Ok(HolderState::RequestSent((self, req_meta, cred_def_json, connection, thread).into()))
             }
             Err(err) => {
                 let problem_report = ProblemReport::create()
                     .set_description(ProblemReportCodes::InvalidCredentialOffer)
                     .set_comment(format!("error occurred: {:?}", err))
+                    .set_message_family(MessageTypeFamilies::CredentialIssuance)
                     .set_thread(thread.clone());
 
-                connection.data.send_message(&A2AMessage::CredentialReject(problem_report.clone()), &connection.agent)?;
+                connection.data.send_message(&problem_report, &connection.agent)?;
                 return Err(err)
             }
         }
@@ -453,9 +458,10 @@ fn _reject_credential(connection: &CompletedConnection, thread: &Thread, comment
     let problem_report = ProblemReport::create()
         .set_description(ProblemReportCodes::CredentialRejected)
         .set_comment(comment.unwrap_or(String::from("credential-offer was rejected")))
+        .set_message_family(MessageTypeFamilies::CredentialIssuance)
         .set_thread(thread.clone());
 
-    connection.agent.send_message(&A2AMessage::CredentialReject(problem_report.clone()), &connection.data.did_doc)?;
+    connection.agent.send_message(&problem_report, &connection.data.did_doc)?;
 
     trace!("Holder::_reject_credential <<<");
     Ok(problem_report)

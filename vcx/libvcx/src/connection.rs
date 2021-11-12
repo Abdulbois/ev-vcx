@@ -501,7 +501,7 @@ impl Connection {
             .edge_agent_payload(
                 &self.get_pw_verkey(),
                 &self.get_their_pw_verkey(),
-                &json!(&answer.to_a2a_message()).to_string(),
+                &json!(&answer).to_string(),
                 PayloadKinds::Other(String::from("Answer")),
                 None)?
             .agent_did(&self.get_agent_did())?
@@ -528,11 +528,10 @@ impl Connection {
         }
 
         let invite = json!(
-                InviteForAction::create()
-                .set_goal_code(data.goal_code)
-                .set_ack_on(data.ack_on)
-                .to_a2a_message()
-            ).to_string();
+            InviteForAction::create()
+            .set_goal_code(data.goal_code)
+            .set_ack_on(data.ack_on)
+        ).to_string();
 
         crate::messages::send_message()
             .to(&self.get_pw_did())?

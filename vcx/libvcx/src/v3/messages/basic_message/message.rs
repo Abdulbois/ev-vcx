@@ -1,11 +1,19 @@
 use crate::v3::messages::a2a::{MessageId, A2AMessage};
 use crate::v3::messages::localization::Localization;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 use chrono::prelude::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BasicMessage {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     pub sent_time: String,
     pub content: String,
     #[serde(rename = "~l10n")]
@@ -32,9 +40,22 @@ impl BasicMessage {
         self.l10n = Some(Localization::default());
         self
     }
+}
 
-    pub fn to_a2a_message(&self) -> A2AMessage {
-        A2AMessage::BasicMessage(self.clone()) // TODO: THINK how to avoid clone
+impl Default for BasicMessage {
+    fn default() -> BasicMessage {
+        BasicMessage {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::Basicmessage,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::BASIC_MESSAGE.to_string()
+            },
+            sent_time: Default::default(),
+            content: Default::default(),
+            l10n: Default::default()
+        }
     }
 }
 
@@ -50,8 +71,10 @@ pub mod tests {
     fn test_basic_message_build_works() {
         let basic_message: BasicMessage = BasicMessage::default()
             .set_content(_content())
-            .set_time()
             .set_default_localization();
         assert_eq!(_content(), basic_message.content);
+
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/basicmessage/1.0/message","content":"Your hovercraft is full of eels.","sent_time":"","~l10n":{"locale":"en"}}"#;
+        assert_eq!(expected, json!(basic_message).to_string())
     }
 }

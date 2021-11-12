@@ -3,17 +3,26 @@ use crate::v3::messages::attachment::{Attachments, AttachmentId};
 use crate::error::VcxResult;
 use crate::messages::thread::Thread;
 use crate::v3::messages::transport::Transport;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct CredentialRequest {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
     #[serde(rename = "requests~attach")]
     pub requests_attach: Attachments,
     #[serde(rename = "~thread")]
     pub thread: Thread,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "~transport")]
     pub transport: Option<Transport>,
 }
@@ -36,7 +45,24 @@ impl CredentialRequest {
 
 threadlike!(CredentialRequest);
 return_route!(CredentialRequest);
-a2a_message!(CredentialRequest);
+
+impl Default for CredentialRequest {
+    fn default() -> CredentialRequest {
+        CredentialRequest {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::CredentialIssuance,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::REQUEST_CREDENTIAL.to_string()
+            },
+            comment: Default::default(),
+            requests_attach: Default::default(),
+            thread: Default::default(),
+            transport: Default::default(),
+        }
+    }
+}
 
 #[cfg(test)]
 pub mod tests {
@@ -63,7 +89,8 @@ pub mod tests {
             comment: Some(_comment()),
             requests_attach: attachment,
             thread: thread(),
-            transport: None
+            transport: None,
+            ..CredentialRequest::default()
         }
     }
 
@@ -75,5 +102,7 @@ pub mod tests {
             .set_requests_attach(_attachment().to_string()).unwrap();
 
         assert_eq!(_credential_request(), credential_request);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/request-credential","comment":"comment","requests~attach":[{"@id":"libindy-cred-request-0","data":{"base64":"eyJjcmVkX2RlZl9pZCI6Ik5jWXhpRFhrcFlpNm92NUZjWURpMWU6MzpDTDpOY1l4aURYa3BZaTZvdjVGY1lEaTFlOjI6Z3Z0OjEuMDpUQUcxIiwicHJvdmVyX2RpZCI6IlZzS1Y3Z3JSMUJVRTI5bUcyRm0ya1gifQ=="},"mime-type":"application/json"}],"~thread":{"received_orders":{},"sender_order":0,"thid":"testid"}}"#;
+        assert_eq!(expected, json!(credential_request).to_string());
     }
 }

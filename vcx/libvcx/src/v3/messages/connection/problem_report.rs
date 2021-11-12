@@ -1,11 +1,19 @@
+use crate::messages::thread::Thread;
 use crate::v3::messages::a2a::{MessageId, A2AMessage};
 use crate::v3::messages::localization::Localization;
-use crate::messages::thread::Thread;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ProblemReport {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     #[serde(rename = "problem-code")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub problem_code: Option<ProblemCode>,
@@ -48,10 +56,25 @@ impl ProblemReport {
         self
     }
 }
+impl Default for ProblemReport {
+    fn default() -> ProblemReport {
+        ProblemReport {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::Connections,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::PROBLEM_REPORT.to_string()
+            },
+            problem_code: Default::default(),
+            explain: Default::default(),
+            localization: Default::default(),
+            thread: Default::default()
+        }
+    }
+}
 
 threadlike!(ProblemReport);
-a2a_message!(ProblemReport, ConnectionProblemReport);
-
 impl Default for ProblemCode {
     fn default() -> ProblemCode {
         ProblemCode::Empty
@@ -78,6 +101,7 @@ pub mod tests {
             explain: Some(_explain()),
             localization: None,
             thread: _thread(),
+            ..ProblemReport::default()
         }
     }
 
@@ -89,5 +113,7 @@ pub mod tests {
             .set_thread_id(&_thread_id());
 
         assert_eq!(_problem_report(), report);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/problem-report","explain":"test explanation","problem-code":"response_processing_error","~thread":{"received_orders":{},"sender_order":0,"thid":"test_id"}}"#;
+        assert_eq!(expected, json!(report).to_string());
     }
 }

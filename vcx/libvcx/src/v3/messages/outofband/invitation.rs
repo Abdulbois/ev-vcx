@@ -2,13 +2,21 @@ use crate::v3::messages::a2a::{A2AMessage, MessageId};
 use crate::v3::messages::attachment::{Attachments, AttachmentId};
 use crate::v3::messages::connection::did_doc::Service;
 use crate::error::prelude::*;
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
 
 const SUPPORTED_HANDSHAKE_PROTOCOL: &str = "connections/1.0";
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Invitation {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -117,7 +125,7 @@ impl Invitation {
         }
 
         if !self.handshake_protocols.is_empty() &&
-            !self.handshake_protocols.iter().any(|protocol|  protocol.contains(SUPPORTED_HANDSHAKE_PROTOCOL)) {
+            !self.handshake_protocols.iter().any(|protocol| protocol.contains(SUPPORTED_HANDSHAKE_PROTOCOL)) {
             return Err(VcxError::from_msg(VcxErrorKind::InvalidRedirectDetail,
                                           format!("Invalid Out-of-band Invitation: Could not find a supported `handshake_protocol`.\
                                           Requested: {:?}, Supported: {:?}`", self.handshake_protocols, SUPPORTED_HANDSHAKE_PROTOCOL)));
@@ -130,7 +138,7 @@ impl Invitation {
     pub fn normalize_service_keys(&mut self) -> VcxResult<()> {
         for service in self.service.iter_mut() {
             Service::transform_did_keys_to_naked_keys(&mut service.recipient_keys)?;
-            if !service.routing_keys.is_empty(){
+            if !service.routing_keys.is_empty() {
                 Service::transform_did_keys_to_naked_keys(&mut service.routing_keys)?
             }
         }
@@ -139,7 +147,27 @@ impl Invitation {
     }
 }
 
-a2a_message!(Invitation, OutOfBandInvitation);
+impl Default for Invitation {
+    fn default() -> Invitation {
+        Invitation {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::Outofband,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::OUTOFBAND_INVITATION.to_string(),
+            },
+            label: Default::default(),
+            goal_code: Default::default(),
+            goal: Default::default(),
+            handshake_protocols: Default::default(),
+            request_attach: Default::default(),
+            service: Default::default(),
+            profile_url: Default::default(),
+            public_did: Default::default(),
+        }
+    }
+}
 
 #[cfg(test)]
 pub mod tests {
@@ -171,7 +199,8 @@ pub mod tests {
             request_attach: attachment,
             service: vec![_service()],
             profile_url: None,
-            public_did: None
+            public_did: None,
+            ..Invitation::default()
         }
     }
 
@@ -188,7 +217,8 @@ pub mod tests {
             request_attach: attachment,
             service: vec![_service_did_formatted()],
             profile_url: None,
-            public_did: None
+            public_did: None,
+            ..Invitation::default()
         }
     }
 
@@ -205,7 +235,8 @@ pub mod tests {
             request_attach: attachment,
             service: vec![_service()],
             profile_url: None,
-            public_did: None
+            public_did: None,
+            ..Invitation::default()
         }
     }
 
@@ -220,6 +251,8 @@ pub mod tests {
             .set_request_attach(_attachment_json()).unwrap();
 
         assert_eq!(_invitation(), invitation);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/out-of-band/1.0/invitation","goal":"To issue a Faber College Graduate credential","goal_code":"issue-vc","handshake_protocols":["https://didcomm.org/connections/1.0"],"label":"Faber College","request~attach":[{"@id":"request-0","data":{"base64":"eyJyZXF1ZXN0Ijp7fX0="},"mime-type":"application/json"}],"service":[{"id":"VsKV7grR1BUE29mG2Fm2kX","priority":0,"recipientKeys":["GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL"],"routingKeys":["Hezce2UWMZ3wUhVkh2LfKSs8nDzWwzs2Win7EzNN3YaR","3LYuxJBJkngDbvJj4zjx13DBUdZ2P96eNybwd2n9L9AU"],"serviceEndpoint":"http://localhost:8080","type":""}]}"#;
+        assert_eq!(expected, json!(invitation).to_string());
     }
 
     #[test]

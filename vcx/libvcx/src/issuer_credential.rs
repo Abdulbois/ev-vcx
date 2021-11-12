@@ -733,7 +733,7 @@ impl Handle<IssuerCredentials> {
 
                     // strict aries protocol is set. Return aries formatted Credential Offers
                     if settings::is_strict_aries_protocol_set() {
-                        return Ok(json!(cred_offer.to_a2a_message()).to_string());
+                        return Ok(json!(cred_offer).to_string());
                     }
 
                     let cred_offer: CredentialOffer = cred_offer.try_into()?;

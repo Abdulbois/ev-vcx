@@ -15,6 +15,7 @@ use crate::v3::handlers::connection::types::CompletedConnection;
 use crate::messages::thread::Thread;
 use crate::v3::handlers::connection::agent::AgentInfo;
 use crate::v3::messages::proof_presentation::presentation_proposal::PresentationProposal;
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct VerifierSM {
@@ -246,7 +247,9 @@ impl PresentationRequestPreparedState {
     fn verify_presentation(&self, presentation: &Presentation, thread: &Thread) -> VcxResult<Thread> {
         trace!("PresentationRequestSentState::verify_presentation >>> presentation: {:?}", secret!(presentation));
 
-        let connection = self.connection.clone().unwrap();
+        let connection = self.connection.as_ref().ok_or(VcxError::from_msg(
+            VcxErrorKind::InvalidState,
+            "Unable to get connection data for Verifier state machine"))?;
         let mut thread = thread.clone();
 
         let valid = Proof::validate_indy_proof(&presentation.presentations_attach.content()?,
@@ -262,7 +265,7 @@ impl PresentationRequestPreparedState {
             let ack = PresentationAck::create()
                 .set_thread(thread.clone());
 
-            connection.data.send_message(&A2AMessage::PresentationAck(ack), &connection.agent)?;
+            connection.data.send_message(&ack, &connection.agent)?;
         }
 
         trace!("PresentationRequestSentState::verify_presentation <<<");
@@ -289,9 +292,10 @@ impl PresentationRequestSentState {
             thread = thread.increment_sender_order();
 
             let ack = PresentationAck::create()
+                .set_message_family(MessageTypeFamilies::PresentProof)
                 .set_thread(thread.clone());
 
-            self.connection.data.send_message(&A2AMessage::PresentationAck(ack), &self.connection.agent)?;
+            self.connection.data.send_message(&ack, &self.connection.agent)?;
         }
 
         trace!("PresentationRequestSentState::verify_presentation <<<");
@@ -403,7 +407,7 @@ impl VerifierSM {
                             .set_thid(presentation_request.id.to_string())
                             .set_opt_pthid(connection.data.thread.pthid.clone());
 
-                        connection.data.send_message(&presentation_request.to_a2a_message(), &connection.agent)?;
+                        connection.data.send_message(&presentation_request, &connection.agent)?;
                         VerifierState::PresentationRequestSent((state, presentation_request, connection, thread).into())
                     }
                     VerifierMessages::PreparePresentationRequest() => {
@@ -439,11 +443,11 @@ impl VerifierSM {
                             .set_thid(presentation_request.id.to_string())
                             .set_opt_pthid(connection.data.thread.pthid.clone());
 
-                        connection.data.send_message(&presentation_request.to_a2a_message(), &connection.agent)?;
+                        connection.data.send_message(&presentation_request, &connection.agent)?;
                         VerifierState::PresentationRequestSent((state, connection, thread).into())
                     }
                     VerifierMessages::PresentationReceived(presentation) => {
-                        let connection = state.connection.clone()
+                        let connection = state.connection.as_ref()
                             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Verifier object state: `connection` not found", source_id)))?;
 
                         let mut thread = presentation.thread.clone()
@@ -460,9 +464,10 @@ impl VerifierSM {
                                     ProblemReport::create()
                                         .set_description(ProblemReportCodes::InvalidPresentation)
                                         .set_comment(format!("error occurred: {:?}", err))
+                                        .set_message_family(MessageTypeFamilies::PresentProof)
                                         .set_thread(thread.clone());
 
-                                connection.data.send_message(&problem_report.to_a2a_message(), &connection.agent)?;
+                                connection.data.send_message(&problem_report, &connection.agent)?;
                                 VerifierState::Finished((state, Status::Failed(problem_report), thread).into())
                             }
                         }
@@ -511,9 +516,10 @@ impl VerifierSM {
                                     ProblemReport::create()
                                         .set_description(ProblemReportCodes::InvalidPresentation)
                                         .set_comment(format!("error occurred: {:?}", err))
+                                        .set_message_family(MessageTypeFamilies::PresentProof)
                                         .set_thread(thread.clone());
 
-                                state.connection.data.send_message(&problem_report.to_a2a_message(), &state.connection.agent)?;
+                                state.connection.data.send_message(&problem_report, &state.connection.agent)?;
                                 return Err(err);
                             }
                         }
@@ -556,7 +562,7 @@ impl VerifierSM {
                                 .set_thread(thread.clone())
                                 .set_service(connection.service()?);
 
-                        connection.data.send_message(&presentation_request.to_a2a_message(), &connection.agent)?;
+                        connection.data.send_message(&presentation_request, &connection.agent)?;
                         VerifierState::PresentationRequestSent((state, presentation_request, connection, thread).into())
                     }
                     VerifierMessages::SendPresentationRequest(connection_handle) => {
@@ -582,7 +588,7 @@ impl VerifierSM {
                                 .set_thread(thread.clone())
                                 .set_service(connection.service()?);
 
-                        connection.data.send_message(&presentation_request.to_a2a_message(), &connection.agent)?;
+                        connection.data.send_message(&presentation_request, &connection.agent)?;
                         VerifierState::PresentationRequestSent((state, presentation_request, connection, thread).into())
                     }
                     _ => {

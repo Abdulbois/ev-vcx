@@ -12,7 +12,6 @@ use crate::messages::issuance::credential_request::set_cred_req_ref_message;
 use crate::v3::messages::a2a::A2AMessage as AriesA2AMessage;
 use crate::v3::utils::encryption_envelope::EncryptionEnvelope;
 use std::convert::TryInto;
-use crate::messages::issuance::credential::CredentialMessage;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -417,7 +416,6 @@ impl Message {
         let (kind, msg) = match a2a_message {
             AriesA2AMessage::PresentationRequest(presentation_request) => {
                 if settings::is_strict_aries_protocol_set() {
-                    let presentation_request = AriesA2AMessage::PresentationRequest(presentation_request);
                     (PayloadKinds::ProofRequest, json!(&presentation_request).to_string())
                 } else {
                     let converted_message: ProofRequestMessage = presentation_request.try_into()?;
@@ -426,7 +424,6 @@ impl Message {
             }
             AriesA2AMessage::CredentialOffer(offer) => {
                 if settings::is_strict_aries_protocol_set() {
-                    let offer = AriesA2AMessage::CredentialOffer(offer);
                     (PayloadKinds::CredOffer, json!(&offer).to_string())
                 } else {
                     let cred_offer: CredentialOffer = offer.try_into()?;
@@ -434,63 +431,61 @@ impl Message {
                 }
             }
             AriesA2AMessage::Credential(credential) => {
-                let credential = AriesA2AMessage::Credential(credential);
                 if settings::is_strict_aries_protocol_set() {
                     (PayloadKinds::Cred, json!(&credential).to_string())
                 } else {
                     (PayloadKinds::Other(String::from("credential")), json!(&credential).to_string())
                 }
             }
-            presentation_proposal @ AriesA2AMessage::PresentationProposal(_) => {
+            AriesA2AMessage::PresentationProposal(presentation_proposal) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::PROPOSE_PRESENTATION)), json!(&presentation_proposal).to_string())
             }
-            presentation @ AriesA2AMessage::Presentation(_) => {
+            AriesA2AMessage::Presentation(presentation) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::PRESENTATION)), json!(&presentation).to_string())
             }
-            ping @ AriesA2AMessage::Ping(_) => {
+            AriesA2AMessage::Ping(ping) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::PING)), json!(&ping).to_string())
             }
-            ping_response @ AriesA2AMessage::PingResponse(_) => {
+            AriesA2AMessage::PingResponse(ping_response) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::PING_RESPONSE)), json!(&ping_response).to_string())
             }
-            query @ AriesA2AMessage::Query(_) => {
+            AriesA2AMessage::Query(query) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::QUERY)), json!(&query).to_string())
             }
-            disclose @ AriesA2AMessage::Disclose(_) => {
+            AriesA2AMessage::Disclose(disclose) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::DISCLOSE)), json!(&disclose).to_string())
             }
-            reuse @ AriesA2AMessage::HandshakeReuse(_) => {
+            AriesA2AMessage::HandshakeReuse(reuse) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::OUTOFBAND_HANDSHAKE_REUSE)), json!(&reuse).to_string())
             }
-            reuse @ AriesA2AMessage::HandshakeReuseAccepted(_) => {
+            AriesA2AMessage::HandshakeReuseAccepted(reuse) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::OUTOFBAND_HANDSHAKE_REUSE_ACCEPTED)), json!(&reuse).to_string())
             }
-            question @ AriesA2AMessage::Question(_) => {
+            AriesA2AMessage::Question(question) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::QUESTION)), json!(&question).to_string())
             }
-            answer @ AriesA2AMessage::Answer(_) => {
+            AriesA2AMessage::Answer(answer) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::ANSWER)), json!(&answer).to_string())
             }
-            question @ AriesA2AMessage::CommittedQuestion(_) => {
+            AriesA2AMessage::CommittedQuestion(question) => {
                 (PayloadKinds::Other(String::from("committed-question")), json!(&question).to_string())
             }
-            answer @ AriesA2AMessage::CommittedAnswer(_) => {
+            AriesA2AMessage::CommittedAnswer(answer) => {
                 (PayloadKinds::Other(String::from("committed-answer")), json!(&answer).to_string())
             }
-            message @ AriesA2AMessage::BasicMessage(_) => {
+            AriesA2AMessage::BasicMessage(message) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::BASIC_MESSAGE)), json!(&message).to_string())
             }
-            invite @ AriesA2AMessage::InviteForAction(_) => {
+            AriesA2AMessage::InviteForAction(invite) => {
                 (PayloadKinds::Other(String::from("invite-action")), json!(&invite).to_string())
             }
-            reject @ AriesA2AMessage::InviteForActionReject(_) |
-            reject @ AriesA2AMessage::CredentialReject(_) |
-            reject @ AriesA2AMessage::PresentationReject(_) => {
+            AriesA2AMessage::InviteForActionReject(reject) |
+            AriesA2AMessage::CredentialReject(reject) |
+            AriesA2AMessage::PresentationReject(reject) => {
                 (PayloadKinds::Other(String::from(AriesA2AMessage::PROBLEM_REPORT)), json!(&reject).to_string())
             }
             msg => {
-                let msg = json!(&msg).to_string();
-                (PayloadKinds::Other(String::from("aries")), msg)
+                (PayloadKinds::Other(String::from("aries")), json!(&msg).to_string())
             }
         };
 

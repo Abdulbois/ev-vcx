@@ -4,13 +4,21 @@ use crate::v3::messages::connection::service::Service;
 use crate::error::prelude::*;
 use std::convert::TryInto;
 use crate::messages::thread::Thread;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
 pub use crate::messages::proofs::proof_request::{ProofRequestMessage, ProofRequestData, ProofRequestVersion};
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct PresentationRequest {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
     #[serde(rename = "request_presentations~attach")]
@@ -70,7 +78,23 @@ impl PresentationRequest {
     }
 }
 
-a2a_message!(PresentationRequest);
+impl Default for PresentationRequest {
+    fn default() -> PresentationRequest {
+        PresentationRequest {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::PresentProof,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::REQUEST_PRESENTATION.to_string()
+            },
+            comment: Default::default(),
+            request_presentations_attach: Default::default(),
+            service: Default::default(),
+            thread: Default::default(),
+        }
+    }
+}
 
 impl TryInto<PresentationRequest> for ProofRequestMessage {
     type Error = VcxError;
@@ -145,7 +169,8 @@ pub mod tests {
             comment: Some(_comment()),
             request_presentations_attach: _attachment(),
             service: None,
-            thread: None
+            thread: None,
+            ..PresentationRequest::default()
         }
     }
 
@@ -155,7 +180,8 @@ pub mod tests {
             comment: Some(_comment()),
             request_presentations_attach: _attachment(),
             service: Some(_service()),
-            thread: None
+            thread: None,
+            ..PresentationRequest::default()
         }
     }
 
@@ -166,6 +192,8 @@ pub mod tests {
             .set_request_presentations_attach(&_presentation_request_data()).unwrap();
 
         assert_eq!(_presentation_request(), presentation_request);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/present-proof/1.0/request-presentation","comment":"comment","request_presentations~attach":[{"@id":"libindy-request-presentation-0","data":{"base64":"eyJuYW1lIjoiIiwibm9uX3Jldm9rZWQiOm51bGwsIm5vbmNlIjoiIiwicmVxdWVzdGVkX2F0dHJpYnV0ZXMiOnsiYXR0cmlidXRlXzAiOnsibmFtZSI6Im5hbWUifX0sInJlcXVlc3RlZF9wcmVkaWNhdGVzIjp7fSwidmVyIjpudWxsLCJ2ZXJzaW9uIjoiMS4wIn0="},"mime-type":"application/json"}]}"#;
+        assert_eq!(expected, json!(presentation_request).to_string());
     }
 
     #[test]

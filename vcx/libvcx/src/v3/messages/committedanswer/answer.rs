@@ -1,6 +1,12 @@
 use crate::v3::messages::a2a::{MessageId, A2AMessage};
 use crate::messages::thread::Thread;
 use crate::v3::messages::committedanswer::question::{Question, QuestionResponse};
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 use crate::error::VcxResult;
 use crate::utils::libindy::crypto;
 #[cfg(any(not(test)))]
@@ -10,6 +16,8 @@ use chrono::Utc;
 pub struct Answer {
     #[serde(rename = "@id")]
     pub id: Option<MessageId>,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     #[serde(rename = "response.@sig")]
     pub signature: ResponseSignature,
     #[serde(rename = "~thread")]
@@ -51,18 +59,20 @@ impl Answer {
         self.signature = signature;
         self
     }
-
-    pub fn to_a2a_message(&self) -> A2AMessage {
-        A2AMessage::CommittedAnswer(self.clone())
-    }
 }
 
 impl Default for Answer {
     fn default() -> Answer {
         Answer {
             id: Some(MessageId::default()),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::Committedanswer,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::ANSWER.to_string()
+            },
             signature: Default::default(),
-            thread: Default::default()
+            thread: Default::default(),
         }
     }
 }
@@ -107,6 +117,7 @@ pub mod tests {
             id: Some(MessageId::default()),
             thread: _thread(),
             signature: Default::default(),
+            ..Answer::default()
         }
     }
 
@@ -118,6 +129,6 @@ pub mod tests {
         assert_eq!(_answer(), answer);
 
         let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/committedanswer/1.0/answer","response.@sig":{"sig_data":"","signature":"","timestamp":"111"},"~thread":{"received_orders":{},"sender_order":0,"thid":"test_id"}}"#;
-        assert_eq!(expected, json!(answer.to_a2a_message()).to_string());
+        assert_eq!(expected, json!(answer).to_string());
     }
 }

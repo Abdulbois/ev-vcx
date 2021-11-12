@@ -2,11 +2,19 @@ use crate::v3::messages::a2a::{MessageId, A2AMessage};
 use crate::messages::thread::Thread;
 use std::collections::HashMap;
 use crate::v3::messages::status::Status;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ProblemReport {
     #[serde(rename = "@id")]
     id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     #[serde(rename = "~thread")]
     pub thread: Thread,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -48,6 +56,11 @@ impl ProblemReport {
         self
     }
 
+    pub fn set_message_family(mut self, message_family: MessageTypeFamilies) -> Self {
+        self.type_.family = message_family;
+        self
+    }
+
     pub fn set_comment(mut self, comment: String) -> Self {
         self.comment = Some(comment);
         self
@@ -55,7 +68,31 @@ impl ProblemReport {
 }
 
 threadlike!(ProblemReport);
-a2a_message!(ProblemReport, CommonProblemReport);
+
+impl Default for ProblemReport {
+    fn default() -> ProblemReport {
+        ProblemReport {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::ReportProblem,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::PROBLEM_REPORT.to_string(),
+            },
+            thread: Default::default(),
+            description: Default::default(),
+            who_retries: Default::default(),
+            tracking_uri: Default::default(),
+            escalation_uri: Default::default(),
+            fix_hint: Default::default(),
+            impact: Default::default(),
+            noticed_time: Default::default(),
+            location: Default::default(),
+            problem_items: Default::default(),
+            comment: Default::default(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Description {
@@ -78,7 +115,7 @@ pub enum ProblemReportCodes {
 }
 
 impl ProblemReportCodes {
-    fn code(&self) -> String {
+    pub fn code(&self) -> String {
         match self {
             ProblemReportCodes::Unimplemented => String::from("unimplemented"),
             ProblemReportCodes::InvalidCredentialOffer => String::from("invalid-credential-offer"),
@@ -92,7 +129,7 @@ impl ProblemReportCodes {
         }
     }
 
-    fn en(&self) -> Option<String> {
+    pub fn en(&self) -> Option<String> {
         match self {
             ProblemReportCodes::Unimplemented => Some(String::from("The protocol for received message is not implemented.")),
             ProblemReportCodes::InvalidCredentialOffer => Some(String::from("Couldn't create credential-request for received credential-offer.")),
@@ -182,6 +219,7 @@ pub mod tests {
             location: None,
             problem_items: None,
             comment: Some(_comment()),
+            ..ProblemReport::default()
         }
     }
 
@@ -193,5 +231,7 @@ pub mod tests {
             .set_description(ProblemReportCodes::Other(_code()));
 
         assert_eq!(_problem_report(), report);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/report-problem/1.0/problem-report","comment":"test comment","description":{"code":"test"},"~thread":{"received_orders":{},"sender_order":0,"thid":"test_id"}}"#;
+        assert_eq!(expected, json!(report).to_string());
     }
 }

@@ -1,3 +1,4 @@
+use core::fmt::Debug;
 use crate::api::VcxStateType;
 
 use crate::v3::handlers::connection::messages::DidExchangeMessages;
@@ -30,6 +31,7 @@ use crate::error::prelude::*;
 use crate::messages::thread::Thread;
 use crate::settings;
 use crate::connection::ConnectionOptions;
+use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DidExchangeSM {
@@ -394,7 +396,7 @@ impl InvitedState {
             .set_thread(thread.clone())
             .encode(&prev_agent_info.pw_vk)?;
 
-        new_agent_info.send_message(&signed_response.to_a2a_message(), &request.connection.did_doc)?;
+        new_agent_info.send_message(&signed_response, &request.connection.did_doc)?;
 
         trace!("InvitedState:handle_connection_request <<<");
         Ok((signed_response, new_agent_info, thread))
@@ -420,17 +422,15 @@ impl RequestedState {
             .increment_sender_order()
             .update_received_order(&response.connection.did);
 
-        let message = if response.please_ack.is_some() {
-            Ack::create()
-                .set_thread(thread.clone())
-                .to_a2a_message()
+        if response.please_ack.is_some() {
+            let ack = Ack::create().set_thread(thread.clone());
+            agent_info.send_message(&ack, &response.connection.did_doc)?;
+
         } else {
-            Ping::create()
-                .set_thread(Thread::from_parent(&thread))
-                .to_a2a_message()
+            let ping = Ping::create().set_thread(Thread::from_parent(&thread));
+            agent_info.send_message(&ping, &response.connection.did_doc)?;
         };
 
-        agent_info.send_message(&message, &response.connection.did_doc)?;
 
         trace!("RequestedState:handle_connection_response <<<");
         Ok((response, thread))
@@ -487,7 +487,7 @@ impl RespondedState {
             .set_explain(err)
             .set_thread(thread.clone());
 
-        agent_info.send_message(&problem_report.to_a2a_message(), &self.did_doc).ok();
+        agent_info.send_message(&problem_report, &self.did_doc).ok();
 
         trace!("RespondedState:send_problem_report <<<");
         Ok((problem_report, thread))
@@ -583,7 +583,7 @@ impl CompleteState {
                 .request_response()
                 .set_comment(comment);
 
-        agent_info.send_message(&ping.to_a2a_message(), &self.did_doc).ok();
+        agent_info.send_message(&ping, &self.did_doc).ok();
 
         trace!("CompleteState:handle_send_ping <<<");
         Ok(())
@@ -606,7 +606,7 @@ impl CompleteState {
                 .set_query(query)
                 .set_comment(comment);
 
-        agent_info.send_message(&query_.to_a2a_message(), &self.did_doc)?;
+        agent_info.send_message(&query_, &self.did_doc)?;
 
         trace!("CompleteState:handle_discover_features <<<");
         Ok(())
@@ -622,7 +622,7 @@ impl CompleteState {
             .set_protocols(protocols)
             .set_thread_id(query.id.0.clone());
 
-        agent_info.send_message(&disclose.to_a2a_message(), &self.did_doc)?;
+        agent_info.send_message(&disclose, &self.did_doc)?;
 
         trace!("CompleteState:handle_discovery_query <<<");
         Ok(())
@@ -641,7 +641,7 @@ impl CompleteState {
         let handshake_reuse = handshake_reuse
             .set_thread(thread);
 
-        agent_info.send_message(&handshake_reuse.to_a2a_message(), &self.did_doc).ok();
+        agent_info.send_message(&handshake_reuse, &self.did_doc).ok();
 
         trace!("CompleteState:handle_send_reuse <<<");
         Ok(())
@@ -657,7 +657,7 @@ impl CompleteState {
         let handshake_reuse_accepted = HandshakeReuseAccepted::create()
             .set_thread(thread);
 
-        agent_info.send_message(&handshake_reuse_accepted.to_a2a_message(), &self.did_doc).ok();
+        agent_info.send_message(&handshake_reuse_accepted, &self.did_doc).ok();
 
         trace!("CompleteState:handle_reuse <<<");
         Ok(())
@@ -686,7 +686,7 @@ impl CompleteState {
             answer = answer.sign(&question, &agent_info.pw_vk)?;
         }
 
-        agent_info.send_message(&answer.to_a2a_message(), &self.did_doc).ok();
+        agent_info.send_message(&answer, &self.did_doc).ok();
 
         trace!("CompleteState:handle_send_answer <<<");
         Ok(())
@@ -704,7 +704,7 @@ impl CompleteState {
             .set_thread(thread)
             .sign(&question, &response, &agent_info.pw_vk)?;
 
-        agent_info.send_message(&answer.to_a2a_message(), &self.did_doc).ok();
+        agent_info.send_message(&answer, &self.did_doc).ok();
 
         trace!("CompleteState:handle_send_committed_answer <<<");
         Ok(())
@@ -728,7 +728,7 @@ impl CompleteState {
                     .set_explain(format!("Answer signature verification failed for pairwise verkey {:?}", remote_vk))
                     .set_thread(thread.clone());
 
-                agent_info.send_message(&problem_report.to_a2a_message(), &self.did_doc).ok();
+                agent_info.send_message(&problem_report, &self.did_doc).ok();
             }
         }
 
@@ -766,7 +766,7 @@ impl CompleteState {
         Ok(())
     }
 
-    fn handle_send_invite_action(&self, invite: A2AMessage, agent_info: &AgentInfo) -> VcxResult<()> {
+    fn handle_send_invite_action(&self, invite: InviteForAction, agent_info: &AgentInfo) -> VcxResult<()> {
         trace!("CompleteState:handle_send_invite_action >>> invite: {:?}, agent_info: {:?}",
                secret!(invite), secret!(agent_info));
         debug!("sending invite to take action for connection");
@@ -783,7 +783,7 @@ impl CompleteState {
         Ok(())
     }
 
-    pub fn send_message(&self, message: &A2AMessage, agent_info: &AgentInfo) -> VcxResult<()> {
+    pub fn send_message<T: Serialize + Debug>(&self, message: &T, agent_info: &AgentInfo) -> VcxResult<()> {
         self.warn_if_onetime_connection();
         agent_info.send_message(message, &self.did_doc)
     }
@@ -802,7 +802,7 @@ fn _handle_ping(ping: &Ping, agent_info: &AgentInfo, did_doc: &DidDoc) -> VcxRes
     if ping.response_requested {
         let ping_response = PingResponse::create().set_thread_id(
             &ping.thread.as_ref().and_then(|thread| thread.thid.clone()).unwrap_or(ping.id.0.clone()));
-        agent_info.send_message(&ping_response.to_a2a_message(), did_doc)?;
+        agent_info.send_message(&ping_response, did_doc)?;
     }
     Ok(())
 }
@@ -1021,7 +1021,7 @@ impl DidExchangeSM {
                                             .set_explain(err.to_string())
                                             .set_thread(thread.clone());
 
-                                        agent_info.send_message(&problem_report.to_a2a_message(), &request.connection.did_doc).ok(); // IS is possible?
+                                        agent_info.send_message(&problem_report, &request.connection.did_doc).ok(); // IS is possible?
                                         return Err(err);
                                     }
                                 }
@@ -1082,7 +1082,7 @@ impl DidExchangeSM {
                                         .set_comment(comment)
                                         .set_thread(thread.clone());
 
-                                agent_info.send_message(&ping.to_a2a_message(), &state.did_doc).ok();
+                                agent_info.send_message(&ping, &state.did_doc).ok();
                                 ActorDidExchangeState::Inviter(DidExchangeState::Responded((state, ping, thread).into()))
                             }
                             DidExchangeMessages::PingResponseReceived(ping_response) => {
@@ -1150,7 +1150,7 @@ impl DidExchangeSM {
                                     .set_thid(request.id.to_string())
                                     .set_opt_pthid(state.invitation.pthid());
 
-                                agent_info.send_message(&request.to_a2a_message(), &DidDoc::from(state.invitation.clone()))?;
+                                agent_info.send_message(&request, &DidDoc::from(state.invitation.clone()))?;
                                 ActorDidExchangeState::Invitee(DidExchangeState::Requested((state, request, thread).into()))
                             }
                             DidExchangeMessages::ProblemReportReceived(problem_report) => {
@@ -1180,7 +1180,7 @@ impl DidExchangeSM {
                                             .set_explain(err.to_string())
                                             .set_thread(thread.clone());
 
-                                        agent_info.send_message(&problem_report.to_a2a_message(), &state.did_doc).ok();
+                                        agent_info.send_message(&problem_report, &state.did_doc).ok();
                                         return Err(err);
                                     }
                                 }

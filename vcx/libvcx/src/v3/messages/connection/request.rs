@@ -1,10 +1,18 @@
 use crate::v3::messages::a2a::{A2AMessage, MessageId};
 use crate::v3::messages::connection::did_doc::*;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct Request {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     pub label: String,
     pub connection: ConnectionData
 }
@@ -44,7 +52,21 @@ impl Request {
     }
 }
 
-a2a_message!(Request, ConnectionRequest);
+impl Default for Request {
+    fn default() -> Request {
+        Request {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::Connections,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::CONNECTION_REQUEST.to_string()
+            },
+            label: Default::default(),
+            connection: Default::default()
+        }
+    }
+}
 
 #[cfg(test)]
 pub mod tests {
@@ -63,6 +85,7 @@ pub mod tests {
                 did: _did(),
                 did_doc: _did_doc()
             },
+            ..Request::default()
         }
     }
 
@@ -75,5 +98,7 @@ pub mod tests {
             .set_keys(_recipient_keys(), _routing_keys());
 
         assert_eq!(_request(), request);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/request","connection":{"DID":"VsKV7grR1BUE29mG2Fm2kX","DIDDoc":{"@context":"https://w3id.org/did/v1","authentication":[{"publicKey":"VsKV7grR1BUE29mG2Fm2kX#1","type":"Ed25519SignatureAuthentication2018"}],"id":"VsKV7grR1BUE29mG2Fm2kX","publicKey":[{"controller":"VsKV7grR1BUE29mG2Fm2kX","id":"VsKV7grR1BUE29mG2Fm2kX#1","publicKeyBase58":"GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL","type":"Ed25519VerificationKey2018"}],"service":[{"id":"did:example:123456789abcdefghi;indy","priority":0,"recipientKeys":["GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL"],"routingKeys":["Hezce2UWMZ3wUhVkh2LfKSs8nDzWwzs2Win7EzNN3YaR","3LYuxJBJkngDbvJj4zjx13DBUdZ2P96eNybwd2n9L9AU"],"serviceEndpoint":"http://localhost:8080","type":"IndyAgent"}]}},"label":"test"}"#;
+        assert_eq!(expected, json!(request).to_string());
     }
 }

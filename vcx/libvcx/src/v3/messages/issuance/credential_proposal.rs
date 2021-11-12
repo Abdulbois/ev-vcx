@@ -1,13 +1,21 @@
 use crate::v3::messages::a2a::{MessageId, A2AMessage};
 use crate::v3::messages::issuance::CredentialPreviewData;
 use crate::v3::messages::mime_type::MimeType;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 use crate::error::VcxResult;
 use crate::messages::thread::Thread;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct CredentialProposal {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
     pub credential_proposal: CredentialPreviewData,
@@ -49,7 +57,24 @@ impl CredentialProposal {
     }
 }
 
-a2a_message!(CredentialProposal);
+impl Default for CredentialProposal {
+    fn default() -> CredentialProposal {
+        CredentialProposal {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::CredentialIssuance,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::PROPOSE_CREDENTIAL.to_string()
+            },
+            comment: Default::default(),
+            credential_proposal: Default::default(),
+            schema_id: Default::default(),
+            cred_def_id: Default::default(),
+            thread: Default::default(),
+        }
+    }
+}
 
 #[cfg(test)]
 pub mod tests {
@@ -83,6 +108,7 @@ pub mod tests {
             schema_id: _schema_id(),
             thread: Some(thread()),
             cred_def_id: _cred_def_id(),
+            ..CredentialProposal::default()
         }
     }
 
@@ -98,5 +124,7 @@ pub mod tests {
             .add_credential_preview_data(name, value, MimeType::Plain).unwrap();
 
         assert_eq!(_credential_proposal(), credential_proposal);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/propose-credential","comment":"comment","cred_def_id":"cred_def_id:id","credential_proposal":{"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/credential-preview","attributes":[{"name":"attribute","value":"value"}]},"schema_id":"schema:id","~thread":{"received_orders":{},"sender_order":0,"thid":"testid"}}"#;
+        assert_eq!(expected, json!(credential_proposal).to_string());
     }
 }

@@ -9,12 +9,19 @@ use crate::messages::issuance::credential::CredentialMessage;
 use crate::v3::messages::issuance::credential_offer::CredentialOffer;
 use crate::utils::libindy::types::CredentialOffer as IndyCredentialOffer;
 use crate::utils::libindy::types::Credential as IndyCredential;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Credential {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
     #[serde(rename = "credentials~attach")]
@@ -79,7 +86,24 @@ impl Credential {
 
 please_ack!(Credential);
 threadlike!(Credential);
-a2a_message!(Credential);
+
+impl Default for Credential {
+    fn default() -> Credential {
+        Credential {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::CredentialIssuance,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::CREDENTIAL.to_string()
+            },
+            comment: Default::default(),
+            credentials_attach: Default::default(),
+            thread: Default::default(),
+            please_ack: Default::default(),
+        }
+    }
+}
 
 impl TryInto<Credential> for CredentialMessage {
     type Error = VcxError;
@@ -142,6 +166,7 @@ pub mod tests {
             thread: thread(),
             credentials_attach: attachment,
             please_ack: None,
+            ..Credential::default()
         }
     }
 
@@ -153,6 +178,8 @@ pub mod tests {
             .set_credential(_attachment().to_string()).unwrap();
 
         assert_eq!(_credential(), credential);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/issue-credential","comment":"comment","credentials~attach":[{"@id":"libindy-cred-0","data":{"base64":"eyJjcmVkX2RlZl9pZCI6Ik5jWXhpRFhrcFlpNm92NUZjWURpMWU6MzpDTDpOY1l4aURYa3BZaTZvdjVGY1lEaTFlOjI6Z3Z0OjEuMDpUQUcxIiwic2NoZW1hX2lkIjoiTmNZeGlEWGtwWWk2b3Y1RmNZRGkxZToyOmd2dDoxLjAiLCJ2YWx1ZXMiOnsiYXR0cmlidXRlIjp7ImVuY29kZWQiOiIxMTM5NDgxNzE2NDU3NDg4NjkwMTcyMjE3OTE2Mjc4MTAzMzM1IiwicmF3IjoidmFsdWUifX19"},"mime-type":"application/json"}],"~thread":{"received_orders":{},"sender_order":0,"thid":"testid"}}"#;
+        assert_eq!(expected, json!(credential).to_string());
     }
 
     #[test]
