@@ -1,17 +1,23 @@
 use crate::v3::messages::a2a::{MessageId, A2AMessage};
 use chrono::prelude::*;
 use crate::messages::thread::Thread;
-use crate::v3::messages::a2a::message_type::MessageType;
-use crate::v3::messages::a2a::message_family::MessageFamilies;
 use crate::v3::messages::questionanswer::question::Question;
 use crate::utils::libindy::crypto;
 use crate::error::prelude::*;
 use sha2::{Sha512, Digest};
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Answer {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     pub response: String,
     #[serde(rename = "~timing")]
     pub timing: Timing,
@@ -34,7 +40,12 @@ pub struct ResponseSignature {
 impl Default for ResponseSignature {
     fn default() -> ResponseSignature {
         ResponseSignature {
-            msg_type: MessageType::build_with_did(MessageFamilies::QuestionAnswer, "ed25519Sha512_single"),
+            msg_type: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::QuestionAnswer,
+                version: MessageTypeVersion::V10,
+                type_: "ed25519Sha512_single".to_string()
+            },
             signature: String::new(),
             sig_data: String::new(),
             signers: Vec::new(),
@@ -121,7 +132,24 @@ impl Answer {
 }
 
 threadlike!(Answer);
-a2a_message!(Answer);
+
+impl Default for Answer {
+    fn default() -> Answer {
+        Answer {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::QuestionAnswer,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::ANSWER.to_string()
+            },
+            response: Default::default(),
+            timing: Default::default(),
+            response_sig: Default::default(),
+            thread: Default::default(),
+        }
+    }
+}
 
 #[cfg(test)]
 pub mod tests {
@@ -147,6 +175,7 @@ pub mod tests {
             },
             response_sig: None,
             thread: _thread(),
+            ..Answer::default()
         }
     }
 
@@ -160,7 +189,7 @@ pub mod tests {
         assert_eq!(_answer(), answer);
 
         let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/questionanswer/1.0/answer","response":"Yes, it's me","~thread":{"received_orders":{},"sender_order":0,"thid":"test_id"},"~timing":{"out_time":"2018-12-13T17:29:34+0000"}}"#;
-        assert_eq!(expected, json!(answer.to_a2a_message()).to_string());
+        assert_eq!(expected, json!(answer).to_string());
     }
 
     #[test]

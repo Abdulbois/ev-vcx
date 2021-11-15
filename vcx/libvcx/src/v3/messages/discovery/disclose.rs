@@ -1,11 +1,19 @@
 use crate::messages::thread::Thread;
 use crate::v3::messages::a2a::{MessageId, A2AMessage};
 use crate::v3::messages::a2a::protocol_registry::Actors;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Disclose {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     pub protocols: Vec<ProtocolDescriptor>,
     #[serde(rename = "~thread")]
     pub thread: Thread
@@ -36,9 +44,21 @@ impl Disclose {
         self.thread.thid = Some(id);
         self
     }
+}
 
-    pub fn to_a2a_message(&self) -> A2AMessage {
-        A2AMessage::Disclose(self.clone()) // TODO: THINK how to avoid clone
+impl Default for Disclose {
+    fn default() -> Disclose {
+        Disclose {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::DiscoveryFeatures,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::DISCLOSE.to_string()
+            },
+            protocols: Default::default(),
+            thread: Default::default(),
+        }
     }
 }
 
@@ -56,6 +76,7 @@ pub mod tests {
             id: MessageId::id(),
             protocols: vec![_protocol_descriptor()],
             thread: _thread(),
+            ..Disclose::default()
         }
     }
 
@@ -67,5 +88,7 @@ pub mod tests {
         disclose.add_protocol(_protocol_descriptor());
 
         assert_eq!(_disclose(), disclose);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/discover-features/1.0/disclose","protocols":[{"pid":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/"}],"~thread":{"received_orders":{},"sender_order":0,"thid":"test_id"}}"#;
+        assert_eq!(expected, json!(disclose).to_string());
     }
 }

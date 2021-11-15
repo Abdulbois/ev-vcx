@@ -1,5 +1,6 @@
-use crate::error::prelude::*;
+use core::fmt::Debug;
 use std::collections::HashMap;
+use crate::error::prelude::*;
 
 use crate::v3::handlers::connection::states::{DidExchangeSM, Actor, ActorDidExchangeState};
 use crate::v3::handlers::connection::messages::DidExchangeMessages;
@@ -16,6 +17,7 @@ use crate::v3::messages::invite_action::invite::InviteActionData;
 use crate::v3::messages::invite_action::invite::{Invite as InviteForAction};
 use crate::connection::ConnectionOptions;
 use crate::v3::messages::connection::problem_report::ProblemReport;
+use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connection {
@@ -124,10 +126,10 @@ impl Connection {
         let invitation = match self.get_invitation() {
             Some(invitation) => match invitation {
                 Invitations::ConnectionInvitation(invitation_) => {
-                    json!(invitation_.to_a2a_message()).to_string()
+                    json!(invitation_).to_string()
                 },
                 Invitations::OutofbandInvitation(invitation_) => {
-                    json!(invitation_.to_a2a_message()).to_string()
+                    json!(invitation_).to_string()
                 }
             },
             None => json!({}).to_string()
@@ -216,7 +218,7 @@ impl Connection {
         self.step(message)
     }
 
-    pub fn send_message(&self, message: &A2AMessage) -> VcxResult<()> {
+    pub fn send_message<T: Serialize + Debug>(&self, message: &T) -> VcxResult<()> {
         trace!("Connection::send_message >>> message: {:?}", secret!(message));
         debug!("Connection {}: Sending message", self.source_id());
 
@@ -226,14 +228,14 @@ impl Connection {
         self.agent_info().send_message(message, &did_doc)
     }
 
-    pub fn send_message_and_wait_result(message: &A2AMessage, did_doc: &DidDoc, sender_vk: &str) -> VcxResult<A2AMessage> {
+    pub fn send_message_and_wait_result<T: Serialize + Debug>(message: &T, did_doc: &DidDoc, sender_vk: &str) -> VcxResult<A2AMessage> {
         trace!("Connection::send_message_and_wait_result >>> message: {:?}, did_doc: {:?}, sender_vk: {:?}",
                secret!(message), secret!(did_doc), secret!(sender_vk));
 
         AgentInfo::send_message_and_wait_result(message, did_doc, sender_vk)
     }
 
-    pub fn send_message_to_self_endpoint(message: &A2AMessage, did_doc: &DidDoc) -> VcxResult<()> {
+    pub fn send_message_to_self_endpoint<T: Serialize + Debug>(message: &T, did_doc: &DidDoc) -> VcxResult<()> {
         trace!("Connection::send_message_to_self_endpoint >>> message: {:?}, did_doc: {:?}", secret!(message), secret!(did_doc));
 
         AgentInfo::send_message_anonymously(message, did_doc)
@@ -243,10 +245,11 @@ impl Connection {
         match ::serde_json::from_str::<A2AMessage>(message) {
             Ok(a2a_message) => a2a_message,
             Err(_) => {
-                BasicMessage::create()
-                    .set_content(message.to_string())
-                    .set_time()
-                    .to_a2a_message()
+                A2AMessage::BasicMessage(
+                    BasicMessage::create()
+                        .set_content(message.to_string())
+                        .set_time()
+                )
             }
         }
     }
@@ -256,6 +259,10 @@ impl Connection {
         debug!("Connection {}: Sending generic message", self.source_id());
 
         let message = Connection::parse_generic_message(message, _message_options);
+        let message = match message {
+            A2AMessage::Generic(message_) => message_,
+            message => json!(message)
+        };
         self.send_message(&message).map(|_| String::new())
     }
 
@@ -328,8 +335,7 @@ impl Connection {
 
         let invite = InviteForAction::create()
             .set_goal_code(data.goal_code)
-            .set_ack_on(data.ack_on)
-            .to_a2a_message();
+            .set_ack_on(data.ack_on);
 
         let invite_json = json!(invite).to_string();
 

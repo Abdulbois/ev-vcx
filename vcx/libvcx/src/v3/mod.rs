@@ -7,6 +7,8 @@ pub const SERIALIZE_VERSION: &'static str = "2.0";
 
 #[cfg(test)]
 pub mod test {
+    use core::fmt::Debug;
+    use serde::Serialize;
     use crate::disclosed_proof::DisclosedProofs;
     use crate::issuer_credential::IssuerCredentials;
     use crate::object_cache::Handle;
@@ -23,7 +25,6 @@ pub mod test {
     use crate::utils::plugins::init_plugin;
     use crate::messages::payload::PayloadV1;
     use crate::api::VcxStateType;
-    use crate::v3::messages::a2a::A2AMessage;
     use crate::v3::handlers::connection::types::OutofbandMeta;
     
     use crate::utils::libindy::anoncreds::prover_get_credentials;
@@ -189,7 +190,7 @@ pub mod test {
             set_wallet_handle(self.wallet_handle);
         }
 
-        pub fn send_message(&self, message: &A2AMessage) {
+        pub fn send_message<T: Serialize + Debug>(&self, message: &T) {
             self.activate();
             let agent_info = self.connection_handle.get_completed_connection().unwrap();
             agent_info.agent.send_message(message, &agent_info.data.did_doc).unwrap();

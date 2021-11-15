@@ -2,11 +2,19 @@ use crate::v3::messages::a2a::{MessageId, A2AMessage};
 use crate::proof::generate_nonce;
 use crate::error::VcxResult;
 use crate::messages::thread::Thread;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Question {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     pub question_text: String,
     pub question_detail: Option<String>,
     pub nonce: String,
@@ -71,7 +79,26 @@ impl Question {
     }
 }
 
-a2a_message!(Question);
+impl Default for Question {
+    fn default() -> Question {
+        Question {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::QuestionAnswer,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::QUESTION.to_string()
+            },
+            question_text: Default::default(),
+            question_detail: Default::default(),
+            nonce: Default::default(),
+            signature_required: Default::default(),
+            valid_responses: Default::default(),
+            timing: Default::default(),
+            thread: Default::default(),
+        }
+    }
+}
 
 #[cfg(test)]
 pub mod tests {
@@ -111,7 +138,8 @@ pub mod tests {
             timing: Some(Timing {
                 expires_time: _expires_time()
             }),
-            thread: None
+            thread: None,
+            ..Question::default()
         }
     }
 
@@ -127,6 +155,6 @@ pub mod tests {
         assert_eq!(_question(), question);
 
         let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/questionanswer/1.0/question","nonce":"1000000","question_detail":"This is optional fine-print giving context to the question and its various answers.","question_text":"Alice, are you on the phone with Bob from Faber Bank right now?","signature_required":true,"valid_responses":[{"text":"Yes, it's me"},{"text":"No, that's not me!"}],"~timing":{"expires_time":"2018-12-13T17:29:06+0000"}}"#;
-        assert_eq!(expected, json!(question.to_a2a_message()).to_string());
+        assert_eq!(expected, json!(question).to_string());
     }
 }

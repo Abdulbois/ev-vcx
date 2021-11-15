@@ -4,13 +4,21 @@ use crate::v3::messages::ack::PleaseAck;
 use crate::messages::thread::Thread;
 use crate::messages::proofs::proof_message::ProofMessage;
 use std::convert::TryInto;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
 use crate::error::prelude::*;
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct Presentation {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
     #[serde(rename = "presentations~attach")]
@@ -40,7 +48,24 @@ impl Presentation {
 
 please_ack!(Presentation);
 threadlike!(Presentation);
-a2a_message!(Presentation);
+
+impl Default for Presentation {
+    fn default() -> Presentation {
+        Presentation {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::PresentProof,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::PRESENTATION.to_string()
+            },
+            comment: Default::default(),
+            presentations_attach: Default::default(),
+            thread: Default::default(),
+            please_ack: Default::default(),
+        }
+    }
+}
 
 impl TryInto<Presentation> for ProofMessage {
     type Error = VcxError;
@@ -87,6 +112,7 @@ pub mod tests {
             presentations_attach: attachment,
             thread: thread(),
             please_ack: Some(PleaseAck { on: None }),
+            ..Presentation::default()
         }
     }
 
@@ -99,6 +125,8 @@ pub mod tests {
             .set_presentations_attach(_attachment().to_string()).unwrap();
 
         assert_eq!(_presentation(), presentation);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/present-proof/1.0/presentation","comment":"comment","presentations~attach":[{"@id":"libindy-presentation-0","data":{"base64":"eyJwcmVzZW50YXRpb24iOnt9fQ=="},"mime-type":"application/json"}],"~please_ack":{},"~thread":{"received_orders":{},"sender_order":0,"thid":"testid"}}"#;
+        assert_eq!(expected, json!(presentation).to_string());
     }
 
     #[test]

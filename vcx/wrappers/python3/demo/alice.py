@@ -9,7 +9,7 @@ import requests
 from vcx.api.connection import Connection
 from vcx.api.credential import Credential
 from vcx.api.disclosed_proof import DisclosedProof
-from vcx.api.utils import vcx_provision_agent_with_token, vcx_get_provision_token
+from vcx.api.utils import vcx_provision_agent_with_token, vcx_get_provision_token, vcx_messages_download
 from vcx.api.vcx_init import vcx_init_with_config
 from vcx.state import State
 
@@ -97,9 +97,13 @@ async def init():
     print("#7 Provision an agent and wallet, get back configuration details")
 
     sponcee_id = rand_string()
-    token = requests.post(sponsor_server_endpoint, data=json.dumps({"sponseeId": sponcee_id}))
-
-    config = await vcx_provision_agent_with_token(json.dumps(provisionConfig), token.text)
+    token = await vcx_get_provision_token(json.dumps({
+        'vcx_config': provisionConfig,
+        'source_id': rand_string(),
+        'sponsee_id': sponcee_id,
+        'sponsor_id': 'connectme'
+    }))
+    config = await vcx_provision_agent_with_token(json.dumps(provisionConfig), token)
     print("#8 Initialize libvcx with new configuration")
     await vcx_init_with_config(config)
 
@@ -110,10 +114,15 @@ async def connect():
 
     print("#10 Convert to valid json and string and create a connection to faber")
     jdetails = json.loads(details)
-    connection_to_faber = await Connection.accept_connection_invite('faber', json.dumps(jdetails))
-    connection_state = await connection_to_faber.update_state()
+    connection_to_faber = await Connection.create_with_outofband_invite('faber', json.dumps(jdetails))
+    await connection_to_faber.connect('{}')
+    connection_state = await connection_to_faber.get_state()
     while connection_state != State.Accepted:
         sleep(2)
+        pw_did = await connection_to_faber.get_my_pw_did()
+        messages = await vcx_messages_download("MS-103", None, None)
+        print(messages)
+
         await connection_to_faber.update_state()
         connection_state = await connection_to_faber.get_state()
 
@@ -129,6 +138,9 @@ async def accept_offer(connection_to_faber, credential):
     credential_state = await credential.get_state()
     while credential_state != State.Accepted:
         sleep(2)
+        pw_did = await connection_to_faber.get_my_pw_did()
+        messages = await vcx_messages_download("MS-103", None, pw_did)
+        print(messages)
         await credential.update_state()
         credential_state = await credential.get_state()
 
@@ -195,6 +207,9 @@ async def create_proof(connection_to_faber, proof):
     proof_state = await proof.get_state()
     while proof_state != State.Accepted:
         sleep(2)
+        pw_did = await connection_to_faber.get_my_pw_did()
+        messages = await vcx_messages_download("MS-103", None, pw_did)
+        print(messages)
         await proof.update_state()
         proof_state = await proof.get_state()
 

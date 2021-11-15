@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use crate::messages::update_message::{UIDsByConn, update_messages as update_messages_status};
 use crate::messages::MessageStatusCode;
 use crate::messages::get_message::{Message, get_connection_messages};
@@ -15,6 +16,7 @@ use crate::utils::libindy::signus::create_and_store_my_did;
 use crate::settings;
 use crate::error::prelude::*;
 use crate::settings::protocol::ProtocolTypes;
+use serde::Serialize;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct AgentInfo {
@@ -160,7 +162,7 @@ impl AgentInfo {
         Ok(message)
     }
 
-    pub fn send_message(&self, message: &A2AMessage, did_doc: &DidDoc) -> VcxResult<()> {
+    pub fn send_message<T: Serialize + Debug>(&self, message: &T, did_doc: &DidDoc) -> VcxResult<()> {
         trace!("Agent::send_message >>> message: {:?}, did_doc: {:?}", secret!(message), secret!(did_doc));
         debug!("Agent: Sending message on the remote endpoint");
 
@@ -171,7 +173,7 @@ impl AgentInfo {
         Ok(())
     }
 
-    pub fn send_message_and_wait_result(message: &A2AMessage, did_doc: &DidDoc, sender_vk: &str) -> VcxResult<A2AMessage> {
+    pub fn send_message_and_wait_result<T: Serialize + Debug>(message: &T, did_doc: &DidDoc, sender_vk: &str) -> VcxResult<A2AMessage> {
         trace!("Agent::send_message_and_wait_result >>> message: {:?}, did_doc: {:?}, sender_vk: {:?}",
                secret!(message), secret!(did_doc), secret!(sender_vk));
         debug!("Agent: Sending message on the remote endpoint and wait for result");
@@ -184,7 +186,7 @@ impl AgentInfo {
         Ok(message)
     }
 
-    pub fn send_message_anonymously(message: &A2AMessage, did_dod: &DidDoc) -> VcxResult<()> {
+    pub fn send_message_anonymously<T: Serialize + Debug>(message: &T, did_dod: &DidDoc) -> VcxResult<()> {
         trace!("Agent::send_message_anonymously >>> message: {:?}, did_doc: {:?}", secret!(message), secret!(did_dod));
         debug!("Agent: Sending message on the remote anonymous endpoint");
 

@@ -1,10 +1,18 @@
 use crate::messages::thread::Thread;
 use crate::v3::messages::a2a::{MessageId, A2AMessage};
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Ack {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     status: AckStatus,
     #[serde(rename = "~thread")]
     pub thread: Thread,
@@ -35,10 +43,30 @@ impl Ack {
         self.status = status;
         self
     }
+
+    pub fn set_message_family(mut self, message_family: MessageTypeFamilies) -> Self {
+        self.type_.family = message_family;
+        self
+    }
 }
 
 threadlike!(Ack);
-a2a_message!(Ack);
+
+impl Default for Ack {
+    fn default() -> Ack {
+        Ack {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::Notification,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::ACK.to_string(),
+            },
+            status: Default::default(),
+            thread: Default::default(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PleaseAck {
@@ -71,6 +99,7 @@ pub mod tests {
             id: MessageId::id(),
             status: AckStatus::Fail,
             thread: _thread(),
+            ..Ack::default()
         }
     }
 
@@ -81,5 +110,7 @@ pub mod tests {
             .set_thread_id(&_thread_id());
 
         assert_eq!(_ack(), ack);
+        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/notification/1.0/ack","status":"FAIL","~thread":{"received_orders":{},"sender_order":0,"thid":"test_id"}}"#;
+        assert_eq!(expected, json!(ack).to_string());
     }
 }

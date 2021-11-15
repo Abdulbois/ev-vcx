@@ -42,7 +42,7 @@ pub enum DidExchangeMessages {
     SendCommittedAnswer((CommittedQuestion, CommittedQuestionResponse)),
     CommittedQuestionReceived(CommittedQuestion),
     CommittedAnswerReceived(CommitedAnswer),
-    SendInviteAction(A2AMessage),
+    SendInviteAction(InviteForAction),
     InviteActionReceived(InviteForAction),
     Unknown
 }

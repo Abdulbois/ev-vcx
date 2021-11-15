@@ -501,7 +501,7 @@ impl Connection {
             .edge_agent_payload(
                 &self.get_pw_verkey(),
                 &self.get_their_pw_verkey(),
-                &json!(&answer.to_a2a_message()).to_string(),
+                &json!(&answer).to_string(),
                 PayloadKinds::Other(String::from("Answer")),
                 None)?
             .agent_did(&self.get_agent_did())?
@@ -528,11 +528,10 @@ impl Connection {
         }
 
         let invite = json!(
-                InviteForAction::create()
-                .set_goal_code(data.goal_code)
-                .set_ack_on(data.ack_on)
-                .to_a2a_message()
-            ).to_string();
+            InviteForAction::create()
+            .set_goal_code(data.goal_code)
+            .set_ack_on(data.ack_on)
+        ).to_string();
 
         crate::messages::send_message()
             .to(&self.get_pw_did())?
@@ -1394,10 +1393,10 @@ impl Into<(Connection, ActorDidExchangeState)> for ConnectionV3 {
             endpoint: invitation.as_ref().map(|invitation_| invitation_.service_endpoint()).unwrap_or_default(),
             invite_detail: Some(InviteDetail{
                 sender_detail: SenderDetail {
-                    name: invitation.as_ref().and_then(|invitation_| invitation_.name()),
+                    name: invitation.as_ref().and_then(|invitation_| invitation_.name().map(String::from)),
                     verkey: invitation.as_ref().and_then(|invitation_| invitation_.recipient_key()).unwrap_or_default(),
-                    logo_url: invitation.as_ref().and_then(|invitation_| invitation_.logo_url()),
-                    public_did: invitation.as_ref().and_then(|invitation_| invitation_.public_did()),
+                    logo_url: invitation.as_ref().and_then(|invitation_| invitation_.logo_url().map(String::from)),
+                    public_did: invitation.as_ref().and_then(|invitation_| invitation_.public_did().map(String::from)),
                     ..SenderDetail::default()
                 },
                 ..InviteDetail::default()
@@ -1409,7 +1408,7 @@ impl Into<(Connection, ActorDidExchangeState)> for ConnectionV3 {
             their_pw_did: self.remote_did().unwrap_or_default(),
             their_pw_verkey: self.remote_vk().unwrap_or_default(),
             public_did: settings::get_config_value(settings::CONFIG_INSTITUTION_DID).ok(),
-            their_public_did: invitation.as_ref().and_then(|invitation_| invitation_.public_did()),
+            their_public_did: invitation.as_ref().and_then(|invitation_| invitation_.public_did().map(String::from)),
             version: Some(ProtocolTypes::V2), // TODO check correctness
         };
 

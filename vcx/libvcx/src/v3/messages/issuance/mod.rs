@@ -1,5 +1,5 @@
-use crate::v3::messages::a2a::message_type::MessageType;
-use crate::v3::messages::a2a::message_family::MessageFamilies;
+use crate::v3::messages::a2a::message_type::{MessageType, MessageTypePrefix, MessageTypeVersion};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 use crate::v3::messages::mime_type::MimeType;
 use crate::error::VcxResult;
 
@@ -48,7 +48,12 @@ pub struct CredentialValue {
 impl Default for CredentialPreviewData {
     fn default() -> CredentialPreviewData {
         CredentialPreviewData {
-            _type: MessageType::build_with_did(MessageFamilies::CredentialIssuance, "credential-preview"),
+            _type: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::CredentialIssuance,
+                version: MessageTypeVersion::V10,
+                type_: "credential-preview".to_string(),
+            },
             attributes: vec![],
         }
     }

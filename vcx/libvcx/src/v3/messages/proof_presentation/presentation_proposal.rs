@@ -1,15 +1,21 @@
 use crate::v3::messages::a2a::{A2AMessage, MessageId};
-use crate::v3::messages::a2a::message_type::MessageType;
-use crate::v3::messages::a2a::message_family::MessageFamilies;
 use crate::v3::messages::mime_type::MimeType;
 use crate::messages::thread::Thread;
 use crate::messages::proofs::proof_request::{AttrInfo, Restrictions, PredicateInfo};
 use crate::utils::libindy::types::CredentialInfo;
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct PresentationProposal {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
     pub presentation_proposal: PresentationPreview,
@@ -21,7 +27,6 @@ pub struct PresentationProposal {
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct PresentationPreview {
     #[serde(rename = "@type")]
-    #[serde(default = "default_presentation_preview_type")]
     pub _type: MessageType,
     pub attributes: Vec<Attribute>,
     pub predicates: Vec<Predicate>,
@@ -48,10 +53,6 @@ pub struct Predicate {
     pub predicate: String,
     pub threshold: i64,
     pub referent: Option<String>,
-}
-
-fn default_presentation_preview_type() -> MessageType {
-    MessageType::build_with_did(MessageFamilies::PresentProof, "presentation-preview")
 }
 
 impl PresentationProposal {
@@ -116,16 +117,34 @@ impl PresentationProposal {
             })
             .collect()
     }
+}
 
-    pub fn to_string(&self) -> String {
-        json!(self.to_a2a_message()).to_string()
+impl Default for PresentationProposal {
+    fn default() -> PresentationProposal {
+        PresentationProposal {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::PresentProof,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::PROPOSE_PRESENTATION.to_string()
+            },
+            comment: Default::default(),
+            presentation_proposal: Default::default(),
+            thread: Default::default(),
+        }
     }
 }
 
 impl Default for PresentationPreview {
     fn default() -> Self {
         PresentationPreview {
-            _type: default_presentation_preview_type(),
+            _type: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::PresentProof,
+                version: MessageTypeVersion::V10,
+                type_: "presentation-preview".to_string()
+            },
             attributes: vec![],
             predicates: vec![]
         }
@@ -155,8 +174,6 @@ impl PresentationPreview {
         }
     }
 }
-
-a2a_message!(PresentationProposal);
 
 #[cfg(test)]
 pub mod tests {
@@ -191,6 +208,7 @@ pub mod tests {
             comment: Some(_comment()),
             thread: Some(thread()),
             presentation_proposal: _presentation_preview(),
+            ..PresentationProposal::default()
         }
     }
 
@@ -204,7 +222,7 @@ pub mod tests {
         assert_eq!(_presentation_proposal(), presentation_proposal);
 
         let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/present-proof/1.0/propose-presentation","comment":"comment","presentation_proposal":{"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/present-proof/1.0/presentation-preview","attributes":[{"cred_def_id":"BzCbsNYhMrjHiqZDTUASHg:3:CL:1234:tag","name":"account"}],"predicates":[]},"~thread":{"received_orders":{},"sender_order":0,"thid":"testid"}}"#;
-        assert_eq!(expected.to_string(), presentation_proposal.to_string())
+        assert_eq!(expected.to_string(), json!(presentation_proposal).to_string())
     }
 
     #[test]

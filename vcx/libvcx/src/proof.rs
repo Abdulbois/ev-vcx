@@ -694,7 +694,7 @@ impl Handle<Proofs> {
 
                     // strict aries protocol is set. Return aries formatted Credential Offers
                     if settings::is_strict_aries_protocol_set() {
-                        return Ok(json!(presentation_request.to_a2a_message()).to_string());
+                        return Ok(json!(presentation_request).to_string());
                     }
 
                     let proof_request: ProofRequestMessage = presentation_request.try_into()?;
@@ -849,7 +849,7 @@ impl Handle<Proofs> {
 
                     // strict aries protocol is set. Return aries formatted Credential Offers
                     if settings::is_strict_aries_protocol_set() {
-                        return Ok(json!(presentation.to_a2a_message()).to_string());
+                        return Ok(json!(presentation).to_string());
                     }
 
                     let proof: ProofMessage = presentation.try_into()?;

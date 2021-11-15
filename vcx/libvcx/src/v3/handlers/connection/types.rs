@@ -104,7 +104,7 @@ impl Invitations {
             Invitations::ConnectionInvitation(invitation_)=>
                 invitation_.recipient_keys.get(0).cloned(),
             Invitations::OutofbandInvitation(invitation_)=>
-                invitation_.service.get(0).and_then(|service| service.recipient_keys.get(0).cloned()),
+                invitation_.services().get(0).and_then(|service| service.recipient_keys.get(0).cloned()),
         }
     }
 
@@ -112,35 +112,35 @@ impl Invitations {
         match self {
             Invitations::ConnectionInvitation(invitation_)=> invitation_.service_endpoint.clone(),
             Invitations::OutofbandInvitation(invitation_)=>
-                invitation_.service.get(0).map(|service| service.service_endpoint.clone()).unwrap_or_default(),
+                invitation_.services().get(0).map(|service| service.service_endpoint.clone()).unwrap_or_default(),
         }
     }
 
     pub fn pthid(&self) -> Option<String>{
         match self {
             Invitations::ConnectionInvitation(_)=> None,
-            Invitations::OutofbandInvitation(invitation_)=> Some(invitation_.id.to_string()),
+            Invitations::OutofbandInvitation(invitation_)=> Some(invitation_.id().to_string()),
         }
     }
 
-    pub fn logo_url(&self) -> Option<String>{
+    pub fn logo_url(&self) -> Option<&str>{
         match self {
-            Invitations::ConnectionInvitation(invitation_)=> invitation_.profile_url.clone(),
-            Invitations::OutofbandInvitation(invitation_)=> invitation_.profile_url.clone(),
+            Invitations::ConnectionInvitation(invitation_)=> invitation_.profile_url.as_deref(),
+            Invitations::OutofbandInvitation(invitation_)=> invitation_.profile_url(),
         }
     }
 
-    pub fn public_did(&self) -> Option<String>{
+    pub fn public_did(&self) -> Option<&str>{
         match self {
-            Invitations::ConnectionInvitation(invitation_)=> invitation_.public_did.clone(),
-            Invitations::OutofbandInvitation(invitation_)=> invitation_.public_did.clone(),
+            Invitations::ConnectionInvitation(invitation_)=> invitation_.public_did.as_deref(),
+            Invitations::OutofbandInvitation(invitation_)=> invitation_.public_did(),
         }
     }
 
-    pub fn name(&self) -> Option<String>{
+    pub fn name(&self) -> Option<&str>{
         match self {
-            Invitations::ConnectionInvitation(invitation_)=> Some(invitation_.label.clone()),
-            Invitations::OutofbandInvitation(invitation_)=> invitation_.label.clone(),
+            Invitations::ConnectionInvitation(invitation_)=> Some(invitation_.label.as_str()),
+            Invitations::OutofbandInvitation(invitation_)=> invitation_.label(),
         }
     }
 }

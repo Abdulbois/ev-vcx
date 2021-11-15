@@ -13,7 +13,7 @@ from vcx.api.issuer_credential import IssuerCredential
 from vcx.api.proof import Proof
 from vcx.api.schema import Schema
 from vcx.api.utils import vcx_agent_provision, vcx_get_ledger_author_agreement, \
-    vcx_set_active_txn_author_agreement_meta
+    vcx_set_active_txn_author_agreement_meta, vcx_messages_download
 from vcx.api.vcx_init import vcx_init_with_config
 from vcx.state import State, ProofState
 
@@ -86,6 +86,9 @@ async def connect(use_public_did: bool = False):
     connection_state = await connection_to_alice.get_state()
     while connection_state != State.Accepted:
         sleep(2)
+        pw_did = await connection_to_alice.get_my_pw_did()
+        messages = await vcx_messages_download("MS-103", None, pw_did)
+        print(messages)
         await connection_to_alice.update_state()
         connection_state = await connection_to_alice.get_state()
 
@@ -154,6 +157,9 @@ async def issue_credential(connection_to_alice, schema_attributes, credential_va
     credential_state = await credential.get_state()
     while credential_state != State.RequestReceived and credential_state != State.Rejected:
         sleep(2)
+        pw_did = await connection_to_alice.get_my_pw_did()
+        messages = await vcx_messages_download("MS-103", None, pw_did)
+        print(messages)
         await credential.update_state()
         credential_state = await credential.get_state()
 
@@ -171,6 +177,9 @@ async def issue_credential(connection_to_alice, schema_attributes, credential_va
     credential_state = await credential.get_state()
     while credential_state != State.Accepted and credential_state != State.Rejected:
         sleep(2)
+        pw_did = await connection_to_alice.get_my_pw_did()
+        messages = await vcx_messages_download("MS-103", None, pw_did)
+        print(messages)
         await credential.update_state()
         credential_state = await credential.get_state()
         print(credential_state)
@@ -207,6 +216,9 @@ async def ask_for_proof(connection_to_alice, proof_attrs, proof_predicates):
     proof_state = await proof.get_state()
     while proof_state != State.Accepted and proof_state != State.Rejected:
         sleep(2)
+        pw_did = await connection_to_alice.get_my_pw_did()
+        messages = await vcx_messages_download("MS-103", None, pw_did)
+        print(messages)
         await proof.update_state()
         proof_state = await proof.get_state()
         print(proof_state)

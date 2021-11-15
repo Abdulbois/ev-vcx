@@ -152,7 +152,7 @@ impl Verifier {
         trace!("Verifier::get_presentation_request_attach >>>");
         debug!("Verifier {}: Getting presentation request in Aries format", self.get_source_id());
 
-        let proof_request = self.verifier_sm.presentation_request()?.to_a2a_message();
+        let proof_request = self.verifier_sm.presentation_request()?;
 
         ::serde_json::to_string(&proof_request)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError,

@@ -645,7 +645,7 @@ impl Handle<Credentials> {
 
                         // strict aries protocol is set. Return aries formatted Credential Offers
                         if settings::is_strict_aries_protocol_set() {
-                            return Ok(json!(credential.to_a2a_message()).to_string());
+                            return Ok(json!(credential).to_string());
                         }
 
                         let credential: CredentialMessage = credential.try_into()?;
@@ -693,7 +693,7 @@ impl Handle<Credentials> {
 
                         // strict aries protocol is set. Return aries formatted Credential Offers
                         if settings::is_strict_aries_protocol_set() {
-                            return Ok(json!(cred_offer.to_a2a_message()).to_string());
+                            return Ok(json!(cred_offer).to_string());
                         }
 
                         let cred_offer: CredentialOffer = cred_offer.try_into()?;
@@ -876,7 +876,7 @@ impl Handle<Credentials> {
                 Credentials::V3(obj) => obj.get_presentation_proposal(),
             }
         })
-            .map(|presentation_proposal| presentation_proposal.to_string())
+            .map(|presentation_proposal| json!(presentation_proposal).to_string())
             .map_err(handle_err)
     }
 
@@ -969,7 +969,7 @@ pub fn get_credential_offer_messages(connection_handle: Handle<Connections>) -> 
         let mut msgs: Vec<Value> = Vec::new();
         for credential_offer in credential_offers {
             if settings::is_strict_aries_protocol_set() {
-                msgs.push(json!(credential_offer.to_a2a_message()));
+                msgs.push(json!(credential_offer));
             } else {
                 let credential_offer: CredentialOffer = credential_offer.try_into()?;
                 msgs.push(json!(vec![credential_offer]));

@@ -781,7 +781,7 @@ impl Handle<DisclosedProofs> {
 
                     // strict aries protocol is set. return aries formatted Proof
                     if settings::is_strict_aries_protocol_set() {
-                        return Ok(json!(presentation.to_a2a_message()).to_string())
+                        return Ok(json!(presentation).to_string())
                     }
 
                     // convert Proof into proprietary format
@@ -1056,7 +1056,7 @@ pub fn get_proof_request_messages(connection_handle: Handle<Connections>, match_
         let mut msgs: Vec<Value> = Vec::new();
         for presentation_request in presentation_requests {
             if settings::is_strict_aries_protocol_set() {
-                msgs.push(json!(presentation_request.to_a2a_message()));
+                msgs.push(json!(presentation_request));
             } else {
                 let presentation_request: ProofRequestMessage = presentation_request.try_into()?;
                 msgs.push(json!(presentation_request));
@@ -1182,7 +1182,7 @@ mod tests {
     #[test]
     fn test_create_proposal() {
         let _setup = SetupMocks::init();
-        let proposal = r#"{"attributes":[{"name":"FirstName"}],"predicates":[]}"#;
+        let proposal = r#"{"@type":"https://didcomm.org/present-proof/1.0/presentation-preview","attributes":[{"name":"FirstName"}],"predicates":[]}"#;
 
         assert!(create_proposal("1", proposal.to_string(), "comment".to_string()).unwrap() > 0);
     }

@@ -16,6 +16,7 @@ use crate::error::{VcxResult, VcxError, VcxErrorKind};
 
 use std::collections::HashMap;
 use crate::v3::handlers::connection::agent::AgentInfo;
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IssuerSM {
@@ -175,7 +176,7 @@ impl IssuerSM {
                         .set_thid(cred_offer_msg.id.to_string())
                         .set_opt_pthid(connection.data.thread.pthid.clone());
 
-                    connection.data.send_message(&cred_offer_msg.to_a2a_message(), &connection.agent)?;
+                    connection.data.send_message(&cred_offer_msg, &connection.agent)?;
                     IssuerState::OfferSent((state_data, cred_offer_msg, connection, thread).into())
                 }
                 _ => {
@@ -196,9 +197,10 @@ impl IssuerSM {
                     let problem_report = ProblemReport::create()
                         .set_description(ProblemReportCodes::Unimplemented)
                         .set_comment(String::from("credential-proposal message is not supported"))
+                        .set_message_family(MessageTypeFamilies::CredentialIssuance)
                         .set_thread(thread.clone());
 
-                    state_data.connection.data.send_message(&A2AMessage::CredentialReject(problem_report.clone()), &state_data.connection.agent)?;
+                    state_data.connection.data.send_message(&problem_report, &state_data.connection.agent)?;
                     IssuerState::Finished((state_data, Status::Failed(problem_report), thread).into())
                 }
                 CredentialIssuanceMessage::ProblemReport(problem_report) => {
@@ -225,16 +227,17 @@ impl IssuerSM {
                             let credential_msg = credential_msg
                                 .set_thread(thread.clone());
 
-                            connection.data.send_message(&credential_msg.to_a2a_message(), &connection.agent)?;
+                            connection.data.send_message(&credential_msg, &connection.agent)?;
                             IssuerState::Finished((state_data, thread).into())
                         }
                         Err(err) => {
                             let problem_report = ProblemReport::create()
                                 .set_description(ProblemReportCodes::InvalidCredentialRequest)
                                 .set_comment(format!("error occurred: {:?}", err))
+                                .set_message_family(MessageTypeFamilies::CredentialIssuance)
                                 .set_thread(thread.clone());
 
-                            state_data.connection.data.send_message(&A2AMessage::CredentialReject(problem_report.clone()), &connection.agent)?;
+                            state_data.connection.data.send_message(&problem_report, &connection.agent)?;
                             return Err(err)
                         }
                     }

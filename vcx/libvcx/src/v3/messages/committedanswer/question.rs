@@ -1,9 +1,17 @@
 use crate::v3::messages::a2a::{MessageId, A2AMessage};
+use crate::v3::messages::a2a::message_type::{
+    MessageType,
+    MessageTypePrefix,
+    MessageTypeVersion,
+};
+use crate::v3::messages::a2a::message_family::MessageTypeFamilies;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Question {
     #[serde(rename = "@id")]
     pub id: MessageId,
+    #[serde(rename = "@type")]
+    pub type_: MessageType,
     pub question_text: String,
     pub question_detail: Option<String>,
     #[serde(default)]
@@ -43,9 +51,23 @@ impl Question {
         self.valid_responses = valid_responses;
         self
     }
+}
 
-    pub fn to_a2a_message(&self) -> A2AMessage {
-        A2AMessage::CommittedQuestion(self.clone())
+impl Default for Question {
+    fn default() -> Question {
+        Question {
+            id: MessageId::default(),
+            type_: MessageType {
+                prefix: MessageTypePrefix::DID,
+                family: MessageTypeFamilies::Committedanswer,
+                version: MessageTypeVersion::V10,
+                type_: A2AMessage::QUESTION.to_string()
+            },
+            question_text: Default::default(),
+            question_detail: Default::default(),
+            external_links: Default::default(),
+            valid_responses: Default::default()
+        }
     }
 }
 
@@ -91,6 +113,7 @@ pub mod tests {
             question_detail: Some(_detail()),
             valid_responses: _valid_responses(),
             external_links: vec![],
+            ..Question::default()
         }
     }
 
@@ -103,6 +126,6 @@ pub mod tests {
         assert_eq!(_question(), question);
 
         let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/committedanswer/1.0/question","external_links":[],"question_detail":"This is optional fine-print giving context to the question and its various answers.","question_text":"Alice, are you on the phone with Bob from Faber Bank right now?","valid_responses":[{"nonce":"n1","text":"Yes, it's me"},{"nonce":"n1","text":"No, that's not me!"}]}"#;
-        assert_eq!(expected, json!(question.to_a2a_message()).to_string());
+        assert_eq!(expected, json!(question).to_string());
     }
 }
