@@ -16,8 +16,16 @@ use crate::v3::messages::discovery::query::Query;
 use crate::v3::messages::discovery::disclose::{Disclose, ProtocolDescriptor};
 use crate::v3::messages::a2a::protocol_registry::ProtocolRegistry;
 use crate::v3::messages::outofband::invitation::Invitation as OutofbandInvitation;
+use crate::v3::messages::outofband::v10::invitation::Invitation as OutofbandInvitationV10;
+
 use crate::v3::messages::outofband::handshake_reuse::HandshakeReuse;
+use crate::v3::messages::outofband::v10::handshake_reuse::HandshakeReuse as HandshakeReuseV10;
+use crate::v3::messages::outofband::v11::handshake_reuse::HandshakeReuse as HandshakeReuseV11;
+
 use crate::v3::messages::outofband::handshake_reuse_accepted::HandshakeReuseAccepted;
+use crate::v3::messages::outofband::v10::handshake_reuse_accepted::HandshakeReuseAccepted as HandshakeReuseAcceptedV10;
+use crate::v3::messages::outofband::v11::handshake_reuse_accepted::HandshakeReuseAccepted as HandshakeReuseAcceptedV11;
+
 use crate::v3::messages::questionanswer::question::{Question, QuestionResponse};
 use crate::v3::messages::questionanswer::answer::Answer;
 use crate::v3::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
@@ -127,7 +135,7 @@ pub struct CompleteState {
 impl CompleteState {
     pub fn without_handshake(&self) -> bool {
         if let Some(Invitations::OutofbandInvitation(invitation)) = self.invitation.as_ref() {
-            invitation.handshake_protocols.is_empty()
+            invitation.handshake_protocols().is_empty()
         } else {
             false
         }
@@ -161,7 +169,7 @@ impl From<(InitializedState, OutofbandInvitation)> for CompleteState {
     fn from((_state, invitation): (InitializedState, OutofbandInvitation)) -> CompleteState {
         trace!("DidExchangeStateSM: transit state from InitializedState to CompleteState with Out-of-Band Invitation");
         let thread = Thread::new()
-            .set_pthid(invitation.id.to_string());
+            .set_pthid(invitation.id().to_string());
 
         CompleteState {
             did_doc: DidDoc::from(invitation.clone()),
@@ -340,22 +348,24 @@ impl InitializedState {
                 ActorDidExchangeState::Inviter(DidExchangeState::Invited((self, invite).into()))
             }
             Some(outofband_meta) => {
-                let invite: OutofbandInvitation = OutofbandInvitation::create()
-                    .set_label(label)
-                    .set_opt_profile_url(profile_url)
-                    .set_opt_goal_code(outofband_meta.goal_code)
-                    .set_opt_goal(outofband_meta.goal)
-                    .set_handshake(outofband_meta.handshake)
-                    .set_opt_public_did(public_did)
-                    .set_service(
-                        Service::create()
-                            .set_id(SERVICE_ID.to_string())
-                            .set_type(OUTOFBAND_SERVICE_TYPE.to_string())
-                            .set_service_endpoint(agent_info.agency_endpoint()?)
-                            .set_recipient_keys(agent_info.recipient_keys())
-                            .set_routing_keys(agent_info.routing_keys()?)
-                    )
-                    .set_opt_request_attach(outofband_meta.request_attach)?;
+                let invite: OutofbandInvitation = OutofbandInvitation::V10(
+                    OutofbandInvitationV10::create()
+                        .set_label(label)
+                        .set_opt_profile_url(profile_url)
+                        .set_opt_goal_code(outofband_meta.goal_code)
+                        .set_opt_goal(outofband_meta.goal)
+                        .set_handshake(outofband_meta.handshake)
+                        .set_opt_public_did(public_did)
+                        .set_service(
+                            Service::create()
+                                .set_id(SERVICE_ID.to_string())
+                                .set_type(OUTOFBAND_SERVICE_TYPE.to_string())
+                                .set_service_endpoint(agent_info.agency_endpoint()?)
+                                .set_recipient_keys(agent_info.recipient_keys())
+                                .set_routing_keys(agent_info.routing_keys()?)
+                        )
+                        .set_opt_request_attach(outofband_meta.request_attach)?
+                );
 
                 if outofband_meta.handshake {
                     ActorDidExchangeState::Inviter(DidExchangeState::Invited((self, invite).into()))
@@ -425,7 +435,6 @@ impl RequestedState {
         if response.please_ack.is_some() {
             let ack = Ack::create().set_thread(thread.clone());
             agent_info.send_message(&ack, &response.connection.did_doc)?;
-
         } else {
             let ping = Ping::create().set_thread(Thread::from_parent(&thread));
             agent_info.send_message(&ping, &response.connection.did_doc)?;
@@ -632,14 +641,20 @@ impl CompleteState {
         trace!("CompleteState:handle_send_reuse >>> invitation: {:?}, agent_info: {:?}", secret!(invitation), secret!(agent_info));
         debug!("sending reuse message for connection");
 
-        let handshake_reuse = HandshakeReuse::create();
-
-        let thread = Thread::new()
-            .set_thid(handshake_reuse.id.to_string())
-            .set_pthid(invitation.id.to_string());
-
-        let handshake_reuse = handshake_reuse
-            .set_thread(thread);
+        let handshake_reuse = match invitation {
+            OutofbandInvitation::V10(invitation) => {
+                HandshakeReuse::V10(
+                    HandshakeReuseV10::create()
+                        .set_pthid(&invitation.id.0)
+                )
+            }
+            OutofbandInvitation::V11(invitation) => {
+                HandshakeReuse::V11(
+                    HandshakeReuseV11::create()
+                        .set_pthid(&invitation.id.0)
+                )
+            }
+        };
 
         agent_info.send_message(&handshake_reuse, &self.did_doc).ok();
 
@@ -651,11 +666,23 @@ impl CompleteState {
         trace!("CompleteState:handle_reuse >>> handshake_reuse: {:?}, agent_info: {:?}", secret!(handshake_reuse), secret!(agent_info));
         debug!("handling received connection reuse message");
 
-        let thread = handshake_reuse.thread.clone()
+        let thread = handshake_reuse.thread().clone()
             .update_received_order(&self.did_doc.id);
 
-        let handshake_reuse_accepted = HandshakeReuseAccepted::create()
-            .set_thread(thread);
+        let handshake_reuse_accepted = match handshake_reuse {
+            HandshakeReuse::V10(_) => {
+                HandshakeReuseAccepted::V10(
+                    HandshakeReuseAcceptedV10::create()
+                        .set_thread(thread)
+                )
+            }
+            HandshakeReuse::V11(_) => {
+                HandshakeReuseAccepted::V11(
+                    HandshakeReuseAcceptedV11::create()
+                        .set_thread(thread)
+                )
+            }
+        };
 
         agent_info.send_message(&handshake_reuse_accepted, &self.did_doc).ok();
 
@@ -790,7 +817,7 @@ impl CompleteState {
 
     pub fn warn_if_onetime_connection(&self) {
         match self.invitation.as_ref() {
-            Some(Invitations::OutofbandInvitation(invitation)) if invitation.handshake_protocols.is_empty() => {
+            Some(Invitations::OutofbandInvitation(invitation)) if invitation.handshake_protocols().is_empty() => {
                 warn!("You are using one-time connection. The other side of communication might have erased it already")
             }
             _ => {}
@@ -1118,7 +1145,7 @@ impl DidExchangeSM {
                                 ActorDidExchangeState::Invitee(DidExchangeState::Invited((state, invitation).into()))
                             }
                             DidExchangeMessages::OutofbandInvitationReceived(invitation) => {
-                                if invitation.handshake_protocols.len() > 0 {
+                                if invitation.handshake_protocols().len() > 0 {
                                     ActorDidExchangeState::Invitee(DidExchangeState::Invited((state, invitation).into()))
                                 } else {
                                     ActorDidExchangeState::Invitee(DidExchangeState::Completed((state, invitation).into()))
@@ -1336,7 +1363,7 @@ pub mod test {
     use crate::v3::messages::ack::tests::_ack as t_ack;
     use crate::v3::messages::discovery::query::tests::_query;
     use crate::v3::messages::discovery::disclose::tests::_disclose;
-    use crate::v3::messages::outofband::invitation::tests::{_invitation as _outofband_invitation, _invitation_no_handshake as _outofband_invitation_no_handshake};
+    use crate::v3::messages::outofband::v10::invitation::tests::{_invitation as _outofband_invitation, _invitation_no_handshake as _outofband_invitation_no_handshake};
 
     pub fn _ack() -> Ack {
         let mut ack = t_ack();
@@ -1978,7 +2005,9 @@ pub mod test {
                 let mut did_exchange_sm = invitee_sm();
                 let invitation = _outofband_invitation();
 
-                did_exchange_sm = did_exchange_sm.step(DidExchangeMessages::OutofbandInvitationReceived(invitation.clone())).unwrap();
+                did_exchange_sm = did_exchange_sm.step(DidExchangeMessages::OutofbandInvitationReceived(
+                    OutofbandInvitation::V10(invitation.clone())
+                )).unwrap();
 
                 match did_exchange_sm.state {
                     ActorDidExchangeState::Invitee(DidExchangeState::Invited(state)) => {
@@ -1996,7 +2025,9 @@ pub mod test {
                 let mut did_exchange_sm = invitee_sm();
                 let invitation = _outofband_invitation_no_handshake();
 
-                did_exchange_sm = did_exchange_sm.step(DidExchangeMessages::OutofbandInvitationReceived(invitation.clone())).unwrap();
+                did_exchange_sm = did_exchange_sm.step(DidExchangeMessages::OutofbandInvitationReceived(
+                    OutofbandInvitation::V10(invitation.clone())
+                )).unwrap();
 
                 match did_exchange_sm.state {
                     ActorDidExchangeState::Invitee(DidExchangeState::Completed(state)) => {

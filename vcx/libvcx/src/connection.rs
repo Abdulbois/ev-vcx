@@ -1393,10 +1393,10 @@ impl Into<(Connection, ActorDidExchangeState)> for ConnectionV3 {
             endpoint: invitation.as_ref().map(|invitation_| invitation_.service_endpoint()).unwrap_or_default(),
             invite_detail: Some(InviteDetail{
                 sender_detail: SenderDetail {
-                    name: invitation.as_ref().and_then(|invitation_| invitation_.name()),
+                    name: invitation.as_ref().and_then(|invitation_| invitation_.name().map(String::from)),
                     verkey: invitation.as_ref().and_then(|invitation_| invitation_.recipient_key()).unwrap_or_default(),
-                    logo_url: invitation.as_ref().and_then(|invitation_| invitation_.logo_url()),
-                    public_did: invitation.as_ref().and_then(|invitation_| invitation_.public_did()),
+                    logo_url: invitation.as_ref().and_then(|invitation_| invitation_.logo_url().map(String::from)),
+                    public_did: invitation.as_ref().and_then(|invitation_| invitation_.public_did().map(String::from)),
                     ..SenderDetail::default()
                 },
                 ..InviteDetail::default()
@@ -1408,7 +1408,7 @@ impl Into<(Connection, ActorDidExchangeState)> for ConnectionV3 {
             their_pw_did: self.remote_did().unwrap_or_default(),
             their_pw_verkey: self.remote_vk().unwrap_or_default(),
             public_did: settings::get_config_value(settings::CONFIG_INSTITUTION_DID).ok(),
-            their_public_did: invitation.as_ref().and_then(|invitation_| invitation_.public_did()),
+            their_public_did: invitation.as_ref().and_then(|invitation_| invitation_.public_did().map(String::from)),
             version: Some(ProtocolTypes::V2), // TODO check correctness
         };
 

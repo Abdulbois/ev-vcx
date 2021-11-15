@@ -105,6 +105,11 @@ macro_rules! threadlike (($type:ident) => (
             self
         }
 
+        pub fn set_pthid(mut self, pthid: &str) -> $type {
+            self.thread.pthid = Some(pthid.to_string());
+            self
+        }
+
         pub fn update_received_order(mut self, did: &str) -> $type {
             self.thread = self.thread.update_received_order(did);
             self

@@ -398,8 +398,11 @@ impl From<Service> for Invitation {
 }
 
 impl From<OutofbandInvitation> for DidDoc {
-    fn from(mut invite: OutofbandInvitation) -> DidDoc {
-        DidDoc::from(invite.service.swap_remove(0))
+    fn from(invite: OutofbandInvitation) -> DidDoc {
+        match invite {
+            OutofbandInvitation::V10(mut invitation) => DidDoc::from(invitation.service.swap_remove(0)),
+            OutofbandInvitation::V11(mut invitation) => DidDoc::from(invitation.services.swap_remove(0)),
+        }
     }
 }
 
