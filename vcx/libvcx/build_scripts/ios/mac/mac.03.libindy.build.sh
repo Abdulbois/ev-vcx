@@ -27,6 +27,7 @@ if [ "$#" -gt 0 ]; then
     else
         echo "git clone vdr-tools"
         git clone https://gitlab.com/evernym/verity/vdr-tools.git $WORK_DIR/vcx-indy-sdk
+        git checkout tags/v0.8.0
         cd $WORK_DIR/vcx-indy-sdk
     fi
 
