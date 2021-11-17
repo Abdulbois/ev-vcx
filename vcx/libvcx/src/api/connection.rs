@@ -8,7 +8,7 @@ use std::ptr;
 use crate::connection::*;
 use crate::error::prelude::*;
 use indy_sys::CommandHandle;
-use crate::v3::messages::invite_action::invite::InviteActionData;
+use crate::aries::messages::invite_action::invite::InviteActionData;
 
 /*
     Tha API represents a pairwise connection with another identity owner.

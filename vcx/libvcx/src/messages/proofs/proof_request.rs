@@ -7,7 +7,7 @@ use crate::messages::validation;
 use crate::error::prelude::*;
 use crate::utils::libindy::anoncreds;
 use crate::utils::qualifier;
-use crate::v3::messages::connection::service::Service;
+use crate::aries::messages::connection::service::Service;
 use crate::messages::get_message::Message;
 use crate::messages::payload::Payloads;
 use crate::messages::thread::Thread;

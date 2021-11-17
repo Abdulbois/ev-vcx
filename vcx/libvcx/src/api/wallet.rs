@@ -960,8 +960,6 @@ pub mod tests {
     use crate::api::return_types;
     use std::ffi::CString;
     use crate::utils::libindy::wallet::{delete_wallet, init_wallet};
-    #[cfg(feature = "pool_tests")]
-    use crate::utils::libindy::payments::build_test_address;
     use crate::utils::devsetup::*;
     use crate::settings;
 

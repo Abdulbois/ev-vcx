@@ -12,11 +12,11 @@ use indy_sys::CommandHandle;
 use crate::utils::httpclient::AgencyMock;
 use crate::utils::constants::*;
 use crate::messages::agent_provisioning::types::ProvisioningConfig;
-use crate::v3::handlers::connection::agent::AgentInfo;
+use crate::aries::handlers::connection::agent::AgentInfo;
 use crate::messages::{agent_provisioning, update_agent};
 use crate::messages::update_agent::ComMethod;
-use crate::v3::messages::attachment::extract_attached_message;
-use crate::v3::utils::resolve_message_by_url;
+use crate::aries::messages::attachment::extract_attached_message;
+use crate::aries::utils::resolve_message_by_url;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
 ///

@@ -4,7 +4,7 @@ use crate::connection::Connections;
 use std::mem::take;
 use std::collections::HashMap;
 use crate::api::VcxStateType;
-use crate::{messages, v3};
+use crate::{messages, aries};
 use crate::settings;
 use crate::messages::{RemoteMessageType, MessageStatusCode, GeneralMessage};
 use crate::messages::payload::{Payloads, PayloadKinds};
@@ -20,7 +20,7 @@ use crate::object_cache::ObjectCache;
 use crate::error::prelude::*;
 use std::convert::TryInto;
 
-use crate::v3::handlers::issuance::Issuer;
+use crate::aries::handlers::issuance::Issuer;
 use crate::utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
 use crate::messages::issuance::credential_offer::CredentialOffer;
 use crate::messages::issuance::credential::CredentialMessage;
@@ -633,9 +633,9 @@ pub fn issuer_credential_create(cred_def_handle: Handle<CredentialDef>,
            cred_def_handle, source_id, secret!(issuer_did), secret!(credential_name), secret!(&credential_data), price);
     debug!("creating issuer credential {} state object", source_id);
 
-    // Initiate connection of new format -- redirect to v3 folder
+    // Initiate connection of new format -- redirect to aries folder
     if settings::is_strict_aries_protocol_set() {
-        let issuer = v3::handlers::issuance::Issuer::create(cred_def_handle, &credential_data, &source_id, &credential_name)?;
+        let issuer = aries::handlers::issuance::Issuer::create(cred_def_handle, &credential_data, &source_id, &credential_name)?;
         return ISSUER_CREDENTIAL_MAP.add(IssuerCredentials::V3(issuer));
     }
 

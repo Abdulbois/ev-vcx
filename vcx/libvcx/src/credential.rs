@@ -28,13 +28,13 @@ use crate::utils::{error, constants};
 
 use crate::utils::httpclient::AgencyMock;
 
-use crate::v3::{
+use crate::aries::{
     messages::issuance::credential_offer::CredentialOffer as CredentialOfferV3,
     handlers::issuance::Holder,
 };
 use crate::utils::agent_info::{get_agent_info, get_agent_attr, MyAgentInfo};
 use crate::messages::issuance::credential_offer::{set_cred_offer_ref_message, parse_json_offer, CredentialOffer};
-use crate::v3::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
+use crate::aries::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
 use crate::settings;
 
 lazy_static! {

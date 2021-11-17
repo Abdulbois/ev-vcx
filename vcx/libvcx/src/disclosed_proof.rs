@@ -29,7 +29,7 @@ use crate::utils::libindy::cache::{get_rev_reg_cache, set_rev_reg_cache, RevRegC
 use crate::utils::libindy::anoncreds;
 use crate::utils::libindy::anoncreds::{get_rev_reg_def_json, get_rev_reg_delta_json};
 
-use crate::v3::{
+use crate::aries::{
     messages::proof_presentation::presentation_request::PresentationRequest,
     handlers::proof_presentation::prover::prover::Prover,
 };
@@ -38,7 +38,7 @@ use crate::utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
 use crate::utils::httpclient::AgencyMock;
 use crate::messages::proofs::proof_request::parse_proof_req_message;
 use crate::messages::payload::PayloadKinds;
-use crate::v3::messages::proof_presentation::presentation_proposal::PresentationProposal;
+use crate::aries::messages::proof_presentation::presentation_proposal::PresentationProposal;
 
 lazy_static! {
     static ref HANDLE_MAP: ObjectCache<DisclosedProofs>  = Default::default();
@@ -631,9 +631,9 @@ fn apply_agent_info(proof: &mut DisclosedProof, agent_info: &MyAgentInfo) {
 
 fn create_proof_v3(source_id: &str, proof_req: &str) -> VcxResult<Option<DisclosedProofs>> {
     trace!("create_proof_v3 >>> source_id: {}, proof_req: {}", source_id, secret!(proof_req));
-    debug!("creating v3 disclosed proof object");
+    debug!("creating aries disclosed proof object");
 
-    // Received request of new format -- redirect to v3 folder
+    // Received request of new format -- redirect to aries folder
     if let Ok(presentation_request) = serde_json::from_str::<PresentationRequest>(proof_req) {
         let proof = Prover::create(source_id, presentation_request)?;
         return Ok(Some(DisclosedProofs::V3(proof)));

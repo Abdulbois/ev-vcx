@@ -9,8 +9,8 @@ use crate::utils::httpclient::AgencyMock;
 use crate::messages::issuance::credential_offer::{set_cred_offer_ref_message, CredentialOffer};
 use crate::messages::proofs::proof_request::{set_proof_req_ref_message, ProofRequestMessage};
 use crate::messages::issuance::credential_request::set_cred_req_ref_message;
-use crate::v3::messages::a2a::A2AMessage as AriesA2AMessage;
-use crate::v3::utils::encryption_envelope::EncryptionEnvelope;
+use crate::aries::messages::a2a::A2AMessage as AriesA2AMessage;
+use crate::aries::utils::encryption_envelope::EncryptionEnvelope;
 use std::convert::TryInto;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]

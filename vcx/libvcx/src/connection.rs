@@ -19,17 +19,17 @@ use crate::utils::libindy::signus::create_and_store_my_did;
 use crate::utils::libindy::crypto;
 use crate::utils::json::mapped_key_rewrite;
 
-use crate::v3::handlers::connection::connection::Connection as ConnectionV3;
-use crate::v3::handlers::connection::states::ActorDidExchangeState;
-use crate::v3::handlers::connection::agent::AgentInfo;
-use crate::v3::messages::connection::invite::Invitation as InvitationV3;
-use crate::v3::messages::a2a::A2AMessage;
-use crate::v3::handlers::connection::types::CompletedConnection;
-use crate::v3::messages::invite_action::invite::{Invite as InviteForAction, InviteActionData};
+use crate::aries::handlers::connection::Connection as ConnectionV3;
+use crate::aries::handlers::connection::states::ActorDidExchangeState;
+use crate::aries::handlers::connection::agent::AgentInfo;
+use crate::aries::messages::connection::invite::Invitation as InvitationV3;
+use crate::aries::messages::a2a::A2AMessage;
+use crate::aries::handlers::connection::types::CompletedConnection;
+use crate::aries::messages::invite_action::invite::{Invite as InviteForAction, InviteActionData};
 
 use crate::settings::protocol::ProtocolTypes;
-use crate::v3::messages::committedanswer::question::{QuestionResponse, Question};
-use crate::v3::messages::committedanswer::answer::Answer;
+use crate::aries::messages::committedanswer::question::{QuestionResponse, Question};
+use crate::aries::messages::committedanswer::answer::Answer;
 
 lazy_static! {
     static ref CONNECTION_MAP: ObjectCache<Connections> = Default::default();
@@ -1064,7 +1064,7 @@ impl Handle<Connections> {
 }
 
 pub fn from_string(connection_data: &str) -> VcxResult<Handle<Connections>> {
-    let object: SerializableObjectWithState<Connection, crate::v3::handlers::connection::states::ActorDidExchangeState> = ::serde_json::from_str(connection_data)
+    let object: SerializableObjectWithState<Connection, crate::aries::handlers::connection::states::ActorDidExchangeState> = ::serde_json::from_str(connection_data)
         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
                                           format!("Cannot parse Connection state object from JSON string. Err: {:?}", err)))?;
 
@@ -1117,7 +1117,7 @@ fn create_connection_v1(source_id: &str) -> VcxResult<Connection> {
 pub fn create_connection(source_id: &str) -> VcxResult<Handle<Connections>> {
     debug!("create_connection with source_id: {}", source_id);
 
-    // Initiate connection of new format -- redirect to v3 folder
+    // Initiate connection of new format -- redirect to aries folder
     if settings::is_aries_protocol_set() {
         let connection = Connections::V3(ConnectionV3::create(source_id));
         let handle = store_connection(connection);
@@ -1153,11 +1153,11 @@ pub fn create_outofband_connection(source_id: &str, goal_code: Option<String>, g
 pub fn create_connection_with_invite(source_id: &str, details: &str) -> VcxResult<Handle<Connections>> {
     debug!("create connection {} with invite {}", source_id, secret!(details));
 
-    // Invitation of new format -- redirect to v3 folder
+    // Invitation of new format -- redirect to aries folder
     if let Ok(invitation) = serde_json::from_str::<InvitationV3>(details) {
         let connection = ConnectionV3::create_with_invite(source_id, invitation)?;
         let handle = store_connection(Connections::V3(connection));
-        debug!("create_connection_with_invite: created connection v3, handle: {:?}", handle);
+        debug!("create_connection_with_invite: created connection aries, handle: {:?}", handle);
         return handle;
     }
 
@@ -1203,7 +1203,7 @@ pub fn create_connection_with_outofband_invite(source_id: &str, invitation: &str
 
     let connection = Connections::V3(ConnectionV3::create_with_outofband_invite(source_id, invitation)?);
     let handle = store_connection(connection);
-    debug!("create_connection_with_outofband_invite: created connection v3, handle: {:?}", handle);
+    debug!("create_connection_with_outofband_invite: created connection aries, handle: {:?}", handle);
     return handle;
 }
 
@@ -1216,7 +1216,7 @@ pub fn accept_connection_invite(source_id: &str,
     connection_handle.connect(options)?;
     let connection_serialized = connection_handle.to_string()?;
 
-    debug!("accept_connection_invite: created connection v3, handle: {:?}", connection_handle);
+    debug!("accept_connection_invite: created connection aries, handle: {:?}", connection_handle);
 
     Ok((connection_handle, connection_serialized))
 }

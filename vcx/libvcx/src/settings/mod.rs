@@ -15,7 +15,7 @@ use std::borrow::Borrow;
 use reqwest::Url;
 use crate::error::prelude::*;
 use crate::utils::file::read_file;
-use crate::v3::messages::a2a::protocol_registry::Actors;
+use crate::aries::messages::a2a::protocol_registry::Actors;
 use crate::settings::protocol::ProtocolTypes;
 
 pub static CONFIG_POOL_NAME: &str = "pool_name";

@@ -23,9 +23,9 @@ use crate::utils::openssl::encode;
 use crate::utils::qualifier;
 use crate::messages::proofs::proof_message::get_credential_info;
 
-use crate::v3::handlers::proof_presentation::verifier::verifier::Verifier;
+use crate::aries::handlers::proof_presentation::verifier::verifier::Verifier;
 use crate::utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
-use crate::v3::messages::proof_presentation::presentation_proposal::PresentationProposal;
+use crate::aries::messages::proof_presentation::presentation_proposal::PresentationProposal;
 
 lazy_static! {
     static ref PROOF_MAP: ObjectCache<Proofs> = Default::default();
@@ -543,7 +543,7 @@ pub fn create_proof(source_id: String,
                     requested_predicates: String,
                     revocation_details: String,
                     name: String) -> VcxResult<Handle<Proofs>> {
-    // Initiate proof of new format -- redirect to v3 folder
+    // Initiate proof of new format -- redirect to aries folder
     if settings::is_strict_aries_protocol_set() {
         let verifier = Verifier::create(source_id, requested_attrs, requested_predicates, revocation_details, name)?;
         return PROOF_MAP.add(Proofs::V3(verifier))
@@ -911,7 +911,7 @@ pub mod tests {
     use crate::utils::devsetup::*;
     use crate::utils::httpclient::AgencyMock;
     
-    use crate::v3::messages::proof_presentation::presentation_proposal::PresentationPreview;
+    use crate::aries::messages::proof_presentation::presentation_proposal::PresentationPreview;
 
     fn default_agent_info(connection_handle: Option<Handle<Connections>>) -> MyAgentInfo {
         if let Some(h) = connection_handle { get_agent_info().unwrap().pw_info(h).unwrap() } else {
