@@ -103,6 +103,7 @@ export interface IFFIEntryPoint {
   vcx_health_check: (commandId: number, cb: any) => number,
   vcx_create_pairwise_agent: (commandId: number, cb: any) => number,
   vcx_extract_attached_message: (commandId: number, message: string, cb: any) => number,
+  vcx_resolve_message_by_url: (commandId: number, url: string, cb: any) => number,
 
   // connection
   vcx_connection_delete_connection: (commandId: number, handle: number, cb: any) => number,
@@ -299,6 +300,7 @@ export const FFIConfiguration: { [ Key in keyof IFFIEntryPoint ]: any } = {
   vcx_health_check: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CALLBACK_PTR]],
   vcx_create_pairwise_agent: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CALLBACK_PTR]],
   vcx_extract_attached_message: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_STRING_DATA, FFI_CALLBACK_PTR]],
+  vcx_resolve_message_by_url: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_STRING_DATA, FFI_CALLBACK_PTR]],
 
   // Evernym extensions
   vcx_pack_message: [FFI_INDY_NUMBER, [FFI_INDY_NUMBER, FFI_INDY_NUMBER, FFI_UNSIGNED_INT, FFI_UNSIGNED_INT,

@@ -2342,7 +2342,7 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void extractAttachedMessage(String message, Promise promise) {
         try {
-            UtilsApi.extractAttachedMessage(message).exceptionally((t) -> {
+            UtilsApi.vcxExtractAttachedMessage(message).exceptionally((t) -> {
                 VcxException ex = (VcxException) t;
                 ex.printStackTrace();
                 Log.e(TAG, "extractAttachedMessage - Error: ", ex);
@@ -2354,6 +2354,25 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         } catch (VcxException e) {
             e.printStackTrace();
             Log.e(TAG, "extractAttachedMessage - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void resolveMessageByUrl(String url, Promise promise) {
+        try {
+            UtilsApi.vcxResolveMessageByUrl(url).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "resolveMessageByUrl - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "resolveMessageByUrl - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }

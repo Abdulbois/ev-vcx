@@ -2910,6 +2910,20 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 - (void)extractAttachedMessage:(NSString *)message
              completion:(void (^)(NSError *error, NSString* attachedMessage))completion;
 
+/// Resolve message by the given URL.
+/// Supported cases:
+///   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+///   2. Message inside response `location` header for GET request
+///   3. Message inside response for GET request
+///
+/// #params
+/// url: url to fetch message
+///
+/// #Returns
+/// Error code as a u32
+- (void)resolveMessageByUrl:(NSString *)url
+                 completion:(void (^)(NSError *error, NSString* message))completion;
+
 @end
 
 #endif /* init_h */

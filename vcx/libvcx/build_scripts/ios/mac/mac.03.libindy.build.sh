@@ -27,7 +27,6 @@ if [ "$#" -gt 0 ]; then
     else
         echo "git clone vdr-tools"
         git clone https://gitlab.com/evernym/verity/vdr-tools.git $WORK_DIR/vcx-indy-sdk
-        git checkout tags/v0.8.0
         cd $WORK_DIR/vcx-indy-sdk
     fi
 
@@ -37,8 +36,8 @@ if [ "$#" -gt 0 ]; then
         git checkout .
         git clean -f
         git clean -fd
-        git pull
-#        git checkout `cat $SHA_HASH_DIR/libindy.commit.sha1.hash.txt`
+#        git pull
+        git checkout `cat $SHA_HASH_DIR/libindy.commit.sha1.hash.txt`
     else
         echo "libindy NOT cleanbuild"
 
@@ -73,6 +72,9 @@ if [ "$#" -gt 0 ]; then
     #else
     #    cat $START_DIR/cargo.toml.reduce.size.txt >> Cargo.toml
     #fi
+    echo "cat Cargo.toml"
+    cat Cargo.toml
+
     if [ "$DEBUG_SYMBOLS" = "nodebug" ]; then
         sed -i .bak 's/debug = true/debug = false/' Cargo.toml
     fi

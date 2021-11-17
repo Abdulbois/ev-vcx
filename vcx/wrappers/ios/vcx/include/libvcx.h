@@ -845,6 +845,25 @@ vcx_error_t vcx_extract_attached_message(vcx_command_handle_t command_handle,
                                const char *message,
                                void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
+/// Resolve message by the given URL.
+/// Supported cases:
+///   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+///   2. Message inside response `location` header for GET request
+///   3. Message inside response for GET request
+///
+/// #params
+///
+/// url: url to fetch message
+/// command_handle: command handle to map callback to user context.
+///
+/// cb: Callback that provides resolved message
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_resolve_message_by_url(vcx_command_handle_t command_handle,
+                               const char *url,
+                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
 #ifdef __cplusplus
 }
 #endif

@@ -586,3 +586,35 @@ export async function extractAttachedMessage({ message }: IExtractAttachedMessag
     throw new VCXInternalError(err)
   }
 }
+
+export interface IResolveMessageByUrl {
+  url: string, // url to fetch message
+}
+
+export async function resolveMessageByUrl({ url }: IResolveMessageByUrl): Promise<string> {
+  /**
+   *  Resolve message by the given URL.
+   */
+  try {
+    return await createFFICallbackPromise<string>(
+      (resolve, reject, cb) => {
+        const rc = rustAPI().vcx_resolve_message_by_url(0, url, cb)
+        if (rc) {
+          reject(rc)
+        }
+      },
+      (resolve, reject) => Callback(
+        'void',
+        ['uint32','uint32','string'],
+        (xhandle: number, err: number, messages: string) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(messages)
+        })
+    )
+  } catch (err) {
+    throw new VCXInternalError(err)
+  }
+}

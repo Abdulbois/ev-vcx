@@ -33,6 +33,10 @@ interface IExtractAttachedMessage {
   message: string
 }
 
+interface IResolveMessageByUrl {
+  url: string
+}
+
 export class Utils {
   /**
    * Get ledger fees from the network
@@ -182,5 +186,20 @@ export class Utils {
    */
   public static async extractAttachedMessage({ message }: IExtractAttachedMessage): Promise<string> {
     return await RNIndy.extractAttachedMessage(message)
+  }
+
+  /**
+   * Resolve message by the given URL.
+   * Supported cases:
+   *   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+   *   2. Message inside response `location` header for GET request
+   *   3. Message inside response for GET request
+   *
+   * @return                  string - resolved message as JSON string
+   *
+   * @throws VcxException   If an exception occurred in Libvcx library.
+   */
+  public static async resolveMessageByUrl({ url }: IResolveMessageByUrl): Promise<string> {
+    return await RNIndy.resolveMessageByUrl(url)
   }
 }
