@@ -162,6 +162,8 @@ pub struct MessageWithAttachment {
     pub did_doc_attach: Option<Attachments>,
     #[serde(rename = "offers~attach")]
     pub offers_attach: Option<Attachments>,
+    #[serde(rename = "request~attach")]
+    pub request_attach: Option<Attachments>,
     #[serde(rename = "requests~attach")]
     pub requests_attach: Option<Attachments>,
     #[serde(rename = "credentials~attach")]
@@ -194,6 +196,7 @@ pub fn extract_attached_message(message: &str) -> VcxResult<String> {
         .or(message_with_attachment.proposal_attach)
         .or(message_with_attachment.did_doc_attach)
         .or(message_with_attachment.offers_attach)
+        .or(message_with_attachment.request_attach)
         .or(message_with_attachment.requests_attach)
         .or(message_with_attachment.credentials_attach)
         .or(message_with_attachment.attach)

@@ -665,4 +665,32 @@ public class UtilsApi extends VcxJava.API {
         checkResult(result);
         return future;
     }
+
+    /**
+     * Resolve message by the given URL.
+     * Supported cases:
+     *   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+     *   2. Message inside response `location` header for GET request
+     *   3. Message inside response for GET request
+     *
+     * @param  url            url to fetch message
+     *
+     * @return                Resolved message as JSON string
+     *
+     * @throws VcxException   If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> vcxResolveMessageByUrl(String url) throws VcxException {
+        ParamGuard.notNull(url, "url");
+        logger.debug("vcxResolveMessageByUrl() called with: url = [****]");
+        CompletableFuture<String> future = new CompletableFuture<String>();
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_resolve_message_by_url(
+                commandHandle,
+                url,
+                vcxExtractAttachedMessageCB
+        );
+        checkResult(result);
+        return future;
+    }
 }

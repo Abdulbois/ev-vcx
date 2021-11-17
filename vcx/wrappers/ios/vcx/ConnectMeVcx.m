@@ -2977,4 +2977,22 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
     }
 }
 
+- (void)resolveMessageByUrl:(NSString *)url
+                 completion:(void (^)(NSError *error, NSString* message))completion{
+    vcx_error_t ret;
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char * url_ = [url cStringUsingEncoding:NSUTF8StringEncoding];
+    ret = vcx_resolve_message_by_url(handle, url_, VcxWrapperCommonStringCallback);
+
+    if( ret != 0 )
+    {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error, nil);
+        });
+    }
+}
+
 @end

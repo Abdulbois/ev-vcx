@@ -533,3 +533,30 @@ async def vcx_extract_attached_message(message: str) -> str:
 
     logger.debug("vcx_extract_attached_message completed")
     return result
+
+
+async def resolve_message_by_url(url: str) -> str:
+    """
+    Resolve message by the given URL.
+    Supported cases:
+      1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+      2. Message inside response `location` header for GET request
+      3. Message inside response for GET request
+
+    :param url: url to fetch message
+    :return: resolved message
+    """
+    logger = logging.getLogger(__name__)
+
+    if not hasattr(resolve_message_by_url, "cb"):
+        logger.debug("resolve_message_by_url: Creating callback")
+        resolve_message_by_url.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
+
+    c_url = c_char_p(url.encode('utf-8'))
+
+    result = await do_call('vcx_resolve_message_by_url',
+                           c_url,
+                           resolve_message_by_url.cb)
+
+    logger.debug("resolve_message_by_url completed")
+    return result

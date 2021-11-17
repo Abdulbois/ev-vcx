@@ -16,6 +16,7 @@ use crate::v3::handlers::connection::agent::AgentInfo;
 use crate::messages::{agent_provisioning, update_agent};
 use crate::messages::update_agent::ComMethod;
 use crate::v3::messages::attachment::extract_attached_message;
+use crate::v3::utils::resolve_message_by_url;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
 ///
@@ -920,6 +921,57 @@ pub extern fn vcx_create_pairwise_agent(command_handle: CommandHandle,
             }
             Err(e) => {
                 warn!("vcx_create_pairwise_agent_cb(command_handle: {}, rc: {})",
+                      command_handle, e);
+                cb(command_handle, e.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
+/// Resolve message by the given URL.
+/// Supported cases:
+///   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+///   2. Message inside response `location` header for GET request
+///   3. Message inside response for GET request
+///
+/// #params
+///
+/// url: url to fetch message
+/// command_handle: command handle to map callback to user context.
+///
+/// cb: Callback that provides resolved message
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_resolve_message_by_url(command_handle: CommandHandle,
+                                           url: *const c_char,
+                                           cb: Option<extern fn(xcommand_handle: CommandHandle,
+                                                                err: u32,
+                                                                message: *const c_char)>) -> u32 {
+    info!("vcx_resolve_message_by_url >>>");
+
+    check_useful_c_str!(url, VcxErrorKind::InvalidOption);
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_resolve_message_by_url(command_handle: {}, url: {:?})",
+           command_handle, url);
+
+    spawn(move || {
+        match resolve_message_by_url(&url) {
+            Ok(message) => {
+                trace!("vcx_resolve_message_by_url_cb(command_handle: {}, rc: {}, message: {:?})",
+                       command_handle, error::SUCCESS.as_str(), secret!(message));
+
+                let message = CStringUtils::string_to_cstring(message);
+                cb(command_handle, error::SUCCESS.code_num, message.as_ptr());
+            }
+            Err(e) => {
+                warn!("vcx_resolve_message_by_url_cb(command_handle: {}, rc: {})",
                       command_handle, e);
                 cb(command_handle, e.into(), ptr::null_mut());
             }

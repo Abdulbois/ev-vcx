@@ -13,7 +13,7 @@ if [ -d $WORK_DIR/vcx-indy-sdk ]; then
 fi
 git clone https://gitlab.com/evernym/verity/vdr-tools.git $WORK_DIR/vcx-indy-sdk
 cd $WORK_DIR/vcx-indy-sdk
-#git checkout tags/v1.3.0
+git checkout tags/v1.3.0
 cd $WORK_DIR/vcx-indy-sdk/libindy
 
 cargo clean
