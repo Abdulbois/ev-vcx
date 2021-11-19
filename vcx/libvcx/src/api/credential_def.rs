@@ -1,4 +1,4 @@
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 use crate::credential_def::CredentialDef;
 use libc::c_char;
 use crate::utils::cstring::CStringUtils;

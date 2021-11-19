@@ -1,7 +1,7 @@
 use libc::c_char;
 use crate::utils::cstring::CStringUtils;
 use crate::schema::CreateSchema;
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 use crate::utils::error;
 use std::ptr;
 use crate::schema;

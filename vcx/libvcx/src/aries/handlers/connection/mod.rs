@@ -196,7 +196,7 @@ impl Connection {
 
         let message: A2AMessage = ::serde_json::from_str(&message)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
-                                              format!("Cannot updated Connection state with messages: Message deserialization failed with: {:?}", err)))?;
+                                              format!("Cannot updated Connection state with agent: Message deserialization failed with: {:?}", err)))?;
 
         self.handle_message(message.into())?;
 
@@ -209,7 +209,7 @@ impl Connection {
 
     pub fn get_messages(&self) -> VcxResult<HashMap<String, A2AMessage>> {
         trace!("Connection: get_messages >>>");
-        debug!("Connection {}: Getting messages", self.source_id());
+        debug!("Connection {}: Getting agent", self.source_id());
         self.agent_info().get_messages()
     }
 
@@ -235,11 +235,11 @@ impl Connection {
         self.agent_info().send_message(message, &did_doc)
     }
 
-    pub fn send_message_and_wait_result<T: Serialize + Debug>(message: &T, did_doc: &DidDoc, sender_vk: &str) -> VcxResult<A2AMessage> {
-        trace!("Connection::send_message_and_wait_result >>> message: {:?}, did_doc: {:?}, sender_vk: {:?}",
-               secret!(message), secret!(did_doc), secret!(sender_vk));
+    pub fn send_message_and_wait_result<T: Serialize + Debug>(message: &T, did_doc: &DidDoc) -> VcxResult<A2AMessage> {
+        trace!("Connection::send_message_and_wait_result >>> message: {:?}, did_doc: {:?}",
+               secret!(message), secret!(did_doc));
 
-        AgentInfo::send_message_and_wait_result(message, did_doc, sender_vk)
+        AgentInfo::send_message_and_wait_result(message, did_doc)
     }
 
     pub fn send_message_to_self_endpoint<T: Serialize + Debug>(message: &T, did_doc: &DidDoc) -> VcxResult<()> {
@@ -389,7 +389,7 @@ impl Connection {
     pub fn get_completed_connection(&self) -> VcxResult<CompletedConnection> {
         self.connection_sm.completed_connection()
             .ok_or(VcxError::from_msg(VcxErrorKind::ConnectionNotCompleted,
-                                      format!("Connection object {} in state {} not ready to send remote messages", self.connection_sm.source_id(), self.state())))
+                                      format!("Connection object {} in state {} not ready to send remote agent", self.connection_sm.source_id(), self.state())))
     }
 
     pub fn get_problem_report_message(&self) -> VcxResult<String> {
@@ -410,7 +410,7 @@ pub mod tests {
     use crate::aries::messages::connection::did_doc::tests::_service_endpoint;
     use crate::aries::messages::connection::request::tests::_request;
     use crate::connection::Connections;
-    use crate::object_cache::Handle;
+    use crate::utils::object_cache::Handle;
     use crate::settings;
 
     #[test]
@@ -541,7 +541,7 @@ pub mod tests {
                 }
             }
 
-            let _res = crate::messages::get_message::download_messages(None, None, Some(vec![uid.clone()])).unwrap();
+            let _res = crate::agent::messages::get_message::download_messages(None, None, Some(vec![uid.clone()])).unwrap();
 
             // Get Message by id works
             {
@@ -587,9 +587,9 @@ pub mod tests {
 
             // Download Messages
             {
-                use crate::messages::get_message::{download_messages, MessageByConnection, Message};
+                use crate::agent::messages::get_message::{download_messages, MessageByConnection, Message};
 
-                let credential_offer = crate::aries::messages::issuance::credential_offer::tests::_credential_offer();
+                let credential_offer = crate::aries::messages::issuance::v10::credential_offer::tests::_credential_offer();
 
                 faber.send_message(&credential_offer);
 
@@ -597,9 +597,9 @@ pub mod tests {
 
                 let messages: Vec<MessageByConnection> = download_messages(None, Some(vec!["MS-103".to_string()]), None).unwrap();
                 let message: Message = messages[0].msgs[0].clone();
-                assert_eq!(crate::messages::RemoteMessageType::Other("aries".to_string()), message.msg_type);
-                let payload: crate::messages::payload::PayloadV1 = ::serde_json::from_str(&message.decrypted_payload.unwrap()).unwrap();
-                let _payload: Vec<crate::messages::issuance::credential_offer::CredentialOffer> = ::serde_json::from_str(&payload.msg).unwrap();
+                assert_eq!(crate::agent::messages::RemoteMessageType::Other("aries".to_string()), message.msg_type);
+                let payload: crate::agent::messages::payload::PayloadV1 = ::serde_json::from_str(&message.decrypted_payload.unwrap()).unwrap();
+                let _payload: Vec<crate::legacy::messages::issuance::credential_offer::CredentialOffer> = ::serde_json::from_str(&payload.msg).unwrap();
 
                 alice.update_message_status(message.uid);
             }

@@ -1,7 +1,7 @@
 use crate::aries::messages::a2a::{MessageId, A2AMessage};
 use crate::proof::generate_nonce;
 use crate::error::VcxResult;
-use crate::messages::thread::Thread;
+use crate::aries::messages::thread::Thread;
 use crate::aries::messages::a2a::message_type::{
     MessageType,
     MessageTypePrefix,

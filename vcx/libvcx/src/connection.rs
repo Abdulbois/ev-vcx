@@ -2,17 +2,17 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 use crate::api::VcxStateType;
 use crate::error::prelude::*;
-use crate::messages;
-use crate::messages::{GeneralMessage, MessageStatusCode, RemoteMessageType, SerializableObjectWithState, update_agent};
-use crate::messages::invite::{InviteDetail, SenderDetail, Payload as ConnectionPayload, AcceptanceDetails, RedirectDetail, RedirectionDetails};
-use crate::messages::payload::{Payloads, PayloadKinds};
-use crate::messages::thread::Thread;
-use crate::messages::send_message::SendMessageOptions;
-use crate::messages::get_message::{Message, MessagePayload};
-use crate::object_cache::ObjectCache;
+use crate::agent;
+use crate::agent::messages::{GeneralMessage, MessageStatusCode, RemoteMessageType, SerializableObjectWithState, update_agent};
+use crate::agent::messages::connection::{InviteDetail, SenderDetail, Payload as ConnectionPayload, AcceptanceDetails, RedirectDetail, RedirectionDetails};
+use crate::agent::messages::payload::{Payloads, PayloadKinds};
+use crate::aries::messages::thread::Thread;
+use crate::agent::messages::send_message::SendMessageOptions;
+use crate::agent::messages::get_message::{Message, MessagePayload};
+use crate::utils::object_cache::ObjectCache;
 use crate::settings;
 use crate::utils::error;
 use crate::utils::libindy::signus::create_and_store_my_did;
@@ -98,7 +98,7 @@ pub struct Connection {
     agent_vk: String,
     their_pw_did: String,
     their_pw_verkey: String,
-    // used by proofs/credentials when sending to edge device
+    // used by proof_presentation/credentials when sending to edge device
     public_did: Option<String>,
     their_public_did: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -111,7 +111,7 @@ impl Connection {
         debug!("Connection {}: Sending invite", self.source_id);
 
         let (invite, url) =
-            messages::send_invite()
+            agent::messages::send_invite()
                 .to(&self.pw_did)?
                 .to_vk(&self.pw_verkey)?
                 .phone_number(options.phone.as_ref().map(String::as_str))?
@@ -136,7 +136,7 @@ impl Connection {
         trace!("Connection::delete_connection >>>");
         debug!("Connection {}: deleting connection", self.source_id);
 
-        messages::delete_connection()
+        agent::messages::delete_connection()
             .to(&self.pw_did)?
             .to_vk(&self.pw_verkey)?
             .agent_did(&self.agent_did)?
@@ -161,7 +161,7 @@ impl Connection {
 
         trace!("Connection::_connect_accept_invite: invite: {:?}", secret!(details));
 
-        messages::accept_invite()
+        agent::messages::accept_invite()
             .to(&self.pw_did)?
             .to_vk(&self.pw_verkey)?
             .agent_did(&self.agent_did)?
@@ -213,7 +213,7 @@ impl Connection {
 
         match self.state {
             VcxStateType::VcxStateRequestReceived => {
-                messages::redirect_connection()
+                agent::messages::redirect_connection()
                     .to(&self.pw_did)?
                     .to_vk(&self.pw_verkey)?
                     .agent_did(&self.agent_did)?
@@ -339,7 +339,7 @@ impl Connection {
                 self.set_agent_verkey(&agent_info.agent_vk);
             },
             None => {
-                let (for_did, for_verkey) = messages::create_keys()
+                let (for_did, for_verkey) = agent::messages::create_keys()
                     .for_did(&self.pw_did)?
                     .for_verkey(&self.pw_verkey)?
                     .version(&self.version)?
@@ -381,16 +381,16 @@ impl Connection {
         }
 
         let response =
-            messages::get_messages()
+            agent::messages::get_messages()
                 .to(&self.pw_did)?
                 .to_vk(&self.pw_verkey)?
                 .agent_did(&self.agent_did)?
                 .agent_vk(&self.agent_vk)?
                 .version(&self.version)?
                 .send_secure()
-                .map_err(|err| err.extend("Cannot get connection messages"))?;
+                .map_err(|err| err.extend("Cannot get connection agent"))?;
 
-        debug!("Connection {}: Received messages: {:?}", self.source_id, secret!(response));
+        debug!("Connection {}: Received agent: {:?}", self.source_id, secret!(response));
 
         if self.state == VcxStateType::VcxStateOfferSent || self.state == VcxStateType::VcxStateInitialized {
             for message in response {
@@ -443,7 +443,7 @@ impl Connection {
                                           format!("Cannot parse SendMessageOptions from `msg_options` JSON string. Err: {:?}", err)))?;
 
         let response =
-            crate::messages::send_message()
+            crate::agent::messages::send_message()
                 .to(&self.get_pw_did())?
                 .to_vk(&self.get_pw_verkey())?
                 .msg_type(&RemoteMessageType::Other(msg_options.msg_type.clone()))?
@@ -493,7 +493,7 @@ impl Connection {
             .set_thread(thread)
             .sign(&question, &response, &self.pw_verkey)?;
 
-        messages::send_message()
+        agent::messages::send_message()
             .to(&self.get_pw_did())?
             .to_vk(&self.get_pw_verkey())?
             .msg_type(&RemoteMessageType::Other(String::from("Answer")))?
@@ -533,7 +533,7 @@ impl Connection {
             .set_ack_on(data.ack_on)
         ).to_string();
 
-        crate::messages::send_message()
+        crate::agent::messages::send_message()
             .to(&self.get_pw_did())?
             .to_vk(&self.get_pw_verkey())?
             .msg_type(&RemoteMessageType::InviteAction)?
@@ -574,7 +574,7 @@ pub fn create_agent_keys(source_id: &str, pw_did: &str, pw_verkey: &str) -> VcxR
     trace!("Connection::create_agent_keys >>> pw_did: {:?}, pw_verkey: {:?}", secret!(pw_did), secret!(pw_verkey));
     debug!("creating pairwise keys on agent for connection {}", source_id);
 
-    let (agent_did, agent_verkey) = messages::create_keys()
+    let (agent_did, agent_verkey) = agent::messages::create_keys()
         .for_did(pw_did)?
         .for_verkey(pw_verkey)?
         .version(&Some(settings::get_protocol_type()))?
@@ -794,7 +794,7 @@ impl Handle<Connections> {
                 Connections::V1(connection) => {
                     let message: Message = ::serde_json::from_str(&message)
                         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
-                                                          format!("Cannot updated Connection state with messages: Message deserialization failed with: {:?}", err)))?;
+                                                          format!("Cannot updated Connection state with agent: Message deserialization failed with: {:?}", err)))?;
 
                     if message.status_code == MessageStatusCode::Redirected && message.msg_type == RemoteMessageType::ConnReqRedirect {
                         connection.process_redirect_message(&message)?;
@@ -1236,13 +1236,13 @@ pub fn parse_acceptance_details(message: &Message) -> VcxResult<SenderDetail> {
             trace!("Connection::parse_acceptance_details >>> MessagePayload::V1 payload");
 
             // TODO: check returned verkey
-            let (_, payload) = crypto::parse_msg(&my_vk, messages::i8_as_u8_slice(payload))
+            let (_, payload) = crypto::parse_msg(&my_vk, agent::messages::i8_as_u8_slice(payload))
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt Message payload. Err: {}", err)))?;
 
             let response: ConnectionPayload = rmp_serde::from_slice(&payload)
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt Message payload. Err: {}", err)))?;
 
-            let payload = messages::i8_as_u8_slice(&response.msg);
+            let payload = agent::messages::i8_as_u8_slice(&response.msg);
 
             let response: AcceptanceDetails = rmp_serde::from_slice(payload)
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
@@ -1280,13 +1280,13 @@ impl Connection {
                 trace!("Connection::parse_redirection_details >>> MessagePayload::V1 payload");
 
                 // TODO: check returned verkey
-                let (_, payload) = crypto::parse_msg(&my_vk, messages::i8_as_u8_slice(&payload))
+                let (_, payload) = crypto::parse_msg(&my_vk, agent::messages::i8_as_u8_slice(&payload))
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt Message payload. Err: {}", err)))?;
 
                 let response: ConnectionPayload = rmp_serde::from_slice(&payload)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt Message payload. Err: {}", err)))?;
 
-                let payload = messages::i8_as_u8_slice(&response.msg);
+                let payload = agent::messages::i8_as_u8_slice(&response.msg);
 
                 let response: RedirectionDetails = rmp_serde::from_slice(&payload)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot parse RedirectionDetails from Message payload. Err: {}", err)))?;
@@ -1435,7 +1435,7 @@ pub mod tests {
     use std::thread;
     use std::time::Duration;
 
-    use crate::messages::get_message::*;
+    use crate::agent::messages::get_message::*;
     use crate::utils::constants::*;
     use crate::utils::constants::INVITE_DETAIL_STRING;
 
@@ -1961,8 +1961,8 @@ pub mod tests {
         let rd: RedirectDetail = serde_json::from_str(&redirect_data).unwrap();
         let alice_serialized = alice.to_string().unwrap();
 
-        let to_alice_old: Connection = crate::messages::ObjectWithVersion::deserialize(&alice_serialized)
-            .map(|obj: crate::messages::ObjectWithVersion<Connection>| obj.data).unwrap();
+        let to_alice_old: Connection = crate::agent::messages::ObjectWithVersion::deserialize(&alice_serialized)
+            .map(|obj: crate::agent::messages::ObjectWithVersion<Connection>| obj.data).unwrap();
 
 
         // Assert redirected data match old connection to alice

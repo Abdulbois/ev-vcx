@@ -36,7 +36,7 @@ use crate::aries::handlers::connection::states::*;
 use std::collections::HashMap;
 
 use crate::error::prelude::*;
-use crate::messages::thread::Thread;
+use crate::aries::messages::thread::Thread;
 use crate::settings;
 use crate::connection::ConnectionOptions;
 use serde::Serialize;
@@ -372,13 +372,13 @@ impl CompleteState {
             OutofbandInvitation::V10(invitation) => {
                 HandshakeReuse::V10(
                     HandshakeReuseV10::create()
-                        .set_pthid(&invitation.id.0)
+                        .set_pthid(&invitation.id.to_string())
                 )
             }
             OutofbandInvitation::V11(invitation) => {
                 HandshakeReuse::V11(
                     HandshakeReuseV11::create()
-                        .set_pthid(&invitation.id.0)
+                        .set_pthid(&invitation.id.to_string())
                 )
             }
         };
@@ -617,7 +617,7 @@ impl DidExchangeSM {
     }
 
     pub fn find_message_to_handle(&self, messages: HashMap<String, A2AMessage>) -> Option<(String, A2AMessage)> {
-        trace!("DidExchangeSM::find_message_to_handle >>> messages: {:?}", secret!(messages));
+        trace!("DidExchangeSM::find_message_to_handle >>> agent: {:?}", secret!(messages));
         debug!("DidExchangeSM: Finding message to update state");
 
         for (uid, message) in messages {
@@ -1425,7 +1425,7 @@ pub mod test {
 
                 let connection = inviter_sm();
 
-                // No messages
+                // No agent
                 {
                     let messages = map!(
                     "key_1".to_string() => A2AMessage::ConnectionRequest(_request()),
@@ -1471,7 +1471,7 @@ pub mod test {
                     assert_match!(A2AMessage::ConnectionProblemReport(_), message);
                 }
 
-                // No messages
+                // No agent
                 {
                     let messages = map!(
                         "key_1".to_string() => A2AMessage::Ping(_ping()),
@@ -1526,7 +1526,7 @@ pub mod test {
                     assert_match!(A2AMessage::ConnectionProblemReport(_), message);
                 }
 
-                // No messages
+                // No agent
                 {
                     let messages = map!(
                         "key_1".to_string() => A2AMessage::ConnectionRequest(_request()),
@@ -1938,7 +1938,7 @@ pub mod test {
 
                 let connection = invitee_sm().to_invitee_invited_state();
 
-                // No messages
+                // No agent
                 {
                     let messages = map!(
                         "key_1".to_string() => A2AMessage::ConnectionRequest(_request()),
@@ -1984,7 +1984,7 @@ pub mod test {
                     assert_match!(A2AMessage::ConnectionProblemReport(_), message);
                 }
 
-                // No messages
+                // No agent
                 {
                     let messages = map!(
                         "key_1".to_string() => A2AMessage::Ping(_ping()),

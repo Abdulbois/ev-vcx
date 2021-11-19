@@ -3,7 +3,7 @@ use serde::{de, Serialize, Serializer, Deserialize, Deserializer};
 use serde_json;
 use serde_json::Value;
 
-use crate::error::{VcxResult, VcxError, VcxErrorKind};
+use crate::error::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Attachments(pub Vec<Attachment>);
@@ -31,13 +31,13 @@ impl Attachments {
         self.add_json_attachment(id, json, AttachmentEncoding::Base64)
     }
 
-    pub fn content(&self) -> VcxResult<String> {
+    pub fn content(&self) -> VcxResult<(AttachmentId, String)> {
         match self.get() {
-            Some(Attachment::JSON(ref attach)) => attach.get_data(),
-            Some(Attachment::DidcomPlainJSON(ref attach)) => attach.get_data(),
+            Some(Attachment::JSON(ref attach)) => attach.data(),
             _ => return Err(VcxError::from_msg(VcxErrorKind::InvalidAttachmentEncoding, "Unsupported Attachment type"))
         }
     }
+
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -122,11 +122,13 @@ impl Json {
         })
     }
 
-    pub fn get_data(&self) -> VcxResult<String> {
+    pub fn data(&self) -> VcxResult<(AttachmentId, String)> {
+        let id = self.id.clone();
         let data = self.data.get_bytes()?;
-        from_utf8(data.as_slice())
-            .map(|s| s.to_string())
-            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAttachmentEncoding, format!("Wrong bytes in attachment. Err: {:?}", err)))
+        let data = from_utf8(data.as_slice())
+            .map(String::from)
+            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAttachmentEncoding, format!("Wrong bytes in attachment. Err: {:?}",err)))?;
+        Ok((id, data))
     }
 }
 
@@ -146,73 +148,10 @@ impl AttachmentData {
         match self {
             AttachmentData::Base64(s) => {
                 base64::decode(s)
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAttachmentEncoding, format!("Wrong bytes in attachment. Err: {:?}", err)))
+                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAttachmentEncoding, format!("Wrong bytes in attachment. Err: {:?}",err)))
             }
         }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Default)]
-pub struct MessageWithAttachment {
-    #[serde(rename = "filters~attach")]
-    pub filters_attach: Option<Attachments>,
-    #[serde(rename = "proposal~attach")]
-    pub proposal_attach: Option<Attachments>,
-    #[serde(rename = "did_doc~attach")]
-    pub did_doc_attach: Option<Attachments>,
-    #[serde(rename = "offers~attach")]
-    pub offers_attach: Option<Attachments>,
-    #[serde(rename = "request~attach")]
-    pub request_attach: Option<Attachments>,
-    #[serde(rename = "requests~attach")]
-    pub requests_attach: Option<Attachments>,
-    #[serde(rename = "credentials~attach")]
-    pub credentials_attach: Option<Attachments>,
-    #[serde(rename = "~attach")]
-    pub attach: Option<Attachments>,
-    #[serde(rename = "diagram~attach")]
-    pub diagram_attach: Option<Attachments>,
-    #[serde(rename = "messages~attach")]
-    pub messages_attach: Option<Attachments>,
-    #[serde(rename = "request_presentations~attach")]
-    pub request_presentations_attach: Option<Attachments>,
-    #[serde(rename = "presentations~attach")]
-    pub presentations_attach: Option<Attachments>,
-    #[serde(rename = "img~attach")]
-    pub img_attach: Option<Attachments>,
-}
-
-pub fn extract_attached_message(message: &str) -> VcxResult<String> {
-    trace!("Attachments::extract_attached_message >>>");
-    debug!("Attachments: extracting attachment from message");
-
-    let message_with_attachment: MessageWithAttachment = serde_json::from_str(message)
-        .map_err(|err| VcxError::from_msg(
-            VcxErrorKind::InvalidJson,
-            format!("Unable to parse MessageWithAttachment from JSON string. Err: {:?}", err),
-        ))?;
-
-    let attachment: Attachments = message_with_attachment.filters_attach
-        .or(message_with_attachment.proposal_attach)
-        .or(message_with_attachment.did_doc_attach)
-        .or(message_with_attachment.offers_attach)
-        .or(message_with_attachment.request_attach)
-        .or(message_with_attachment.requests_attach)
-        .or(message_with_attachment.credentials_attach)
-        .or(message_with_attachment.attach)
-        .or(message_with_attachment.diagram_attach)
-        .or(message_with_attachment.messages_attach)
-        .or(message_with_attachment.request_presentations_attach)
-        .or(message_with_attachment.presentations_attach)
-        .or(message_with_attachment.img_attach)
-        .ok_or(VcxError::from_msg(
-            VcxErrorKind::InvalidJson,
-            "Message does not contain attachment",
-        ))?;
-
-    let content = attachment.content()?;
-    trace!("Attachments::extract_attached_message <<< content: {:?}", secret!(content));
-    Ok(content)
 }
 
 #[cfg(test)]
@@ -227,7 +166,8 @@ pub mod tests {
     fn test_create_json_attachment_works() {
         let json_attachment: Json = Json::new(AttachmentId::Credential, _json(), AttachmentEncoding::Base64).unwrap();
         assert_eq!(vec![123, 34, 102, 105, 101, 108, 100, 34, 58, 34, 118, 97, 108, 117, 101, 34, 125], json_attachment.data.get_bytes().unwrap());
-        assert_eq!(_json().to_string(), json_attachment.get_data().unwrap());
+        let (_, content) = json_attachment.data().unwrap();
+        assert_eq!(_json().to_string(), content);
     }
 
     #[test]
@@ -240,21 +180,15 @@ pub mod tests {
             attachments.add(Attachment::JSON(json));
             assert_eq!(1, attachments.0.len());
 
-            assert_eq!(_json().to_string(), attachments.content().unwrap());
+            let (_, content) = attachments.content().unwrap();
+            assert_eq!(_json().to_string(), content);
         }
 
         {
             let mut attachments = Attachments::new();
             attachments.add_json_attachment(AttachmentId::Credential, _json(), AttachmentEncoding::Base64).unwrap();
-            assert_eq!(_json().to_string(), attachments.content().unwrap());
+            let (_, content) = attachments.content().unwrap();
+            assert_eq!(_json().to_string(), content);
         }
-    }
-
-    #[test]
-    fn test_extract_attached_message() {
-        let message = r#"{"request_presentations~attach": [{"@id": "libindy-request-presentation-0", "data": {"base64": "eyJuYW1lIjoicHJvb2ZfZnJvbV9hbGljZSIsIm5vbl9yZXZva2VkIjpudWxsLCJub25jZSI6Ijc3MzQ4MDc1MzM0NDk3MDI5ODY2MDgiLCJyZXF1ZXN0ZWRfYXR0cmlidXRlcyI6eyJhdHRyaWJ1dGVfMCI6eyJuYW1lIjoiTWVtYmVySUQifX0sInJlcXVlc3RlZF9wcmVkaWNhdGVzIjp7fSwidmVyIjoiMS4wIiwidmVyc2lvbiI6IjEuMCJ9"}, "mime-type": "application/json"}]}"#;
-        let attached_message = extract_attached_message(message).unwrap();
-        let expected_message = r#"{"name":"proof_from_alice","non_revoked":null,"nonce":"7734807533449702986608","requested_attributes":{"attribute_0":{"name":"MemberID"}},"requested_predicates":{},"ver":"1.0","version":"1.0"}"#;
-        assert_eq!(attached_message, expected_message);
     }
 }

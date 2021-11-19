@@ -114,6 +114,7 @@ pub enum MessageTypeVersion {
     V09,
     V10,
     V11,
+    V20,
 }
 
 impl From<String> for MessageTypeVersion {
@@ -122,6 +123,7 @@ impl From<String> for MessageTypeVersion {
             "0.9" => MessageTypeVersion::V09,
             "1.0" => MessageTypeVersion::V10,
             "1.1" => MessageTypeVersion::V11,
+            "2.0" => MessageTypeVersion::V20,
             _ => MessageTypeVersion::V10
         }
     }
@@ -133,6 +135,7 @@ impl ToString for MessageTypeVersion {
             MessageTypeVersion::V09 => "0.9".to_string(),
             MessageTypeVersion::V10 => "1.0".to_string(),
             MessageTypeVersion::V11 => "1.1".to_string(),
+            MessageTypeVersion::V20 => "2.0".to_string(),
         }
     }
 }

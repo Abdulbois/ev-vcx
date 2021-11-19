@@ -1,8 +1,8 @@
 use std::fmt::Debug;
-use crate::messages::update_message::{UIDsByConn, update_messages as update_messages_status};
-use crate::messages::MessageStatusCode;
-use crate::messages::get_message::{Message, get_connection_messages};
-use crate::messages::update_connection::send_delete_connection_message;
+use crate::agent::messages::update_message::{UIDsByConn, update_messages as update_messages_status};
+use crate::agent::messages::MessageStatusCode;
+use crate::agent::messages::get_message::{Message, get_connection_messages};
+use crate::agent::messages::update_connection::send_delete_connection_message;
 
 use crate::aries::messages::connection::did_doc::DidDoc;
 use crate::aries::messages::a2a::A2AMessage;
@@ -97,7 +97,7 @@ impl AgentInfo {
 
     pub fn get_messages(&self) -> VcxResult<HashMap<String, A2AMessage>> {
         trace!("Agent::get_messages >>>");
-        debug!("Agent: Getting all received messages from the agent");
+        debug!("Agent: Getting all received agent from the agent");
 
         let messages = get_connection_messages(&self.pw_did,
                                                &self.pw_vk,
@@ -149,7 +149,7 @@ impl AgentInfo {
             Some(ref payload) => {
                 debug!("Agent: Message Payload is already decoded");
 
-                let message: crate::messages::payload::PayloadV1 = ::serde_json::from_str(&payload)
+                let message: crate::agent::messages::payload::PayloadV1 = ::serde_json::from_str(&payload)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot deserialize message: {}", err)))?;
 
                 ::serde_json::from_str::<A2AMessage>(&message.msg)
@@ -173,12 +173,13 @@ impl AgentInfo {
         Ok(())
     }
 
-    pub fn send_message_and_wait_result<T: Serialize + Debug>(message: &T, did_doc: &DidDoc, sender_vk: &str) -> VcxResult<A2AMessage> {
-        trace!("Agent::send_message_and_wait_result >>> message: {:?}, did_doc: {:?}, sender_vk: {:?}",
-               secret!(message), secret!(did_doc), secret!(sender_vk));
+    pub fn send_message_and_wait_result<T: Serialize + Debug>(message: &T, did_doc: &DidDoc) -> VcxResult<A2AMessage> {
+        trace!("Agent::send_message_and_wait_result >>> message: {:?}, did_doc: {:?}",
+               secret!(message), secret!(did_doc));
         debug!("Agent: Sending message on the remote endpoint and wait for result");
 
-        let envelope = EncryptionEnvelope::create(&message, Some(sender_vk), &did_doc)?;
+        let (_, sender_vk) = create_and_store_my_did(None, None)?;
+        let envelope = EncryptionEnvelope::create(&message, Some(&sender_vk), &did_doc)?;
         let response = httpclient::post_message(&envelope.0, &did_doc.get_endpoint())?;
         let message = EncryptionEnvelope::open(response)?;
 

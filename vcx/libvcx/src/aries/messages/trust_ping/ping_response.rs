@@ -1,4 +1,4 @@
-use crate::messages::thread::Thread;
+use crate::aries::messages::thread::Thread;
 use crate::aries::messages::a2a::{MessageId, A2AMessage};
 use crate::aries::messages::a2a::message_type::{
     MessageType,
@@ -14,7 +14,7 @@ pub struct PingResponse {
     #[serde(rename = "@type")]
     pub type_: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
-    comment: Option<String>,
+    pub comment: Option<String>,
     #[serde(rename = "~thread")]
     pub thread: Thread,
 }

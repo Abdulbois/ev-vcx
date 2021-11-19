@@ -1,6 +1,6 @@
 use crate::aries::messages::outofband::v10::handshake_reuse::HandshakeReuse as HandshakeReuseV10;
 use crate::aries::messages::outofband::v11::handshake_reuse::HandshakeReuse as HandshakeReuseV11;
-use crate::messages::thread::Thread;
+use crate::aries::messages::thread::Thread;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(untagged)]

@@ -1,6 +1,6 @@
 use crate::aries::messages::a2a::{MessageId, A2AMessage};
 use chrono::prelude::*;
-use crate::messages::thread::Thread;
+use crate::aries::messages::thread::Thread;
 use crate::aries::messages::questionanswer::question::Question;
 use crate::utils::libindy::crypto;
 use crate::error::prelude::*;

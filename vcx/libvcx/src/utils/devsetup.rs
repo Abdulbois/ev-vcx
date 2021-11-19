@@ -2,7 +2,7 @@ use crate::utils::{threadpool, get_temp_dir_path};
 use crate::{settings, utils};
 use std::fs;
 use crate::utils::libindy::wallet::{reset_wallet_handle, delete_wallet, create_wallet};
-use crate::messages::agent_provisioning::agent_provisioning_v0_7::provision;
+use crate::agent::provisioning::agent_provisioning_v0_7;
 use crate::utils::libindy::pool::reset_pool_handles;
 use crate::settings::set_defaults;
 use futures::Future;
@@ -40,7 +40,9 @@ pub struct SetupLibraryAgencyV2; // init indy wallet, init pool, provision 2 age
 pub struct SetupLibraryAgencyV2ZeroFees; // init indy wallet, init pool, provision 2 agents. use protocol type 2.0, set zero fees
 
 //TODO: This will be removed once libvcx only supports provisioning 0.7
-pub struct SetupLibraryAgencyV2NewProvisioning; // init indy wallet, init pool, provision 2 agents. use protocol type 2.0, set zero fees
+pub struct SetupLibraryAgencyV2NewProvisioning;
+
+// init indy wallet, init pool, provision 2 agents. use protocol type 2.0, set zero fees
 pub struct SetupLibraryAgencyV2ZeroFeesNewProvisioning; // init indy wallet, init pool, provision 2 agents. use protocol type 2.0, set zero fees
 
 pub struct SetupConsumer; // init indy wallet, init pool, provision 1 consumer agent, use protocol type 1.0
@@ -342,7 +344,7 @@ macro_rules! assert_match {
 
 use crate::utils::constants;
 use crate::utils::libindy::wallet;
-use crate::object_cache::{ObjectCache, Handle};
+use crate::utils::object_cache::{ObjectCache, Handle};
 
 use crate::indy::WalletHandle;
 use crate::utils::libindy::wallet::init_wallet;
@@ -351,7 +353,7 @@ use crate::utils::libindy::pool::tests::{open_test_pool, delete_test_pool, creat
 use crate::utils::file::write_file;
 use crate::utils::logger::LibvcxDefaultLogger;
 use crate::settings::wallet::get_wallet_name;
-use crate::messages::agent_provisioning;
+use crate::agent::provisioning;
 
 static mut INSTITUTION_CONFIG: Handle<String> = Handle::dummy();
 static mut CONSUMER_CONFIG: Handle<String> = Handle::dummy();
@@ -513,7 +515,7 @@ pub fn setup_agency_env(protocol_type: &str, _use_zero_fees: bool) {
         "protocol_type": protocol_type,
     });
 
-    let enterprise_config = agent_provisioning::provision(&config.to_string()).unwrap();
+    let enterprise_config = provisioning::provision(&config.to_string()).unwrap();
 
     crate::api::vcx::vcx_shutdown(false);
 
@@ -534,7 +536,7 @@ pub fn setup_agency_env(protocol_type: &str, _use_zero_fees: bool) {
         "protocol_type": protocol_type,
     });
 
-    let consumer_config = agent_provisioning::provision(&config.to_string()).unwrap();
+    let consumer_config = provisioning::provision(&config.to_string()).unwrap();
 
     unsafe {
         INSTITUTION_CONFIG = CONFIG_STRING.add(config_with_wallet_handle(&enterprise_wallet_name, &enterprise_config)).unwrap();
@@ -615,7 +617,7 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, _use_zero_fees: bool) 
         "protocol_type": protocol_type,
     });
 
-    let enterprise_config = provision(&config.to_string(), &test_token).unwrap();
+    let enterprise_config = agent_provisioning_v0_7::provision(&config.to_string(), &test_token).unwrap();
 
     crate::api::vcx::vcx_shutdown(false);
 
@@ -636,7 +638,7 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, _use_zero_fees: bool) 
         "protocol_type": protocol_type,
     });
 
-    let consumer_config = provision(&config.to_string(), &test_token).unwrap();
+    let consumer_config = agent_provisioning_v0_7::provision(&config.to_string(), &test_token).unwrap();
 
     unsafe {
         INSTITUTION_CONFIG = CONFIG_STRING.add(config_with_wallet_handle(&enterprise_wallet_name, &enterprise_config)).unwrap();
@@ -667,7 +669,6 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, _use_zero_fees: bool) 
     wallet::delete_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
 
     set_institution();
-
 }
 
 pub fn config_with_wallet_handle(wallet_n: &str, config: &str) -> String {
@@ -708,7 +709,7 @@ pub fn setup_consumer_env(protocol_type: &str) {
         "protocol_type": protocol_type,
     });
 
-    let consumer_config = agent_provisioning::provision(&config.to_string()).unwrap();
+    let consumer_config = provisioning::provision(&config.to_string()).unwrap();
 
     unsafe {
         CONSUMER_CONFIG = CONFIG_STRING.add(config_with_wallet_handle(&consumer_wallet_name, &consumer_config.to_string())).unwrap();

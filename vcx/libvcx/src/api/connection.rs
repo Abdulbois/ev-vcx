@@ -1,4 +1,4 @@
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 use crate::connection::Connections;
 use libc::c_char;
 use crate::utils::cstring::CStringUtils;
@@ -17,7 +17,7 @@ use crate::aries::messages::invite_action::invite::InviteActionData;
 
     # States
 
-    The set of object states, messages and transitions depends on the communication method is used.
+    The set of object states, agent and transitions depends on the communication method is used.
     There are two communication methods: `proprietary` and `aries`. The default communication method is `proprietary`.
     The communication method can be specified as a config option on one of *_init functions.
 
@@ -27,7 +27,7 @@ use crate::aries::messages::invite_action::invite::InviteActionData;
 
             VcxStateType::VcxStateOfferSent - once `vcx_connection_connect` (send Connection invite) is called.
 
-            VcxStateType::VcxStateAccepted - once `connReqAnswer` messages is received.
+            VcxStateType::VcxStateAccepted - once `connReqAnswer` agent is received.
                                              use `vcx_connection_update_state` or `vcx_connection_update_state_with_message` functions for state updates.
             VcxStateType::VcxStateNone - once `vcx_connection_delete_connection` (delete Connection object) is called.
 
@@ -45,17 +45,17 @@ use crate::aries::messages::invite_action::invite::InviteActionData;
 
             VcxStateType::VcxStateOfferSent - once `vcx_connection_connect` (prepared Connection invite) is called.
 
-            VcxStateType::VcxStateRequestReceived - once `ConnectionRequest` messages is received.
+            VcxStateType::VcxStateRequestReceived - once `ConnectionRequest` agent is received.
                                                     accept `ConnectionRequest` and send `ConnectionResponse` message.
                                                     use `vcx_connection_update_state` or `vcx_connection_update_state_with_message` functions for state updates.
 
-            VcxStateType::VcxStateAccepted - 1) once `Ack` messages is received.
+            VcxStateType::VcxStateAccepted - 1) once `Ack` agent is received.
                                                 use `vcx_connection_update_state` or `vcx_connection_update_state_with_message` functions for state updates.
                                              2) once `vcx_connection_connect` is called for Outoband Connection created with `handshake:false`.
 
             VcxStateType::VcxStateNone - once `vcx_connection_delete_connection` (delete Connection object) is called
                                             OR
-                                        `ConnectionProblemReport` messages is received on state updates.
+                                        `ConnectionProblemReport` agent is received on state updates.
 
         Invitee:
             VcxStateType::VcxStateOfferSent - 1) once `vcx_connection_create_with_invite` (create Connection object with invite) is called.
@@ -64,7 +64,7 @@ use crate::aries::messages::invite_action::invite::InviteActionData;
 
             VcxStateType::VcxStateRequestReceived - once `vcx_connection_connect` (accept `ConnectionInvite` and send `ConnectionRequest` message) is called.
 
-            VcxStateType::VcxStateAccepted - 1) once `ConnectionResponse` messages is received.
+            VcxStateType::VcxStateAccepted - 1) once `ConnectionResponse` agent is received.
                                                 send `Ack` message if requested.
                                                 use `vcx_connection_update_state` or `vcx_connection_update_state_with_message` functions for state updates.
                                              2) once `vcx_connection_create_with_outofband_invitation`
@@ -72,7 +72,7 @@ use crate::aries::messages::invite_action::invite::InviteActionData;
 
             VcxStateType::VcxStateNone - once `vcx_connection_delete_connection` (delete Connection object) is called
                                             OR
-                                        `ConnectionProblemReport` messages is received on state updates.
+                                        `ConnectionProblemReport` agent is received on state updates.
 
     # Transitions
 
@@ -295,7 +295,7 @@ pub extern fn vcx_connection_create_with_invite(command_handle: CommandHandle,
 /// NOTE: this method is EXPERIMENTAL
 ///
 /// WARN: `request_attach` field is not fully supported in the current library state.
-///        You can use simple messages like Question but it cannot be used
+///        You can use simple agent like Question but it cannot be used
 ///         for Credential Issuance and Credential Presentation.
 ///
 /// # Params
@@ -405,7 +405,7 @@ pub extern fn vcx_connection_create_outofband(command_handle: CommandHandle,
 ///                     "json": "<json of protocol message>"
 ///                 }
 ///             }
-///         ]>, - an attachment decorator containing an array of request messages in order of preference that the receiver can using in responding to the message.
+///         ]>, - an attachment decorator containing an array of request agent in order of preference that the receiver can using in responding to the message.
 ///               One or both of handshake_protocols and request~attach MUST be included in the message.
 ///         "service": [
 ///             {
@@ -818,8 +818,8 @@ pub extern fn vcx_connection_deserialize(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Query the agency for the received messages.
-/// Checks for any messages changing state in the connection and updates the state attribute.
+/// Query the agency for the received agent.
+/// Checks for any agent changing state in the connection and updates the state attribute.
 ///
 /// #Params
 /// command_handle: command handle to map callback to user context.
@@ -1417,7 +1417,7 @@ pub extern fn vcx_connection_send_discovery_features(command_handle: u32,
 ///                     "json": "<json of protocol message>"
 ///                 }
 ///             }
-///         ]>, - an attachment decorator containing an array of request messages in order of preference that the receiver can using in responding to the message.
+///         ]>, - an attachment decorator containing an array of request agent in order of preference that the receiver can using in responding to the message.
 ///               One or both of handshake_protocols and request~attach MUST be included in the message.
 ///         "service": [
 ///             {

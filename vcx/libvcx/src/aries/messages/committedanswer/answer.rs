@@ -1,5 +1,5 @@
 use crate::aries::messages::a2a::{MessageId, A2AMessage};
-use crate::messages::thread::Thread;
+use crate::aries::messages::thread::Thread;
 use crate::aries::messages::committedanswer::question::{Question, QuestionResponse};
 use crate::aries::messages::a2a::message_type::{
     MessageType,

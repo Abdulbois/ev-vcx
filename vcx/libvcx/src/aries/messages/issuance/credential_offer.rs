@@ -1,141 +1,167 @@
-use crate::aries::messages::a2a::{MessageId, A2AMessage};
-use crate::aries::messages::issuance::CredentialPreviewData;
-use crate::aries::messages::attachment::{Attachments, AttachmentId};
-use crate::aries::messages::mime_type::MimeType;
-use crate::error::{VcxError, VcxResult, VcxErrorKind};
-use crate::messages::thread::Thread;
-use crate::messages::issuance::credential_offer::CredentialOffer as CredentialOfferV1;
-use crate::messages::payload::PayloadKinds;
 use std::convert::TryInto;
-use crate::utils::libindy::anoncreds::ensure_credential_definition_contains_offered_attributes;
-use crate::aries::messages::connection::service::Service;
-use crate::aries::messages::a2a::message_type::{
-    MessageType,
-    MessageTypePrefix,
-    MessageTypeVersion,
-};
-use crate::aries::messages::a2a::message_family::MessageTypeFamilies;
+use std::collections::HashMap;
+use serde_json::Value;
+use serde::{de, Deserialize, Deserializer};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-pub struct CredentialOffer {
-    #[serde(rename = "@id")]
-    pub id: MessageId,
-    #[serde(rename = "@type")]
-    pub type_: MessageType,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub comment: Option<String>,
-    pub credential_preview: CredentialPreviewData,
-    #[serde(rename = "offers~attach")]
-    pub offers_attach: Attachments,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "~thread")]
-    pub thread: Option<Thread>,
-    #[serde(rename = "~service")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub service: Option<Service>,
+use crate::aries::messages::issuance::v10::credential_offer::CredentialOffer as CredentialOfferV1;
+use crate::aries::messages::issuance::v20::credential_offer::CredentialOffer as CredentialOfferV2;
+use crate::aries::messages::connection::service::Service;
+use crate::aries::messages::mime_type::MimeType;
+use crate::aries::messages::attachment::Attachments;
+use crate::aries::messages::issuance::credential_preview::CredentialPreviewData;
+use crate::error::{VcxResult, VcxError, VcxErrorKind};
+use crate::legacy::messages::issuance::credential_offer::CredentialOffer as ProprietaryCredentialOffer;
+use crate::aries::messages::thread::Thread;
+use crate::agent::messages::payload::PayloadKinds;
+use crate::utils::libindy::anoncreds::ensure_credential_definition_contains_offered_attributes;
+use crate::aries::messages::a2a::message_type::{MessageType, MessageTypeVersion};
+
+#[derive(Debug, Serialize, PartialEq, Clone)]
+#[serde(untagged)]
+pub enum CredentialOffer {
+    V1(CredentialOfferV1),
+    V2(CredentialOfferV2),
 }
 
 impl CredentialOffer {
-    pub fn create() -> Self {
-        CredentialOffer::default()
+    pub fn add_credential_preview_data(self, name: &str, value: &Value, mime_type: MimeType) -> VcxResult<CredentialOffer> {
+        match self {
+            CredentialOffer::V1(credential_offer) => {
+                Ok(CredentialOffer::V1(credential_offer.add_credential_preview_data(name, value, mime_type)?))
+            }
+            CredentialOffer::V2(credential_offer) => {
+                Ok(CredentialOffer::V2(credential_offer.add_credential_preview_data(name, value, mime_type)?))
+            }
+        }
     }
 
-    pub fn set_id(mut self, id: String) -> Self {
-        self.id = MessageId(id);
-        self
+    pub fn set_thread_id(self, thid: &str) -> Self {
+        match self {
+            CredentialOffer::V1(offer) => CredentialOffer::V1(offer.set_thread_id(thid)),
+            CredentialOffer::V2(offer) => CredentialOffer::V2(offer.set_thread_id(thid))
+        }
     }
 
-    pub fn set_comment(mut self, comment: Option<String>) -> Self {
-        self.comment = comment;
-        self
+    pub fn id(&self) -> String {
+        match self {
+            CredentialOffer::V1(offer) => offer.id.to_string(),
+            CredentialOffer::V2(offer) => offer.id.to_string(),
+        }
     }
 
-    pub fn set_offers_attach(mut self, credential_offer: &str) -> VcxResult<CredentialOffer> {
-        self.offers_attach.add_base64_encoded_json_attachment(AttachmentId::CredentialOffer, ::serde_json::Value::String(credential_offer.to_string()))?;
-        Ok(self)
+    pub fn type_(&self) -> &MessageType {
+        match self {
+            CredentialOffer::V1(offer) => &offer.type_,
+            CredentialOffer::V2(offer) => &offer.type_,
+        }
     }
 
-    pub fn set_credential_preview_data(mut self, credential_preview: CredentialPreviewData) -> VcxResult<CredentialOffer> {
-        self.credential_preview = credential_preview;
-        Ok(self)
+    pub fn comment(&self) -> Option<String> {
+        match self {
+            CredentialOffer::V1(offer) => offer.comment.clone(),
+            CredentialOffer::V2(offer) => offer.comment.clone(),
+        }
     }
 
-    pub fn add_credential_preview_data(mut self, name: &str, value: &str, mime_type: MimeType) -> VcxResult<CredentialOffer> {
-        self.credential_preview = self.credential_preview.add_value(name, value, mime_type)?;
-        Ok(self)
+    pub fn thread(&self) -> Option<&Thread> {
+        match self {
+            CredentialOffer::V1(offer) => offer.thread.as_ref(),
+            CredentialOffer::V2(offer) => offer.thread.as_ref(),
+        }
     }
 
-    pub fn set_thread_id(mut self, id: &str) -> Self {
-        self.thread = Some(Thread::new().set_thid(id.to_string()));
-        self
+    pub fn service(&self) -> Option<&Service> {
+        match self {
+            CredentialOffer::V1(credential_offer) => credential_offer.service.as_ref(),
+            CredentialOffer::V2(credential_offer) => credential_offer.service.as_ref()
+        }
+    }
+
+    pub fn offer_attach(&self) -> &Attachments {
+        match self {
+            CredentialOffer::V1(credential_offer) => &credential_offer.offers_attach,
+            CredentialOffer::V2(credential_offer) => &credential_offer.offers_attach
+        }
+    }
+
+    pub fn credentials_preview(&self) -> &CredentialPreviewData {
+        match self {
+            CredentialOffer::V1(credential_offer) => &credential_offer.credential_preview,
+            CredentialOffer::V2(credential_offer) => &credential_offer.credential_preview,
+        }
     }
 
     pub fn ensure_match_credential_definition(&self, cred_def_json: &str) -> VcxResult<()> {
-        let cred_offer_attributes = self.credential_preview.attributes.iter().map(|value| &value.name).collect();
+        let cred_offer_attributes =
+            self.credentials_preview()
+                .attributes
+                .iter()
+                .map(|value| &value.name)
+                .collect();
+
         ensure_credential_definition_contains_offered_attributes(cred_def_json, cred_offer_attributes)
     }
-}
 
-impl Default for CredentialOffer {
-    fn default() -> CredentialOffer {
-        CredentialOffer {
-            id: MessageId::default(),
-            type_: MessageType {
-                prefix: MessageTypePrefix::DID,
-                family: MessageTypeFamilies::CredentialIssuance,
-                version: MessageTypeVersion::V10,
-                type_: A2AMessage::CREDENTIAL_OFFER.to_string()
-            },
-            comment: Default::default(),
-            credential_preview: Default::default(),
-            offers_attach: Default::default(),
-            thread: Default::default(),
-            service: Default::default(),
+    pub fn append_credential_preview(mut self, data: &str) -> VcxResult<CredentialOffer> {
+        let cred_values: HashMap<String, Value> = serde_json::from_str(data)
+            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAttributesStructure,
+                                              format!("Cannot parse Credential Preview from JSON string. Err: {:?}", err)))?;
+
+        for (key, value) in cred_values {
+            self = self.add_credential_preview_data(&key, &value, MimeType::Plain)?;
         }
+
+        trace!("Issuer::InitialState::append_credential_preview <<<");
+        Ok(self)
     }
 }
 
-impl TryInto<CredentialOffer> for CredentialOfferV1 {
+impl TryInto<CredentialOffer> for ProprietaryCredentialOffer {
     type Error = VcxError;
 
     fn try_into(self) -> Result<CredentialOffer, Self::Error> {
         let mut credential_preview = CredentialPreviewData::new();
 
         for (key, value) in self.credential_attrs {
-            credential_preview = credential_preview.add_value(&key, &value.as_str().unwrap_or_default(), MimeType::Plain)?;
+            credential_preview = credential_preview.add_value(&key, &value, MimeType::Plain)?;
         }
 
-        CredentialOffer::create()
-            .set_id(self.thread_id.unwrap_or_default())
-            .set_credential_preview_data(credential_preview)?
-            .set_offers_attach(&self.libindy_offer)
+        Ok(
+            CredentialOffer::V1(
+                CredentialOfferV1::create()
+                    .set_id(self.thread_id.unwrap_or_default())
+                    .set_credential_preview_data(credential_preview)?
+                    .set_offers_attach(&self.libindy_offer)?
+            )
+        )
     }
 }
 
-impl TryInto<CredentialOfferV1> for CredentialOffer {
+impl TryInto<ProprietaryCredentialOffer> for CredentialOffer {
     type Error = VcxError;
 
-    fn try_into(self) -> Result<CredentialOfferV1, Self::Error> {
-        let indy_cred_offer_json = self.offers_attach.content()?;
+    fn try_into(self) -> Result<ProprietaryCredentialOffer, Self::Error> {
+        let (_, indy_cred_offer_json) = self.offer_attach().content()?;
+
         let indy_cred_offer: ::serde_json::Value = ::serde_json::from_str(&indy_cred_offer_json)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidCredentialOffer, format!("Cannot deserialize Indy Offer: {:?}", err)))?;
 
         let mut credential_attrs: ::serde_json::Map<String, ::serde_json::Value> = ::serde_json::Map::new();
 
-        for attr in self.credential_preview.attributes {
-            credential_attrs.insert(attr.name.clone(), ::serde_json::Value::String(attr.value.clone()));
+        for attr in self.credentials_preview().attributes.iter() {
+            credential_attrs.insert(attr.name.clone(), attr.value.clone());
         }
 
-        let thid = self.thread.and_then(|thread| thread.thid).unwrap_or(self.id.0.clone());
+        let thid = self.thread().and_then(|thread| thread.thid.clone()).unwrap_or(self.id());
 
-        Ok(CredentialOfferV1 {
+        Ok(ProprietaryCredentialOffer {
             msg_type: PayloadKinds::CredOffer.name().to_string(),
             version: String::from("0.1"),
             to_did: String::new(),
             from_did: String::new(),
             credential_attrs,
             schema_seq_no: 0,
-            claim_name: self.comment.unwrap_or("".to_string()),
+            claim_name: self.comment().unwrap_or("".to_string()),
             claim_id: String::new(),
             msg_ref_id: None,
             cred_def_id: indy_cred_offer["cred_def_id"].as_str().map(String::from).unwrap_or_default(),
@@ -145,65 +171,17 @@ impl TryInto<CredentialOfferV1> for CredentialOffer {
     }
 }
 
+deserialize_v1_v2_message!(CredentialOffer, CredentialOfferV1, CredentialOfferV2);
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::utils::constants::CRED_DEF_JSON;
-
-    fn _attachment() -> ::serde_json::Value {
-        json!({
-            "schema_id":"NcYxiDXkpYi6ov5FcYDi1e:2:gvt:1.0",
-            "cred_def_id":"NcYxiDXkpYi6ov5FcYDi1e:3:CL:NcYxiDXkpYi6ov5FcYDi1e:2:gvt:1.0:TAG1"
-        })
-    }
-
-    fn _comment() -> Option<String> {
-        Some(String::from("comment"))
-    }
-
-    pub fn _value() -> (&'static str, &'static str) {
-        ("attribute", "value")
-    }
-
-    pub fn _preview_data() -> CredentialPreviewData {
-        let (name, value) = _value();
-        CredentialPreviewData::new()
-            .add_value(name, value, MimeType::Plain).unwrap()
-    }
-
-    pub fn thread() -> Thread {
-        Thread::new().set_thid(_credential_offer().id.0)
-    }
-
-    pub fn thread_id() -> String {
-        thread().thid.unwrap()
-    }
+    pub use crate::aries::messages::issuance::v10::credential_offer::tests::{thread, thread_id, _value};
+    use crate::aries::messages::issuance::v10::credential_offer::tests::_credential_offer as _credential_offer_v1;
 
     pub fn _credential_offer() -> CredentialOffer {
-        let mut attachment = Attachments::new();
-        attachment.add_base64_encoded_json_attachment(AttachmentId::CredentialOffer, _attachment()).unwrap();
-
-        CredentialOffer {
-            id: MessageId::id(),
-            comment: _comment(),
-            credential_preview: _preview_data(),
-            offers_attach: attachment,
-            thread: None,
-            service: None,
-            ..CredentialOffer::default()
-        }
-    }
-
-    #[test]
-    fn test_credential_offer_build_works() {
-        let credential_offer: CredentialOffer = CredentialOffer::create()
-            .set_comment(_comment())
-            .set_credential_preview_data(_preview_data()).unwrap()
-            .set_offers_attach(&_attachment().to_string()).unwrap();
-
-        assert_eq!(_credential_offer(), credential_offer);
-        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/offer-credential","comment":"comment","credential_preview":{"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/credential-preview","attributes":[{"name":"attribute","value":"value"}]},"offers~attach":[{"@id":"libindy-cred-offer-0","data":{"base64":"eyJjcmVkX2RlZl9pZCI6Ik5jWXhpRFhrcFlpNm92NUZjWURpMWU6MzpDTDpOY1l4aURYa3BZaTZvdjVGY1lEaTFlOjI6Z3Z0OjEuMDpUQUcxIiwic2NoZW1hX2lkIjoiTmNZeGlEWGtwWWk2b3Y1RmNZRGkxZToyOmd2dDoxLjAifQ=="},"mime-type":"application/json"}]}"#;
-        assert_eq!(expected, json!(credential_offer).to_string());
+        CredentialOffer::V1(_credential_offer_v1())
     }
 
     #[test]
@@ -211,48 +189,56 @@ pub mod tests {
         // Credential Definition contains attributes: name, height, sex, age
 
         // Credential Offer contains less attributes than Credential Definition
-        let credential_offer: CredentialOffer = CredentialOffer::create()
-            .set_credential_preview_data(
-                CredentialPreviewData::new()
-                    .add_value("name", "Test", MimeType::Plain).unwrap()
-            ).unwrap();
+        let credential_offer: CredentialOffer = CredentialOffer::V1(
+            CredentialOfferV1::create()
+                .set_credential_preview_data(
+                    CredentialPreviewData::new()
+                        .add_value("name", &json!("Test"), MimeType::Plain).unwrap()
+                ).unwrap()
+        );
 
         credential_offer.ensure_match_credential_definition(CRED_DEF_JSON).unwrap_err();
 
         // Credential Offer contains same attributes as Credential Definition
-        let credential_offer: CredentialOffer = CredentialOffer::create()
-            .set_credential_preview_data(
-                CredentialPreviewData::new()
-                    .add_value("name", "Test", MimeType::Plain).unwrap()
-                    .add_value("height", "Test", MimeType::Plain).unwrap()
-                    .add_value("sex", "Test", MimeType::Plain).unwrap()
-                    .add_value("age", "Test", MimeType::Plain).unwrap()
-            ).unwrap();
+        let credential_offer: CredentialOffer = CredentialOffer::V1(
+            CredentialOfferV1::create()
+                .set_credential_preview_data(
+                    CredentialPreviewData::new()
+                        .add_value("name", &json!("Test"), MimeType::Plain).unwrap()
+                        .add_value("height", &json!("Test"), MimeType::Plain).unwrap()
+                        .add_value("sex", &json!("Test"), MimeType::Plain).unwrap()
+                        .add_value("age", &json!("Test"), MimeType::Plain).unwrap()
+                ).unwrap()
+        );
 
         credential_offer.ensure_match_credential_definition(CRED_DEF_JSON).unwrap();
 
         // Credential Offer contains same attributes as Credential Definition but in different case
-        let credential_offer: CredentialOffer = CredentialOffer::create()
-            .set_credential_preview_data(
-                CredentialPreviewData::new()
-                    .add_value("NAME", "Test", MimeType::Plain).unwrap()
-                    .add_value("Height", "Test", MimeType::Plain).unwrap()
-                    .add_value("SEX", "Test", MimeType::Plain).unwrap()
-                    .add_value("age", "Test", MimeType::Plain).unwrap()
-            ).unwrap();
+        let credential_offer: CredentialOffer = CredentialOffer::V1(
+            CredentialOfferV1::create()
+                .set_credential_preview_data(
+                    CredentialPreviewData::new()
+                        .add_value("NAME", &json!("Test"), MimeType::Plain).unwrap()
+                        .add_value("Height", &json!("Test"), MimeType::Plain).unwrap()
+                        .add_value("SEX", &json!("Test"), MimeType::Plain).unwrap()
+                        .add_value("age", &json!("Test"), MimeType::Plain).unwrap()
+                ).unwrap()
+        );
 
         credential_offer.ensure_match_credential_definition(CRED_DEF_JSON).unwrap();
 
         // Credential Offer contains more attributes than Credential Definition
-        let credential_offer: CredentialOffer = CredentialOffer::create()
-            .set_credential_preview_data(
-                CredentialPreviewData::new()
-                    .add_value("name", "Test", MimeType::Plain).unwrap()
-                    .add_value("height", "Test", MimeType::Plain).unwrap()
-                    .add_value("sex", "Test", MimeType::Plain).unwrap()
-                    .add_value("age", "Test", MimeType::Plain).unwrap()
-                    .add_value("additional", "Test", MimeType::Plain).unwrap()
-            ).unwrap();
+        let credential_offer: CredentialOffer = CredentialOffer::V1(
+            CredentialOfferV1::create()
+                .set_credential_preview_data(
+                    CredentialPreviewData::new()
+                        .add_value("name", &json!("Test"), MimeType::Plain).unwrap()
+                        .add_value("height", &json!("Test"), MimeType::Plain).unwrap()
+                        .add_value("sex", &json!("Test"), MimeType::Plain).unwrap()
+                        .add_value("age", &json!("Test"), MimeType::Plain).unwrap()
+                        .add_value("additional", &json!("Test"), MimeType::Plain).unwrap()
+                ).unwrap()
+        );
 
         credential_offer.ensure_match_credential_definition(CRED_DEF_JSON).unwrap_err();
     }

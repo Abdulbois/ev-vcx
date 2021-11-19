@@ -31,13 +31,10 @@ impl EncryptionEnvelope {
         debug!("EncryptionEnvelope: Encryption for recipient");
 
         let receiver_keys = json!(did_doc.recipient_keys()).to_string();
-        let json = serde_json::to_string(message)
-            .map_err(|err| VcxError::from_msg(
-                VcxErrorKind::InvalidJson,
-                format!("Unable to serialize message. Err: {:?}", err)
-            ))?;
+        let message = json!(message).to_string();
+        println!("message {}", message);
 
-        crypto::pack_message(pw_verkey, &receiver_keys, json.to_string().as_bytes())
+        crypto::pack_message(pw_verkey, &receiver_keys, message.as_bytes())
     }
 
     fn wrap_into_forward_messages(mut message: Vec<u8>,

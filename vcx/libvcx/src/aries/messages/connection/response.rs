@@ -3,7 +3,7 @@ use crate::utils::libindy::crypto;
 use base64;
 use time;
 
-use crate::messages::thread::Thread;
+use crate::aries::messages::thread::Thread;
 use crate::aries::messages::connection::did_doc::*;
 use crate::aries::messages::a2a::{A2AMessage, MessageId};
 use crate::aries::messages::ack::PleaseAck;

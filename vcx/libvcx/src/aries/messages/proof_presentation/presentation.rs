@@ -1,68 +1,77 @@
-use crate::aries::messages::a2a::{MessageId, A2AMessage};
-use crate::aries::messages::attachment::{Attachments, AttachmentId};
-use crate::aries::messages::ack::PleaseAck;
-use crate::messages::thread::Thread;
-use crate::messages::proofs::proof_message::ProofMessage;
 use std::convert::TryInto;
-use crate::aries::messages::a2a::message_type::{
-    MessageType,
-    MessageTypePrefix,
-    MessageTypeVersion,
-};
-use crate::aries::messages::a2a::message_family::MessageTypeFamilies;
+use serde::{de, Deserialize, Deserializer};
 
 use crate::error::prelude::*;
+use crate::aries::messages::proof_presentation::v10::presentation::Presentation as PresentationV1;
+use crate::aries::messages::proof_presentation::v20::presentation::Presentation as PresentationV2;
+use crate::aries::messages::ack::PleaseAck;
+use crate::aries::messages::thread::Thread;
+use crate::aries::messages::attachment::Attachments;
+use crate::legacy::messages::proof_presentation::proof_message::ProofMessage;
+use crate::aries::messages::a2a::message_type::{MessageType, MessageTypeVersion};
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
-pub struct Presentation {
-    #[serde(rename = "@id")]
-    pub id: MessageId,
-    #[serde(rename = "@type")]
-    pub type_: MessageType,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub comment: Option<String>,
-    #[serde(rename = "presentations~attach")]
-    pub presentations_attach: Attachments,
-    #[serde(rename = "~thread")]
-    pub thread: Thread,
-    #[serde(rename = "~please_ack")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub please_ack: Option<PleaseAck>
+#[derive(Debug, Serialize, PartialEq, Clone)]
+#[serde(untagged)]
+pub enum Presentation {
+    V1(PresentationV1),
+    V2(PresentationV2),
 }
 
 impl Presentation {
-    pub fn create() -> Self {
-        Presentation::default()
+    pub fn reset_ack(self) -> Self {
+        match self {
+            Presentation::V1(presentation) => {
+                Presentation::V1(presentation.reset_ack())
+            }
+            Presentation::V2(presentation) => {
+                Presentation::V2(presentation.reset_ack())
+            }
+        }
     }
 
-    pub fn set_comment(mut self, comment: Option<String>) -> Self {
-        self.comment = comment;
-        self
+    pub fn set_thread(self, thread: Thread) -> Self {
+        match self {
+            Presentation::V1(presentation) => {
+                Presentation::V1(presentation.set_thread(thread))
+            }
+            Presentation::V2(presentation) => {
+                Presentation::V2(presentation.set_thread(thread))
+            }
+        }
     }
 
-    pub fn set_presentations_attach(mut self, presentations: String) -> VcxResult<Presentation> {
-        self.presentations_attach.add_base64_encoded_json_attachment(AttachmentId::Presentation,::serde_json::Value::String(presentations))?;
-        Ok(self)
+    pub fn type_(&self) -> &MessageType {
+        match self {
+            Presentation::V1(presentation) => &presentation.type_,
+            Presentation::V2(presentation) => &presentation.type_,
+        }
     }
-}
 
-please_ack!(Presentation);
-threadlike!(Presentation);
+    pub fn presentations_attach(&self) -> &Attachments {
+        match self {
+            Presentation::V1(presentation) => &presentation.presentations_attach,
+            Presentation::V2(presentation) => &presentation.presentations_attach,
+        }
+    }
 
-impl Default for Presentation {
-    fn default() -> Presentation {
-        Presentation {
-            id: MessageId::default(),
-            type_: MessageType {
-                prefix: MessageTypePrefix::DID,
-                family: MessageTypeFamilies::PresentProof,
-                version: MessageTypeVersion::V10,
-                type_: A2AMessage::PRESENTATION.to_string()
-            },
-            comment: Default::default(),
-            presentations_attach: Default::default(),
-            thread: Default::default(),
-            please_ack: Default::default(),
+    pub fn please_ack(&self) -> Option<&PleaseAck> {
+        match self {
+            Presentation::V1(presentation) => presentation.please_ack.as_ref(),
+            Presentation::V2(presentation) => presentation.please_ack.as_ref(),
+        }
+    }
+
+    pub fn thread(&self) -> &Thread {
+        match self {
+            Presentation::V1(presentation) => &presentation.thread,
+            Presentation::V2(presentation) => &presentation.thread,
+        }
+    }
+
+    pub fn from_thread(&self, id: &str) -> bool {
+        match self {
+            Presentation::V1(presentation) => presentation.from_thread(id),
+            Presentation::V2(presentation) => presentation.from_thread(id),
         }
     }
 }
@@ -71,11 +80,13 @@ impl TryInto<Presentation> for ProofMessage {
     type Error = VcxError;
 
     fn try_into(self) -> Result<Presentation, Self::Error> {
-        let presentation = Presentation::create()
-            .set_presentations_attach(self.libindy_proof)?
-            .ask_for_ack();
-
-        Ok(presentation)
+        Ok(
+            Presentation::V1(
+                PresentationV1::create()
+                    .set_presentations_attach(self.libindy_proof)?
+                    .ask_for_ack()
+            )
+        )
     }
 }
 
@@ -84,57 +95,20 @@ impl TryInto<ProofMessage> for Presentation {
 
     fn try_into(self) -> Result<ProofMessage, Self::Error> {
         let mut proof = ProofMessage::new();
-        proof.libindy_proof = self.presentations_attach.content().unwrap();
+        let (_, attachment_content) = self.presentations_attach().content()?;
+        proof.libindy_proof = attachment_content;
         Ok(proof)
     }
 }
 
+deserialize_v1_v2_message!(Presentation, PresentationV1, PresentationV2);
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::aries::messages::proof_presentation::presentation_request::tests::{thread, thread_id};
-
-    fn _attachment() -> ::serde_json::Value {
-        json!({"presentation": {}})
-    }
-
-    fn _comment() -> String {
-        String::from("comment")
-    }
+    use crate::aries::messages::proof_presentation::v10::presentation::tests::_presentation as _presentation_v1;
 
     pub fn _presentation() -> Presentation {
-        let mut attachment = Attachments::new();
-        attachment.add_base64_encoded_json_attachment(AttachmentId::Presentation,_attachment()).unwrap();
-
-        Presentation {
-            id: MessageId::id(),
-            comment: Some(_comment()),
-            presentations_attach: attachment,
-            thread: thread(),
-            please_ack: Some(PleaseAck { on: None }),
-            ..Presentation::default()
-        }
-    }
-
-    #[test]
-    fn test_presentation_build_works() {
-        let presentation: Presentation = Presentation::default()
-            .set_comment(Some(_comment()))
-            .ask_for_ack()
-            .set_thread_id(&thread_id())
-            .set_presentations_attach(_attachment().to_string()).unwrap();
-
-        assert_eq!(_presentation(), presentation);
-        let expected = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/present-proof/1.0/presentation","comment":"comment","presentations~attach":[{"@id":"libindy-presentation-0","data":{"base64":"eyJwcmVzZW50YXRpb24iOnt9fQ=="},"mime-type":"application/json"}],"~please_ack":{},"~thread":{"received_orders":{},"sender_order":0,"thid":"testid"}}"#;
-        assert_eq!(expected, json!(presentation).to_string());
-    }
-
-    #[test]
-    fn test_presentation_build_works_for_reset_ack() {
-        let mut presentation: Presentation = Presentation::default().ask_for_ack();
-        assert!(presentation.please_ack.is_some());
-
-        presentation = presentation.reset_ack();
-        assert!(presentation.please_ack.is_none());
+        Presentation::V1(_presentation_v1())
     }
 }

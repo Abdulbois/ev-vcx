@@ -11,7 +11,7 @@ pub mod test {
     use serde::Serialize;
     use crate::disclosed_proof::DisclosedProofs;
     use crate::issuer_credential::IssuerCredentials;
-    use crate::object_cache::Handle;
+    use crate::utils::object_cache::Handle;
     use crate::connection::Connections;
     use crate::proof::Proofs;
     use rand;
@@ -23,13 +23,13 @@ pub mod test {
     use crate::utils::libindy::wallet::*;
     use indy_sys::WalletHandle;
     use crate::utils::plugins::init_plugin;
-    use crate::messages::payload::PayloadV1;
+    use crate::agent::messages::payload::PayloadV1;
     use crate::api::VcxStateType;
     use crate::aries::handlers::connection::types::OutofbandMeta;
     
     use crate::utils::libindy::anoncreds::prover_get_credentials;
     use crate::utils::libindy::types::CredentialInfo;
-    use crate::messages::agent_provisioning;
+    use crate::agent::provisioning;
 
     pub fn source_id() -> String {
         String::from("test source id")
@@ -125,7 +125,7 @@ pub mod test {
     }
 
     fn download_message(did: String, type_: &str) -> Message {
-        let mut messages = crate::messages::get_message::download_messages(Some(vec![did]), Some(vec![String::from("MS-103")]), None).unwrap();
+        let mut messages = crate::agent::messages::get_message::download_messages(Some(vec![did]), Some(vec![String::from("MS-103")]), None).unwrap();
         assert_eq!(1, messages.len());
         let messages = messages.pop().unwrap();
 
@@ -168,7 +168,7 @@ pub mod test {
                 "protocol_type": "3.0",
             }).to_string();
 
-            let config = agent_provisioning::provision(&config).unwrap();
+            let config = provisioning::provision(&config).unwrap();
 
             let config = config_with_wallet_handle(wallet_name, &config);
 
@@ -364,7 +364,7 @@ pub mod test {
                 "protocol_type": "3.0",
             }).to_string();
 
-            let config = agent_provisioning::provision(&config).unwrap();
+            let config = provisioning::provision(&config).unwrap();
 
             let config = config_with_wallet_handle(&wallet_name, &config);
 

@@ -1,7 +1,7 @@
 use libc::c_char;
 use crate::utils::cstring::CStringUtils;
 use crate::utils::error;
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 use crate::proof::Proofs;
 use crate::proof;
 use std::ptr;
@@ -17,7 +17,7 @@ use crate::connection::Connections;
 
     # State
 
-    The set of object states, messages and transitions depends on the communication method is used.
+    The set of object states, agent and transitions depends on the communication method is used.
     There are two communication methods: `proprietary` and `aries`. The default communication method is `proprietary`.
     The communication method can be specified as a config option on one of *_init functions.
 
@@ -26,7 +26,7 @@ use crate::connection::Connections;
 
         VcxStateType::VcxStateOfferSent - once `vcx_credential_send_request` (send `PROOF_REQ` message) is called.
 
-        VcxStateType::VcxStateAccepted - once `PROOF` messages is received.
+        VcxStateType::VcxStateAccepted - once `PROOF` agent is received.
                                          use `vcx_proof_update_state` or `vcx_proof_update_state_with_message` functions for state updates.
 
     aries:
@@ -34,9 +34,9 @@ use crate::connection::Connections;
 
         VcxStateType::VcxStateOfferSent - once `vcx_credential_send_request` (send `PresentationRequest` message) is called.
 
-        VcxStateType::VcxStateAccepted - once `Presentation` messages is received.
-        VcxStateType::VcxStateRejected - once `ProblemReport` messages is received.
-        VcxStateType::None - once `PresentationProposal` messages is received.
+        VcxStateType::VcxStateAccepted - once `Presentation` agent is received.
+        VcxStateType::VcxStateRejected - once `ProblemReport` agent is received.
+        VcxStateType::None - once `PresentationProposal` agent is received.
         VcxStateType::None - on `Presentation` validation failed.
                                                 use `vcx_proof_update_state` or `vcx_proof_update_state_with_message` functions for state updates.
 
@@ -251,8 +251,8 @@ pub extern fn vcx_proof_create_with_proposal(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Query the agency for the received messages.
-/// Checks for any messages changing state in the object and updates the state attribute.
+/// Query the agency for the received agent.
+/// Checks for any agent changing state in the object and updates the state attribute.
 ///
 /// #Params
 /// command_handle: command handle to map callback to user context.

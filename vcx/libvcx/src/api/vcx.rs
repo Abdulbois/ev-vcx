@@ -368,7 +368,7 @@ pub extern fn vcx_update_institution_info(name: *const c_char, logo_url: *const 
 ///
 /// command_handle: command handle to map callback to user context.
 ///
-/// cb: Callback that provides array of matching messages retrieved
+/// cb: Callback that provides array of matching agent retrieved
 ///
 /// # Example author_agreement -> "{"text":"Default agreement", "version":"1.0.0", "aml": {"label1": "description"}}"
 ///

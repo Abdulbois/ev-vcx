@@ -22,7 +22,7 @@ provisionConfig = {
     'wallet_name': 'alice_wallet',
     'wallet_key': '123',
     'enterprise_seed': '000000000000000000000000Trustee1',
-    'protocol_type': '4.0',
+    'protocol_type': '3.0',
     'name': 'alice',
     'logo': 'http://robohash.org/456',
     'path': 'docker.txn',
@@ -114,7 +114,7 @@ async def connect():
 
     print("#10 Convert to valid json and string and create a connection to faber")
     jdetails = json.loads(details)
-    connection_to_faber = await Connection.create_with_outofband_invite('faber', json.dumps(jdetails))
+    connection_to_faber = await Connection.create_with_details('faber', json.dumps(jdetails))
     await connection_to_faber.connect('{}')
     connection_state = await connection_to_faber.get_state()
     while connection_state != State.Accepted:

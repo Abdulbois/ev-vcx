@@ -13,7 +13,7 @@ use crate::aries::messages::connection::did_doc::DidDoc;
 use crate::aries::messages::discovery::disclose::ProtocolDescriptor;
 use crate::aries::messages::outofband::invitation::Invitation as OutofbandInvitation;
 
-use crate::messages::thread::Thread;
+use crate::aries::messages::thread::Thread;
 use serde::Serialize;
 use crate::aries::handlers::connection::types::{OutofbandMeta, Invitations};
 

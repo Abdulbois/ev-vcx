@@ -1,11 +1,14 @@
-use crate::aries::messages::proof_presentation::presentation_proposal::PresentationProposal;
-use crate::aries::messages::proof_presentation::presentation::Presentation;
-use crate::aries::messages::error::ProblemReport;
-use crate::aries::messages::a2a::A2AMessage;
-use crate::aries::messages::proof_presentation::presentation_request::PresentationRequestData;
-
+use crate::aries::messages::{
+    a2a::A2AMessage,
+    proof_presentation::{
+        presentation_proposal::PresentationProposal,
+        presentation::Presentation,
+        v10::presentation_request::PresentationRequestData
+    },
+    error::ProblemReport,
+};
 use crate::connection::Connections;
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub enum VerifierMessages {

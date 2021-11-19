@@ -1,5 +1,5 @@
 use crate::aries::messages::a2a::{MessageId, A2AMessage};
-use crate::messages::thread::Thread;
+use crate::aries::messages::thread::Thread;
 use std::collections::HashMap;
 use crate::aries::messages::status::Status;
 use crate::aries::messages::a2a::message_type::{
@@ -56,8 +56,13 @@ impl ProblemReport {
         self
     }
 
-    pub fn set_message_family(mut self, message_family: MessageTypeFamilies) -> Self {
-        self.type_.family = message_family;
+    pub fn set_message_type(mut self, type_: &MessageType) -> Self {
+        self.type_ = MessageType {
+            prefix: type_.prefix.clone(),
+            family: type_.family.clone(),
+            version: type_.version.clone(),
+            type_: self.type_.type_.clone()
+        };
         self
     }
 

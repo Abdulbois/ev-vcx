@@ -1,4 +1,4 @@
-use crate::messages::thread::Thread;
+use crate::aries::messages::thread::Thread;
 use crate::aries::messages::a2a::{MessageId, A2AMessage};
 use crate::aries::messages::localization::Localization;
 use crate::aries::messages::a2a::message_type::{

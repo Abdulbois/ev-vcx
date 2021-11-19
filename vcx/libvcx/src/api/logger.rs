@@ -11,7 +11,7 @@ use crate::error::prelude::*;
 /// More details about `env_logger` and its customization can be found here: https://crates.io/crates/env_logger
 ///
 /// #Params
-/// pattern: (optional) pattern that corresponds with the log messages to show.
+/// pattern: (optional) pattern that corresponds with the log agent to show.
 ///
 /// NOTE: You should specify either `pattern` parameter or `RUST_LOG` environment variable to init logger.
 ///

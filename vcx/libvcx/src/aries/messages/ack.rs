@@ -1,4 +1,4 @@
-use crate::messages::thread::Thread;
+use crate::aries::messages::thread::Thread;
 use crate::aries::messages::a2a::{MessageId, A2AMessage};
 use crate::aries::messages::a2a::message_type::{
     MessageType,
@@ -39,13 +39,18 @@ impl Ack {
         Ack::default()
     }
 
-    pub fn set_status(mut self, status: AckStatus) -> Ack {
+    pub fn set_status(mut self, status: AckStatus) -> Self {
         self.status = status;
         self
     }
 
-    pub fn set_message_family(mut self, message_family: MessageTypeFamilies) -> Self {
-        self.type_.family = message_family;
+    pub fn set_message_type(mut self, type_: &MessageType) -> Self {
+        self.type_ = MessageType {
+            prefix: type_.prefix.clone(),
+            family: type_.family.clone(),
+            version: type_.version.clone(),
+            type_: self.type_.type_.clone()
+        };
         self
     }
 }
@@ -96,7 +101,7 @@ pub mod tests {
 
     pub fn _ack() -> Ack {
         Ack {
-            id: MessageId::id(),
+            id: MessageId::default(),
             status: AckStatus::Fail,
             thread: _thread(),
             ..Ack::default()

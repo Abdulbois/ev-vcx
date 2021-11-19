@@ -6,7 +6,7 @@ use crate::credential::Credentials;
 use crate::credential_def::CredentialDef;
 use crate::disclosed_proof::DisclosedProofs;
 use crate::issuer_credential::IssuerCredentials;
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 use crate::proof::Proofs;
 use crate::schema::CreateSchema;
 use crate::utils::cstring::{

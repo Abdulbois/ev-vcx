@@ -1,4 +1,4 @@
-use crate::messages::thread::Thread;
+use crate::aries::messages::thread::Thread;
 use crate::aries::messages::a2a::{A2AMessage, MessageId};
 use crate::aries::messages::a2a::message_type::{
     MessageType,

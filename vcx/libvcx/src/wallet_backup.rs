@@ -1,7 +1,7 @@
 use crate::api::WalletBackupState;
 use crate::settings;
-use crate::messages;
-use crate::object_cache::ObjectCache;
+use crate::agent;
+use crate::utils::object_cache::ObjectCache;
 use crate::error::prelude::*;
 use crate::utils::error;
 use crate::utils::libindy::wallet::{export, get_wallet_handle, RestoreWalletConfigs, add_record, get_record, WalletRecord, import, open_wallet};
@@ -9,16 +9,16 @@ use crate::utils::libindy::crypto::{create_key, sign, pack_message};
 use crate::utils::constants::DEFAULT_SERIALIZE_VERSION;
 use std::path::Path;
 use std::fs;
-use crate::messages::{RemoteMessageType, retrieve_dead_drop, parse_message_from_response, wallet_backup_restore};
-use crate::messages::wallet_backup::received_expected_message;
-use crate::messages::get_message::Message;
+use crate::agent::messages::{RemoteMessageType, retrieve_dead_drop, parse_message_from_response, wallet_backup_restore};
+use crate::agent::messages::wallet_backup::received_expected_message;
+use crate::agent::messages::get_message::Message;
 use crate::utils::openssl::sha256_hex;
 use std::io::{Write, Error};
 use crate::utils::libindy::wallet;
 use std::path::PathBuf;
 use rand::Rng;
 
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 
 lazy_static! {
     static ref WALLET_BACKUP_MAP: ObjectCache<WalletBackup> = Default::default();
@@ -61,14 +61,14 @@ pub struct WalletBackup {
 
 impl CloudAddress {
     fn to_string(&self) -> VcxResult<String> {
-        messages::ObjectWithVersion::new(DEFAULT_SERIALIZE_VERSION, self.to_owned())
+        agent::messages::ObjectWithVersion::new(DEFAULT_SERIALIZE_VERSION, self.to_owned())
             .serialize()
             .map_err(|err| err.extend("Cannot serialize CloudAddress"))
     }
 
     fn from_str(data: &str) -> VcxResult<CloudAddress> {
-        messages::ObjectWithVersion::deserialize(data)
-            .map(|obj: messages::ObjectWithVersion<CloudAddress>| obj.data)
+        agent::messages::ObjectWithVersion::deserialize(data)
+            .map(|obj: agent::messages::ObjectWithVersion<CloudAddress>| obj.data)
             .map_err(|err| err.extend("Cannot deserialize CloudAddress"))
     }
 }
@@ -129,7 +129,7 @@ impl WalletBackup {
         trace!("WalletBackup::init_backup >>> ");
         debug!("initializing wallet backup");
 
-        messages::wallet_backup_init()
+        agent::messages::wallet_backup_init()
             .recovery_vk(&self.keys.recovery_vk)?
             .dead_drop_address(&self.keys.dead_drop_address.address)?
             .cloud_address(&self.keys.cloud_address)?
@@ -153,7 +153,7 @@ impl WalletBackup {
             return Err(VcxError::from(VcxErrorKind::MaxBackupSize).into());
         }
 
-        messages::backup_wallet()
+        agent::messages::backup_wallet()
             .wallet_data(wallet_data)
             .send_secure()?;
 
@@ -166,15 +166,15 @@ impl WalletBackup {
 
     fn to_string(&self) -> VcxResult<String> {
         trace!("WalletBackup::to_string >>>");
-        messages::ObjectWithVersion::new(DEFAULT_SERIALIZE_VERSION, self.to_owned())
+        agent::messages::ObjectWithVersion::new(DEFAULT_SERIALIZE_VERSION, self.to_owned())
             .serialize()
             .map_err(|err| err.extend("Cannot serialize WalletBackup"))
     }
 
     fn from_str(data: &str) -> VcxResult<WalletBackup> {
         trace!("WalletBackup::from_str >>> data: {}", secret!(&data));
-        messages::ObjectWithVersion::deserialize(data)
-            .map(|obj: messages::ObjectWithVersion<WalletBackup>| obj.data)
+        agent::messages::ObjectWithVersion::deserialize(data)
+            .map(|obj: agent::messages::ObjectWithVersion<WalletBackup>| obj.data)
             .map_err(|err| err.extend("Cannot deserialize WalletBackup"))
     }
 }

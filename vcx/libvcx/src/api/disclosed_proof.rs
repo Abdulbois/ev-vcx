@@ -6,7 +6,7 @@ use crate::utils::threadpool::spawn;
 use crate::error::prelude::*;
 use indy_sys::CommandHandle;
 use crate::disclosed_proof::{self, DisclosedProofs};
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 
 use crate::connection::Connections;
 
@@ -16,7 +16,7 @@ use crate::connection::Connections;
 
     # State
 
-    The set of object states, messages and transitions depends on the communication method is used.
+    The set of object states, agent and transitions depends on the communication method is used.
     There are two communication methods: `proprietary` and `aries`. The default communication method is `proprietary`.
     The communication method can be specified as a config option on one of *_init functions.
 
@@ -35,8 +35,8 @@ use crate::connection::Connections;
         VcxStateType::VcxStateOfferSent - once `vcx_disclosed_proof_send_proof` (send `Presentation` message) is called.
         VcxStateType::None - once `vcx_disclosed_proof_decline_presentation_request` (send `PresentationReject` or `PresentationProposal` message) is called.
 
-        VcxStateType::VcxStateAccepted - once `Ack` messages is received.
-        VcxStateType::None - once `ProblemReport` messages is received.
+        VcxStateType::VcxStateAccepted - once `Ack` agent is received.
+        VcxStateType::None - once `ProblemReport` agent is received.
 
     # Transitions
 

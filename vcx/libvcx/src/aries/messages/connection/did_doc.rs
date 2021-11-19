@@ -3,7 +3,7 @@ use crate::aries::messages::outofband::invitation::Invitation as OutofbandInvita
 
 use crate::error::prelude::*;
 use reqwest::Url;
-use crate::messages::validation::validate_verkey;
+use crate::utils::validation::validate_verkey;
 use rust_base58::{FromBase58, ToBase58};
 
 pub const CONTEXT: &str = "https://w3id.org/did/v1";

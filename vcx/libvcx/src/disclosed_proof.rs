@@ -4,17 +4,16 @@ use std::convert::TryInto;
 use std::mem::take;
 use crate::connection::Connections;
 
-use crate::object_cache::{ObjectCache, Handle};
+use crate::utils::object_cache::{ObjectCache, Handle};
 use crate::api::VcxStateType;
 use crate::error::prelude::*;
-
-use crate::messages::{
-    self,
+use crate::aries::messages::thread::Thread;
+use crate::agent;
+use crate::agent::messages::{
     GeneralMessage,
     RemoteMessageType,
-    thread::Thread,
 };
-use crate::messages::proofs::{
+use crate::legacy::messages::proof_presentation::{
     proof_message::ProofMessage,
     proof_request::{
         ProofRequestMessage,
@@ -31,14 +30,15 @@ use crate::utils::libindy::anoncreds::{get_rev_reg_def_json, get_rev_reg_delta_j
 
 use crate::aries::{
     messages::proof_presentation::presentation_request::PresentationRequest,
-    handlers::proof_presentation::prover::prover::Prover,
+    handlers::proof_presentation::prover::Prover,
 };
 
-use crate::utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
+use crate::agent::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
 use crate::utils::httpclient::AgencyMock;
-use crate::messages::proofs::proof_request::parse_proof_req_message;
-use crate::messages::payload::PayloadKinds;
+use crate::legacy::messages::proof_presentation::proof_request::parse_proof_req_message;
+use crate::agent::messages::payload::PayloadKinds;
 use crate::aries::messages::proof_presentation::presentation_proposal::PresentationProposal;
+use crate::aries::messages::proof_presentation::v10::presentation_proposal::PresentationProposal as PresentationProposalV1;
 
 lazy_static! {
     static ref HANDLE_MAP: ObjectCache<DisclosedProofs>  = Default::default();
@@ -525,7 +525,7 @@ impl DisclosedProof {
 
         let proof = self.generate_proof_msg()?;
 
-        messages::send_message()
+        agent::messages::send_message()
             .to(&agent_info.my_pw_did()?)?
             .to_vk(&agent_info.my_pw_vk()?)?
             .msg_type(&RemoteMessageType::Proof)?
@@ -573,7 +573,7 @@ impl DisclosedProof {
 
         let proof_reject = self.generate_reject_proof_msg()?;
 
-        messages::send_message()
+        agent::messages::send_message()
             .to(&agent_info.my_pw_did()?)?
             .to_vk(&agent_info.my_pw_vk()?)?
             .msg_type(&RemoteMessageType::Proof)?
@@ -602,7 +602,7 @@ impl DisclosedProof {
 
     #[cfg(test)] // TODO: REMOVE IT
     fn from_str(data: &str) -> VcxResult<DisclosedProof> {
-        use crate::messages::ObjectWithVersion;
+        use crate::agent::messages::ObjectWithVersion;
         ObjectWithVersion::deserialize(data)
             .map(|obj: ObjectWithVersion<DisclosedProof>| obj.data)
             .map_err(|err| err.extend("Cannot deserialize DisclosedProof"))
@@ -657,7 +657,7 @@ fn create_pending_proof(source_id: &str, proof_req: &str) -> VcxResult<Disclosed
 
 fn create_proof_v1(source_id: &str, proof_req: &str) -> VcxResult<DisclosedProofs> {
     trace!("create_proof_v1 >>> source_id: {}, proof_req: {}", source_id, secret!(proof_req));
-    debug!("creating v1 disclosed proof object");
+    debug!("creating v10 disclosed proof object");
 
     let proof: DisclosedProof = DisclosedProof::create_with_request(source_id, proof_req)?;
 
@@ -715,9 +715,11 @@ pub fn create_proposal(source_id: &str, proposal: String, comment: String) -> Vc
     let preview = serde_json::from_str(&proposal)
         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidProofProposal, format!("Cannot parse proposal from JSON string. Err: {}", err)))?;
 
-    let proposal = PresentationProposal::create()
-        .set_presentation_preview(preview)
-        .set_comment(comment);
+    let proposal = PresentationProposal::V1(
+        PresentationProposalV1::create()
+            .set_presentation_preview(preview)
+            .set_comment(comment)
+    );
 
     let proof = DisclosedProofs::V3(Prover::create_proposal(source_id, proposal)?);
 
@@ -1023,7 +1025,7 @@ fn get_proof_request(connection_handle: Handle<Connections>, msg_id: &str) -> Vc
 
     AgencyMock::set_next_response(NEW_PROOF_REQUEST_RESPONSE);
 
-    let message = messages::get_message::get_connection_messages(&agent_info.my_pw_did()?,
+    let message = agent::messages::get_message::get_connection_messages(&agent_info.my_pw_did()?,
                                                                  &agent_info.my_pw_vk()?,
                                                                  &agent_info.pw_agent_did()?,
                                                                  &agent_info.pw_agent_vk()?,
@@ -1048,7 +1050,7 @@ fn get_proof_request(connection_handle: Handle<Connections>, msg_id: &str) -> Vc
 //TODO one function with credential
 pub fn get_proof_request_messages(connection_handle: Handle<Connections>, match_name: Option<&str>) -> VcxResult<String> {
     trace!("get_proof_request_messages >>> connection_handle: {}, match_name: {:?}", connection_handle, match_name);
-    debug!("DisclosedProof: getting all proof request messages for connection {}", connection_handle);
+    debug!("DisclosedProof: getting all proof request agent for connection {}", connection_handle);
 
     if connection_handle.is_v3_connection()? {
         let presentation_requests = Prover::get_presentation_request_messages(connection_handle, match_name)?;
@@ -1069,7 +1071,7 @@ pub fn get_proof_request_messages(connection_handle: Handle<Connections>, match_
 
     let agent_info = get_agent_info()?.pw_info(connection_handle)?;
 
-    let payload = messages::get_message::get_connection_messages(&agent_info.my_pw_did()?,
+    let payload = agent::messages::get_message::get_connection_messages(&agent_info.my_pw_did()?,
                                                                  &agent_info.my_pw_vk()?,
                                                                  &agent_info.pw_agent_did()?,
                                                                  &agent_info.pw_agent_vk()?,
