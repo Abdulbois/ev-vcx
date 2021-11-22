@@ -85,11 +85,9 @@ fn blob_storage_open_reader(base_dir: &str) -> VcxResult<i32> {
 pub fn libindy_issuer_create_credential(cred_offer_json: &str,
                                         cred_req_json: &str,
                                         cred_values_json: &str,
-                                        rev_reg_id: Option<String>,
-                                        tails_file: Option<String>) -> VcxResult<(String, Option<String>, Option<String>)> {
+                                        rev_reg_id: Option<&str>,
+                                        tails_file: Option<&str>) -> VcxResult<(String, Option<String>, Option<String>)> {
     if settings::indy_mocks_enabled() { return Ok((crate::utils::constants::CREDENTIAL_JSON.to_owned(), None, None)); }
-
-    let revocation = rev_reg_id.as_ref().map(String::as_str);
 
     let blob_handle = match tails_file {
         Some(x) => blob_storage_open_reader(&x)?,
@@ -99,7 +97,7 @@ pub fn libindy_issuer_create_credential(cred_offer_json: &str,
                                         cred_offer_json,
                                         cred_req_json,
                                         cred_values_json,
-                                        revocation,
+                                        rev_reg_id,
                                         blob_handle)
         .wait()
         .map_err(VcxError::from)
@@ -776,7 +774,7 @@ pub mod tests {
             (Some(json), Some(get_temp_dir_path(TEST_TAILS_FILE).to_str().unwrap().to_string().to_string()))
         } else { (None, None) };
 
-        let (cred, cred_rev_id, _) = crate::utils::libindy::anoncreds::libindy_issuer_create_credential(&offer, &req, &encoded_attributes, rev_reg_id.clone(), tails_file).unwrap();
+        let (cred, cred_rev_id, _) = crate::utils::libindy::anoncreds::libindy_issuer_create_credential(&offer, &req, &encoded_attributes, rev_reg_id.as_deref(), tails_file.as_deref()).unwrap();
         /* store cred */
         let cred_id = crate::utils::libindy::anoncreds::libindy_prover_store_credential(None, &req_meta, &cred, &cred_def_json).unwrap();
         (schema_id, schema_json, cred_def_id, cred_def_json, offer, req, req_meta, cred_id, rev_reg_id, cred_rev_id)

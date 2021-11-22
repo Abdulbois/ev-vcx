@@ -52,8 +52,8 @@ impl IssuerSM {
         }
     }
 
-    pub fn get_source_id(&self) -> String {
-        self.source_id.clone()
+    pub fn get_source_id(&self) -> &String {
+        &self.source_id
     }
 
     pub fn step(state: IssuerState, source_id: String) -> Self {
@@ -100,7 +100,7 @@ impl IssuerSM {
                 IssuerState::OfferSent(ref state) => {
                     match message {
                         A2AMessage::CredentialRequest(credential) => {
-                            if credential.from_thread(&state.thread.thid.clone().unwrap_or_default()) {
+                            if credential.from_thread(state.thread.thid.as_deref().unwrap_or_default()) {
                                 debug!("Issuer: CredentialRequest message received");
                                 return Some((uid, A2AMessage::CredentialRequest(credential)));
                             }
@@ -108,14 +108,14 @@ impl IssuerSM {
                         A2AMessage::CredentialProposal(credential_proposal) => {
                             if let Some(ref thread) = credential_proposal.thread() {
                                 debug!("Issuer: CredentialProposal message received");
-                                if thread.is_reply(&state.thread.thid.clone().unwrap_or_default()) {
+                                if thread.is_reply(state.thread.thid.as_deref().unwrap_or_default()) {
                                     return Some((uid, A2AMessage::CredentialProposal(credential_proposal)));
                                 }
                             }
                         }
                         A2AMessage::CommonProblemReport(problem_report) |
                         A2AMessage::CredentialReject(problem_report) => {
-                            if problem_report.from_thread(&state.thread.thid.clone().unwrap_or_default()) {
+                            if problem_report.from_thread(state.thread.thid.as_deref().unwrap_or_default()) {
                                 debug!("Issuer: CredentialReject message received");
                                 return Some((uid, A2AMessage::CommonProblemReport(problem_report)));
                             }
@@ -131,13 +131,13 @@ impl IssuerSM {
                 IssuerState::CredentialSent(ref state) => {
                     match message {
                         A2AMessage::Ack(ack) | A2AMessage::CredentialAck(ack) => {
-                            if ack.from_thread(&state.thread.thid.clone().unwrap_or_default()) {
+                            if ack.from_thread(state.thread.thid.as_deref().unwrap_or_default()) {
                                 return Some((uid, A2AMessage::CredentialAck(ack)));
                             }
                         }
                         A2AMessage::CommonProblemReport(problem_report) |
                         A2AMessage::CredentialReject(problem_report) => {
-                            if problem_report.from_thread(&state.thread.thid.clone().unwrap_or_default()) {
+                            if problem_report.from_thread(state.thread.thid.as_deref().unwrap_or_default()) {
                                 return Some((uid, A2AMessage::CommonProblemReport(problem_report)));
                             }
                         }
@@ -258,13 +258,13 @@ impl IssuerSM {
         }
     }
 
-    pub fn get_credential_offer(&self) -> Option<CredentialOffer> {
+    pub fn get_credential_offer(&self) -> Option<&CredentialOffer> {
         match self.state {
             IssuerState::Initial(_) => None,
-            IssuerState::OfferSent(ref state) => Some(state.offer.clone()),
-            IssuerState::RequestReceived(ref state) => Some(state.offer.clone()),
-            IssuerState::CredentialSent(ref state) => Some(state.offer.clone()),
-            IssuerState::Finished(ref state) => state.offer.clone(),
+            IssuerState::OfferSent(ref state) => Some(&state.offer),
+            IssuerState::RequestReceived(ref state) => Some(&state.offer),
+            IssuerState::CredentialSent(ref state) => Some(&state.offer),
+            IssuerState::Finished(ref state) => state.offer.as_ref(),
         }
     }
 
@@ -348,7 +348,7 @@ impl RequestReceivedState {
     fn send_credential(self, connection_handle: Handle<Connections>) -> VcxResult<IssuerState> {
         let connection = connection_handle.get_completed_connection()?;
 
-        let thread = self.thread.clone()
+        let thread = self.request.thread().clone()
             .increment_sender_order()
             .update_received_order(&self.connection.data.did_doc.id);
 
@@ -383,8 +383,8 @@ impl RequestReceivedState {
         let (credential, _, _) = anoncreds::libindy_issuer_create_credential(&cred_offer_attachment,
                                                                              &request,
                                                                              &cred_data,
-                                                                             self.rev_reg_id.clone(),
-                                                                             self.tails_file.clone())?;
+                                                                             self.rev_reg_id.as_deref(),
+                                                                             self.tails_file.as_deref())?;
 
         let credential = match self.request {
             CredentialRequest::V1(_) =>
@@ -457,7 +457,7 @@ pub mod test {
             let issuer_sm = _issuer_sm();
 
             assert_match!(IssuerState::Initial(_), issuer_sm.state);
-            assert_eq!(source_id(), issuer_sm.get_source_id());
+            assert_eq!(source_id(), issuer_sm.get_source_id().to_string());
         }
     }
 

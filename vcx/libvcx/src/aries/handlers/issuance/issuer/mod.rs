@@ -60,11 +60,11 @@ impl Issuer {
         Ok(self.issuer_sm.state())
     }
 
-    pub fn get_source_id(&self) -> VcxResult<String> {
+    pub fn get_source_id(&self) -> VcxResult<&String> {
         Ok(self.issuer_sm.get_source_id())
     }
 
-    pub fn get_credential_offer(&self) -> VcxResult<CredentialOffer> {
+    pub fn get_credential_offer(&self) -> VcxResult<&CredentialOffer> {
         self.issuer_sm.get_credential_offer()
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Issuer object state: `offer` not found", self.get_source_id()?)))
     }

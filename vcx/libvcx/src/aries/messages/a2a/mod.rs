@@ -304,6 +304,10 @@ impl MessageId {
     pub fn new() -> MessageId {
         MessageId::default()
     }
+
+    pub fn value(&self) -> &str {
+        self.0.as_str()
+    }
 }
 
 impl ToString for MessageId {

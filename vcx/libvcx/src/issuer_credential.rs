@@ -396,8 +396,8 @@ impl IssuerCredential {
             anoncreds::libindy_issuer_create_credential(&indy_cred_offer.libindy_offer,
                                                         &indy_cred_req.libindy_cred_req,
                                                         &credential_data,
-                                                        self.rev_reg_id.clone(),
-                                                        self.tails_file.clone())?;
+                                                        self.rev_reg_id.as_deref(),
+                                                        self.tails_file.as_deref())?;
 
         self.cred_rev_id = cred_revoc_id.clone();
 
@@ -736,7 +736,7 @@ impl Handle<IssuerCredentials> {
                         return Ok(json!(cred_offer).to_string());
                     }
 
-                    let cred_offer: CredentialOffer = cred_offer.try_into()?;
+                    let cred_offer: CredentialOffer = cred_offer.clone().try_into()?;
                     let cred_offer = json!({
                         "credential_offer": cred_offer
                     });
@@ -836,7 +836,7 @@ impl Handle<IssuerCredentials> {
             match obj {
                 IssuerCredentials::Pending(obj) => Ok(obj.get_source_id().to_string()),
                 IssuerCredentials::V1(obj) => Ok(obj.get_source_id().to_string()),
-                IssuerCredentials::V3(obj) => obj.get_source_id()
+                IssuerCredentials::V3(obj) => Ok(obj.get_source_id()?.to_string())
             }
         }).map_err(handle_err)
     }

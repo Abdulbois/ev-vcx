@@ -63,7 +63,7 @@ impl Thread {
     }
 
     pub fn is_reply(&self, id: &str) -> bool {
-        self.thid.clone().unwrap_or_default() == id.to_string()
+        self.thid.as_deref().unwrap_or_default() == id
     }
 
     pub fn check_message_order(&self, sender: &str, received_message_thread: &Thread) -> VcxResult<()> {

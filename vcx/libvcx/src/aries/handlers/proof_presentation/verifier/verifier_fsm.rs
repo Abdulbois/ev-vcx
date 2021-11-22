@@ -114,14 +114,14 @@ impl VerifierSM {
                 VerifierState::PresentationRequestSent(ref state) => {
                     match message {
                         A2AMessage::Presentation(presentation) => {
-                            if presentation.from_thread(&state.thread.thid.clone().unwrap_or_default()) {
+                            if presentation.from_thread(state.thread.thid.as_deref().unwrap_or_default()) {
                                 debug!("Verifier: Presentation message received");
                                 return Some((uid, A2AMessage::Presentation(presentation)));
                             }
                         }
                         A2AMessage::PresentationProposal(proposal) => {
                             match proposal.thread().as_ref() {
-                                Some(thread) if thread.is_reply(&state.thread.thid.clone().unwrap_or_default()) => {
+                                Some(thread) if thread.is_reply(state.thread.thid.as_deref().unwrap_or_default()) => {
                                     debug!("Verifier: PresentationProposal message received");
                                     return Some((uid, A2AMessage::PresentationProposal(proposal)));
                                 }
@@ -130,7 +130,7 @@ impl VerifierSM {
                         }
                         A2AMessage::CommonProblemReport(problem_report) |
                         A2AMessage::PresentationReject(problem_report) => {
-                            if problem_report.from_thread(&state.thread.thid.clone().unwrap_or_default()) {
+                            if problem_report.from_thread(state.thread.thid.as_deref().unwrap_or_default()) {
                                 debug!("Verifier: PresentationReject message received");
                                 return Some((uid, A2AMessage::CommonProblemReport(problem_report)));
                             }
@@ -232,7 +232,7 @@ impl VerifierSM {
         Ok(VerifierSM { source_id, state })
     }
 
-    pub fn source_id(&self) -> String { self.source_id.clone() }
+    pub fn source_id(&self) -> &String { &self.source_id }
 
     pub fn state(&self) -> u32 {
         match self.state {
@@ -295,18 +295,18 @@ impl VerifierSM {
         }
     }
 
-    pub fn presentation_request(&self) -> VcxResult<PresentationRequest> {
+    pub fn presentation_request(&self) -> VcxResult<&PresentationRequest> {
         match self.state {
             VerifierState::Initiated(_) => Err(VcxError::from_msg(VcxErrorKind::InvalidState, "Could not get Presentation Request message. VerifierSM is not in appropriate state.")),
-            VerifierState::PresentationRequestPrepared(ref state) => Ok(state.presentation_request.clone()),
+            VerifierState::PresentationRequestPrepared(ref state) => Ok(&state.presentation_request),
             VerifierState::PresentationProposalReceived(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
                                                                                      format!("Verifier object {} in state {} not ready to get Presentation Request Data message", self.source_id, self.state()))),
-            VerifierState::PresentationRequestSent(ref state) => Ok(state.presentation_request.clone()),
-            VerifierState::Finished(ref state) => Ok(state.presentation_request.clone()),
+            VerifierState::PresentationRequestSent(ref state) => Ok(&state.presentation_request),
+            VerifierState::Finished(ref state) => Ok(&state.presentation_request),
         }
     }
 
-    pub fn presentation(&self) -> VcxResult<Presentation> {
+    pub fn presentation(&self) -> VcxResult<&Presentation> {
         match self.state {
             VerifierState::Initiated(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
                                                                   format!("Verifier object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
@@ -317,7 +317,7 @@ impl VerifierSM {
             VerifierState::PresentationProposalReceived(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
                                                                                      format!("Verifier object {} in state {} not ready to get Presentation message", self.source_id, self.state()))),
             VerifierState::Finished(ref state) => {
-                state.presentation.clone()
+                state.presentation.as_ref()
                     .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Verifier object state: `presentation` not found", self.source_id)))
             }
         }
@@ -356,13 +356,11 @@ impl VerifierSM {
 
 impl InitialState {
     fn prepare_presentation_request(self) -> VcxResult<VerifierState> {
-        let presentation_request: PresentationRequestData = self.presentation_request_data.clone();
-
         let presentation_request =
             PresentationRequest::V1(
                 PresentationRequestV1::create()
-                    .set_comment(presentation_request.name.clone())
-                    .set_request_presentations_attach(&presentation_request)?
+                    .set_comment(self.presentation_request_data.name.clone())
+                    .set_request_presentations_attach(&self.presentation_request_data)?
             );
 
         Ok(VerifierState::PresentationRequestPrepared((self, presentation_request).into()))
@@ -570,7 +568,7 @@ impl PresentationProposalReceivedState {
             PresentationProposal::V1(_) => {
                 PresentationRequest::V1(
                     PresentationRequestV1::create()
-                        .set_comment(presentation_request.name.clone())
+                        .set_comment(presentation_request.name.to_string())
                         .set_request_presentations_attach(&presentation_request)?
                         .set_thread(thread.clone())
                         .set_service(connection.service()?)
@@ -580,7 +578,7 @@ impl PresentationProposalReceivedState {
                 let attach = json!(presentation_request).to_string();
                 PresentationRequest::V2(
                     PresentationRequestV2::create()
-                        .set_comment(presentation_request.name.clone())
+                        .set_comment(presentation_request.name.to_string())
                         .set_indy_request_presentations_attach(&attach)?
                         .set_thread(thread.clone())
                         .set_service(connection.service()?)
@@ -612,7 +610,7 @@ impl PresentationProposalReceivedState {
 
                 PresentationRequest::V1(
                     PresentationRequestV1::create()
-                        .set_comment(presentation_request.name.clone())
+                        .set_comment(presentation_request.name.to_string())
                         .set_request_presentations_attach(&presentation_request)?
                         .set_thread(thread.clone())
                         .set_service(connection.service()?)
@@ -631,7 +629,7 @@ impl PresentationProposalReceivedState {
 
                 PresentationRequest::V2(
                     PresentationRequestV2::create()
-                        .set_comment(presentation_request_data.name.clone())
+                        .set_comment(presentation_request_data.name.to_string())
                         .set_indy_request_presentations_attach(&presentation_request_json)?
                         .set_thread(thread.clone())
                         .set_service(connection.service()?)
@@ -686,7 +684,7 @@ pub mod test {
             let verifier_sm = _verifier_sm();
 
             assert_match!(VerifierState::Initiated(_), verifier_sm.state);
-            assert_eq!(source_id(), verifier_sm.source_id());
+            assert_eq!(source_id(), verifier_sm.source_id().to_string());
         }
     }
 

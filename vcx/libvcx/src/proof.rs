@@ -676,7 +676,7 @@ impl Handle<Proofs> {
             match obj {
                 Proofs::Pending(obj) => Ok(obj.get_source_id()),
                 Proofs::V1(obj) => Ok(obj.get_source_id()),
-                Proofs::V3(obj) => Ok(obj.get_source_id())
+                Proofs::V3(obj) => Ok(obj.get_source_id().to_string())
             }
         }).map_err(handle_err)
     }
@@ -697,7 +697,7 @@ impl Handle<Proofs> {
                         return Ok(json!(presentation_request).to_string());
                     }
 
-                    let proof_request: ProofRequestMessage = presentation_request.try_into()?;
+                    let proof_request: ProofRequestMessage = presentation_request.clone().try_into()?;
                     return Ok(json!(proof_request).to_string());
                 }
             }
@@ -852,7 +852,7 @@ impl Handle<Proofs> {
                         return Ok(json!(presentation).to_string());
                     }
 
-                    let proof: ProofMessage = presentation.try_into()?;
+                    let proof: ProofMessage = presentation.clone().try_into()?;
                     Ok(json!(proof).to_string())
                 }
             }

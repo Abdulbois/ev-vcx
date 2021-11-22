@@ -48,9 +48,9 @@ impl EncryptionEnvelope {
             .map(String::from)
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidDIDDoc, format!("Recipient Key not found in DIDDoc: {:?}", did_doc)))?;
 
-        for routing_key in routing_keys.iter() {
+        for routing_key in routing_keys.into_iter() {
             message = EncryptionEnvelope::wrap_into_forward(message, &to, &routing_key)?;
-            to = routing_key.clone();
+            to = routing_key;
         }
 
         Ok(message)

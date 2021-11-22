@@ -979,7 +979,7 @@ impl Handle<DisclosedProofs> {
             match obj {
                 DisclosedProofs::Pending(obj) => Ok(obj.get_source_id()),
                 DisclosedProofs::V1(obj) => Ok(obj.get_source_id()),
-                DisclosedProofs::V3(obj) => Ok(obj.get_source_id())
+                DisclosedProofs::V3(obj) => Ok(obj.get_source_id().to_string())
             }
         }).map_err(handle_err)
     }

@@ -108,7 +108,7 @@ impl InitializedState {
 
 impl InvitedState {
     fn handle_connection_request(&self, request: &Request,
-                                 agent_info: &AgentInfo) -> VcxResult<(SignedResponse, AgentInfo, Thread)> {
+                                 agent_info: &AgentInfo) -> VcxResult<(SignedResponse, AgentInfo, AgentInfo, Thread)> {
         trace!("InvitedState:handle_connection_request >>> request: {:?}, agent_info: {:?}", secret!(request), secret!(agent_info));
         debug!("handling received connection request message");
 
@@ -129,14 +129,14 @@ impl InvitedState {
             .set_keys(new_agent_info.recipient_keys(), new_agent_info.routing_keys()?)
             .ask_for_ack();
 
-        let signed_response = response.clone()
+        let signed_response = response
             .set_thread(thread.clone())
             .encode(&prev_agent_info.pw_vk)?;
 
         new_agent_info.send_message(&signed_response, &request.connection.did_doc)?;
 
         trace!("InvitedState:handle_connection_request <<<");
-        Ok((signed_response, new_agent_info, thread))
+        Ok((signed_response, prev_agent_info, new_agent_info, thread))
     }
 }
 
@@ -145,25 +145,28 @@ impl RequestedState {
         trace!("RequestedState:handle_connection_response >>> response: {:?}, agent_info: {:?}", secret!(response), secret!(agent_info));
         debug!("handling received connection response message");
 
-        let remote_vk: String = self.did_doc.recipient_keys().get(0).cloned()
+        let recipient_keys = self.did_doc.recipient_keys();
+        let remote_vk = recipient_keys.get(0)
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidDIDDoc, "Cannot handle ConnectionResponse: Recipient Verkey not found in DIDDoc"))?;
 
         let response: Response = response.decode(&remote_vk)?;
 
-        if !response.from_thread(&self.request.id.to_string()) {
+        if !response.from_thread(self.request.id.value()) {
             return Err(VcxError::from_msg(VcxErrorKind::MessageIsOutOfThread,
                                           format!("Cannot handle Connection Response: thread id does not match. Expected: {:?}, Received: {:?}", response.thread, self.request.id.to_string())));
         }
 
-        let thread = self.thread.clone()
+        let thread = response.thread.clone()
             .increment_sender_order()
             .update_received_order(&response.connection.did);
 
         if response.please_ack.is_some() {
-            let ack = Ack::create().set_thread(thread.clone());
+            let ack = Ack::create()
+                .set_thread(thread.clone());
             agent_info.send_message(&ack, &response.connection.did_doc)?;
         } else {
-            let ping = Ping::create().set_thread(Thread::from_parent(&thread));
+            let ping = Ping::create()
+                .set_thread(Thread::from_parent(&thread));
             agent_info.send_message(&ping, &response.connection.did_doc)?;
         };
 
@@ -179,7 +182,10 @@ impl RespondedState {
         debug!("handling received connection ack message");
 
         self.thread.check_message_order(&self.did_doc.id, &ack.thread)?;
-        let thread = self.thread.clone().update_received_order(&self.did_doc.id);
+
+        let thread = self.thread.clone()
+            .update_received_order(&self.did_doc.id);
+
         self.prev_agent_info.delete()?;
 
         trace!("RespondedState:handle_ack <<<");
@@ -191,8 +197,12 @@ impl RespondedState {
         debug!("sending connection ping message");
 
         self.thread.check_message_order(&self.did_doc.id, &ping.thread.clone().unwrap_or_default())?;
+
         _handle_ping(ping, agent_info, &self.did_doc)?;
-        let thread = self.thread.clone().update_received_order(&self.did_doc.id);
+
+        let thread = self.thread.clone()
+            .update_received_order(&self.did_doc.id);
+
         self.prev_agent_info.delete()?;
 
         trace!("RespondedState:handle_ping <<<");
@@ -204,7 +214,10 @@ impl RespondedState {
         debug!("handling received connection ping response message");
 
         self.thread.check_message_order(&self.did_doc.id, &ping_response.thread)?;
-        let thread = self.thread.clone().update_received_order(&self.did_doc.id);
+
+        let thread = self.thread.clone()
+            .update_received_order(&self.did_doc.id);
+
         self.prev_agent_info.delete()?;
 
         trace!("RespondedState:handle_ping_response <<<");
@@ -352,11 +365,12 @@ impl CompleteState {
         trace!("CompleteState:handle_discovery_query >>> query: {:?}, agent_info: {:?}", secret!(query), secret!(agent_info));
         debug!("handling received connection discovery query message");
 
-        let protocols = ProtocolRegistry::init().get_protocols_for_query(query.query.as_ref().map(String::as_str));
+        let protocols = ProtocolRegistry::init()
+            .get_protocols_for_query(query.query.as_ref().map(String::as_str));
 
         let disclose = Disclose::create()
             .set_protocols(protocols)
-            .set_thread_id(query.id.0.clone());
+            .set_thread_id(query.id.to_string());
 
         agent_info.send_message(&disclose, &self.did_doc)?;
 
@@ -372,13 +386,13 @@ impl CompleteState {
             OutofbandInvitation::V10(invitation) => {
                 HandshakeReuse::V10(
                     HandshakeReuseV10::create()
-                        .set_pthid(&invitation.id.to_string())
+                        .set_pthid(invitation.id.value())
                 )
             }
             OutofbandInvitation::V11(invitation) => {
                 HandshakeReuse::V11(
                     HandshakeReuseV11::create()
-                        .set_pthid(&invitation.id.to_string())
+                        .set_pthid(invitation.id.value())
                 )
             }
         };
@@ -468,10 +482,11 @@ impl CompleteState {
         trace!("CompleteState:handle_answer >>> answer: {:?}, agent_info: {:?}", secret!(answer), secret!(agent_info));
         debug!("handling received connection question answer message");
 
-        let remote_vk: String = self.did_doc.recipient_keys().get(0).cloned()
+        let recipient_keys = self.did_doc.recipient_keys();
+        let remote_vk = recipient_keys.get(0)
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, "Cannot handle Response: Remote Verkey not found"))?;
 
-        match answer.verify(&remote_vk) {
+        match answer.verify(remote_vk) {
             Ok(()) => {}
             Err(_) => {
                 let thread = answer.thread.clone()
@@ -555,7 +570,10 @@ impl CompleteState {
 fn _handle_ping(ping: &Ping, agent_info: &AgentInfo, did_doc: &DidDoc) -> VcxResult<()> {
     if ping.response_requested {
         let ping_response = PingResponse::create().set_thread_id(
-            &ping.thread.as_ref().and_then(|thread| thread.thid.clone()).unwrap_or(ping.id.0.clone()));
+            &ping.thread.as_ref()
+                .and_then(|thread| thread.thid.clone())
+                .unwrap_or(ping.id.to_string())
+        );
         agent_info.send_message(&ping_response, did_doc)?;
     }
     Ok(())
@@ -760,8 +778,7 @@ impl DidExchangeSM {
                         match message {
                             DidExchangeMessages::ExchangeRequestReceived(request) => {
                                 match state.handle_connection_request(&request, &agent_info) {
-                                    Ok((response, new_agent_info, thread)) => {
-                                        let prev_agent_info = agent_info.clone();
+                                    Ok((response, prev_agent_info, new_agent_info, thread)) => {
                                         agent_info = new_agent_info;
                                         ActorDidExchangeState::Inviter(DidExchangeState::Responded((state, request, response, prev_agent_info, thread).into()))
                                     }
@@ -1050,7 +1067,7 @@ impl DidExchangeSM {
 
     pub fn remote_did(&self) -> VcxResult<String> {
         self.did_doc()
-            .map(|did_doc: DidDoc| did_doc.id.clone())
+            .map(|did_doc| did_doc.id.to_string())
             .ok_or(VcxError::from_msg(VcxErrorKind::NotReady, "Remote Connection DIDDoc is not received yet"))
     }
 

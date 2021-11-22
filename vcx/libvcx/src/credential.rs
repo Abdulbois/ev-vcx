@@ -799,7 +799,7 @@ impl Handle<Credentials> {
             match obj {
                 Credentials::Pending(obj) => Ok(obj.get_source_id()),
                 Credentials::V1(obj) => Ok(obj.get_source_id()),
-                Credentials::V3(obj) => Ok(obj.get_source_id()),
+                Credentials::V3(obj) => Ok(obj.get_source_id().to_string()),
             }
         }).map_err(handle_err)
     }
