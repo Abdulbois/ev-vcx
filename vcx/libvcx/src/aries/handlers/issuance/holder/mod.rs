@@ -83,7 +83,7 @@ impl Holder {
         self.holder_sm.state()
     }
 
-    pub fn get_source_id(&self) -> String {
+    pub fn get_source_id(&self) -> &String {
         self.holder_sm.get_source_id()
     }
 

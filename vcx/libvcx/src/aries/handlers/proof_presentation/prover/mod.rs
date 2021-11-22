@@ -167,7 +167,7 @@ impl Prover {
         Ok(presentation_requests)
     }
 
-    pub fn get_source_id(&self) -> String { self.prover_sm.source_id() }
+    pub fn get_source_id(&self) -> &String { self.prover_sm.source_id() }
 
     pub fn step(&mut self, message: ProverMessages) -> VcxResult<()> {
         self.prover_sm = self.prover_sm.clone().step(message)?;

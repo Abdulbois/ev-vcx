@@ -54,7 +54,7 @@ impl Verifier {
         })
     }
 
-    pub fn get_source_id(&self) -> String { self.verifier_sm.source_id() }
+    pub fn get_source_id(&self) -> &String { self.verifier_sm.source_id() }
 
     pub fn state(&self) -> u32 {
         trace!("Verifier::state >>>");
@@ -151,7 +151,7 @@ impl Verifier {
         self.step(VerifierMessages::RequestPresentation(connection_handle, presentation_request))
     }
 
-    pub fn get_presentation_request(&self) -> VcxResult<PresentationRequest> {
+    pub fn get_presentation_request(&self) -> VcxResult<&PresentationRequest> {
         trace!("Verifier::get_presentation_request >>>");
         debug!("Verifier {}: Getting presentation request", self.get_source_id());
         self.verifier_sm.presentation_request()
@@ -187,7 +187,7 @@ impl Verifier {
         self.verifier_sm.presentation_proposal()?.presentation_preview()
     }
 
-    pub fn get_presentation(&self) -> VcxResult<Presentation> {
+    pub fn get_presentation(&self) -> VcxResult<&Presentation> {
         trace!("Verifier::get_presentation >>>");
         debug!("Verifier {}: Getting presentation", self.get_source_id());
         self.verifier_sm.presentation()

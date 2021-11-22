@@ -114,14 +114,14 @@ impl ProverSM {
                 ProverState::PresentationSent(ref state) => {
                     match message {
                         A2AMessage::Ack(ack) | A2AMessage::PresentationAck(ack) => {
-                            if ack.from_thread(&state.thread.thid.clone().unwrap_or_default()) {
+                            if ack.from_thread(state.thread.thid.as_deref().unwrap_or_default()) {
                                 debug!("Prover: Ack message received");
                                 return Some((uid, A2AMessage::PresentationAck(ack)));
                             }
                         }
                         A2AMessage::CommonProblemReport(problem_report) |
                         A2AMessage::PresentationReject(problem_report) => {
-                            if problem_report.from_thread(&state.thread.thid.clone().unwrap_or_default()) {
+                            if problem_report.from_thread(state.thread.thid.as_deref().unwrap_or_default()) {
                                 debug!("Prover: PresentationReject message received");
                                 return Some((uid, A2AMessage::CommonProblemReport(problem_report)));
                             }
@@ -140,7 +140,7 @@ impl ProverSM {
                             return Some((uid, A2AMessage::PresentationRequest(request)));
                         }
                         A2AMessage::CommonProblemReport(problem_report) => {
-                            if problem_report.from_thread(&state.thread.thid.clone().unwrap_or_default()) {
+                            if problem_report.from_thread(state.thread.thid.as_deref().unwrap_or_default()) {
                                 debug!("Prover: ProposalReject message received");
                                 return Some((uid, A2AMessage::CommonProblemReport(problem_report)));
                             }
@@ -282,7 +282,7 @@ impl ProverSM {
         Ok(ProverSM { source_id, state })
     }
 
-    pub fn source_id(&self) -> String { self.source_id.clone() }
+    pub fn source_id(&self) -> &String { &self.source_id }
 
     pub fn state(&self) -> u32 {
         match self.state {
@@ -510,7 +510,6 @@ impl PresentationPreparationFailedState {
 
         let problem_report =
             self.problem_report.clone()
-                .set_message_type(self.presentation_request.type_())
                 .set_thread(thread);
 
         match self.presentation_request.service() {
@@ -588,7 +587,7 @@ fn _handle_presentation_proposal(connection: &CompletedConnection, preview: Pres
 
     match presentation_request.service().clone() {
         None => connection.data.send_message(&proposal, &connection.agent)?,
-        Some(service) => Connection::send_message_to_self_endpoint(&proposal, &service.clone().into())?
+        Some(service) => Connection::send_message_to_self_endpoint(&proposal, &service.into())?
     }
 
     trace!("ProverSM::_handle_presentation_proposal <<<");
@@ -677,7 +676,7 @@ pub mod test {
             let prover_sm = _prover_sm();
 
             assert_match!(ProverState::RequestReceived(_), prover_sm.state);
-            assert_eq!(source_id(), prover_sm.source_id());
+            assert_eq!(source_id(), prover_sm.source_id().to_string());
         }
 
         #[test]
@@ -687,7 +686,7 @@ pub mod test {
             let prover_sm = _prover_sm_proposal();
 
             assert_match!(ProverState::ProposalPrepared(_), prover_sm.state);
-            assert_eq!(source_id(), prover_sm.source_id());
+            assert_eq!(source_id(), prover_sm.source_id().to_string());
         }
     }
 

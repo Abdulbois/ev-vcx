@@ -48,8 +48,8 @@ impl HolderSM {
         }
     }
 
-    pub fn get_source_id(&self) -> String {
-        self.source_id.clone()
+    pub fn get_source_id(&self) -> &String {
+        &self.source_id
     }
 
     pub fn state(&self) -> u32 {
@@ -103,14 +103,14 @@ impl HolderSM {
                 HolderState::RequestSent(ref state) => {
                     match message {
                         A2AMessage::Credential(credential) => {
-                            if credential.from_thread(&state.thread.thid.clone().unwrap_or_default()) {
+                            if credential.from_thread(state.thread.thid.as_deref().unwrap_or_default()) {
                                 debug!("Holder: Credential message received");
                                 return Some((uid, A2AMessage::Credential(credential)));
                             }
                         }
                         A2AMessage::CommonProblemReport(problem_report) |
                         A2AMessage::CredentialReject(problem_report) => {
-                            if problem_report.from_thread(&state.thread.thid.clone().unwrap_or_default()) {
+                            if problem_report.from_thread(&state.thread.thid.as_deref().unwrap_or_default()) {
                                 debug!("Holder: CredentialReject message received");
                                 return Some((uid, A2AMessage::CommonProblemReport(problem_report)));
                             }
@@ -156,7 +156,7 @@ impl HolderSM {
                     state_data.handle_received_credential(credential)?
                 }
                 HolderMessages::ProblemReport(problem_report) => {
-                    let thread = state_data.thread.clone()
+                    let thread = problem_report.thread.clone()
                         .update_received_order(&state_data.connection.data.did_doc.id);
                     HolderState::Finished((state_data, problem_report, thread, Reason::Fail).into())
                 }
@@ -214,7 +214,7 @@ impl HolderSM {
 
         match self.state {
             HolderState::Finished(ref state) => {
-                let cred_id = state.cred_id.clone()
+                let cred_id = state.cred_id.as_deref()
                     .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Holder object state: `cred_id` not found", self.source_id)))?;
                 state.delete_credential(&cred_id)
             }
@@ -281,7 +281,7 @@ fn _store_credential(credential_offer: &CredentialOffer,
 
 impl RequestSentState {
     fn handle_received_credential(self, credential: Credential) -> VcxResult<HolderState> {
-        let thread = self.thread.clone()
+        let thread = credential.thread().clone()
             .increment_sender_order()
             .update_received_order(&self.connection.data.did_doc.id);
 
@@ -533,7 +533,7 @@ mod test {
             let holder_sm = _holder_sm();
 
             assert_match!(HolderState::OfferReceived(_), holder_sm.state);
-            assert_eq!(source_id(), holder_sm.get_source_id());
+            assert_eq!(source_id(), holder_sm.get_source_id().to_string());
         }
     }
 

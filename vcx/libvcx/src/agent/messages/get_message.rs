@@ -328,6 +328,15 @@ impl Message {
         // TODO: must be Result
         let mut new_message = self.clone();
         if let Some(ref payload) = self.payload {
+            if settings::is_strict_aries_protocol_set() {
+                if let Ok(decrypted_payload) = self._decrypt_v3_message() {
+                    new_message.msg_type = RemoteMessageType::Other(String::from("aries"));
+                    new_message.decrypted_payload = ::serde_json::to_string(&json!(decrypted_payload)).ok();
+                    new_message.payload = None;
+                    return new_message;
+                }
+            }
+
             let decrypted_payload = match payload {
                 MessagePayload::V1(payload) => {
                     Payloads::decrypt_payload_v1(&vk, &payload)
