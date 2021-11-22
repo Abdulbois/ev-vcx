@@ -9,7 +9,7 @@ use crate::utils::libindy::payments::{send_transaction, PaymentTxn};
 use crate::utils::libindy::ledger::*;
 use crate::utils::constants::{SCHEMA_ID, SCHEMA_JSON, SCHEMA_TXN, CREATE_SCHEMA_ACTION, CRED_DEF_ID, CRED_DEF_JSON, CRED_DEF_REQ, CREATE_CRED_DEF_ACTION, CREATE_REV_REG_DEF_ACTION, CREATE_REV_REG_DELTA_ACTION, REVOC_REG_TYPE, rev_def_json, REV_REG_ID, REV_REG_DELTA_JSON, REV_REG_JSON};
 use crate::error::prelude::*;
-use crate::utils::libindy::types::{CredentialInfo, CredentialDefinitionData};
+use crate::utils::libindy::types::{CredentialInfo, CredentialDefinitionData, Credential};
 use crate::schema::SchemaData;
 use std::sync::Arc;
 
@@ -85,11 +85,9 @@ fn blob_storage_open_reader(base_dir: &str) -> VcxResult<i32> {
 pub fn libindy_issuer_create_credential(cred_offer_json: &str,
                                         cred_req_json: &str,
                                         cred_values_json: &str,
-                                        rev_reg_id: Option<String>,
-                                        tails_file: Option<String>) -> VcxResult<(String, Option<String>, Option<String>)> {
+                                        rev_reg_id: Option<&str>,
+                                        tails_file: Option<&str>) -> VcxResult<(String, Option<String>, Option<String>)> {
     if settings::indy_mocks_enabled() { return Ok((crate::utils::constants::CREDENTIAL_JSON.to_owned(), None, None)); }
-
-    let revocation = rev_reg_id.as_ref().map(String::as_str);
 
     let blob_handle = match tails_file {
         Some(x) => blob_storage_open_reader(&x)?,
@@ -99,7 +97,7 @@ pub fn libindy_issuer_create_credential(cred_offer_json: &str,
                                         cred_offer_json,
                                         cred_req_json,
                                         cred_values_json,
-                                        revocation,
+                                        rev_reg_id,
                                         blob_handle)
         .wait()
         .map_err(VcxError::from)
@@ -234,16 +232,29 @@ pub fn libindy_prover_update_revocation_state(rev_reg_def_json: &str, rev_state_
 pub fn libindy_prover_store_credential(cred_id: Option<&str>,
                                        cred_req_meta: &str,
                                        cred_json: &str,
-                                       cred_def_json: &str,
-                                       rev_reg_def_json: Option<&str>) -> VcxResult<String> {
+                                       cred_def_json: &str) -> VcxResult<String> {
     if settings::indy_mocks_enabled() { return Ok("cred_id".to_string()); }
+
+    let credential: Credential = serde_json::from_str(&cred_json)
+        .map_err(|err| VcxError::from_msg(
+            VcxErrorKind::InvalidCredential,
+            format!("Cannot parse Credential message from JSON string. Err: {:?}", err),
+        ))?;
+
+    let rev_reg_def_json = match credential.rev_reg_id {
+        Some(rev_reg_id) => {
+            let (_, rev_reg_def_json) = get_rev_reg_def_json(&rev_reg_id)?;
+            Some(rev_reg_def_json)
+        }
+        None => None
+    };
 
     anoncreds::prover_store_credential(get_wallet_handle(),
                                        cred_id,
                                        cred_req_meta,
                                        cred_json,
                                        cred_def_json,
-                                       rev_reg_def_json)
+                                       rev_reg_def_json.as_ref().map(String::as_str))
         .wait()
         .map_err(VcxError::from)
 }
@@ -673,7 +684,7 @@ pub fn attr_common_view(attr: &str) -> String {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::object_cache::Handle;
+    use crate::utils::object_cache::Handle;
     use crate::credential_def::CredentialDef;
 
     use super::*;
@@ -758,14 +769,14 @@ pub mod tests {
         /* create cred */
         let credential_data = r#"{"address1": ["123 Main St"], "address2": ["Suite 3"], "city": ["Draper"], "state": ["UT"], "zip": ["84000"]}"#;
         let encoded_attributes = crate::issuer_credential::encode_attributes(&credential_data).unwrap();
-        let (rev_def_json, tails_file) = if revocation {
+        let (_, tails_file) = if revocation {
             let (_id, json) = get_rev_reg_def_json(&rev_reg_id.clone().unwrap()).unwrap();
             (Some(json), Some(get_temp_dir_path(TEST_TAILS_FILE).to_str().unwrap().to_string().to_string()))
         } else { (None, None) };
 
-        let (cred, cred_rev_id, _) = crate::utils::libindy::anoncreds::libindy_issuer_create_credential(&offer, &req, &encoded_attributes, rev_reg_id.clone(), tails_file).unwrap();
+        let (cred, cred_rev_id, _) = crate::utils::libindy::anoncreds::libindy_issuer_create_credential(&offer, &req, &encoded_attributes, rev_reg_id.as_deref(), tails_file.as_deref()).unwrap();
         /* store cred */
-        let cred_id = crate::utils::libindy::anoncreds::libindy_prover_store_credential(None, &req_meta, &cred, &cred_def_json, rev_def_json.as_ref().map(String::as_str)).unwrap();
+        let cred_id = crate::utils::libindy::anoncreds::libindy_prover_store_credential(None, &req_meta, &cred, &cred_def_json).unwrap();
         (schema_id, schema_json, cred_def_id, cred_def_json, offer, req, req_meta, cred_id, rev_reg_id, cred_rev_id)
     }
 

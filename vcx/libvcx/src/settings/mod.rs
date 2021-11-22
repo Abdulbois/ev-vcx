@@ -8,14 +8,14 @@ use std::collections::HashMap;
 use std::sync::RwLock;
 use crate::utils::{get_temp_dir_path, error};
 use std::path::Path;
-use crate::messages::validation;
+use crate::utils::validation;
 use serde_json::Value;
 use strum::IntoEnumIterator;
 use std::borrow::Borrow;
 use reqwest::Url;
 use crate::error::prelude::*;
 use crate::utils::file::read_file;
-use crate::v3::messages::a2a::protocol_registry::Actors;
+use crate::aries::messages::a2a::protocol_registry::Actors;
 use crate::settings::protocol::ProtocolTypes;
 
 pub static CONFIG_POOL_NAME: &str = "pool_name";

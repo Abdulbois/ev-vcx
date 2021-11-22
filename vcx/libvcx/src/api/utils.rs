@@ -1,6 +1,6 @@
 use serde_json;
 use libc::c_char;
-use crate::messages;
+use crate::agent;
 use std::ptr;
 use crate::utils::cstring::CStringUtils;
 use crate::utils::error;
@@ -11,12 +11,13 @@ use crate::error::prelude::*;
 use indy_sys::CommandHandle;
 use crate::utils::httpclient::AgencyMock;
 use crate::utils::constants::*;
-use crate::messages::agent_provisioning::types::ProvisioningConfig;
-use crate::v3::handlers::connection::agent::AgentInfo;
-use crate::messages::{agent_provisioning, update_agent};
-use crate::messages::update_agent::ComMethod;
-use crate::v3::messages::attachment::extract_attached_message;
-use crate::v3::utils::resolve_message_by_url;
+use crate::agent::provisioning::types::ProvisioningConfig;
+use crate::aries::handlers::connection::agent::AgentInfo;
+use crate::agent::provisioning;
+use crate::agent::messages::update_agent;
+use crate::agent::messages::update_agent::ComMethod;
+use crate::aries::messages::message_with_attachment::extract_attached_message;
+use crate::aries::utils::resolve_message_by_url;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
 ///
@@ -59,7 +60,7 @@ pub extern fn vcx_provision_agent_with_token(config: *const c_char, token: *cons
 
     trace!("vcx_provision_agent_with_token(config: {}, token: {})", secret!(config), secret!(token));
 
-    match messages::agent_provisioning::agent_provisioning_v0_7::provision(&config, &token) {
+    match agent::provisioning::agent_provisioning_v0_7::provision(&config, &token) {
         Err(e) => {
             error!("Provision Agent Error {}.", e);
             wallet::close_wallet().ok();
@@ -111,7 +112,7 @@ pub extern fn vcx_provision_agent_with_token_async(command_handle: CommandHandle
     trace!("vcx_provision_agent_with_token_async(config: {}, token: {})", secret!(config), secret!(token));
 
     thread::spawn(move || {
-        match messages::agent_provisioning::agent_provisioning_v0_7::provision(&config, &token) {
+        match agent::provisioning::agent_provisioning_v0_7::provision(&config, &token) {
             Err(e) => {
                 error!("vcx_provision_agent_with_token_async_cb(command_handle: {}, rc: {}, config: NULL", command_handle, e);
                 cb(command_handle, e.into(), ptr::null_mut());
@@ -150,7 +151,7 @@ pub extern fn vcx_provision_agent(config: *const c_char) -> *mut c_char {
 
     trace!("vcx_provision_agent(config: {})", secret!(config));
 
-    match agent_provisioning::provision(&config) {
+    match provisioning::provision(&config) {
         Err(e) => {
             error!("Provision Agent Error {}.", e);
             wallet::close_wallet().ok();
@@ -192,7 +193,7 @@ pub extern fn vcx_agent_provision_async(command_handle: CommandHandle,
            command_handle, secret!(config));
 
     thread::spawn(move || {
-        match agent_provisioning::provision(&config) {
+        match provisioning::provision(&config) {
             Err(e) => {
                 error!("vcx_agent_provision_async_cb(command_handle: {}, rc: {}, config: NULL", command_handle, e);
                 cb(command_handle, e.into(), ptr::null_mut());
@@ -269,7 +270,7 @@ pub extern fn vcx_get_provision_token(command_handle: CommandHandle,
     };
 
     spawn(move || {
-        match messages::token_provisioning::token_provisioning::provision(vcx_config, &sponsee_id, &sponsor_id) {
+        match agent::messages::token_provisioning::token_provisioning::provision(vcx_config, &sponsee_id, &sponsor_id) {
             Ok(token) => {
                 trace!("vcx_get_provision_token_cb(command_handle: {}, rc: {}, token: {})",
                        command_handle, error::SUCCESS.as_str(), secret!(token));
@@ -408,17 +409,17 @@ pub extern fn vcx_set_next_agency_response(message_index: u32) {
     AgencyMock::set_next_response(message);
 }
 
-/// Retrieve messages from the Cloud Agent
+/// Retrieve agent from the Cloud Agent
 ///
 /// #params
 ///
 /// command_handle: command handle to map callback to user context.
 ///
-/// message_status: optional - query for messages with the specified status
+/// message_status: optional - query for agent with the specified status
 ///
-/// uids: optional, comma separated - query for messages with the specified uids
+/// uids: optional, comma separated - query for agent with the specified uids
 ///
-/// cb: Callback that provides array of matching messages retrieved
+/// cb: Callback that provides array of matching agent retrieved
 ///
 /// #Returns
 /// Error code as a u32
@@ -451,19 +452,19 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
            command_handle, message_status, uids);
 
     spawn(move || {
-        match crate::messages::get_message::download_agent_messages(message_status, uids) {
+        match crate::agent::messages::get_message::download_agent_messages(message_status, uids) {
             Ok(x) => {
                 match serde_json::to_string(&x) {
                     Ok(x) => {
-                        trace!("vcx_download_agent_messages(command_handle: {}, rc: {}, messages: {})",
+                        trace!("vcx_download_agent_messages(command_handle: {}, rc: {}, agent: {})",
                                command_handle, error::SUCCESS.as_str(), secret!(x));
 
                         let msg = CStringUtils::string_to_cstring(x);
                         cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
                     }
                     Err(e) => {
-                        let err = VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize downloaded messages as JSON. Error: {}", e));
-                        warn!("vcx_download_agent_messages(command_handle: {}, rc: {}, messages: {})",
+                        let err = VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize downloaded agent as JSON. Error: {}", e));
+                        warn!("vcx_download_agent_messages(command_handle: {}, rc: {}, agent: {})",
                               command_handle, err, "null");
 
                         cb(command_handle, err.into(), ptr::null_mut());
@@ -471,7 +472,7 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
                 };
             }
             Err(e) => {
-                warn!("vcx_download_agent_messages(command_handle: {}, rc: {}, messages: {})",
+                warn!("vcx_download_agent_messages(command_handle: {}, rc: {}, agent: {})",
                       command_handle, e, "null");
 
                 cb(command_handle, e.into(), ptr::null_mut());
@@ -484,13 +485,13 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
     error::SUCCESS.code_num
 }
 
-/// Retrieve messages from the agent
+/// Retrieve agent from the agent
 ///
 /// #params
 ///
 /// command_handle: command handle to map callback to user context.
 ///
-/// message_status: optional, comma separated -  - query for messages with the specified status.
+/// message_status: optional, comma separated -  - query for agent with the specified status.
 ///                            Statuses:
 ///                                 MS-101 - Created
 ///                                 MS-102 - Sent
@@ -499,11 +500,11 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
 ///                                 MS-105 - Rejected
 ///                                 MS-106 - Reviewed
 ///
-/// uids: optional, comma separated - query for messages with the specified uids
+/// uids: optional, comma separated - query for agent with the specified uids
 ///
 /// pw_dids: optional, comma separated - DID's pointing to specific connection
 ///
-/// cb: Callback that provides array of matching messages retrieved
+/// cb: Callback that provides array of matching agent retrieved
 ///
 /// # Example message_status -> MS-103, MS-106
 ///
@@ -511,7 +512,7 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
 ///
 /// # Example pw_dids -> did1, did2
 ///
-/// # Example messages -> "[{"pairwiseDID":"did","msgs":[{"statusCode":"MS-106","payload":null,"senderDID":"","uid":"6BDkgc3z0E","type":"aries","refMsgId":null,"deliveryDetails":[],"decryptedPayload":"{"@msg":".....","@type":{"fmt":"json","name":"aries","ver":"1.0"}}"}]}]"
+/// # Example agent -> "[{"pairwiseDID":"did","msgs":[{"statusCode":"MS-106","payload":null,"senderDID":"","uid":"6BDkgc3z0E","type":"aries","refMsgId":null,"deliveryDetails":[],"decryptedPayload":"{"@msg":".....","@type":{"fmt":"json","name":"aries","ver":"1.0"}}"}]}]"
 ///
 /// #Returns
 /// Error code as a u32
@@ -556,19 +557,19 @@ pub extern fn vcx_messages_download(command_handle: CommandHandle,
            command_handle, message_status, uids, secret!(pw_dids));
 
     spawn(move || {
-        match crate::messages::get_message::download_messages(pw_dids, message_status, uids) {
+        match crate::agent::messages::get_message::download_messages(pw_dids, message_status, uids) {
             Ok(x) => {
                 match serde_json::to_string(&x) {
                     Ok(x) => {
-                        trace!("vcx_messages_download_cb(command_handle: {}, rc: {}, messages: {})",
+                        trace!("vcx_messages_download_cb(command_handle: {}, rc: {}, agent: {})",
                                command_handle, error::SUCCESS.as_str(), secret!(x));
 
                         let msg = CStringUtils::string_to_cstring(x);
                         cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
                     }
                     Err(e) => {
-                        let err = VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize downloaded messages as JSON. Error: {}", e));
-                        warn!("vcx_messages_download_cb(command_handle: {}, rc: {}, messages: {})",
+                        let err = VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize downloaded agent as JSON. Error: {}", e));
+                        warn!("vcx_messages_download_cb(command_handle: {}, rc: {}, agent: {})",
                               command_handle, err, "null");
 
                         cb(command_handle, err.into(), ptr::null_mut());
@@ -576,7 +577,7 @@ pub extern fn vcx_messages_download(command_handle: CommandHandle,
                 };
             }
             Err(e) => {
-                warn!("vcx_messages_download_cb(command_handle: {}, rc: {}, messages: {})",
+                warn!("vcx_messages_download_cb(command_handle: {}, rc: {}, agent: {})",
                       command_handle, e, "null");
 
                 cb(command_handle, e.into(), ptr::null_mut());
@@ -617,7 +618,7 @@ pub extern fn vcx_download_message(command_handle: CommandHandle,
            command_handle, uid);
 
     spawn(move || {
-        match crate::messages::get_message::download_message(uid) {
+        match crate::agent::messages::get_message::download_message(uid) {
             Ok(message) => {
                 trace!("vcx_download_message_cb(command_handle: {}, rc: {}, message: {:?})",
                        command_handle, error::SUCCESS.as_str(), secret!(message));
@@ -640,7 +641,7 @@ pub extern fn vcx_download_message(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Update the status of messages from the specified connection
+/// Update the status of agent from the specified connection
 ///
 /// #params
 ///
@@ -655,7 +656,7 @@ pub extern fn vcx_download_message(command_handle: CommandHandle,
 ///                     MS-105 - Rejected
 ///                     MS-106 - Reviewed
 ///
-/// msg_json: messages to update: [{"pairwiseDID":"QSrw8hebcvQxiwBETmAaRs","uids":["mgrmngq"]},...]
+/// msg_json: agent to update: [{"pairwiseDID":"QSrw8hebcvQxiwBETmAaRs","uids":["mgrmngq"]},...]
 ///
 /// cb: Callback that provides success or failure of request
 ///
@@ -676,7 +677,7 @@ pub extern fn vcx_messages_update_status(command_handle: CommandHandle,
            command_handle, message_status, secret!(msg_json));
 
     spawn(move || {
-        match crate::messages::update_message::update_agency_messages(&message_status, &msg_json) {
+        match crate::agent::messages::update_message::update_agency_messages(&message_status, &msg_json) {
             Ok(()) => {
                 trace!("vcx_messages_set_status_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -949,10 +950,10 @@ pub extern fn vcx_create_pairwise_agent(command_handle: CommandHandle,
 /// Error code as a u32
 #[no_mangle]
 pub extern fn vcx_resolve_message_by_url(command_handle: CommandHandle,
-                                           url: *const c_char,
-                                           cb: Option<extern fn(xcommand_handle: CommandHandle,
-                                                                err: u32,
-                                                                message: *const c_char)>) -> u32 {
+                                         url: *const c_char,
+                                         cb: Option<extern fn(xcommand_handle: CommandHandle,
+                                                              err: u32,
+                                                              message: *const c_char)>) -> u32 {
     info!("vcx_resolve_message_by_url >>>");
 
     check_useful_c_str!(url, VcxErrorKind::InvalidOption);

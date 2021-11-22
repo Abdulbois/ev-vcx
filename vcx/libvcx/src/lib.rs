@@ -21,7 +21,7 @@ extern crate strum_macros;
 pub mod utils;
 pub mod settings;
 #[macro_use]
-pub mod messages;
+pub mod agent;
 
 pub mod api;
 pub mod connection;
@@ -31,10 +31,10 @@ pub mod schema;
 pub mod credential_def;
 pub mod error;
 pub mod credential;
-pub mod object_cache;
 pub mod disclosed_proof;
 pub mod wallet_backup;
-pub mod v3;
+pub mod aries;
+pub mod legacy;
 
 #[allow(unused_imports)]
 #[allow(dead_code)]
@@ -44,7 +44,7 @@ mod tests {
     use crate::credential_def::CredentialDef;
     use crate::disclosed_proof::DisclosedProofs;
     use crate::issuer_credential::IssuerCredentials;
-    use crate::object_cache::Handle;
+    use crate::utils::object_cache::Handle;
     use crate::connection::Connections;
     use crate::credential::Credentials;
     use crate::proof::Proofs;

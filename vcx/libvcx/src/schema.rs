@@ -7,11 +7,11 @@ use crate::utils::libindy::anoncreds;
 use crate::utils::libindy::ledger;
 use crate::utils::libindy::payments::PaymentTxn;
 use crate::utils::constants::DEFAULT_SERIALIZE_VERSION;
-use crate::object_cache::ObjectCache;
-use crate::messages::ObjectWithVersion;
+use crate::utils::object_cache::ObjectCache;
+use crate::agent::messages::ObjectWithVersion;
 use crate::error::prelude::*;
 
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 
 lazy_static! {
     static ref SCHEMA_MAP: ObjectCache<CreateSchema> = Default::default();

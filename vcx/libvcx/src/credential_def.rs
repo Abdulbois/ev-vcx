@@ -1,8 +1,8 @@
-use crate::{serde_json, messages};
+use crate::{serde_json, agent};
 
 use crate::api::PublicEntityStateType;
-use crate::object_cache::{ObjectCache, Handle};
-use crate::messages::ObjectWithVersion;
+use crate::utils::object_cache::{ObjectCache, Handle};
+use crate::agent::messages::ObjectWithVersion;
 use crate::error::prelude::*;
 use crate::utils::constants::DEFAULT_SERIALIZE_VERSION;
 use crate::utils::libindy::payments::PaymentTxn;
@@ -29,7 +29,7 @@ pub struct CredentialDef {
     rev_reg_entry: Option<String>,
     tails_file: Option<String>,
     #[serde(default)]
-    state: PublicEntityStateType
+    state: PublicEntityStateType,
 }
 
 #[derive(Deserialize, Debug, Serialize)]
@@ -44,7 +44,7 @@ pub struct RevocationConfig {
     pub tails_file: Option<String>,
     pub rev_reg_id: Option<String>,
     pub rev_reg_def: Option<String>,
-    pub rev_reg_entry: Option<String>
+    pub rev_reg_entry: Option<String>,
 }
 
 impl AsRef<RevocationConfig> for RevocationConfig {
@@ -53,17 +53,18 @@ impl AsRef<RevocationConfig> for RevocationConfig {
 
 impl RevocationConfig {
     fn to_string(&self) -> VcxResult<String> {
-        messages::ObjectWithVersion::new(DEFAULT_SERIALIZE_VERSION, self.to_owned())
+        agent::messages::ObjectWithVersion::new(DEFAULT_SERIALIZE_VERSION, self.to_owned())
             .serialize()
             .map_err(|err| err.extend("Cannot serialize RevocationConfig"))
     }
 
     fn from_str(data: &str) -> VcxResult<RevocationConfig> {
-        messages::ObjectWithVersion::deserialize(data)
-            .map(|obj: messages::ObjectWithVersion<RevocationConfig>| obj.data)
+        agent::messages::ObjectWithVersion::deserialize(data)
+            .map(|obj: agent::messages::ObjectWithVersion<RevocationConfig>| obj.data)
             .map_err(|err| err.extend("Cannot deserialize RevocationConfig"))
     }
 }
+
 impl CredentialDef {
     pub fn from_str(data: &str) -> VcxResult<CredentialDef> {
         ObjectWithVersion::deserialize(data)
@@ -74,7 +75,7 @@ impl CredentialDef {
     pub fn to_string(&self) -> VcxResult<String> {
         ObjectWithVersion::new(DEFAULT_SERIALIZE_VERSION, self.to_owned())
             .serialize()
-            .map_err(|err|  err.map(VcxErrorKind::SerializationError, "Cannot serialize CredentialDefinition"))
+            .map_err(|err| err.map(VcxErrorKind::SerializationError, "Cannot serialize CredentialDefinition"))
     }
 
     pub fn get_source_id(&self) -> &String { &self.source_id }
@@ -438,6 +439,7 @@ pub mod tests {
         time::Duration,
     };
     use crate::utils::devsetup::*;
+
     static CREDENTIAL_DEF_NAME: &str = "Test Credential Definition";
     static ISSUER_DID: &str = "4fUDR9R7fjwELRvH9JT6HH";
 
@@ -530,11 +532,11 @@ pub mod tests {
             let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
 
             let rc = create_and_publish_credentialdef("1".to_string(),
-            "test_create_revocable_fails_with_no_tails_file".to_string(),
-            did,
-            schema_id,
-            "tag_1".to_string(),
-            r#"{"support_revocation":true}"#.to_string());
+                                                      "test_create_revocable_fails_with_no_tails_file".to_string(),
+                                                      did,
+                                                      schema_id,
+                                                      "tag_1".to_string(),
+                                                      r#"{"support_revocation":true}"#.to_string());
             assert_eq!(rc.unwrap_err().kind(), VcxErrorKind::InvalidRevocationDetails);
         }
 
@@ -547,11 +549,11 @@ pub mod tests {
 
             let revocation_details = json!({"support_revocation": true, "tails_file": get_temp_dir_path("tails.txt").to_str().unwrap(), "max_creds": 2}).to_string();
             let handle = create_and_publish_credentialdef("1".to_string(),
-            "test_create_revocable_cred_def".to_string(),
-            did,
-            schema_id,
-            "tag_1".to_string(),
-            revocation_details).unwrap();
+                                                          "test_create_revocable_cred_def".to_string(),
+                                                          did,
+                                                          schema_id,
+                                                          "tag_1".to_string(),
+                                                          revocation_details).unwrap();
 
             assert!(handle.get_rev_reg_def().unwrap().is_some());
             assert!(handle.get_rev_reg_id().unwrap().is_some());
@@ -596,18 +598,18 @@ pub mod tests {
             let (_, schema_id, did, revocation_details) = prepare_create_cred_def_data(false);
 
             let handle_1 = create_and_publish_credentialdef("1".to_string(),
-            "name".to_string(),
-            did.clone(),
-            schema_id.clone(),
-            "tag_1".to_string(),
-            revocation_details.to_string()).unwrap();
+                                                            "name".to_string(),
+                                                            did.clone(),
+                                                            schema_id.clone(),
+                                                            "tag_1".to_string(),
+                                                            revocation_details.to_string()).unwrap();
 
             let handle_2 = create_and_publish_credentialdef("1".to_string(),
-            "name".to_string(),
-            did.clone(),
-            schema_id.clone(),
-            "tag_1".to_string(),
-            revocation_details.to_string()).unwrap();
+                                                            "name".to_string(),
+                                                            did.clone(),
+                                                            schema_id.clone(),
+                                                            "tag_1".to_string(),
+                                                            revocation_details.to_string()).unwrap();
 
             assert_ne!(handle_1, handle_2);
         }

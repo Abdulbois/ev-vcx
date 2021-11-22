@@ -1,30 +1,30 @@
 use crate::credential_def::CredentialDef;
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 use crate::connection::Connections;
 use std::mem::take;
 use std::collections::HashMap;
 use crate::api::VcxStateType;
-use crate::{messages, v3};
+use crate::{agent, aries};
 use crate::settings;
-use crate::messages::{RemoteMessageType, MessageStatusCode, GeneralMessage};
-use crate::messages::payload::{Payloads, PayloadKinds};
-use crate::messages::thread::Thread;
-use crate::messages::get_message::get_ref_msg;
+use crate::agent::messages::{RemoteMessageType, MessageStatusCode, GeneralMessage};
+use crate::agent::messages::payload::{Payloads, PayloadKinds};
+use crate::aries::messages::thread::Thread;
+use crate::agent::messages::get_message::get_ref_msg;
 use crate::utils::error;
 use crate::utils::libindy::{payments, anoncreds};
 use crate::utils::constants::CRED_MSG;
 use crate::utils::openssl::encode;
 use crate::utils::libindy::payments::PaymentTxn;
 use crate::utils::qualifier;
-use crate::object_cache::ObjectCache;
+use crate::utils::object_cache::ObjectCache;
 use crate::error::prelude::*;
 use std::convert::TryInto;
 
-use crate::v3::handlers::issuance::Issuer;
-use crate::utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
-use crate::messages::issuance::credential_offer::CredentialOffer;
-use crate::messages::issuance::credential::CredentialMessage;
-use crate::messages::issuance::credential_request::CredentialRequest;
+use crate::aries::handlers::issuance::issuer::Issuer;
+use crate::agent::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
+use crate::legacy::messages::issuance::credential_offer::CredentialOffer;
+use crate::legacy::messages::issuance::credential::CredentialMessage;
+use crate::legacy::messages::issuance::credential_request::CredentialRequest;
 
 lazy_static! {
     static ref ISSUER_CREDENTIAL_MAP: ObjectCache<IssuerCredentials> = Default::default();
@@ -198,7 +198,7 @@ impl IssuerCredential {
         let payload = self.generate_credential_offer_msg()?;
 
         let response =
-            messages::send_message()
+            agent::messages::send_message()
                 .to(&agent_info.my_pw_did()?)?
                 .to_vk(&agent_info.my_pw_vk()?)?
                 .msg_type(&RemoteMessageType::CredOffer)?
@@ -270,7 +270,7 @@ impl IssuerCredential {
 
         self.thread.as_mut().map(|thread| thread.sender_order += 1);
 
-        let response = messages::send_message()
+        let response = agent::messages::send_message()
             .to(&agent_info.my_pw_did()?)?
             .to_vk(&agent_info.my_pw_vk()?)?
             .msg_type(&RemoteMessageType::Cred)?
@@ -317,7 +317,7 @@ impl IssuerCredential {
 
         let (payload, offer_uid) = match message {
             None => {
-                // Check cloud agent for pending messages
+                // Check cloud agent for pending agent
                 let (msg_id, message) = get_ref_msg(&self.msg_uid,
                                                     &get_agent_attr(&self.my_did)?,
                                                     &get_agent_attr(&self.my_vk)?,
@@ -396,8 +396,8 @@ impl IssuerCredential {
             anoncreds::libindy_issuer_create_credential(&indy_cred_offer.libindy_offer,
                                                         &indy_cred_req.libindy_cred_req,
                                                         &credential_data,
-                                                        self.rev_reg_id.clone(),
-                                                        self.tails_file.clone())?;
+                                                        self.rev_reg_id.as_deref(),
+                                                        self.tails_file.as_deref())?;
 
         self.cred_rev_id = cred_revoc_id.clone();
 
@@ -633,9 +633,9 @@ pub fn issuer_credential_create(cred_def_handle: Handle<CredentialDef>,
            cred_def_handle, source_id, secret!(issuer_did), secret!(credential_name), secret!(&credential_data), price);
     debug!("creating issuer credential {} state object", source_id);
 
-    // Initiate connection of new format -- redirect to v3 folder
+    // Initiate connection of new format -- redirect to aries folder
     if settings::is_strict_aries_protocol_set() {
-        let issuer = v3::handlers::issuance::Issuer::create(cred_def_handle, &credential_data, &source_id, &credential_name)?;
+        let issuer = aries::handlers::issuance::issuer::Issuer::create(cred_def_handle, &credential_data, &source_id, &credential_name)?;
         return ISSUER_CREDENTIAL_MAP.add(IssuerCredentials::V3(issuer));
     }
 
@@ -736,7 +736,7 @@ impl Handle<IssuerCredentials> {
                         return Ok(json!(cred_offer).to_string());
                     }
 
-                    let cred_offer: CredentialOffer = cred_offer.try_into()?;
+                    let cred_offer: CredentialOffer = cred_offer.clone().try_into()?;
                     let cred_offer = json!({
                         "credential_offer": cred_offer
                     });
@@ -836,7 +836,7 @@ impl Handle<IssuerCredentials> {
             match obj {
                 IssuerCredentials::Pending(obj) => Ok(obj.get_source_id().to_string()),
                 IssuerCredentials::V1(obj) => Ok(obj.get_source_id().to_string()),
-                IssuerCredentials::V3(obj) => obj.get_source_id()
+                IssuerCredentials::V3(obj) => Ok(obj.get_source_id()?.to_string())
             }
         }).map_err(handle_err)
     }
@@ -881,7 +881,6 @@ pub mod tests {
     use serde_json::Value;
     use crate::settings;
     use crate::connection::tests::build_test_connection;
-    use crate::messages::issuance::credential_request::CredentialRequest;
     #[allow(unused_imports)]
     use crate::utils::{constants::*,
                 libindy::{LibindyMock,
@@ -894,7 +893,7 @@ pub mod tests {
     use crate::utils::devsetup::*;
     use crate::utils::httpclient::AgencyMock;
     use crate::credential_def::tests::create_cred_def_fake;
-    use crate::messages::issuance::credential_offer::parse_json_offer;
+    use crate::legacy::messages::issuance::credential_offer::parse_json_offer;
 
     static DEFAULT_CREDENTIAL_NAME: &str = "Credential";
     static DEFAULT_CREDENTIAL_ID: &str = "defaultCredentialId";

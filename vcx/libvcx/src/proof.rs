@@ -7,25 +7,25 @@ use std::convert::TryInto;
 use crate::connection::Connections;
 use crate::settings;
 use crate::api::{VcxStateType, ProofStateType};
-use crate::messages;
-use crate::messages::proofs::proof_message::{ProofMessage, CredInfo};
-use crate::messages::{RemoteMessageType, GeneralMessage};
-use crate::messages::payload::{Payloads, PayloadKinds};
-use crate::messages::thread::Thread;
-use crate::messages::get_message::get_ref_msg;
-use crate::messages::proofs::proof_request::{ProofRequestMessage, ProofRequestVersion};
+use crate::agent;
+use crate::legacy::messages::proof_presentation::proof_message::{ProofMessage, CredInfo};
+use crate::agent::messages::{RemoteMessageType, GeneralMessage};
+use crate::agent::messages::payload::{Payloads, PayloadKinds};
+use crate::aries::messages::thread::Thread;
+use crate::agent::messages::get_message::get_ref_msg;
+use crate::legacy::messages::proof_presentation::proof_request::{ProofRequestMessage, ProofRequestVersion};
 use crate::utils::error;
 use crate::utils::constants::*;
 use crate::utils::libindy::anoncreds;
-use crate::object_cache::{ObjectCache, Handle};
+use crate::utils::object_cache::{ObjectCache, Handle};
 use crate::error::prelude::*;
 use crate::utils::openssl::encode;
 use crate::utils::qualifier;
-use crate::messages::proofs::proof_message::get_credential_info;
+use crate::legacy::messages::proof_presentation::proof_message::get_credential_info;
 
-use crate::v3::handlers::proof_presentation::verifier::verifier::Verifier;
-use crate::utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
-use crate::v3::messages::proof_presentation::presentation_proposal::PresentationProposal;
+use crate::aries::handlers::proof_presentation::verifier::Verifier;
+use crate::agent::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
+use crate::aries::messages::proof_presentation::presentation_proposal::PresentationProposal;
 
 lazy_static! {
     static ref PROOF_MAP: ObjectCache<Proofs> = Default::default();
@@ -360,7 +360,7 @@ impl Proof {
         } else { None };
 
         let data_version = "0.1";
-        let mut proof_obj = messages::proof_request();
+        let mut proof_obj = agent::messages::proof_request();
         let proof_request = proof_obj
             .type_version(&self.version)?
             .proof_request_format_version(version)?
@@ -394,7 +394,7 @@ impl Proof {
 
         let proof_request = self.generate_proof_request_msg()?;
 
-        let response = messages::send_message()
+        let response = agent::messages::send_message()
             .to(&agent_info.my_pw_did()?)?
             .to_vk(&agent_info.my_pw_vk()?)?
             .msg_type(&RemoteMessageType::ProofReq)?
@@ -440,7 +440,7 @@ impl Proof {
 
         let payload = match message {
             None => {
-                // Check cloud agent for pending messages
+                // Check cloud agent for pending agent
                 let (_, message) = get_ref_msg(&self.msg_uid,
                                                &get_agent_attr(&self.my_did)?,
                                                &get_agent_attr(&self.my_vk)?,
@@ -523,7 +523,7 @@ impl Proof {
 
     #[cfg(test)]
     fn from_str(data: &str) -> VcxResult<Proof> {
-        use crate::messages::ObjectWithVersion;
+        use crate::agent::messages::ObjectWithVersion;
         ObjectWithVersion::deserialize(data)
             .map(|obj: ObjectWithVersion<Proof>| obj.data)
             .map_err(|err| err.extend("Cannot deserialize Proof"))
@@ -543,7 +543,7 @@ pub fn create_proof(source_id: String,
                     requested_predicates: String,
                     revocation_details: String,
                     name: String) -> VcxResult<Handle<Proofs>> {
-    // Initiate proof of new format -- redirect to v3 folder
+    // Initiate proof of new format -- redirect to aries folder
     if settings::is_strict_aries_protocol_set() {
         let verifier = Verifier::create(source_id, requested_attrs, requested_predicates, revocation_details, name)?;
         return PROOF_MAP.add(Proofs::V3(verifier))
@@ -676,7 +676,7 @@ impl Handle<Proofs> {
             match obj {
                 Proofs::Pending(obj) => Ok(obj.get_source_id()),
                 Proofs::V1(obj) => Ok(obj.get_source_id()),
-                Proofs::V3(obj) => Ok(obj.get_source_id())
+                Proofs::V3(obj) => Ok(obj.get_source_id().to_string())
             }
         }).map_err(handle_err)
     }
@@ -697,7 +697,7 @@ impl Handle<Proofs> {
                         return Ok(json!(presentation_request).to_string());
                     }
 
-                    let proof_request: ProofRequestMessage = presentation_request.try_into()?;
+                    let proof_request: ProofRequestMessage = presentation_request.clone().try_into()?;
                     return Ok(json!(proof_request).to_string());
                 }
             }
@@ -852,7 +852,7 @@ impl Handle<Proofs> {
                         return Ok(json!(presentation).to_string());
                     }
 
-                    let proof: ProofMessage = presentation.try_into()?;
+                    let proof: ProofMessage = presentation.clone().try_into()?;
                     Ok(json!(proof).to_string())
                 }
             }
@@ -910,8 +910,7 @@ pub mod tests {
     use crate::utils::libindy::pool;
     use crate::utils::devsetup::*;
     use crate::utils::httpclient::AgencyMock;
-    
-    use crate::v3::messages::proof_presentation::presentation_proposal::PresentationPreview;
+    use crate::aries::messages::proof_presentation::presentation_preview::PresentationPreview;
 
     fn default_agent_info(connection_handle: Option<Handle<Connections>>) -> MyAgentInfo {
         if let Some(h) = connection_handle { get_agent_info().unwrap().pw_info(h).unwrap() } else {

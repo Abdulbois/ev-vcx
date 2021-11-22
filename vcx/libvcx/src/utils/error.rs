@@ -49,7 +49,7 @@ impl_error! {
     INVALID_PROOF_HANDLE: 1017 => "Invalid Proof Handle",
     INVALID_CREDENTIAL_REQUEST: 1018 => "Invalid Credential Request",
     INVALID_MSGPACK: 1019 => "Invalid MessagePack",
-    INVALID_AGENCY_RESPONSE: 1020 => "Error Retrieving messages from API",
+    INVALID_AGENCY_RESPONSE: 1020 => "Error Retrieving agent from API",
     INVALID_ATTRIBUTES_STRUCTURE: 1021 => "Attributes provided to Credential Offer / Proof Request are not correct, possibly malformed",
     BIG_NUMBER_ERROR: 1022 => "Could not encode string to a big integer.",
     INVALID_PROOF: 1023 => "Proof had invalid format",
