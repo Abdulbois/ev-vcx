@@ -8,6 +8,7 @@ stages:
   - test
   - package
   - publish
+  - tag
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
@@ -880,3 +881,13 @@ publish-mobile-sdk:
       find ./output/ -name "evernym-react-native-sdk*.tgz" -exec
       curl --header "DEPLOY-TOKEN: ${MSDK_DEPLOY_TOKEN}" --upload-file {}
       "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fmobile-sdk/packages/generic/vcx/${msdkPackageVer}/" \;
+
+publish-vcx-tag:
+  stage: tag
+  image: ${CI_REGISTRY_IMAGE}/vcx-python-ubuntu18:latest
+  extends: .tags_micro
+  only:
+    refs:
+      - stable@evernym/mobile/ev-vcx
+  script:
+    - curl -X POST "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fev-vcx/repository/tags?tag_name=v${vcxPackageVer}&ref=stable&private_token=${VCX_GITLAB_API_TOKEN}"
