@@ -1,3 +1,7 @@
+#!/bin/bash
+set -e
+export PATH=${PATH}:$(pwd)/vcx/ci/scripts
+
 VCX_VERSION=$(toml_utils.py vcx/libvcx/Cargo.toml)
 VCX_REVISION=$(git rev-parse --short HEAD)
 

@@ -21,6 +21,11 @@ interface IWalletAddRecordData {
   value: string
 }
 
+interface IWalletGetRecordData {
+  type: string
+  key: string
+}
+
 interface IWalletGetItemData {
   type: string
   key: string
@@ -260,7 +265,7 @@ export class Wallet {
    * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
    */
   public static async openSearch({ type, query, options }: IWalletOpenSearchData): Promise<number> {
-    return await RNIndy.openWalletSearch(type, key, tags)
+    return await RNIndy.openWalletSearch(type, query, options)
   }
 
   /**
