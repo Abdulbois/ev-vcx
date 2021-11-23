@@ -2026,7 +2026,7 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void searchNextWalletRecords(int searchHandle, int count, Promise promise) {
         try {
-            ProofApi.searchNextRecords(searchHandle, count).exceptionally((t) -> {
+            WalletApi.searchNextRecords(searchHandle, count).exceptionally((t) -> {
                 VcxException ex = (VcxException) t;
                 ex.printStackTrace();
                 Log.e(TAG, "searchNextWalletRecords - Error: ", ex);
