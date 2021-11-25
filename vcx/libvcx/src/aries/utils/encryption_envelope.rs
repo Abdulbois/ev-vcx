@@ -27,12 +27,11 @@ impl EncryptionEnvelope {
     fn encrypt_for_pairwise<T: Serialize + Debug>(message: &T,
                             pw_verkey: Option<&str>,
                             did_doc: &DidDoc) -> VcxResult<Vec<u8>> {
-        trace!("EncryptionEnvelope::encrypt_for_pairwise >>> pw_verkey: {:?}, did_doc: {:?}", secret!(pw_verkey), secret!(did_doc));
+        trace!("EncryptionEnvelope::encrypt_for_pairwise >>> pw_verkey: {:?}, did_doc: {:?}, message: {:?}", secret!(pw_verkey), secret!(did_doc), message);
         debug!("EncryptionEnvelope: Encryption for recipient");
 
         let receiver_keys = json!(did_doc.recipient_keys()).to_string();
         let message = json!(message).to_string();
-        println!("message {}", message);
 
         crypto::pack_message(pw_verkey, &receiver_keys, message.as_bytes())
     }
