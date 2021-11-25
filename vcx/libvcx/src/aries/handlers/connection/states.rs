@@ -222,7 +222,12 @@ impl From<(RequestedState, Response, Thread)> for CompleteState {
         CompleteState {
             did_doc: response.connection.did_doc,
             protocols: None,
-            thread,
+            thread: Thread {
+                thid: thread.thid,
+                pthid: state.thread.pthid,
+                sender_order: thread.sender_order,
+                received_orders: thread.received_orders
+            },
             invitation: state.invitation,
         }
     }
