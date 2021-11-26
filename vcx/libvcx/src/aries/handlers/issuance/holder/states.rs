@@ -33,10 +33,8 @@ pub struct OfferReceivedState {
 
 impl OfferReceivedState {
     pub fn new(offer: CredentialOffer) -> Self {
-        let thread = match offer.thread() {
-            Some(thread_) => thread_.clone(),
-            None => Thread::new().set_thid(offer.id()),
-        };
+        let thid = offer.thread().and_then(|thread| thread.thid.clone()).unwrap_or(offer.id());
+        let thread = Thread::new().set_thid(thid);
         trace!("Thread: {:?}", thread);
         OfferReceivedState {
             thread,
