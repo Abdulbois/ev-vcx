@@ -45,10 +45,8 @@ pub struct ProverSM {
 
 impl ProverSM {
     pub fn new(presentation_request: PresentationRequest, source_id: String) -> ProverSM {
-        let thread = match presentation_request.thread() {
-            Some(thread_) => thread_.clone(),
-            None => Thread::new().set_thid(presentation_request.id()),
-        };
+        let thid = presentation_request.thread().and_then(|thread| thread.thid.clone()).unwrap_or(presentation_request.id());
+        let thread = Thread::new().set_thid(thid);
         trace!("Thread: {:?}", thread);
         ProverSM {
             source_id,
