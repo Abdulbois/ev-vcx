@@ -6,6 +6,7 @@ use std::vec::Vec;
 use crate::utils::validation;
 use crate::error::prelude::*;
 use crate::utils::libindy::anoncreds;
+use crate::utils::libindy::anoncreds::verifier::Verifier;
 use crate::utils::qualifier;
 use crate::aries::messages::connection::service::Service;
 use crate::agent::messages::get_message::Message;
@@ -378,7 +379,7 @@ impl ProofRequestData {
     }
 
     pub fn set_nonce(mut self) -> VcxResult<ProofRequestData> {
-        self.nonce = anoncreds::generate_nonce()?;
+        self.nonce = Verifier::generate_nonce()?;
         Ok(self)
     }
 

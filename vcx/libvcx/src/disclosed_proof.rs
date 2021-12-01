@@ -25,8 +25,8 @@ use crate::settings;
 use crate::utils::error;
 use crate::utils::constants::{CREDS_FROM_PROOF_REQ, DEFAULT_GENERATED_PROOF, DEFAULT_REJECTED_PROOF, NEW_PROOF_REQUEST_RESPONSE};
 use crate::utils::libindy::cache::{get_rev_reg_cache, set_rev_reg_cache, RevRegCache, RevState};
-use crate::utils::libindy::anoncreds;
-use crate::utils::libindy::anoncreds::{get_rev_reg_def_json, get_rev_reg_delta_json};
+use crate::utils::libindy::anoncreds::holder::Holder as IndyHolder;
+use crate::utils::libindy::ledger::query::Query;
 
 use crate::aries::{
     messages::proof_presentation::presentation_request::PresentationRequest,
@@ -202,15 +202,15 @@ pub fn build_rev_states_json(credentials_identifiers: &mut Vec<CredInfo>) -> Vcx
                             _ => None
                         };
 
-                        let (_, rev_reg_def_json) = get_rev_reg_def_json(&rev_reg_id)?;
+                        let (_, rev_reg_def_json) = Query::get_rev_reg_def(&rev_reg_id)?;
 
-                        let (rev_reg_id, rev_reg_delta_json, timestamp) = get_rev_reg_delta_json(
+                        let (rev_reg_id, rev_reg_delta_json, timestamp) = Query::get_rev_reg_delta(
                             &rev_reg_id,
                             from,
                             to,
                         )?;
 
-                        let rev_state_json = anoncreds::libindy_prover_update_revocation_state(
+                        let rev_state_json = IndyHolder::update_revocation_state(
                             &rev_reg_def_json,
                             &cached_rev_state.value,
                             &rev_reg_delta_json,
@@ -231,15 +231,15 @@ pub fn build_rev_states_json(credentials_identifiers: &mut Vec<CredInfo>) -> Vcx
                         (rev_state_json, timestamp)
                     }
                 } else {
-                    let (_, rev_reg_def_json) = get_rev_reg_def_json(&rev_reg_id)?;
+                    let (_, rev_reg_def_json) = Query::get_rev_reg_def(&rev_reg_id)?;
 
-                    let (rev_reg_id, rev_reg_delta_json, timestamp) = get_rev_reg_delta_json(
+                    let (rev_reg_id, rev_reg_delta_json, timestamp) = Query::get_rev_reg_delta(
                         &rev_reg_id,
                         None,
                         to,
                     )?;
 
-                    let rev_state_json = anoncreds::libindy_prover_create_revocation_state(
+                    let rev_state_json = IndyHolder::create_revocation_state(
                         &rev_reg_def_json,
                         &rev_reg_delta_json,
                         &cred_rev_id,
@@ -331,7 +331,7 @@ impl DisclosedProof {
 
         let indy_proof_req = json!(proof_req.proof_request_data).to_string();
 
-        let credentials = anoncreds::libindy_prover_get_credentials_for_proof_req(&indy_proof_req)?;
+        let credentials = IndyHolder::get_credentials_for_proof_req(&indy_proof_req)?;
 
         trace!("DisclosedProof::retrieve_credentials <<< credentials: {:?}", secret!(credentials));
 
@@ -346,7 +346,7 @@ impl DisclosedProof {
 
         for ref cred_info in credentials_identifiers {
             if rtn.get(&cred_info.schema_id).is_none() {
-                let (_, schema_json) = anoncreds::get_schema_json(&cred_info.schema_id)?;
+                let (_, schema_json) = Query::get_schema(&cred_info.schema_id)?;
 
                 let schema_json = serde_json::from_str(&schema_json)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidSchema,
@@ -369,7 +369,7 @@ impl DisclosedProof {
 
         for ref cred_info in credentials_identifiers {
             if rtn.get(&cred_info.cred_def_id).is_none() {
-                let (_, credential_def) = anoncreds::get_cred_def_json(&cred_info.cred_def_id)?;
+                let (_, credential_def) = Query::get_cred_def(&cred_info.cred_def_id)?;
 
                 let credential_def = serde_json::from_str(&credential_def)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::CredentialDefinitionNotFound,
@@ -467,7 +467,7 @@ impl DisclosedProof {
         let schemas_json = DisclosedProof::build_schemas_json(&credentials_identifiers)?;
         let credential_defs_json = DisclosedProof::build_cred_def_json(&credentials_identifiers)?;
 
-        let proof = anoncreds::libindy_prover_create_proof(&proof_req_data_json,
+        let proof = IndyHolder::create_proof(&proof_req_data_json,
                                                            &requested_credentials,
                                                            settings::DEFAULT_LINK_SECRET_ALIAS,
                                                            &schemas_json,

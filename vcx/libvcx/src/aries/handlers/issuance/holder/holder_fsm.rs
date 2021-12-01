@@ -30,8 +30,8 @@ use crate::utils::object_cache::Handle;
 use crate::connection::Connections;
 use crate::{credential, settings};
 use crate::utils::libindy::{
-    anoncreds::{libindy_prover_store_credential, libindy_prover_delete_credential, prover_get_credential},
-    types::CredentialInfo,
+    anoncreds::types::CredentialInfo,
+    anoncreds::holder::Holder as IndyHolder
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -254,7 +254,7 @@ impl HolderSM {
             }
             HolderState::Finished(ref state) => {
                 match state.cred_id.as_ref() {
-                    Some(cred_id) => prover_get_credential(&cred_id),
+                    Some(cred_id) => IndyHolder::get_credential(&cred_id),
                     None => {
                         Err(VcxError::from_msg(VcxErrorKind::NotReady,
                                                format!("Holder object {} in state {} not ready to get information about stored credential", self.source_id, self.state())))
@@ -271,7 +271,7 @@ fn _store_credential(credential_offer: &CredentialOffer,
                      cred_def_json: &str) -> VcxResult<String> {
     credential.ensure_match_offer(credential_offer)?;
     let (_, credential_json) = credential.credentials_attach().content()?;
-    let cred_id = libindy_prover_store_credential(None,
+    let cred_id = IndyHolder::store_credential(None,
                                                   req_meta,
                                                   &credential_json,
                                                   cred_def_json)?;
@@ -482,7 +482,7 @@ impl OfferReceivedState {
 impl FinishedHolderState {
     fn delete_credential(&self, cred_id: &str) -> VcxResult<()> {
         trace!("Holder::_delete_credential >>> cred_id: {}", cred_id);
-        libindy_prover_delete_credential(cred_id)
+        IndyHolder::delete_credential(cred_id)
     }
 }
 

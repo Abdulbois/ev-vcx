@@ -1,6 +1,8 @@
-use crate::error::{VcxError, VcxErrorKind, VcxResult};
 use serde_json;
+
+use crate::error::{VcxError, VcxErrorKind, VcxResult};
 use crate::settings;
+use crate::utils::libindy::ledger::types::TxnAuthorAgreement;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -43,6 +45,18 @@ pub fn get_txn_author_agreement() -> VcxResult<Option<TxnAuthorAgreementAcceptan
             Ok(Some(meta))
         }
         Err(_) => Ok(None)
+    }
+}
+
+impl Into<TxnAuthorAgreement> for TxnAuthorAgreementAcceptanceData {
+    fn into(self) -> TxnAuthorAgreement {
+        TxnAuthorAgreement {
+            text: self.text,
+            version: self.version,
+            taa_digest: self.taa_digest,
+            acc_mech_type: self.acceptance_mechanism_type,
+            time: self.time_of_acceptance,
+        }
     }
 }
 

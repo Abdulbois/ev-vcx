@@ -26,9 +26,9 @@ pub mod test {
     use crate::agent::messages::payload::PayloadV1;
     use crate::api::VcxStateType;
     use crate::aries::handlers::connection::types::OutofbandMeta;
-    
-    use crate::utils::libindy::anoncreds::prover_get_credentials;
-    use crate::utils::libindy::types::CredentialInfo;
+
+    use crate::utils::libindy::anoncreds::holder::Holder;
+    use crate::utils::libindy::anoncreds::types::CredentialInfo;
     use crate::agent::provisioning;
 
     pub fn source_id() -> String {
@@ -106,15 +106,15 @@ pub mod test {
 
     impl Pool {
         pub fn open() -> Pool {
-            crate::utils::libindy::pool::tests::open_test_pool();
+            crate::utils::libindy::vdr::tests::open_test_pool();
             Pool {}
         }
     }
 
     impl Drop for Pool {
         fn drop(&mut self) {
-            crate::utils::libindy::pool::close().unwrap();
-            crate::utils::libindy::pool::tests::delete_test_pool();
+            crate::utils::libindy::vdr::close_vdr().unwrap();
+            crate::utils::libindy::vdr::tests::delete_test_pool();
         }
     }
 
@@ -439,7 +439,7 @@ pub mod test {
 
         pub fn get_credentials(&self) -> Vec<CredentialInfo> {
             self.activate();
-            prover_get_credentials().unwrap()
+            Holder::get_credentials().unwrap()
         }
 
         pub fn get_credentials_for_presentation(&self) -> serde_json::Value {
@@ -860,4 +860,3 @@ pub mod test {
         }
     }
 }
-

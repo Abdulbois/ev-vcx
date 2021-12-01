@@ -1,8 +1,10 @@
+use std::mem::take;
+use std::collections::HashMap;
+use std::convert::TryInto;
+
 use crate::credential_def::CredentialDef;
 use crate::utils::object_cache::Handle;
 use crate::connection::Connections;
-use std::mem::take;
-use std::collections::HashMap;
 use crate::api::VcxStateType;
 use crate::{agent, aries};
 use crate::settings;
@@ -11,20 +13,19 @@ use crate::agent::messages::payload::{Payloads, PayloadKinds};
 use crate::aries::messages::thread::Thread;
 use crate::agent::messages::get_message::get_ref_msg;
 use crate::utils::error;
-use crate::utils::libindy::{payments, anoncreds};
+use crate::utils::libindy::anoncreds;
 use crate::utils::constants::CRED_MSG;
 use crate::utils::openssl::encode;
 use crate::utils::libindy::payments::PaymentTxn;
 use crate::utils::qualifier;
 use crate::utils::object_cache::ObjectCache;
 use crate::error::prelude::*;
-use std::convert::TryInto;
-
 use crate::aries::handlers::issuance::issuer::Issuer;
 use crate::agent::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
 use crate::legacy::messages::issuance::credential_offer::CredentialOffer;
 use crate::legacy::messages::issuance::credential::CredentialMessage;
 use crate::legacy::messages::issuance::credential_request::CredentialRequest;
+use crate::utils::libindy::anoncreds::issuer::Issuer as LibindyIssuer;
 
 lazy_static! {
     static ref ISSUER_CREDENTIAL_MAP: ObjectCache<IssuerCredentials> = Default::default();
@@ -393,11 +394,11 @@ impl IssuerCredential {
                                       format!("Invalid {} Issuer Credential object state: `credential_request` not found", self.source_id)))?;
 
         let (cred, cred_revoc_id, revoc_reg_delta_json) =
-            anoncreds::libindy_issuer_create_credential(&indy_cred_offer.libindy_offer,
-                                                        &indy_cred_req.libindy_cred_req,
-                                                        &credential_data,
-                                                        self.rev_reg_id.as_deref(),
-                                                        self.tails_file.as_deref())?;
+            LibindyIssuer::create_credential(&indy_cred_offer.libindy_offer,
+                                             &indy_cred_req.libindy_cred_req,
+                                             &credential_data,
+                                             self.rev_reg_id.as_deref(),
+                                             self.tails_file.as_deref())?;
 
         self.cred_rev_id = cred_revoc_id.clone();
 
@@ -431,7 +432,7 @@ impl IssuerCredential {
         debug!("IssuerCredential {}: Generating credential offer message", self.source_id);
 
         let attr_map = convert_to_map(&self.credential_attributes)?;
-        let libindy_offer = anoncreds::libindy_issuer_create_credential_offer(&self.cred_def_id)?;
+        let libindy_offer = LibindyIssuer::create_credential_offer(&self.cred_def_id)?;
 
         let my_did = self.my_did.clone().unwrap_or_default();
         let their_did = self.their_did.clone().unwrap_or_default();
@@ -479,9 +480,7 @@ impl IssuerCredential {
             .as_ref()
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidRevocationDetails, "Invalid RevocationInfo: `cred_rev_id` not found"))?;
 
-        let (payment, _) = anoncreds::revoke_credential(tails_file, rev_reg_id, cred_rev_id)?;
-
-        self.rev_cred_payment_txn = payment;
+        LibindyIssuer::revoke_credential(tails_file, rev_reg_id, cred_rev_id)?;
 
         trace!("IssuerCredential::revoke_cred <<<");
 
@@ -504,12 +503,7 @@ impl IssuerCredential {
 
     fn verify_payment(&mut self) -> VcxResult<()> {
         if self.price > 0 {
-            let invoice_address = self.payment_address.as_ref()
-                .ok_or(VcxError::from(VcxErrorKind::InvalidPaymentAddress))?;
-
-            let address = payments::get_address_info(&invoice_address)?;
-
-            if address.balance < self.price { return Err(VcxError::from(VcxErrorKind::InsufficientTokenAmount)); }
+            return Err(VcxError::from(VcxErrorKind::ActionNotSupported));
         }
         Ok(())
     }
@@ -883,12 +877,13 @@ pub mod tests {
     use crate::connection::tests::build_test_connection;
     #[allow(unused_imports)]
     use crate::utils::{constants::*,
-                libindy::{LibindyMock,
-                          anoncreds::{libindy_create_and_store_credential_def,
-                                      libindy_issuer_create_credential_offer,
-                                      libindy_prover_create_credential_req},
-                          wallet::get_wallet_handle, wallet},
-                get_temp_dir_path,
+                       libindy::{
+                           anoncreds::issuer::Issuer as IndyIssuer,
+                           LibindyMock,
+                           wallet::get_wallet_handle,
+                           wallet,
+                       },
+                       get_temp_dir_path,
     };
     use crate::utils::devsetup::*;
     use crate::utils::httpclient::AgencyMock;
@@ -909,9 +904,7 @@ pub mod tests {
     pub fn util_put_credential_def_in_issuer_wallet(_schema_seq_num: u32, _wallet_handle: i32) {
         let issuer_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
         let tag = "test_tag";
-        let config = "{support_revocation: false}";
-
-        libindy_create_and_store_credential_def(&issuer_did, SCHEMAS_JSON, tag, None, config).unwrap();
+        IndyIssuer::create_and_store_credential_def(&issuer_did, SCHEMAS_JSON, tag, None, None).unwrap();
     }
 
     fn default_agent_info(connection_handle: Option<Handle<Connections>>) -> MyAgentInfo {
@@ -946,7 +939,7 @@ pub mod tests {
             credential_offer: Some(credential_offer.to_owned()),
             credential_id: String::from(DEFAULT_CREDENTIAL_ID),
             price: 1,
-            payment_address: Some(payments::build_test_address("9UFgyjuJxi1i1HD")),
+            payment_address: None,
             ref_msg_id: None,
             rev_reg_id: None,
             tails_file: None,

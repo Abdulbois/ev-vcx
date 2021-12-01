@@ -1,14 +1,14 @@
 use crate::utils::{version_constants, threadpool};
 use libc::c_char;
 use crate::utils::cstring::CStringUtils;
-use crate::utils::libindy::{wallet, pool, ledger};
+use crate::utils::libindy::{wallet, vdr, ledger};
 use crate::utils::error;
 use crate::settings;
 use std::ffi::CString;
 use crate::utils::threadpool::spawn;
 use crate::error::prelude::*;
 use crate::indy::{INVALID_WALLET_HANDLE, CommandHandle};
-use crate::utils::libindy::pool::init_pool;
+use crate::utils::libindy::vdr::init_vdr;
 use std::thread;
 
 /// Initializes VCX with config settings
@@ -131,12 +131,12 @@ fn _finish_init(command_handle: CommandHandle, cb: extern fn(xcommand_handle: Co
 
     spawn(move || {
         let pool_open_thread = thread::spawn(|| {
-            if settings::get_config_value(settings::CONFIG_POOL_NETWORKS).is_err() {
+            if settings::pool::get_indy_pool_networks().is_err() {
                 info!("Skipping connection to Pool Ledger Network as no configs passed");
                 return Ok(());
             }
 
-            init_pool()
+            init_vdr()
                 .map(|res| {
                     info!("Init Pool Successful.");
                     res
@@ -242,7 +242,7 @@ pub extern fn vcx_init_pool(command_handle: CommandHandle,
     }
 
     spawn(move || {
-        match init_pool() {
+        match init_vdr() {
             Ok(()) => {
                 trace!("vcx_init_pool_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -290,7 +290,7 @@ pub extern fn vcx_shutdown(delete: bool) -> u32 {
         Err(_) => {}
     };
 
-    match pool::close() {
+    match vdr::close_vdr() {
         Ok(()) => {}
         Err(_) => {}
     };
@@ -314,10 +314,7 @@ pub extern fn vcx_shutdown(delete: bool) -> u32 {
             Err(_) => (),
         };
 
-        match pool::delete() {
-            Ok(()) => (),
-            Err(_) => (),
-        };
+        vdr::close_vdr().ok();
     }
 
     settings::clear_config();
@@ -385,7 +382,7 @@ pub extern fn vcx_get_ledger_author_agreement(command_handle: CommandHandle,
            command_handle);
 
     spawn(move || {
-        match ledger::libindy_get_txn_author_agreement() {
+        match ledger::utils::get_txn_author_agreement() {
             Ok(x) => {
                 trace!("vcx_ledger_get_fees_cb(command_handle: {}, rc: {}, author_agreement: {})",
                        command_handle, error::SUCCESS.as_str(), x);
@@ -476,14 +473,14 @@ mod tests {
     use std::ptr;
     use crate::utils::libindy::{
         wallet::{import, tests::export_test_wallet},
-        pool::get_pool,
+        vdr::get_vdr,
     };
     use crate::api::return_types;
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     use crate::utils::get_temp_dir_path;
     use crate::utils::devsetup::*;
     #[cfg(feature = "pool_tests")]
-    use crate::utils::libindy::pool::tests::delete_test_pool;
+    use crate::utils::libindy::vdr::tests::delete_test_pool;
 
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     fn config() -> String {
@@ -536,7 +533,7 @@ mod tests {
         _vcx_init_c_closure(&config.path).unwrap();
 
         // Assert wallet and pool was initialized
-        assert_ne!(get_pool(None).unwrap(), 0);
+        assert_ne!(get_vdr(None).unwrap(), 0);
     }
 
     #[cfg(feature = "pool_tests")]
@@ -563,7 +560,7 @@ mod tests {
         _vcx_init_with_config_c_closure(&config()).unwrap();
 
         // Assert pool was initialized
-        assert_ne!(get_pool(None).unwrap(), 0);
+        assert_ne!(get_vdr(None).unwrap(), 0);
     }
 
     #[cfg(feature = "pool_tests")]
@@ -577,7 +574,7 @@ mod tests {
         let err = _vcx_init_with_config_c_closure(&config()).unwrap_err();
         assert_eq!(err, error::POOL_LEDGER_CONNECT.code_num);
 
-        assert_eq!(get_pool(None).unwrap_err().kind(), VcxErrorKind::NoPoolOpen);
+        assert_eq!(get_vdr(None).unwrap_err().kind(), VcxErrorKind::NoPoolOpen);
 
         delete_test_pool();
     }
@@ -595,7 +592,7 @@ mod tests {
         _vcx_init_with_config_c_closure(&content).unwrap();
 
         // assert that pool was never initialized
-        assert!(get_pool(None).is_err());
+        assert!(get_vdr().is_err());
     }
 
     #[test]
@@ -653,7 +650,7 @@ mod tests {
             let _setup = SetupDefaults::init();
 
             wallet::create_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
-            pool::tests::create_test_pool();
+            vdr::tests::create_test_pool();
 
             _vcx_init_with_config_c_closure("{}").unwrap();
 

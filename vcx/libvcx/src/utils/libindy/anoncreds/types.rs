@@ -42,3 +42,4 @@ pub struct CredentialDefinitionData {
     type_: String,
     value: serde_json::Value,
 }
+

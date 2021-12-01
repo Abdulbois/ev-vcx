@@ -13,7 +13,7 @@ from vcx.api.issuer_credential import IssuerCredential
 from vcx.api.proof import Proof
 from vcx.api.schema import Schema
 from vcx.api.utils import vcx_agent_provision, vcx_get_ledger_author_agreement, \
-    vcx_set_active_txn_author_agreement_meta, vcx_messages_download
+    vcx_set_active_txn_author_agreement_meta
 from vcx.api.vcx_init import vcx_init_with_config
 from vcx.state import State, ProofState
 
@@ -35,9 +35,18 @@ provisionConfig = {
     'wallet_key': '123',
     'enterprise_seed': '000000000000000000000000Trustee2',
     'protocol_type': '3.0',
-    'name': 'Faber',
     'logo': 'https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png',
-    'path': 'docker.txn',
+    'pool_networks': [
+        {
+            'genesis_path': 'docker.txn',
+            'namespace_list': ["staging"],
+            'taa_config': {
+                'taa_digest': '8cee5d7a573e4893b08ff53a0761a22a1607df3b3fcd7e75b98696c92879641f',
+                'acc_mech_type': 'at_submission',
+                'time': int(time.time())
+            }
+        }
+    ]
 }
 
 
@@ -86,9 +95,6 @@ async def connect(use_public_did: bool = False):
     connection_state = await connection_to_alice.get_state()
     while connection_state != State.Accepted:
         sleep(2)
-        pw_did = await connection_to_alice.get_my_pw_did()
-        messages = await vcx_messages_download("MS-103", None, pw_did)
-        print(messages)
         await connection_to_alice.update_state()
         connection_state = await connection_to_alice.get_state()
 
@@ -135,8 +141,6 @@ def credential_name():
 
 
 async def issue_credential(connection_to_alice, schema_attributes, credential_values, credential_name):
-    await accept_taa()
-
     print("#3 Create a new schema on the ledger")
     version = format("%d.%d.%d" % (random.randint(1, 101), random.randint(1, 101), random.randint(1, 101)))
     schema = await Schema.create('schema_uuid', 'degree schema', version, schema_attributes, 0)
@@ -157,9 +161,6 @@ async def issue_credential(connection_to_alice, schema_attributes, credential_va
     credential_state = await credential.get_state()
     while credential_state != State.RequestReceived and credential_state != State.Rejected:
         sleep(2)
-        pw_did = await connection_to_alice.get_my_pw_did()
-        messages = await vcx_messages_download("MS-103", None, pw_did)
-        print(messages)
         await credential.update_state()
         credential_state = await credential.get_state()
 
@@ -177,9 +178,6 @@ async def issue_credential(connection_to_alice, schema_attributes, credential_va
     credential_state = await credential.get_state()
     while credential_state != State.Accepted and credential_state != State.Rejected:
         sleep(2)
-        pw_did = await connection_to_alice.get_my_pw_did()
-        messages = await vcx_messages_download("MS-103", None, pw_did)
-        print(messages)
         await credential.update_state()
         credential_state = await credential.get_state()
         print(credential_state)
@@ -216,9 +214,6 @@ async def ask_for_proof(connection_to_alice, proof_attrs, proof_predicates):
     proof_state = await proof.get_state()
     while proof_state != State.Accepted and proof_state != State.Rejected:
         sleep(2)
-        pw_did = await connection_to_alice.get_my_pw_did()
-        messages = await vcx_messages_download("MS-103", None, pw_did)
-        print(messages)
         await proof.update_state()
         proof_state = await proof.get_state()
         print(proof_state)

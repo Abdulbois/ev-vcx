@@ -4,12 +4,11 @@ import logging
 from time import sleep
 import random
 import string
-import requests
 
 from vcx.api.connection import Connection
 from vcx.api.credential import Credential
 from vcx.api.disclosed_proof import DisclosedProof
-from vcx.api.utils import vcx_provision_agent_with_token, vcx_get_provision_token, vcx_messages_download
+from vcx.api.utils import vcx_provision_agent_with_token, vcx_get_provision_token
 from vcx.api.vcx_init import vcx_init_with_config
 from vcx.state import State
 
@@ -24,8 +23,17 @@ provisionConfig = {
     'enterprise_seed': '000000000000000000000000Trustee1',
     'protocol_type': '3.0',
     'name': 'alice',
-    'logo': 'http://robohash.org/456',
-    'path': 'docker.txn',
+    'indy_pool_networks': [
+        {
+            'genesis_path': 'docker.txn',
+            'namespace_list': ["staging"]
+        },
+        {
+            'pool_network_alias': 'production',
+            'namespace_list': ["production"]
+        }
+    ],
+    'logo': 'http://robohash.org/456'
 }
 
 
@@ -119,10 +127,6 @@ async def connect():
     connection_state = await connection_to_faber.get_state()
     while connection_state != State.Accepted:
         sleep(2)
-        pw_did = await connection_to_faber.get_my_pw_did()
-        messages = await vcx_messages_download("MS-103", None, None)
-        print(messages)
-
         await connection_to_faber.update_state()
         connection_state = await connection_to_faber.get_state()
 
@@ -138,9 +142,6 @@ async def accept_offer(connection_to_faber, credential):
     credential_state = await credential.get_state()
     while credential_state != State.Accepted:
         sleep(2)
-        pw_did = await connection_to_faber.get_my_pw_did()
-        messages = await vcx_messages_download("MS-103", None, pw_did)
-        print(messages)
         await credential.update_state()
         credential_state = await credential.get_state()
 
@@ -207,9 +208,6 @@ async def create_proof(connection_to_faber, proof):
     proof_state = await proof.get_state()
     while proof_state != State.Accepted:
         sleep(2)
-        pw_did = await connection_to_faber.get_my_pw_did()
-        messages = await vcx_messages_download("MS-103", None, pw_did)
-        print(messages)
         await proof.update_state()
         proof_state = await proof.get_state()
 

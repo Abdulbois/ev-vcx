@@ -2,7 +2,7 @@ use crate::aries::messages::a2a::message_type::MessageType;
 use crate::aries::messages::mime_type::MimeType;
 use crate::aries::messages::a2a::message_type::{MessageTypePrefix, MessageTypeVersion};
 use crate::aries::messages::a2a::message_family::MessageTypeFamilies;
-use crate::utils::libindy::types::CredentialInfo;
+use crate::utils::libindy::anoncreds::types::CredentialInfo;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct PresentationPreview {

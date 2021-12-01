@@ -23,10 +23,7 @@ use crate::aries::messages::{
 };
 use crate::aries::messages::thread::Thread;
 use crate::issuer_credential::encode_attributes;
-use crate::utils::libindy::anoncreds::{
-    self,
-    libindy_issuer_create_credential_offer,
-};
+use crate::utils::libindy::anoncreds::issuer::Issuer as IndyIssuer;
 use crate::error::{VcxResult, VcxError, VcxErrorKind};
 use crate::connection::Connections;
 use crate::utils::object_cache::Handle;
@@ -287,7 +284,7 @@ impl IssuerSM {
 
 impl InitialState {
     fn init_credential(self, connection_handle: Handle<Connections>) -> VcxResult<IssuerState> {
-        let cred_offer = libindy_issuer_create_credential_offer(&self.cred_def_id)?;
+        let cred_offer = IndyIssuer::create_credential_offer(&self.cred_def_id)?;
         let cred_offer_msg = CredentialOffer::V1(
             CredentialOfferV1::create()
                 .set_comment(self.credential_name.clone())
@@ -380,11 +377,11 @@ impl RequestReceivedState {
         let cred_data = encode_attributes(&self.cred_data)?;
         let (_, cred_offer_attachment) = self.offer.offer_attach().content()?;
 
-        let (credential, _, _) = anoncreds::libindy_issuer_create_credential(&cred_offer_attachment,
-                                                                             &request,
-                                                                             &cred_data,
-                                                                             self.rev_reg_id.as_deref(),
-                                                                             self.tails_file.as_deref())?;
+        let (credential, _, _) = IndyIssuer::create_credential(&cred_offer_attachment,
+                                                               &request,
+                                                               &cred_data,
+                                                               self.rev_reg_id.as_deref(),
+                                                               self.tails_file.as_deref())?;
 
         let credential = match self.request {
             CredentialRequest::V1(_) =>

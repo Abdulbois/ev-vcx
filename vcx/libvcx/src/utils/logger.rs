@@ -201,7 +201,7 @@ impl LibvcxDefaultLogger {
             match EnvLoggerBuilder::new()
                 .format(|buf, record| writeln!(buf, "{:>5}|{:<30}|{:>35}:{:<4}| {}", record.level(), record.target(), record.file().get_or_insert(""), record.line().get_or_insert(0), record.args()))
                 .filter(None, LevelFilter::Off)
-                .parse(pattern.as_ref().map(String::as_str).unwrap_or("warn"))
+                .parse_filters(pattern.as_ref().map(String::as_str).unwrap_or("warn"))
                 .try_init() {
                 Ok(()) => {}
                 Err(e) => {

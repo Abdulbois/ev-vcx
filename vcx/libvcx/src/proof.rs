@@ -16,7 +16,8 @@ use crate::agent::messages::get_message::get_ref_msg;
 use crate::legacy::messages::proof_presentation::proof_request::{ProofRequestMessage, ProofRequestVersion};
 use crate::utils::error;
 use crate::utils::constants::*;
-use crate::utils::libindy::anoncreds;
+use crate::utils::libindy::anoncreds::verifier::Verifier as IndyVerifier;
+use crate::utils::libindy::ledger;
 use crate::utils::object_cache::{ObjectCache, Handle};
 use crate::error::prelude::*;
 use crate::utils::openssl::encode;
@@ -26,6 +27,7 @@ use crate::legacy::messages::proof_presentation::proof_message::get_credential_i
 use crate::aries::handlers::proof_presentation::verifier::Verifier;
 use crate::agent::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
 use crate::aries::messages::proof_presentation::presentation_proposal::PresentationProposal;
+use crate::utils::libindy::ledger::query::Query;
 
 lazy_static! {
     static ref PROOF_MAP: ObjectCache<Proofs> = Default::default();
@@ -171,7 +173,7 @@ impl Proof {
 
         for ref cred_info in credential_data.iter() {
             if credential_json.get(&cred_info.cred_def_id).is_none() {
-                let (id, credential_def) = anoncreds::get_cred_def_json(&cred_info.cred_def_id)?;
+                let (id, credential_def) = Query::get_cred_def(&cred_info.cred_def_id)?;
 
                 let credential_def = serde_json::from_str(&credential_def)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::CredentialDefinitionNotFound, format!("Cannot parse CredentialDefinition received from the Ledger. Err: {}", err)))?;
@@ -193,7 +195,7 @@ impl Proof {
 
         for cred_info in credential_data {
             if schemas_json.get(&cred_info.schema_id).is_none() {
-                let (id, schema_json) = anoncreds::get_schema_json(&cred_info.schema_id)?;
+                let (id, schema_json) = ledger::query::Query::get_schema(&cred_info.schema_id)?;
 
                 let schema_val = serde_json::from_str(&schema_json)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidSchema, format!("Cannot parse Schema received from the Ledger. Err: {}", err)))?;
@@ -220,7 +222,7 @@ impl Proof {
                 .ok_or(VcxError::from(VcxErrorKind::InvalidRevocationDetails))?;
 
             if rev_reg_defs_json.get(rev_reg_id).is_none() {
-                let (id, json) = anoncreds::get_rev_reg_def_json(rev_reg_id)
+                let (id, json) = ledger::query::Query::get_rev_reg_def(rev_reg_id)
                     .or(Err(VcxError::from(VcxErrorKind::InvalidRevocationDetails)))?;
 
                 let rev_reg_def_json = serde_json::from_str(&json)
@@ -254,7 +256,7 @@ impl Proof {
                 .ok_or(VcxError::from(VcxErrorKind::InvalidRevocationTimestamp))?;
 
             if rev_regs_json.get(rev_reg_id).is_none() {
-                let (id, json, timestamp) = anoncreds::get_rev_reg(rev_reg_id, timestamp.to_owned())
+                let (id, json, timestamp) = ledger::query::Query::get_rev_reg(rev_reg_id, timestamp.to_owned())
                     .or(Err(VcxError::from(VcxErrorKind::InvalidRevocationDetails)))?;
 
                 let rev_reg_json: Value = serde_json::from_str(&json)
@@ -275,7 +277,7 @@ impl Proof {
         debug!("Proof {}: Vuilding proof json for proof validation", self.source_id);
         match self.proof {
             Some(ref x) => Ok(x.libindy_proof.clone()),
-            None => Err(VcxError::from_msg(VcxErrorKind::InvalidState,  format!("Invalid {} Proof object state: `libindy_proof` not found", self.source_id)))?
+            None => Err(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Proof object state: `libindy_proof` not found", self.source_id)))?
         }
     }
 
@@ -339,12 +341,12 @@ impl Proof {
         debug!("*******\n{}\n********", secret!(proof_req_json));
         debug!("*******\n{}\n********", secret!(rev_reg_defs_json));
         debug!("*******\n{}\n********", secret!(rev_regs_json));
-        let valid = anoncreds::libindy_verifier_verify_proof(proof_req_json,
-                                                 proof_json,
-                                                 &schemas_json,
-                                                 &credential_defs_json,
-                                                 &rev_reg_defs_json,
-                                                 &rev_regs_json)?;
+        let valid = IndyVerifier::verify_proof(proof_req_json,
+                                               proof_json,
+                                               &schemas_json,
+                                               &credential_defs_json,
+                                               &rev_reg_defs_json,
+                                               &rev_regs_json)?;
 
         trace!("Proof::validate_indy_proof >>> valid: {:?}", valid);
         Ok(valid)
@@ -423,7 +425,7 @@ impl Proof {
 
     fn get_proof(&self) -> VcxResult<String> {
         let proof = self.proof.as_ref()
-            .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState,  format!("Invalid {} Proof object state: `proof` not found", self.source_id)))?;
+            .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Proof object state: `proof` not found", self.source_id)))?;
         Ok(proof.libindy_proof.clone())
     }
 
@@ -616,8 +618,8 @@ pub fn from_string(proof_data: &str) -> VcxResult<Handle<Proofs>> {
 
     PROOF_MAP.add(proof)
 }
-impl Handle<Proofs> {
 
+impl Handle<Proofs> {
     pub fn is_valid_handle(self) -> bool {
         PROOF_MAP.has_handle(self)
     }
@@ -712,10 +714,10 @@ impl Handle<Proofs> {
                         .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize RevocationDetails. Err: {:?}", err)))?;
 
                     let mut verifier = Verifier::create(obj.source_id.to_string(),
-                    obj.requested_attrs.to_string(),
-                    obj.requested_predicates.to_string(),
-                    revocation_details,
-                    obj.name.to_string())?;
+                                                        obj.requested_attrs.to_string(),
+                                                        obj.requested_predicates.to_string(),
+                                                        revocation_details,
+                                                        obj.name.to_string())?;
 
                     verifier.generate_presentation_request()?;
                     let attach = verifier.get_presentation_request_attach()?;
@@ -731,7 +733,6 @@ impl Handle<Proofs> {
             }?;
             *obj = proof;
             Ok(attach)
-
         }).map_err(handle_err)
     }
 
@@ -757,10 +758,10 @@ impl Handle<Proofs> {
                             .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize RevocationDetails. Err: {:?}", err)))?;
 
                         let mut verifier = Verifier::create(obj.source_id.to_string(),
-                        obj.requested_attrs.to_string(),
-                        obj.requested_predicates.to_string(),
-                        revocation_details,
-                        obj.name.to_string())?;
+                                                            obj.requested_attrs.to_string(),
+                                                            obj.requested_predicates.to_string(),
+                                                            revocation_details,
+                                                            obj.name.to_string())?;
                         verifier.send_presentation_request(connection_handle)?;
 
                         Proofs::V3(verifier)
@@ -787,11 +788,11 @@ impl Handle<Proofs> {
     }
 
     pub fn request_proof(self,
-        connection_handle: Handle<Connections>,
-        requested_attrs: String,
-        requested_predicates: String,
-        revocation_details: String,
-        name: String) -> VcxResult<u32> {
+                         connection_handle: Handle<Connections>,
+                         requested_attrs: String,
+                         requested_predicates: String,
+                         revocation_details: String,
+                         name: String) -> VcxResult<u32> {
         PROOF_MAP.get_mut(self, move |proof| {
             let new_proof = match proof {
                 Proofs::Pending(obj) => {
@@ -803,10 +804,10 @@ impl Handle<Proofs> {
                             .map_err(|err| VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize RevocationDetails. Err: {:?}", err)))?;
 
                         let mut verifier = Verifier::create(obj.source_id.to_string(),
-                        obj.requested_attrs.to_string(),
-                        obj.requested_predicates.to_string(),
-                        revocation_interval,
-                        obj.name.to_string())?;
+                                                            obj.requested_attrs.to_string(),
+                                                            obj.requested_predicates.to_string(),
+                                                            revocation_interval,
+                                                            obj.name.to_string())?;
                         verifier.request_proof(connection_handle, requested_attrs.clone(), requested_predicates.clone(), revocation_details.clone(), name.clone())?;
 
                         Ok(Proofs::V3(verifier))
@@ -815,7 +816,7 @@ impl Handle<Proofs> {
                         // Proofs::V1(obj.clone())
                         Err(VcxError::from(VcxErrorKind::InvalidProofHandle))
                     }
-                },
+                }
                 Proofs::V1(_) => Err(VcxError::from(VcxErrorKind::InvalidProofHandle)),
                 Proofs::V3(obj) => {
                     obj.request_proof(connection_handle, requested_attrs, requested_predicates, revocation_details, name)?;
@@ -826,7 +827,6 @@ impl Handle<Proofs> {
             *proof = new_proof;
             Ok(error::SUCCESS.code_num)
         }).map_err(handle_err)
-
     }
 
     pub fn get_proof_uuid(self) -> VcxResult<String> {
@@ -907,7 +907,6 @@ pub fn generate_nonce() -> VcxResult<String> {
 pub mod tests {
     use super::*;
     use crate::connection::tests::build_test_connection;
-    use crate::utils::libindy::pool;
     use crate::utils::devsetup::*;
     use crate::utils::httpclient::AgencyMock;
     use crate::aries::messages::proof_presentation::presentation_preview::PresentationPreview;
@@ -1315,7 +1314,7 @@ pub mod tests {
     fn test_proof_validation_with_predicate() {
         let _setup = SetupLibraryWallet::init();
 
-        pool::tests::open_test_pool();
+//         pool::tests::open_test_pool();
         //Generated proof from a script using libindy's python wrapper
 
         let proof_msg: ProofMessage = serde_json::from_str(PROOF_LIBINDY).unwrap();

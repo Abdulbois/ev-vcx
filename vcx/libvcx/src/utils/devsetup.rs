@@ -1,13 +1,24 @@
+use std::fs;
+use std::sync::Once;
 use crate::utils::{threadpool, get_temp_dir_path};
 use crate::{settings, utils};
-use std::fs;
 use crate::utils::libindy::wallet::{reset_wallet_handle, delete_wallet, create_wallet};
+use crate::utils::libindy::vdr::tests::{open_test_pool, delete_test_pool};
 use crate::agent::provisioning::agent_provisioning_v0_7;
-use crate::utils::libindy::pool::reset_pool_handles;
+use crate::utils::libindy::vdr::reset_vdr;
 use crate::settings::set_defaults;
-use futures::Future;
-use std::sync::Once;
 use crate::utils::libindy::crypto::sign;
+use crate::utils::constants;
+use crate::utils::libindy::wallet;
+use crate::utils::object_cache::{ObjectCache, Handle};
+use crate::indy::WalletHandle;
+use crate::utils::libindy::wallet::init_wallet;
+use crate::utils::plugins::init_plugin;
+use crate::utils::file::write_file;
+use crate::utils::logger::LibvcxDefaultLogger;
+use crate::settings::wallet::get_wallet_name;
+use crate::agent::provisioning;
+use crate::utils::libindy::ledger::utils::TxnTypes;
 
 pub struct SetupEmpty; // empty
 
@@ -57,7 +68,7 @@ fn setup() {
 fn tear_down() {
     settings::clear_config();
     reset_wallet_handle();
-    reset_pool_handles();
+    reset_vdr();
 }
 
 impl SetupEmpty {
@@ -152,8 +163,6 @@ impl SetupWalletAndPool {
         setup();
         settings::set_config_value(settings::CONFIG_ENABLE_TEST_MODE, "false");
         create_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
-        create_test_pool();
-        settings::set_config_value(settings::CONFIG_GENESIS_PATH, utils::get_temp_dir_path(settings::DEFAULT_GENESIS_PATH).to_str().unwrap());
         SetupWalletAndPool
     }
 }
@@ -342,19 +351,6 @@ macro_rules! assert_match {
     );
 }
 
-use crate::utils::constants;
-use crate::utils::libindy::wallet;
-use crate::utils::object_cache::{ObjectCache, Handle};
-
-use crate::indy::WalletHandle;
-use crate::utils::libindy::wallet::init_wallet;
-use crate::utils::plugins::init_plugin;
-use crate::utils::libindy::pool::tests::{open_test_pool, delete_test_pool, create_test_pool};
-use crate::utils::file::write_file;
-use crate::utils::logger::LibvcxDefaultLogger;
-use crate::settings::wallet::get_wallet_name;
-use crate::agent::provisioning;
-
 static mut INSTITUTION_CONFIG: Handle<String> = Handle::dummy();
 static mut CONSUMER_CONFIG: Handle<String> = Handle::dummy();
 
@@ -443,7 +439,7 @@ pub fn setup_indy_env(_use_zero_fees: bool) {
     settings::set_config_value(settings::CONFIG_GENESIS_PATH, utils::get_temp_dir_path(settings::DEFAULT_GENESIS_PATH).to_str().unwrap());
     open_test_pool();
 
-    crate::utils::libindy::anoncreds::libindy_prover_create_master_secret(settings::DEFAULT_LINK_SECRET_ALIAS).unwrap();
+    crate::utils::libindy::anoncreds::holder::Holder::create_master_secret(settings::DEFAULT_LINK_SECRET_ALIAS).unwrap();
 
     let (my_did, my_vk) = crate::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
     settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &my_did);
@@ -559,11 +555,20 @@ pub fn setup_agency_env(protocol_type: &str, _use_zero_fees: bool) {
 
     // make enterprise and consumer trustees on the ledger
     wallet::init_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
-    let (trustee_did, _) = crate::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
-    let req_nym = crate::indy::ledger::build_nym_request(&trustee_did, &did1, Some(&vk1), None, Some("TRUSTEE")).wait().unwrap();
-    crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
-    let req_nym = crate::indy::ledger::build_nym_request(&trustee_did, &did2, Some(&vk2), None, Some("TRUSTEE")).wait().unwrap();
-    crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
+
+    let data = json!({
+        "dest": did1,
+        "verkey": vk1,
+        "role": "TRUSTEE",
+    }).to_string();
+    crate::utils::libindy::ledger::utils::sign_and_submit_txn(&data, TxnTypes::DID).unwrap();
+
+    let data = json!({
+        "dest": did2,
+        "verkey": vk2,
+        "role": "TRUSTEE",
+    }).to_string();
+    crate::utils::libindy::ledger::utils::sign_and_submit_txn(&data, TxnTypes::DID).unwrap();
     wallet::delete_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
 
     // as trustees, mint tokens into each wallet
@@ -661,11 +666,19 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, _use_zero_fees: bool) 
 
     // make enterprise and consumer trustees on the ledger
     wallet::init_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
-    let (trustee_did, _) = crate::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
-    let req_nym = crate::indy::ledger::build_nym_request(&trustee_did, &did1, Some(&vk1), None, Some("TRUSTEE")).wait().unwrap();
-    crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
-    let req_nym = crate::indy::ledger::build_nym_request(&trustee_did, &did2, Some(&vk2), None, Some("TRUSTEE")).wait().unwrap();
-    crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
+    let data = json!({
+        "dest": did1,
+        "verkey": vk1,
+        "role": "TRUSTEE",
+    }).to_string();
+    crate::utils::libindy::ledger::utils::sign_and_submit_txn(&data, TxnTypes::DID).unwrap();
+
+    let data = json!({
+        "dest": did2,
+        "verkey": vk2,
+        "role": "TRUSTEE",
+    }).to_string();
+    crate::utils::libindy::ledger::utils::sign_and_submit_txn(&data, TxnTypes::DID).unwrap();
     wallet::delete_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
 
     set_institution();

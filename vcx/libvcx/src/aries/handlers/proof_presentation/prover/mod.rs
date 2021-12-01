@@ -8,7 +8,7 @@ use self::{
 };
 
 use crate::error::prelude::*;
-use crate::utils::libindy::anoncreds;
+use crate::utils::libindy::anoncreds::holder::Holder as IndyHolder;
 use crate::aries::messages::{
     a2a::A2AMessage,
     proof_presentation::{
@@ -51,7 +51,7 @@ impl Prover {
         debug!("Prover {}: Retrieving credentials for proof generation", self.get_source_id());
 
         let (_, presentation_request) = self.prover_sm.presentation_request()?.request_presentations_attach().content()?;
-        anoncreds::libindy_prover_get_credentials_for_proof_req(&presentation_request)
+        IndyHolder::get_credentials_for_proof_req(&presentation_request)
     }
 
     pub fn generate_presentation(&mut self, credentials: String, self_attested_attrs: String) -> VcxResult<()> {

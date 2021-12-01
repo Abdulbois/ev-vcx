@@ -18,6 +18,7 @@ use crate::agent::messages::update_agent;
 use crate::agent::messages::update_agent::ComMethod;
 use crate::aries::messages::message_with_attachment::extract_attached_message;
 use crate::aries::utils::resolve_message_by_url;
+use crate::utils::libindy::anoncreds::holder::Holder;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
 ///
@@ -772,7 +773,7 @@ pub extern fn vcx_endorse_transaction(command_handle: CommandHandle,
            command_handle, secret!(transaction));
 
     spawn(move || {
-        match crate::utils::libindy::ledger::endorse_transaction(&transaction) {
+        match crate::utils::libindy::ledger::utils::endorse_transaction(&transaction) {
             Ok(()) => {
                 trace!("vcx_endorse_transaction(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -821,7 +822,7 @@ pub extern fn vcx_fetch_public_entities(command_handle: CommandHandle,
     trace!("vcx_fetch_public_entities(command_handle: {})", command_handle);
 
     spawn(move || {
-        match crate::utils::libindy::anoncreds::fetch_public_entities() {
+        match Holder::fetch_public_entities() {
             Ok(()) => {
                 trace!("vcx_fetch_public_entities_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());

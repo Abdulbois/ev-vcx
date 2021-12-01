@@ -1,7 +1,7 @@
 use crate::legacy::messages::issuance::credential_offer::CredentialOffer;
 use crate::error::prelude::*;
-use crate::utils::libindy::types::Credential as IndyCredential;
-use crate::utils::libindy::types::CredentialOffer as IndyCredentialOffer;
+use crate::utils::libindy::anoncreds::types::Credential as IndyCredential;
+use crate::utils::libindy::anoncreds::types::CredentialOffer as IndyCredentialOffer;
 use crate::settings;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
