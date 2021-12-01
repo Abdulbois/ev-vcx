@@ -1024,23 +1024,6 @@ pub mod tests {
     }
 
     #[test]
-    fn test_create_credential_invalid_price() {
-        let _setup = SetupMocks::init();
-
-        settings::set_config_value(settings::CONFIG_INSTITUTION_DID, DEFAULT_DID);
-        let (h, cb, _r) = return_types::return_u32_ih();
-        assert_eq!(vcx_issuer_create_credential(h,
-                                                DEFAULT_CREDENTIAL_NAME_CSTR,
-                                                crate::credential_def::tests::create_cred_def_fake(),
-                                                DEFAULT_DID_CSTR,
-                                                DEFAULT_ATTR_CSTR,
-                                                DEFAULT_CREDENTIAL_NAME_CSTR,
-                                                "-1\0".as_ptr().cast(),
-                                                Some(cb)),
-                   error::INVALID_OPTION.code_num);
-    }
-
-    #[test]
     fn test_vcx_issuer_credential_get_state() {
         let _setup = SetupMocks::init();
 
@@ -1053,17 +1036,6 @@ pub mod tests {
                    error::SUCCESS.code_num);
         let state = r.recv_medium().unwrap();
         assert_eq!(state, VcxStateType::VcxStateInitialized as u32);
-    }
-
-    #[test]
-    fn test_get_payment_txn() {
-        let _setup = SetupMocks::init();
-        let credential = issuer_credential::tests::create_standard_issuer_credential_json(None);
-        let handle = issuer_credential::from_string(&credential).unwrap();
-
-        let (h, cb, r) = return_types::return_u32_str();
-        vcx_issuer_credential_get_payment_txn(h, handle, Some(cb));
-        r.recv_medium().unwrap();
     }
 
     #[test]

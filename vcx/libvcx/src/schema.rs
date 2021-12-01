@@ -425,7 +425,7 @@ pub mod tests {
             assert_eq!(0, handle.update_state().unwrap());
 
             settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &endorser_did);
-            ledger::endorse_transaction(&schema_request).unwrap();
+            ledger::utils::endorse_transaction(&schema_request).unwrap();
 
             ::std::thread::sleep(::std::time::Duration::from_millis(1000));
 

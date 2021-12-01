@@ -193,6 +193,9 @@ fn _verify_transaction_can_be_endorsed(transaction_json: &str, _did: &str) -> Vc
 mod test {
     use super::*;
     use crate::utils::devsetup::*;
+    #[cfg(feature = "pool_tests")]
+    use crate::utils::constants::*;
+    use crate::schema::prepare_schema_for_endorser;
 
     #[test]
     fn test_verify_transaction_can_be_endorsed() {
@@ -221,12 +224,12 @@ mod test {
         let (author_did, _) = add_new_did(None);
         let (endorser_did, _) = add_new_did(Some("ENDORSER"));
 
-        settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &endorser_did);
-
-        let schema_request = libindy_build_schema_request(&author_did, crate::utils::constants::SCHEMA_DATA).unwrap();
+        settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &author_did);
+        let schema_request = Request::schema(SCHEMA_DATA).unwrap();
         let schema_request = ledger::append_request_endorser(&schema_request, &endorser_did).wait().unwrap();
-        let schema_request = multisign_request(&author_did, &schema_request).unwrap();
+        let schema_request = Request::multisign(&author_did, &schema_request).unwrap();
 
+        settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &endorser_did);
         endorse_transaction(&schema_request).unwrap();
     }
 }

@@ -13,7 +13,6 @@ use crate::utils::libindy::wallet;
 use crate::utils::object_cache::{ObjectCache, Handle};
 use crate::indy::WalletHandle;
 use crate::utils::libindy::wallet::init_wallet;
-use crate::utils::plugins::init_plugin;
 use crate::utils::file::write_file;
 use crate::utils::logger::LibvcxDefaultLogger;
 use crate::settings::wallet::get_wallet_name;
@@ -432,8 +431,6 @@ pub fn create_new_seed() -> String {
 pub fn setup_indy_env(_use_zero_fees: bool) {
     settings::set_config_value(settings::CONFIG_ENABLE_TEST_MODE, "false");
 
-    init_plugin(settings::DEFAULT_PAYMENT_PLUGIN, settings::DEFAULT_PAYMENT_INIT_FUNCTION);
-
     init_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
 
     settings::set_config_value(settings::CONFIG_GENESIS_PATH, utils::get_temp_dir_path(settings::DEFAULT_GENESIS_PATH).to_str().unwrap());
@@ -465,7 +462,6 @@ pub fn set_institution() {
     settings::clear_config();
     unsafe {
         CONFIG_STRING.get(INSTITUTION_CONFIG, |t| {
-            settings::set_config_value(settings::CONFIG_PAYMENT_METHOD, settings::DEFAULT_PAYMENT_METHOD);
             settings::process_config_string(&t, true)
         }).unwrap();
     }
@@ -476,7 +472,6 @@ pub fn set_consumer() {
     settings::clear_config();
     unsafe {
         CONFIG_STRING.get(CONSUMER_CONFIG, |t| {
-            settings::set_config_value(settings::CONFIG_PAYMENT_METHOD, settings::DEFAULT_PAYMENT_METHOD);
             settings::process_config_string(&t, true)
         }).unwrap();
     }
@@ -490,8 +485,6 @@ fn change_wallet_handle() {
 
 pub fn setup_agency_env(protocol_type: &str, _use_zero_fees: bool) {
     settings::clear_config();
-
-    init_plugin(settings::DEFAULT_PAYMENT_PLUGIN, settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
     let enterprise_wallet_name = format!("{}_{}", constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
 
@@ -584,7 +577,6 @@ pub fn sign_provision_token(keys: &str, nonce: &str, time: &str, sponsee_id: &st
 pub fn setup_agency_env_new_protocol(protocol_type: &str, _use_zero_fees: bool) {
     settings::clear_config();
 
-    init_plugin(settings::DEFAULT_PAYMENT_PLUGIN, settings::DEFAULT_PAYMENT_INIT_FUNCTION);
     let sponsee_id = "id";
     let sponsor_id = "evernym-test-sponsorabc123";
     let nonce = "nonce";
@@ -702,8 +694,6 @@ pub fn cleanup_wallet_env(test_name: &str) -> Result<(), String> {
 
 pub fn setup_consumer_env(protocol_type: &str) {
     settings::clear_config();
-
-    init_plugin(settings::DEFAULT_PAYMENT_PLUGIN, settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
     let consumer_wallet_name = format!("{}_{}", constants::CONSUMER_PREFIX, settings::DEFAULT_WALLET_NAME);
     let seed2 = create_new_seed();

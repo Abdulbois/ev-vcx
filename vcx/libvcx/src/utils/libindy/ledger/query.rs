@@ -130,7 +130,10 @@ impl Query {
         let receiver = {
             let (sender, receiver) = mpsc::channel();
 
-            let vdr: &VDRInfo = get_vdr()?;
+            let vdr: &VDRInfo = match get_vdr() {
+                Ok(vdr) => vdr,
+                Err(_) => return Ok(None)
+            };
 
             if is_fully_qualified(&id) {
                 let sender_ = sender.clone();

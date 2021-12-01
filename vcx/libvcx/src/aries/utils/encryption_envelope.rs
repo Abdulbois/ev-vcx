@@ -32,7 +32,6 @@ impl EncryptionEnvelope {
 
         let receiver_keys = json!(did_doc.recipient_keys()).to_string();
         let message = json!(message).to_string();
-        println!("message {}", message);
 
         crypto::pack_message(pw_verkey, &receiver_keys, message.as_bytes())
     }

@@ -44,7 +44,6 @@ pub mod test {
                 "agency_did":"VsKV7grR1BUE29mG2Fm2kX",
                 "agency_endpoint":"http://localhost:8080",
                 "agency_verkey":"Hezce2UWMZ3wUhVkh2LfKSs8nDzWwzs2Win7EzNN3YaR",
-                "genesis_path":"<CHANGE_ME>",
                 "institution_did":"V4SGRU86Z58d6TV7PBUe6f",
                 "institution_logo_url":"<CHANGE_ME>",
                 "institution_name":"<CHANGE_ME>",

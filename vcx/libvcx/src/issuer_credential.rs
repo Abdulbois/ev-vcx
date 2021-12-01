@@ -1249,10 +1249,8 @@ pub mod tests {
         credential.tails_file = Some(get_temp_dir_path(TEST_TAILS_FILE).to_str().unwrap().to_string());
         credential.cred_rev_id = Some(CRED_REV_ID.to_string());
         credential.rev_reg_id = Some(REV_REG_ID.to_string());
-        credential.rev_cred_payment_txn = None;
 
         credential.revoke_cred().unwrap();
-        assert!(credential.rev_cred_payment_txn.is_some());
     }
 
 

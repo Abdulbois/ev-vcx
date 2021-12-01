@@ -8,6 +8,7 @@ use crate::utils::libindy::ledger::types::TxnAuthorAgreement;
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct LibraryInitializationPoolConfig {
     pub genesis_path: Option<String>,
+    pub genesis_transactions: Option<String>,
     pub pool_network_alias: Option<LedgerEnvironments>,
     pub network: Option<String>,
     pub author_agreement: Option<serde_json::Value>,
@@ -24,10 +25,13 @@ pub struct IndyPoolConfigWithGenesisPath {
 
 impl IndyPoolConfigWithGenesisPath {
     pub fn to_config(self) -> VcxResult<IndyPoolConfig> {
-        let genesis_transactions = read_file(&self.genesis_path)?;
+        let genesis_transactions = read_file(&self.genesis_path)
+            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidGenesisTxnPath,
+                                              format!("Could not read file with genesis transactions. Err: {:?}", err)))?;
+
         Ok(IndyPoolConfig {
             genesis_transactions,
-            namespace_list: self.namespace_list.unwrap_or( vec![DEFAULT_NETWORK.to_string()]),
+            namespace_list: self.namespace_list.unwrap_or(vec![DEFAULT_NETWORK.to_string()]),
             taa_config: self.taa_config,
         })
     }
@@ -44,7 +48,7 @@ impl IndyPoolConfigWithTransactions {
     pub fn to_config(self) -> VcxResult<IndyPoolConfig> {
         Ok(IndyPoolConfig {
             genesis_transactions: self.genesis_transactions,
-            namespace_list: self.namespace_list.unwrap_or( vec![DEFAULT_NETWORK.to_string()]),
+            namespace_list: self.namespace_list.unwrap_or(vec![DEFAULT_NETWORK.to_string()]),
             taa_config: self.taa_config,
         })
     }
@@ -61,7 +65,7 @@ impl IndyPoolConfigWithPredefinedAlias {
     pub fn to_config(self) -> VcxResult<IndyPoolConfig> {
         Ok(IndyPoolConfig {
             genesis_transactions: self.pool_network_alias.transactions().to_string(),
-            namespace_list: self.namespace_list.unwrap_or( vec![DEFAULT_NETWORK.to_string()]),
+            namespace_list: self.namespace_list.unwrap_or(vec![DEFAULT_NETWORK.to_string()]),
             taa_config: self.taa_config,
         })
     }
@@ -69,7 +73,6 @@ impl IndyPoolConfigWithPredefinedAlias {
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct CombinedPoolConfig {
-    #[serde(default)]
     pub indy_pool_networks: Vec<IndyPoolNetworkConfigVariants>,
 }
 
@@ -168,7 +171,17 @@ pub fn get_pool_config_values(config: &str) -> VcxResult<Vec<IndyPoolConfig>> {
     };
 
     if let Some(genesis_path) = pool_config.genesis_path {
-        let genesis_transactions = read_file(&genesis_path)?;
+        let genesis_transactions = read_file(&genesis_path)
+            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidGenesisTxnPath,
+                                              format!("Could not read file with genesis transactions. Err: {:?}", err)))?;
+        indy_pool_configs.push(IndyPoolConfig {
+            genesis_transactions,
+            namespace_list: vec![pool_config.network.clone().unwrap_or(DEFAULT_NETWORK.to_string())],
+            taa_config: taa_config.clone(),
+        })
+    }
+
+    if let Some(genesis_transactions) = pool_config.genesis_transactions {
         indy_pool_configs.push(IndyPoolConfig {
             genesis_transactions,
             namespace_list: vec![pool_config.network.clone().unwrap_or(DEFAULT_NETWORK.to_string())],
@@ -196,8 +209,6 @@ pub fn get_pool_config_values(config: &str) -> VcxResult<Vec<IndyPoolConfig>> {
         }
     }
 
-    println!("indy_pool_configs {:?}", indy_pool_configs);
-
     trace!("get_pool_config_values <<< indy_pool_configs: {:?}",
            indy_pool_configs);
     Ok(indy_pool_configs)
@@ -212,13 +223,6 @@ pub fn get_init_pool_config_values(config: &str) -> VcxResult<Vec<IndyPoolConfig
                                           format!("Cannot parse Pool Network configuration from provided config JSON. Err: {:?}", err)))?;
 
     let mut indy_pool_configs: Vec<IndyPoolConfig> = Vec::new();
-
-    // Variants:
-    // 1: { genesis_path, pool_name, pool_config, network }
-    // 2: { pool_network_alias, pool_name, pool_config, network }
-    // 3: { alias, rpc_address, chain_id, network }
-    // 4: { indy_pool_networks }
-    // 5: [ { 1,2,3 options } ]
 
     match pool_configs {
         InitializePoolConfigVariants::Single(config) => {

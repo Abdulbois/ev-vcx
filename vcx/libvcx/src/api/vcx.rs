@@ -396,24 +396,25 @@ mod tests {
         vdr::get_vdr,
     };
     use crate::api::return_types;
-    #[cfg(any(feature = "agency", feature = "pool_tests"))]
-    use crate::utils::get_temp_dir_path;
     use crate::utils::devsetup::*;
     #[cfg(feature = "pool_tests")]
-    use crate::utils::libindy::vdr::tests::delete_test_pool;
+    use crate::utils::libindy::vdr::tests::{get_txns, delete_test_pool};
 
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     fn config() -> String {
         json!({
-            "agency_endpoint" : "https://agency.com",
-            "agency_did" : "72x8p4HubxzUK1dwxcc5FU",
+           "wallet_name": settings::DEFAULT_WALLET_NAME,
+           "wallet_key": settings::DEFAULT_WALLET_KEY,
+           "wallet_key_derivation": settings::DEFAULT_WALLET_KEY_DERIVATION,
+           "agency_endpoint" : "https://agency.com",
+           "agency_did" : "72x8p4HubxzUK1dwxcc5FU",
            "remote_to_sdk_did" : "UJGjM6Cea2YVixjWwHN9wq",
            "sdk_to_remote_did" : "AB3JM851T4EQmhh8CdagSP",
            "sdk_to_remote_verkey" : "888MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
            "institution_name" : "evernym enterprise",
            "agency_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
            "remote_to_sdk_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
-           "genesis_path": get_temp_dir_path("pool1.txn").to_str().unwrap(),
+           "genesis_transactions": get_txns(),
            "payment_method": "null",
            "pool_config": json!({"timeout":60}).to_string()
        }).to_string()
@@ -428,7 +429,7 @@ mod tests {
         if rc != error::SUCCESS.code_num {
             return Err(rc);
         }
-        r.recv_medium()
+        r.recv_long()
     }
 
     fn _vcx_init_with_config_c_closure(config: &str) -> Result<(), u32> {
@@ -446,20 +447,19 @@ mod tests {
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_init_with_file() {
-        let _setup = SetupWalletAndPool::init();
+        let _setup = SetupWallet::init();
 
         let config = TempFile::create_with_data("test_init.json", &config());
 
         _vcx_init_c_closure(&config.path).unwrap();
 
         // Assert wallet and pool was initialized
-        assert_ne!(get_vdr(None).unwrap(), 0);
+        get_vdr().unwrap();
     }
 
-    #[cfg(feature = "pool_tests")]
     #[test]
     fn test_init_with_file_no_payment_method() {
-        let _setup = SetupWalletAndPool::init();
+        let _setup = SetupWallet::init();
 
         let config = json!({
             "wallet_name": settings::DEFAULT_WALLET_NAME,
@@ -475,12 +475,12 @@ mod tests {
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_init_with_config() {
-        let _setup = SetupWalletAndPool::init();
+        let _setup = SetupWallet::init();
 
         _vcx_init_with_config_c_closure(&config()).unwrap();
 
         // Assert pool was initialized
-        assert_ne!(get_vdr(None).unwrap(), 0);
+        get_vdr().unwrap();
     }
 
     #[cfg(feature = "pool_tests")]
@@ -488,13 +488,17 @@ mod tests {
     fn test_init_fails_when_open_pool_fails() {
         let _setup = SetupWallet::init();
 
-        // Write invalid genesis.txn
-        let _genesis_transactions = TempFile::create_with_data(crate::utils::constants::GENESIS_PATH, "{}");
+        // Use invalid genesis transactions
+        let config = json!({
+           "agency_endpoint" : "https://agency.com",
+           "agency_did" : "72x8p4HubxzUK1dwxcc5FU",
+           "agency_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
+           "genesis_transactions": "{'date':'ds'}",
+       }).to_string();
 
-        let err = _vcx_init_with_config_c_closure(&config()).unwrap_err();
+        let err = _vcx_init_with_config_c_closure(&config).unwrap_err();
         assert_eq!(err, error::POOL_LEDGER_CONNECT.code_num);
-
-        assert_eq!(get_vdr(None).unwrap_err().kind(), VcxErrorKind::NoPoolOpen);
+        assert!(get_vdr().is_err());
 
         delete_test_pool();
     }
@@ -546,7 +550,7 @@ mod tests {
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_vcx_init_with_default_values() {
-        let _setup = SetupWalletAndPool::init();
+        let _setup = SetupWallet::init();
 
         _vcx_init_with_config_c_closure("{}").unwrap();
     }
@@ -554,7 +558,7 @@ mod tests {
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_vcx_init_called_twice_fails() {
-        let _setup = SetupWalletAndPool::init();
+        let _setup = SetupWallet::init();
 
         _vcx_init_with_config_c_closure("{}").unwrap();
 
@@ -570,7 +574,6 @@ mod tests {
             let _setup = SetupDefaults::init();
 
             wallet::create_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
-            vdr::tests::create_test_pool();
 
             _vcx_init_with_config_c_closure("{}").unwrap();
 
@@ -586,7 +589,7 @@ mod tests {
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_init_fails_with_open_wallet() {
-        let _setup = SetupLibraryWalletPool::init();
+        let _setup = SetupLibraryWallet::init();
 
         let config = TempFile::create_with_data("test_init.json", &config());
 

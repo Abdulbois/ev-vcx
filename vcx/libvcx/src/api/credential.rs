@@ -1299,17 +1299,6 @@ mod tests {
     }
 
     #[test]
-    fn test_get_payment_txn() {
-        let _setup = SetupMocks::init();
-
-        let handle = credential::from_string(crate::utils::constants::FULL_CREDENTIAL_SERIALIZED).unwrap();
-
-        let (h, cb, r) = return_types::return_u32_str();
-        vcx_credential_get_payment_txn(h, handle, Some(cb));
-        r.recv_medium().unwrap();
-    }
-
-    #[test]
     fn test_vcx_credential_release() {
         let _setup = SetupMocks::init();
 

@@ -647,20 +647,6 @@ mod tests {
         assert_eq!(schema_as_json["data"].to_string(), data);
     }
 
-    #[test]
-    fn test_get_payment_txn() {
-        let _setup = SetupMocks::init();
-
-        let (h, cb, r) = return_types::return_u32_str();
-
-        let (_, schema_name, schema_version, data) = prepare_schema_data();
-        let handle = vcx_schema_create_c_closure(&schema_name, &schema_version, &data).unwrap();
-
-        let _rc = vcx_schema_get_payment_txn(h, handle, Some(cb));
-        let txn = r.recv_short().unwrap();
-        assert!(txn.is_some());
-    }
-
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_vcx_schema_serialize_contains_version() {

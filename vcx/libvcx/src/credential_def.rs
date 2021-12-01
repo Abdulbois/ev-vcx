@@ -487,10 +487,7 @@ pub mod tests {
     fn test_create_cred_def() {
         let _setup = SetupMocks::init();
 
-        let (_, handle) = create_cred_def_real(false);
-
-        let payment = handle.get_cred_def_payment_txn().unwrap();
-        assert!(payment.amount > 0);
+        create_cred_def_real(false);
     }
 
     #[cfg(feature = "pool_tests")]
@@ -516,7 +513,7 @@ pub mod tests {
             let _setup = SetupLibraryWalletPoolZeroFees::init();
             let (_, _, cred_def_id, cred_def_json, _, _) = crate::utils::libindy::anoncreds::tests::create_and_store_credential_def(crate::utils::constants::DEFAULT_SCHEMA_ATTRS, false);
 
-            let (id, r_cred_def_json) = crate::utils::libindy::anoncreds::get_cred_def_json(&cred_def_id).unwrap();
+            let (id, r_cred_def_json) = Query::get_cred_def(&cred_def_id).unwrap();
 
             assert_eq!(id, cred_def_id);
             let def1: serde_json::Value = serde_json::from_str(&cred_def_json).unwrap();
@@ -560,7 +557,7 @@ pub mod tests {
             assert!(handle.get_rev_reg_def_payment_txn().unwrap().is_some());
             assert!(handle.get_rev_reg_delta_payment_txn().unwrap().is_some());
             let cred_id = handle.get_cred_def_id().unwrap();
-            crate::utils::libindy::anoncreds::get_cred_def_json(&cred_id).unwrap();
+            Query::get_cred_def(&cred_id).unwrap();
         }
 
         #[test]
@@ -676,7 +673,7 @@ pub mod tests {
             assert!(rev_reg_entry_req.is_none());
 
             settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &endorser_did);
-            ledger::endorse_transaction(&cred_def_request).unwrap();
+            ledger::utils::endorse_transaction(&cred_def_request).unwrap();
 
             ::std::thread::sleep(::std::time::Duration::from_millis(1000));
 
@@ -700,17 +697,17 @@ pub mod tests {
             let rev_reg_entry_req = rev_reg_entry_req.unwrap();
 
             settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &endorser_did);
-            ledger::endorse_transaction(&cred_def_request).unwrap();
+            ledger::utils::endorse_transaction(&cred_def_request).unwrap();
 
             ::std::thread::sleep(::std::time::Duration::from_millis(500));
             assert_eq!(0, handle.update_state().unwrap());
 
-            ledger::endorse_transaction(&rev_reg_def_req).unwrap();
+            ledger::utils::endorse_transaction(&rev_reg_def_req).unwrap();
 
             ::std::thread::sleep(::std::time::Duration::from_millis(500));
             assert_eq!(0, handle.update_state().unwrap());
 
-            ledger::endorse_transaction(&rev_reg_entry_req).unwrap();
+            ledger::utils::endorse_transaction(&rev_reg_entry_req).unwrap();
             ::std::thread::sleep(::std::time::Duration::from_millis(500));
 
             assert_eq!(1, handle.update_state().unwrap());

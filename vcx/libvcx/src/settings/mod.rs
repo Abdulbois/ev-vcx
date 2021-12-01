@@ -231,7 +231,8 @@ pub fn process_config_string(config: &str, do_validation: bool) -> VcxResult<u32
         set_config_value(CONFIG_AGENCY_VERKEY, &agency_config.agency_verkey);
     }
 
-    if let Ok(indy_pool_configs) = pool::get_pool_config_values(config) {
+    let indy_pool_configs = pool::get_pool_config_values(config)?;
+    if !indy_pool_configs.is_empty() {
         set_config_value(CONFIG_INDY_POOL_NETWORKS, &json!(indy_pool_configs).to_string());
     }
 
@@ -406,7 +407,7 @@ pub mod tests {
             "sdk_to_remote_verkey" : "888MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
             "institution_name" : _institution_name(),
             "remote_to_sdk_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
-            "genesis_path":"/tmp/pool1.txn",
+            "genesis_transactions":"{}",
             "wallet_key":"key",
             "pool_config": _pool_config(),
             "payment_method": "null"
@@ -587,7 +588,7 @@ pub mod tests {
             "config_name":"config1",
             "wallet_name":"test_clear_config",
             "institution_name" : "evernym enterprise",
-            "genesis_path":"/tmp/pool1.txn",
+            "genesis_transactions":"/tmp/pool1.txn",
             "wallet_key":"key",
         }).to_string();
 
@@ -597,7 +598,7 @@ pub mod tests {
         assert_eq!(get_config_value("config_name").unwrap(), "config1".to_string());
         assert_eq!(get_config_value("wallet_name").unwrap(), "test_clear_config".to_string());
         assert_eq!(get_config_value("institution_name").unwrap(), "evernym enterprise".to_string());
-        assert_eq!(get_config_value("genesis_path").unwrap(), "/tmp/pool1.txn".to_string());
+        assert_eq!(get_config_value("genesis_transactions").unwrap(), "/tmp/pool1.txn".to_string());
         assert_eq!(get_config_value("wallet_key").unwrap(), "key".to_string());
 
         clear_config();
@@ -607,7 +608,7 @@ pub mod tests {
         assert_eq!(get_config_value("config_name").unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
         assert_eq!(get_config_value("wallet_name").unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
         assert_eq!(get_config_value("institution_name").unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
-        assert_eq!(get_config_value("genesis_path").unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
+        assert_eq!(get_config_value("genesis_transactions").unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
         assert_eq!(get_config_value("wallet_key").unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
     }
 
@@ -631,12 +632,11 @@ pub mod tests {
     fn test_process_pool_config() {
         let _setup = SetupDefaults::init();
 
-        let path = "path/test/";
-        let name = "pool1";
+        let transactions = "{}";
 
         // Only required field
         let config = json!({
-            "genesis_path": path
+            "genesis_transactions": transactions
         }).to_string();
 
         process_init_pool_config_string(&config.to_string()).unwrap();
@@ -646,11 +646,8 @@ pub mod tests {
 
         // With optional fields
         let config = json!({
-            "genesis_path": path,
-            "pool_name": name,
-            "pool_config": {
-                 "number_read_nodes": 2
-            }
+            "genesis_transactions": transactions,
+            "namespace_list": vec!["test"],
         }).to_string();
 
         process_init_pool_config_string(&config.to_string()).unwrap();
@@ -667,11 +664,11 @@ pub mod tests {
     fn test_process_pool_config_for_multiple_networks() {
         let _setup = SetupDefaults::init();
 
-        let genesis_transactions = "path/test/";
-        let namespace_list = r#"["pool1"]"#;
+        let genesis_transactions = "{}";
+        let namespace_list = vec!["pool1"];
 
-        let genesis_transactions_2 = "path/test/2";
-        let namespace_list_2 = r#"["pool2"]"#;
+        let genesis_transactions_2 = "{}";
+        let namespace_list_2 = vec!["pool2"];
 
         let config = json!(
             vec![

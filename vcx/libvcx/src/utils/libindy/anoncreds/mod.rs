@@ -54,8 +54,7 @@ pub mod tests {
 
     pub fn create_and_write_test_schema(attr_list: &str) -> (String, String) {
         let (schema_id, schema_json) = create_schema(attr_list);
-        let req = create_schema_req(&schema_json);
-        ledger::utils::sign_and_submit_txn(&req,TxnTypes::Schema).unwrap();
+        ledger::utils::sign_and_submit_txn(&schema_json,TxnTypes::Schema).unwrap();
         thread::sleep(Duration::from_millis(1000));
         (schema_id, schema_json)
     }
@@ -309,6 +308,8 @@ pub mod tests {
     mod pool_tests {
         use super::*;
         use crate::utils::constants::TEST_TAILS_FILE;
+        use crate::utils::libindy::anoncreds::verifier::Verifier;
+        use crate::error::VcxErrorKind;
 
         #[test]
         fn test_prover_verify_proof() {
@@ -413,7 +414,7 @@ pub mod tests {
             let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
 
             let (_, cred_def_json) = Issuer::create_and_store_credential_def(&did, &schema_json, "tag_1", None, Some(true)).unwrap();
-            publish_cred_def(&did, &cred_def_json).unwrap();
+            ledger::utils::publish_cred_def(&cred_def_json).unwrap();
         }
 
         #[test]
@@ -477,7 +478,7 @@ pub mod tests {
                 crate::utils::libindy::anoncreds::tests::create_and_store_credential_def(attrs, true);
             let rev_reg_id = rev_reg_id.unwrap();
 
-            let (id, _rev_reg, _timestamp) = get_rev_reg(&rev_reg_id, time::get_time().sec as u64).unwrap();
+            let (id, _rev_reg, _timestamp) = Query::get_rev_reg(&rev_reg_id, time::get_time().sec as u64).unwrap();
             assert_eq!(id, rev_reg_id);
         }
 
@@ -507,12 +508,11 @@ pub mod tests {
             assert_eq!(first_rev_reg_delta, test_same_delta);
             assert_eq!(first_timestamp, test_same_timestamp);
 
-            let (payment, _revoked_rev_reg_delta) = Issuer::revoke_credential(get_temp_dir_path(TEST_TAILS_FILE).to_str().unwrap(), &rev_reg_id, cred_rev_id.unwrap().as_str()).unwrap();
+            let _revoked_rev_reg_delta = Issuer::revoke_credential(get_temp_dir_path(TEST_TAILS_FILE).to_str().unwrap(), &rev_reg_id, cred_rev_id.unwrap().as_str()).unwrap();
 
             // Delta should change after revocation
             let (_, second_rev_reg_delta, _) = Query::get_rev_reg_delta(&rev_reg_id, Some(first_timestamp + 1), None).unwrap();
 
-            assert!(payment.is_some());
             assert_ne!(first_rev_reg_delta, second_rev_reg_delta);
         }
 

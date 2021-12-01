@@ -139,6 +139,8 @@ impl Request {
 
     pub fn rev_reg_delta(issuer_did: &str, rev_reg_id: &str, rev_reg_entry_json: &str)
                          -> VcxResult<String> {
+        if settings::indy_mocks_enabled() { return Ok("".to_string()); }
+
         let request = ledger::build_revoc_reg_entry_request(issuer_did, rev_reg_id, REVOC_REG_TYPE, rev_reg_entry_json)
             .wait()
             .map_err(VcxError::from)?;
