@@ -7,6 +7,7 @@ use crate::utils::libindy::types::CredentialInfo;
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct PresentationPreview {
     #[serde(rename = "@type")]
+    #[serde(default = "default_presentation_preview_type")]
     pub _type: MessageType,
     pub attributes: Vec<Attribute>,
     pub predicates: Vec<Predicate>,
@@ -47,6 +48,15 @@ impl Default for PresentationPreview {
             attributes: vec![],
             predicates: vec![]
         }
+    }
+}
+
+fn default_presentation_preview_type() -> MessageType {
+    MessageType {
+        prefix: MessageTypePrefix::DID,
+        family: MessageTypeFamilies::PresentProof,
+        version: MessageTypeVersion::V10,
+        type_: "presentation-preview".to_string()
     }
 }
 

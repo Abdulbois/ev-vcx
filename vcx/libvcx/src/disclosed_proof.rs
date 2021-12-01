@@ -1184,7 +1184,7 @@ mod tests {
     #[test]
     fn test_create_proposal() {
         let _setup = SetupMocks::init();
-        let proposal = r#"{"@type":"https://didcomm.org/present-proof/1.0/presentation-preview","attributes":[{"name":"FirstName"}],"predicates":[]}"#;
+        let proposal = r#"{"attributes":[{"name":"FirstName"}],"predicates":[]}"#;
 
         assert!(create_proposal("1", proposal.to_string(), "comment".to_string()).unwrap() > 0);
     }
