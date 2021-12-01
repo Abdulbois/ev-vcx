@@ -3,7 +3,7 @@ use crate::agent::provisioning::types::ProvisioningConfig;
 use crate::settings;
 use crate::settings::agency::get_agency_config_values;
 use crate::utils::option_util::get_or_default;
-use crate::utils::libindy::signus::create_and_store_my_did;
+use crate::utils::libindy::crypto::create_and_store_my_did;
 use crate::utils::libindy::{
     wallet,
     anoncreds::holder::Holder,

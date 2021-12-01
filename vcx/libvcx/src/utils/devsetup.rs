@@ -441,7 +441,7 @@ pub fn setup_indy_env(_use_zero_fees: bool) {
 
     crate::utils::libindy::anoncreds::holder::Holder::create_master_secret(settings::DEFAULT_LINK_SECRET_ALIAS).unwrap();
 
-    let (my_did, my_vk) = crate::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
+    let (my_did, my_vk) = crate::utils::libindy::crypto::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
     settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &my_did);
     settings::set_config_value(settings::CONFIG_INSTITUTION_VERKEY, &my_vk);
 }

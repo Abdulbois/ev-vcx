@@ -128,7 +128,7 @@ pub fn add_new_did(role: Option<&str>) -> (String, String) {
 
     let institution_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
 
-    let (did, verkey) = crate::utils::libindy::signus::create_and_store_my_did(None, None).unwrap();
+    let (did, verkey) = crate::utils::libindy::crypto::create_and_store_my_did(None, None).unwrap();
     let mut req_nym = ledger::build_nym_request(&institution_did, &did, Some(&verkey), None, role).wait().unwrap();
 
     req_nym = Request::append_txn_author_agreement(&req_nym).unwrap();

@@ -1,7 +1,7 @@
 use crate::utils::{version_constants, threadpool};
 use libc::c_char;
 use crate::utils::cstring::CStringUtils;
-use crate::utils::libindy::{wallet, vdr, ledger};
+use crate::utils::libindy::{wallet, vdr};
 use crate::utils::error;
 use crate::settings;
 use std::ffi::CString;
@@ -357,86 +357,6 @@ pub extern fn vcx_update_institution_info(name: *const c_char, logo_url: *const 
     settings::set_config_value(crate::settings::CONFIG_INSTITUTION_LOGO_URL, &logo_url);
 
     error::SUCCESS.code_num
-}
-
-/// Retrieve author agreement and acceptance mechanisms set on the Ledger
-///
-/// #params
-///
-/// command_handle: command handle to map callback to user context.
-///
-/// cb: Callback that provides array of matching agent retrieved
-///
-/// # Example author_agreement -> "{"text":"Default agreement", "version":"1.0.0", "aml": {"label1": "description"}}"
-///
-/// #Returns
-/// Error code as a u32
-#[no_mangle]
-pub extern fn vcx_get_ledger_author_agreement(command_handle: CommandHandle,
-                                              cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, author_agreement: *const c_char)>) -> u32 {
-    info!("vcx_get_ledger_author_agreement >>>");
-
-    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
-
-    trace!("vcx_get_ledger_author_agreement(command_handle: {})",
-           command_handle);
-
-    spawn(move || {
-        match ledger::utils::get_txn_author_agreement() {
-            Ok(x) => {
-                trace!("vcx_ledger_get_fees_cb(command_handle: {}, rc: {}, author_agreement: {})",
-                       command_handle, error::SUCCESS.as_str(), x);
-
-                let msg = CStringUtils::string_to_cstring(x);
-                cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
-            }
-            Err(e) => {
-                error!("vcx_get_ledger_author_agreement(command_handle: {}, rc: {})",
-                       command_handle, e);
-                cb(command_handle, e.into(), ::std::ptr::null_mut());
-            }
-        };
-
-        Ok(())
-    });
-
-    error::SUCCESS.code_num
-}
-
-/// Set some accepted agreement as active.
-///
-/// As result of successful call of this function appropriate metadata will be appended to each write request.
-///
-/// #Params
-/// text and version - (optional) raw data about TAA from ledger.
-///     These parameters should be passed together.
-///     These parameters are required if hash parameter is ommited.
-/// hash - (optional) hash on text and version. This parameter is required if text and version parameters are ommited.
-/// acc_mech_type - mechanism how user has accepted the TAA
-/// time_of_acceptance - UTC timestamp when user has accepted the TAA
-///
-/// #Returns
-/// Error code as a u32
-#[no_mangle]
-pub extern fn vcx_set_active_txn_author_agreement_meta(text: *const c_char,
-                                                       version: *const c_char,
-                                                       hash: *const c_char,
-                                                       acc_mech_type: *const c_char,
-                                                       time_of_acceptance: u64) -> u32 {
-    info!("vcx_set_active_txn_author_agreement_meta >>>");
-
-    check_useful_opt_c_str!(text, VcxErrorKind::InvalidOption);
-    check_useful_opt_c_str!(version, VcxErrorKind::InvalidOption);
-    check_useful_opt_c_str!(hash, VcxErrorKind::InvalidOption);
-    check_useful_c_str!(acc_mech_type, VcxErrorKind::InvalidOption);
-
-    trace!("vcx_set_active_txn_author_agreement_meta(text: {:?}, version: {:?}, hash: {:?}, acc_mech_type: {:?}, time_of_acceptance: {:?})",
-           text, version, hash, acc_mech_type, time_of_acceptance);
-
-    match crate::utils::author_agreement::set_txn_author_agreement(text, version, hash, acc_mech_type, time_of_acceptance) {
-        Ok(()) => error::SUCCESS.code_num,
-        Err(err) => err.into()
-    }
 }
 
 /// Get details for last occurred error.
@@ -887,49 +807,6 @@ mod tests {
         let config = CString::new("{}").unwrap();
         crate::api::utils::vcx_agent_provision_async(0, config.as_ptr(), Some(cb));
         ::std::thread::sleep(::std::time::Duration::from_secs(1));
-    }
-
-    #[test]
-    fn test_vcx_set_active_txn_author_agreement_meta() {
-        let _setup = SetupMocks::init();
-
-        assert!(&settings::get_config_value(crate::settings::CONFIG_TXN_AUTHOR_AGREEMENT).is_err());
-
-        let text = "text\0";
-        let version = "1.0.0\0";
-        let acc_mech_type = "type 1\0";
-        let time_of_acceptance = 123456789;
-
-        assert_eq!(error::SUCCESS.code_num, vcx_set_active_txn_author_agreement_meta(text.as_ptr().cast(),
-                                                                                     version.as_ptr().cast(),
-                                                                                     ::std::ptr::null(),
-                                                                                     acc_mech_type.as_ptr().cast(),
-                                                                                     time_of_acceptance));
-
-        let expected = json!({
-            "text": &text[..text.len() - 1],
-            "version": &version[..version.len() - 1],
-            "acceptanceMechanismType": &acc_mech_type[..acc_mech_type.len() - 1],
-            "timeOfAcceptance": time_of_acceptance,
-        });
-
-        let auth_agreement = settings::get_config_value(crate::settings::CONFIG_TXN_AUTHOR_AGREEMENT).unwrap();
-        let auth_agreement = ::serde_json::from_str::<::serde_json::Value>(&auth_agreement).unwrap();
-
-        assert_eq!(expected, auth_agreement);
-
-        crate::settings::set_defaults();
-    }
-
-    #[test]
-    fn test_vcx_get_ledger_author_agreement() {
-        let _setup = SetupMocks::init();
-
-        let (h, cb, r) = return_types::return_u32_str();
-        assert_eq!(vcx_get_ledger_author_agreement(h,
-                                                   Some(cb)), error::SUCCESS.code_num);
-        let agreement = r.recv_short().unwrap();
-        assert_eq!(crate::utils::constants::DEFAULT_AUTHOR_AGREEMENT, agreement.unwrap());
     }
 
     #[cfg(feature = "pool_tests")]

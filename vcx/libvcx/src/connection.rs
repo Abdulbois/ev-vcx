@@ -15,7 +15,7 @@ use crate::agent::messages::get_message::{Message, MessagePayload};
 use crate::utils::object_cache::ObjectCache;
 use crate::settings;
 use crate::utils::error;
-use crate::utils::libindy::signus::create_and_store_my_did;
+use crate::utils::libindy::crypto::create_and_store_my_did;
 use crate::utils::libindy::crypto;
 use crate::utils::json::mapped_key_rewrite;
 
