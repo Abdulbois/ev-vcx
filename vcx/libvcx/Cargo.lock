@@ -922,8 +922,8 @@ dependencies = [
 
 [[package]]
 name = "indy"
-version = "0.8.0"
-source = "git+https://gitlab.com/evernym/verity/vdr-tools?branch=main#b7e9d76a730379bce69d3ef21890b54fe63b7a0f"
+version = "0.8.1"
+source = "git+https://gitlab.com/evernym/verity/vdr-tools?branch=main#3120ca44489ae2f89632ffcb16494a50de3f3341"
 dependencies = [
  "async-std",
  "async-trait",
@@ -943,7 +943,7 @@ dependencies = [
 [[package]]
 name = "indy-sys"
 version = "0.8.0"
-source = "git+https://gitlab.com/evernym/verity/vdr-tools?branch=main#b7e9d76a730379bce69d3ef21890b54fe63b7a0f"
+source = "git+https://gitlab.com/evernym/verity/vdr-tools?branch=main#3120ca44489ae2f89632ffcb16494a50de3f3341"
 dependencies = [
  "libc",
  "pkg-config",
