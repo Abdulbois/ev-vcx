@@ -22,7 +22,6 @@ pub mod test {
     use crate::utils::devsetup::*;
     use crate::utils::libindy::wallet::*;
     use indy_sys::WalletHandle;
-    use crate::utils::plugins::init_plugin;
     use crate::agent::messages::payload::PayloadV1;
     use crate::api::VcxStateType;
     use crate::aries::handlers::connection::types::OutofbandMeta;
@@ -90,14 +89,6 @@ pub mod test {
             fn drop(&mut self) {
                 crate::utils::libindy::wallet::delete_wallet(&self.wallet_name, None, None, None).unwrap();
             }
-        }
-    }
-
-    pub struct PaymentPlugin {}
-
-    impl PaymentPlugin {
-        pub fn load() {
-            init_plugin(crate::settings::DEFAULT_PAYMENT_PLUGIN, crate::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
         }
     }
 
@@ -543,7 +534,6 @@ pub mod test {
         use super::*;
         #[test]
         fn aries_demo() {
-            PaymentPlugin::load();
             let _pool = Pool::open();
 
             let mut faber = Faber::setup();
@@ -584,7 +574,6 @@ pub mod test {
 
         #[test]
         fn aries_demo_handle_connection_related_messages() {
-            PaymentPlugin::load();
             let _pool = Pool::open();
 
             let mut faber = Faber::setup();
@@ -628,7 +617,6 @@ pub mod test {
 
         #[test]
         fn aries_demo_create_with_message_id_flow() {
-            PaymentPlugin::load();
             let _pool = Pool::open();
 
             let mut faber = Faber::setup();
@@ -692,7 +680,6 @@ pub mod test {
 
         #[test]
         fn aries_demo_download_message_flow() {
-            PaymentPlugin::load();
             let _pool = Pool::open();
 
             let mut faber = Faber::setup();
@@ -763,7 +750,6 @@ pub mod test {
 
         #[test]
         fn test_outofband_connection_works() {
-            PaymentPlugin::load();
             let _pool = Pool::open();
 
             let mut faber = Faber::setup();
@@ -808,7 +794,6 @@ pub mod test {
 
         #[test]
         fn test_outofband_connection_works_without_handshake() {
-            PaymentPlugin::load();
             let _pool = Pool::open();
 
             let mut faber = Faber::setup();

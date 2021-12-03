@@ -1,7 +1,8 @@
 use std::mem::take;
-use crate::connection::Connections;
 use serde_json::Value;
 use std::convert::TryInto;
+
+use crate::connection::Connections;
 use crate::error::prelude::*;
 use crate::utils::object_cache::{ObjectCache, Handle};
 use crate::api::VcxStateType;
@@ -186,13 +187,7 @@ impl Credential {
 
         self.credential_request = Some(cred_req);
 
-        if self.payment_info.is_some() {
-            let (payment_txn, _) = self.submit_payment()?;
-            self.payment_txn = Some(payment_txn);
-        }
-
         trace!("Credential::generate_request_msg <<< cred_req_json: {}", secret!(cred_req_json));
-
         Ok(cred_req_json)
     }
 

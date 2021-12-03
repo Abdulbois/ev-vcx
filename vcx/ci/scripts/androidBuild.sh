@@ -67,15 +67,15 @@ get_libindy() {
         if [ ! -d "libindy_${ARCH}" ]; then
 
             if [ $1 == "arm" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/22671839/download
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/23271133/download
             elif [ $1 == "arm64" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/22671833/download
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/23271130/download
             elif [ $1 == "armv7" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/22671858/download
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/23271149/download
             elif [ $1 == "x86" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/22671823/download
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/23271127/download
             elif [ $1 == "x86_64" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/22671848/download
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/23271139/download
             else
                 echo "please provide the arch e.g arm, arm64, armv7, x86, or x86_64"
                 exit 1

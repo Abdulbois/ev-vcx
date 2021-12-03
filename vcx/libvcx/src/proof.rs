@@ -13,7 +13,7 @@ use crate::agent::messages::{RemoteMessageType, GeneralMessage};
 use crate::agent::messages::payload::{Payloads, PayloadKinds};
 use crate::aries::messages::thread::Thread;
 use crate::agent::messages::get_message::get_ref_msg;
-use crate::legacy::messages::proof_presentation::proof_request::{ProofRequestMessage, ProofRequestVersion};
+use crate::legacy::messages::proof_presentation::proof_request::ProofRequestMessage;
 use crate::utils::error;
 use crate::utils::constants::*;
 use crate::utils::libindy::anoncreds::verifier::Verifier as IndyVerifier;
@@ -28,6 +28,8 @@ use crate::aries::handlers::proof_presentation::verifier::Verifier;
 use crate::agent::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
 use crate::aries::messages::proof_presentation::presentation_proposal::PresentationProposal;
 use crate::utils::libindy::ledger::query::Query;
+use crate::utils::libindy::anoncreds::proof_request::ProofRequestVersion;
+
 
 lazy_static! {
     static ref PROOF_MAP: ObjectCache<Proofs> = Default::default();
@@ -1372,7 +1374,7 @@ pub mod tests {
         assert_eq!(handle.get_proof_uuid().unwrap(), "");
 
         // Retry sending proof request
-        assert_eq!(handle.send_proof_request( connection_handle).unwrap(), 0);
+        assert_eq!(handle.send_proof_request(connection_handle).unwrap(), 0);
         assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateOfferSent as u32);
         assert_eq!(handle.get_proof_uuid().unwrap(), "ntc2ytb");
     }
@@ -1619,8 +1621,8 @@ pub mod tests {
         }).to_string();
 
         let proof_handle = create_proof_with_proposal("1".to_string(),
-                                               "Optional".to_owned(),
-                                               proposal).unwrap();
+                                                      "Optional".to_owned(),
+                                                      proposal).unwrap();
 
         PROOF_MAP.get_mut(proof_handle, |proof| {
             match proof {

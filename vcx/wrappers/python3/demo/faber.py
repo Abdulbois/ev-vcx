@@ -33,7 +33,8 @@ provisionConfig = {
     'wallet_name': 'faber_wallet',
     'wallet_key': '123',
     'enterprise_seed': '000000000000000000000000Trustee2',
-    'protocol_type': '3.0',
+    'protocol_type': '4.0',
+    'name': 'Faber',
     'logo': 'https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png',
     'pool_networks': [
         {
@@ -65,6 +66,7 @@ async def main():
             "0 - establish connection \n "
             "1 - issue credential \n "
             "2 - ask for proof request \n "
+            "3 - send message \n "
             "else finish \n") \
             .lower().strip()
         if answer == '0':
@@ -74,6 +76,9 @@ async def main():
         elif answer == '2':
             institution_did = json.loads(config)['institution_did']
             await ask_for_proof(connection_to_alice, proof_attrs(institution_did), proof_predicates(institution_did))
+        elif answer == '3':
+            message = {"response":"PostMigrationNewConn: I am fine","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/questionanswer/1.0/answer","~thread":{"thId":"93bccf5a-4ab0-402a-bab4-c96018fb8265"}}
+            await connection_to_alice.send_message(json.dumps(message), "test", "test")
         else:
             break
 
@@ -179,6 +184,9 @@ async def issue_credential(connection_to_alice, schema_attributes, credential_va
 
 def proof_attrs(institution_did):
     return [
+        {'name': 'Sex', 'restrictions': {
+            'schema_id': 'LnXR1rPnncTPZvRdmJKhJQ:2:degree schema:35.5.94'
+        }},
         {'name': 'MemberID'},
     ]
 
@@ -192,7 +200,7 @@ def proof_predicates(institution_did):
 
 async def ask_for_proof(connection_to_alice, proof_attrs, proof_predicates):
     print("#19 Create a Proof object")
-    proof = await Proof.create('proof_uuid', 'proof_from_alice', proof_attrs, {}, [])
+    proof = await Proof.create('proof_uuid', 'proof_from_alice', proof_attrs, {}, proof_predicates)
 
     print("#20 Request proof of degree from alice")
     await proof.request_proof(connection_to_alice)

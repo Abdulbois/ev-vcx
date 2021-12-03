@@ -43,10 +43,10 @@ impl Default for PresentationPreview {
                 prefix: MessageTypePrefix::DID,
                 family: MessageTypeFamilies::PresentProof,
                 version: MessageTypeVersion::V10,
-                type_: "presentation-preview".to_string()
+                type_: "presentation-preview".to_string(),
             },
             attributes: vec![],
-            predicates: vec![]
+            predicates: vec![],
         }
     }
 }
@@ -56,7 +56,7 @@ fn default_presentation_preview_type() -> MessageType {
         prefix: MessageTypePrefix::DID,
         family: MessageTypeFamilies::PresentProof,
         version: MessageTypeVersion::V10,
-        type_: "presentation-preview".to_string()
+        type_: "presentation-preview".to_string(),
     }
 }
 
@@ -98,12 +98,12 @@ pub mod tests {
 
     pub fn _presentation_preview() -> PresentationPreview {
         PresentationPreview {
-            attributes: vec![Attribute{
+            attributes: vec![Attribute {
                 name: "account".to_string(),
                 cred_def_id: Some("BzCbsNYhMrjHiqZDTUASHg:3:CL:1234:tag".to_string()),
                 mime_type: None,
                 value: None,
-                referent: None
+                referent: None,
             }],
             predicates: vec![],
             ..Default::default()
@@ -115,14 +115,14 @@ pub mod tests {
         // credential to use
         let credential = CredentialInfo {
             referent: "cred1".to_string(),
-            attrs:  map!(
+            attrs: map!(
                 "account".to_string() => "12345678".to_string(),
                 "streetAddress".to_string() => "123 Main Street".to_string()
             ),
             schema_id: "2hoqvcwupRTUNkXn6ArYzs:2:schema_name:0.0.11".to_string(),
             cred_def_id: "BzCbsNYhMrjHiqZDTUASHg:3:CL:1234:tag".to_string(),
             rev_reg_id: None,
-            cred_rev_id: None
+            cred_rev_id: None,
         };
 
         // build presentation preview
@@ -130,20 +130,20 @@ pub mod tests {
 
         assert_eq!(2, presentation_preview.attributes.len());
 
-        let expected_attribute_1 = Attribute{
+        let expected_attribute_1 = Attribute {
             name: "account".to_string(),
             cred_def_id: Some("BzCbsNYhMrjHiqZDTUASHg:3:CL:1234:tag".to_string()),
             mime_type: None,
             value: None,
-            referent: None
+            referent: None,
         };
 
-        let expected_attribute_2 = Attribute{
+        let expected_attribute_2 = Attribute {
             name: "streetAddress".to_string(),
             cred_def_id: Some("BzCbsNYhMrjHiqZDTUASHg:3:CL:1234:tag".to_string()),
             mime_type: None,
             value: None,
-            referent: None
+            referent: None,
         };
 
         // check first attribute present

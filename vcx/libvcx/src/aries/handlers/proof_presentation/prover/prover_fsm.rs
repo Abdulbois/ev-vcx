@@ -29,8 +29,8 @@ use crate::aries::messages::{
     status::Status,
     connection::did_doc::DidDoc,
 };
-use crate::disclosed_proof::DisclosedProof;
 use crate::utils::object_cache::Handle;
+use crate::utils::libindy::anoncreds::holder::Holder as IndyHolder;
 use crate::connection::Connections;
 use crate::error::prelude::*;
 use crate::aries::messages::thread::Thread;
@@ -413,7 +413,7 @@ impl RequestReceivedState {
     fn build_presentation(&self, credentials: &str, self_attested_attrs: &str) -> VcxResult<Presentation> {
         let thread = self.thread.clone();
         let (_, attachment) = self.presentation_request.request_presentations_attach().content()?;
-        let indy_proof = DisclosedProof::generate_indy_proof(credentials, self_attested_attrs, &attachment)?;
+        let indy_proof = IndyHolder::generate_proof(credentials, self_attested_attrs, &attachment)?;
         let presentation = match self.presentation_request {
             PresentationRequest::V1(ref presentation_request) => {
                 Presentation::V1(

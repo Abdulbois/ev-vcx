@@ -16,10 +16,7 @@ use crate::aries::messages::{
         presentation_ack::PresentationAck,
         presentation_proposal::PresentationProposal,
         presentation_request::PresentationRequest,
-        v10::presentation_request::{
-            PresentationRequest as PresentationRequestV1,
-            PresentationRequestData,
-        },
+        v10::presentation_request::PresentationRequest as PresentationRequestV1,
         v20::presentation_request::PresentationRequest as PresentationRequestV2,
     },
     status::Status,
@@ -30,6 +27,7 @@ use crate::aries::messages::thread::Thread;
 use crate::utils::object_cache::Handle;
 use crate::connection::Connections;
 use crate::aries::handlers::connection::types::CompletedConnection;
+use crate::utils::libindy::anoncreds::proof_request::ProofRequest;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct VerifierSM {
@@ -38,7 +36,7 @@ pub struct VerifierSM {
 }
 
 impl VerifierSM {
-    pub fn new(presentation_request: PresentationRequestData, source_id: String) -> VerifierSM {
+    pub fn new(presentation_request: ProofRequest, source_id: String) -> VerifierSM {
         VerifierSM {
             source_id,
             state: VerifierState::Initiated(
@@ -281,7 +279,7 @@ impl VerifierSM {
         }
     }
 
-    pub fn presentation_request_data(&self) -> VcxResult<&PresentationRequestData> {
+    pub fn presentation_request_data(&self) -> VcxResult<&ProofRequest> {
         match self.state {
             VerifierState::Initiated(ref state) => Ok(&state.presentation_request_data),
             VerifierState::PresentationRequestPrepared(_) => Err(VcxError::from_msg(VcxErrorKind::NotReady,
@@ -369,7 +367,7 @@ impl InitialState {
     fn send_presentation_request(self, connection_handle: Handle<Connections>) -> VcxResult<VerifierState> {
         let connection: CompletedConnection = connection_handle.get_completed_connection()?;
 
-        let presentation_request: PresentationRequestData =
+        let presentation_request: ProofRequest =
             self.presentation_request_data.clone()
                 .set_format_version_for_did(&connection.agent.pw_did, &connection.data.did_doc.id)?;
 
@@ -551,7 +549,7 @@ impl PresentationRequestSentState {
 
 impl PresentationProposalReceivedState {
     fn send_presentation_request(self, connection_handle: Handle<Connections>,
-                                 presentation_request_data: PresentationRequestData) -> VcxResult<VerifierState> {
+                                 presentation_request_data: ProofRequest) -> VcxResult<VerifierState> {
         let connection = connection_handle.get_completed_connection()?;
 
         let thread = self.thread.clone()
@@ -559,7 +557,7 @@ impl PresentationProposalReceivedState {
             .set_opt_pthid(connection.data.thread.pthid.clone())
             .increment_sender_order();
 
-        let presentation_request: PresentationRequestData =
+        let presentation_request: ProofRequest =
             presentation_request_data
                 .set_format_version_for_did(&connection.agent.pw_did, &connection.data.did_doc.id)?;
 
@@ -600,8 +598,8 @@ impl PresentationProposalReceivedState {
 
         let presentation_request = match &self.presentation_proposal {
             PresentationProposal::V1(presentation_proposal) => {
-                let presentation_request: PresentationRequestData =
-                    PresentationRequestData::create()
+                let presentation_request: ProofRequest =
+                    ProofRequest::create()
                         .set_name(presentation_proposal.comment.clone().unwrap_or_default())
                         .set_requested_attributes_value(presentation_proposal.to_proof_request_requested_attributes())
                         .set_requested_predicates_value(presentation_proposal.to_proof_request_requested_predicates())
@@ -617,8 +615,8 @@ impl PresentationProposalReceivedState {
                 )
             }
             PresentationProposal::V2(presentation_proposal) => {
-                let presentation_request_data: PresentationRequestData =
-                    PresentationRequestData::create()
+                let presentation_request_data: ProofRequest =
+                    ProofRequest::create()
                         .set_name(presentation_proposal.comment.clone().unwrap_or_default())
 //                                        .set_requested_attributes_value(presentation_proposal.to_proof_request_requested_attributes())
 //                                        .set_requested_predicates_value(presentation_proposal.to_proof_request_requested_predicates())

@@ -195,7 +195,6 @@ mod test {
     use crate::utils::devsetup::*;
     #[cfg(feature = "pool_tests")]
     use crate::utils::constants::*;
-    use crate::schema::prepare_schema_for_endorser;
 
     #[test]
     fn test_verify_transaction_can_be_endorsed() {

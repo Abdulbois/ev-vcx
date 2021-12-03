@@ -4,6 +4,7 @@ pub mod verifier;
 pub mod blob_storage;
 pub mod utils;
 pub mod types;
+pub mod proof_request;
 
 use futures::Future;
 use crate::indy::anoncreds;

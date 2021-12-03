@@ -8,7 +8,7 @@ import string
 from vcx.api.connection import Connection
 from vcx.api.credential import Credential
 from vcx.api.disclosed_proof import DisclosedProof
-from vcx.api.utils import vcx_provision_agent_with_token, vcx_get_provision_token
+from vcx.api.utils import vcx_provision_agent_with_token, vcx_get_provision_token, vcx_messages_download
 from vcx.api.vcx_init import vcx_init_with_config
 from vcx.state import State
 
@@ -21,7 +21,7 @@ provisionConfig = {
     'wallet_name': 'alice_wallet',
     'wallet_key': '123',
     'enterprise_seed': '000000000000000000000000Trustee1',
-    'protocol_type': '3.0',
+    'protocol_type': '4.0',
     'name': 'alice',
     'indy_pool_networks': [
         {
@@ -55,6 +55,7 @@ async def main():
             "1 - check for credential offer \n "
             "2 - check for proof request \n "
             "3 - propose proof\n "
+            "4 - download messages\n "
             "else finish \n") \
             .lower().strip()
         if answer == '0':
@@ -96,6 +97,11 @@ async def main():
                 break
         elif answer == '3':
             connection_to_faber = await propose_proof(credential_o)
+        elif answer == '4':
+            pw_did = await connection_to_faber.get_my_pw_did()
+            messages = await vcx_messages_download("MS-103", None, pw_did)
+            messages = json.loads(messages.decode())[0]['msgs']
+            print(messages)
         else:
             break
 
@@ -194,13 +200,22 @@ async def create_proof(connection_to_faber, proof):
     credentials = await proof.get_creds()
 
     # Use the first available credentials to satisfy the proof request
-    for attr in credentials['attrs']:
-        credentials['attrs'][attr] = {
-            'credential': credentials['attrs'][attr][0]
+    selected_credentials = {
+        'attrs': {}
+    }
+
+    for attr in credentials['attributes']:
+        selected_credentials['attrs'][attr] = {
+            'credential': credentials['attributes'][attr]['credentials'][0]
+        }
+
+    for attr in credentials['predicates']:
+        selected_credentials['attrs'][attr] = {
+            'credential': credentials['predicates'][attr]['credentials'][0]
         }
 
     print("#25 Generate the proof")
-    await proof.generate_proof(credentials, {})
+    await proof.generate_proof(selected_credentials, {})
 
     print("#26 Send the proof")
     await proof.send_proof(connection_to_faber)
