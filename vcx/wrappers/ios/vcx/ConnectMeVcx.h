@@ -2304,40 +2304,6 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 /// Error code as a u32
 - (void) getLedgerFees:(void(^)(NSError *error, NSString *fees)) completion;
 
-/// Retrieve author agreement and acceptance mechanisms set on the Ledger
-///
-/// #params
-///
-/// command_handle: command handle to map callback to user context.
-///
-/// cb: Callback that provides array of matching messages retrieved
-///
-/// # Example author_agreement -> "{"text":"Default agreement", "version":"1.0.0", "aml": {"label1": "description"}}"
-///
-/// #Returns
-/// Error code as a u32
-- (void) getTxnAuthorAgreement:(void(^)(NSError *error, NSString *authorAgreement)) completion;
-
-/// Set some accepted agreement as active.
-///
-/// As result of successful call of this function appropriate metadata will be appended to each write request.
-///
-/// #Params
-/// text and version - (optional) raw data about TAA from ledger.
-///     These parameters should be passed together.
-///     These parameters are required if hash parameter is ommited.
-/// hash - (optional) hash on text and version. This parameter is required if text and version parameters are ommited.
-/// acc_mech_type - mechanism how user has accepted the TAA
-/// time_of_acceptance - UTC timestamp when user has accepted the TAA
-///
-/// #Returns
-/// Error code as a u32
-- (vcx_error_t) activateTxnAuthorAgreement:(NSString *)text
-                               withVersion:(NSString *)version
-                                  withHash:(NSString *)hash
-                             withMechanism:(NSString *)mechanism
-                             withTimestamp:(long)timestamp;
-
 /**
  Fetch and Cache public entities from the Ledger associated with stored in the wallet credentials.
  This function performs two steps:

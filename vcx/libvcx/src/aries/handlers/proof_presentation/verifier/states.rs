@@ -3,12 +3,12 @@ use crate::aries::messages::{
         presentation::Presentation,
         presentation_proposal::PresentationProposal,
         presentation_request::PresentationRequest,
-        v10::presentation_request::PresentationRequestData
     },
     status::Status
 };
 use crate::aries::handlers::connection::types::CompletedConnection;
 use crate::aries::messages::thread::Thread;
+use crate::utils::libindy::anoncreds::proof_request::ProofRequest;
 
 // Possible Transitions:
 //
@@ -26,7 +26,7 @@ pub enum VerifierState {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct InitialState {
-    pub presentation_request_data: PresentationRequestData
+    pub presentation_request_data: ProofRequest
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

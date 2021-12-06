@@ -1962,16 +1962,6 @@ mod tests {
     }
 
     #[test]
-    fn test_vcx_connection_release() {
-        let _setup = SetupMocks::init();
-
-        let handle = build_test_connection();
-
-        let rc = vcx_connection_release(handle);
-        assert_eq!(rc, error::SUCCESS.code_num);
-    }
-
-    #[test]
     fn test_vcx_connection_deserialize_succeeds() {
         let _setup = SetupMocks::init();
 

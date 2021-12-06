@@ -1,10 +1,11 @@
-/* test isn't ready until > libindy 1.0.1 */
 use futures::Future;
-use crate::indy::crypto;
 
-use crate::utils::libindy::LibindyMock;
+use crate::indy::{crypto, did};
 use crate::settings;
 use crate::error::prelude::*;
+use crate::utils::libindy::LibindyMock;
+use crate::utils::constants::*;
+use crate::utils::libindy::wallet::get_wallet_handle;
 
 pub fn prep_msg(sender_vk: &str, recipient_vk: &str, msg: &[u8]) -> VcxResult<Vec<u8>> {
     if settings::indy_mocks_enabled() {
@@ -77,6 +78,28 @@ pub fn unpack_message(msg: &[u8]) -> VcxResult<Vec<u8>> {
 pub fn create_key(seed: Option<&str>) -> VcxResult<String> {
     let key_json = json!({"seed": seed}).to_string();
     crypto::create_key(crate::utils::libindy::wallet::get_wallet_handle(), Some(&key_json))
+        .wait()
+        .map_err(VcxError::from)
+}
+
+pub fn create_and_store_my_did(seed: Option<&str>, method_name: Option<&str>) -> VcxResult<(String, String)> {
+    if settings::indy_mocks_enabled() {
+        return Ok((DID.to_string(), VERKEY.to_string()));
+    }
+
+    let my_did_json = json!({"seed": seed, "method_name": method_name});
+
+    did::create_and_store_my_did(get_wallet_handle(), &my_did_json.to_string())
+        .wait()
+        .map_err(VcxError::from)
+}
+
+pub fn get_local_verkey(did: &str) -> VcxResult<String> {
+    if settings::indy_mocks_enabled() {
+        return Ok(VERKEY.to_string());
+    }
+
+    did::key_for_local_did(get_wallet_handle(), did)
         .wait()
         .map_err(VcxError::from)
 }

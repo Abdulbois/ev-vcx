@@ -148,13 +148,11 @@ mod tests {
     use crate::settings;
     use crate::utils::constants;
     use crate::utils::devsetup::{C_AGENCY_DID, C_AGENCY_VERKEY, C_AGENCY_ENDPOINT, cleanup_indy_env};
-    use crate::utils::plugins::init_plugin;
     use crate::utils::libindy::wallet::delete_wallet;
 
     #[test]
     fn test_token_provisioning() {
         cleanup_indy_env();
-        init_plugin(crate::settings::DEFAULT_PAYMENT_PLUGIN, crate::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
         let seed1 = crate::utils::devsetup::create_new_seed();
         let enterprise_wallet_name = format!("{}_{}", crate::utils::constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);

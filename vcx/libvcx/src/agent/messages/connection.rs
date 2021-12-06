@@ -829,7 +829,7 @@ pub struct RedirectionDetails {
 #[cfg(test)]
 mod tests {
     use crate::agent::messages::{send_invite, redirect_connection};
-    use crate::utils::libindy::signus::create_and_store_my_did;
+    use crate::utils::libindy::crypto::create_and_store_my_did;
     use super::*;
     use crate::utils::devsetup::*;
 

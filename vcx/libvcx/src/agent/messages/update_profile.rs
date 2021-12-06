@@ -144,7 +144,7 @@ impl UpdateProfileDataBuilder {
 mod tests {
     use super::*;
     use crate::agent::messages::update_data;
-    use crate::utils::libindy::signus::create_and_store_my_did;
+    use crate::utils::libindy::crypto::create_and_store_my_did;
     use crate::utils::devsetup::*;
 
     #[test]

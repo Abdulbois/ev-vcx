@@ -10,7 +10,8 @@ use crate::aries::messages::a2a::message_type::{
 };
 use crate::aries::messages::a2a::message_family::MessageTypeFamilies;
 
-pub use crate::legacy::messages::proof_presentation::proof_request::{ProofRequestMessage, ProofRequestData, ProofRequestVersion};
+pub use crate::legacy::messages::proof_presentation::proof_request::{ProofRequestMessage};
+pub use crate::utils::libindy::anoncreds::proof_request::ProofRequest;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct PresentationRequest {
@@ -50,7 +51,7 @@ impl PresentationRequest {
         self
     }
 
-    pub fn set_request_presentations_attach(mut self, request_presentations: &PresentationRequestData) -> VcxResult<PresentationRequest> {
+    pub fn set_request_presentations_attach(mut self, request_presentations: &ProofRequest) -> VcxResult<PresentationRequest> {
         self.request_presentations_attach.add_base64_encoded_json_attachment(AttachmentId::PresentationRequest, json!(request_presentations))?;
         Ok(self)
     }
@@ -95,16 +96,14 @@ impl Default for PresentationRequest {
     }
 }
 
-pub type PresentationRequestData = ProofRequestData;
-
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::aries::messages::thread::Thread;
     use crate::aries::messages::connection::service::tests::_service;
 
-    pub fn _presentation_request_data() -> PresentationRequestData {
-        PresentationRequestData::default()
+    pub fn _presentation_request_data() -> ProofRequest {
+        ProofRequest::default()
             .set_requested_attributes(json!([{"name": "name"}]).to_string()).unwrap()
     }
 

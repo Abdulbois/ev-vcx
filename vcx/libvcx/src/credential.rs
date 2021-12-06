@@ -1,7 +1,8 @@
 use std::mem::take;
-use crate::connection::Connections;
 use serde_json::Value;
 use std::convert::TryInto;
+
+use crate::connection::Connections;
 use crate::error::prelude::*;
 use crate::utils::object_cache::{ObjectCache, Handle};
 use crate::api::VcxStateType;
@@ -22,12 +23,10 @@ use crate::agent::messages::{
         get_connection_messages,
     },
 };
-use crate::utils::libindy::anoncreds::{libindy_prover_create_credential_req, libindy_prover_store_credential, get_cred_def_json, libindy_prover_delete_credential, prover_get_credential};
-use crate::utils::libindy::payments::{pay_a_payee, PaymentTxn};
+use crate::utils::libindy::anoncreds::holder::Holder as IndyHolder;
+use crate::utils::libindy::payments::{PaymentTxn};
 use crate::utils::{error, constants};
-
 use crate::utils::httpclient::AgencyMock;
-
 use crate::aries::{
     messages::issuance::credential_offer::CredentialOffer as CredentialOfferV3,
     handlers::issuance::holder::Holder,
@@ -38,6 +37,7 @@ use crate::aries::messages::proof_presentation::presentation_preview::Presentati
 use crate::aries::messages::proof_presentation::presentation_proposal::PresentationProposal;
 use crate::aries::messages::proof_presentation::v10::presentation_proposal::PresentationProposal as PresentationProposalV1;
 use crate::settings;
+use crate::utils::libindy::ledger::query::Query;
 
 lazy_static! {
     static ref HANDLE_MAP: ObjectCache<Credentials>  = Default::default();
@@ -165,9 +165,9 @@ impl Credential {
     pub fn create_credential_request(cred_def_id: &str, prover_did: &str, cred_offer: &str) -> VcxResult<(String, String, String, String)> {
         trace!("Credential::create_credential_request >>> cred_def_id: {}, prover_did: {}, cred_offer: {}", secret!(cred_def_id), secret!(prover_did), secret!(cred_offer));
 
-        let (cred_def_id, cred_def_json) = get_cred_def_json(&cred_def_id)?;
+        let (cred_def_id, cred_def_json) = Query::get_cred_def(&cred_def_id)?;
 
-        let (cred_req, cred_req_meta) = libindy_prover_create_credential_req(&prover_did,
+        let (cred_req, cred_req_meta) = IndyHolder::create_credential_req(&prover_did,
                                                                              &cred_offer,
                                                                              &cred_def_json)
             .map_err(|err| err.extend("Cannot create credential request"))?;
@@ -187,13 +187,7 @@ impl Credential {
 
         self.credential_request = Some(cred_req);
 
-        if self.payment_info.is_some() {
-            let (payment_txn, _) = self.submit_payment()?;
-            self.payment_txn = Some(payment_txn);
-        }
-
         trace!("Credential::generate_request_msg <<< cred_req_json: {}", secret!(cred_req_json));
-
         Ok(cred_req_json)
     }
 
@@ -276,15 +270,17 @@ impl Credential {
         let cred_req: &CredentialRequest = self.credential_request.as_ref()
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, "Invalid Credential object state:`credential_request` not found"))?;
 
-        let (_, cred_def_json) = get_cred_def_json(&cred_req.cred_def_id)?;
+        let (_, cred_def_json) = Query::get_cred_def(&cred_req.cred_def_id)?;
 
         self.credential = Some(credential);
-        self.cred_id = Some(libindy_prover_store_credential(None,
-                                                            &cred_req.libindy_cred_req_meta,
-                                                            &credential_msg.libindy_cred,
-                                                            &cred_def_json,
-                                                            )?);
 
+        let cred_id =  IndyHolder::store_credential(None,
+                                                    &cred_req.libindy_cred_req_meta,
+                                                    &credential_msg.libindy_cred,
+                                                    &cred_def_json,
+        )?;
+
+        self.cred_id = Some(cred_id);
         self.state = VcxStateType::VcxStateAccepted;
 
         trace!("Credential::_check_msg <<<");
@@ -415,14 +411,9 @@ impl Credential {
     fn submit_payment(&self) -> VcxResult<(PaymentTxn, String)> {
         debug!("Credential {}: Submitting payment for premium credentia", self.source_id);
 
-        match &self.payment_info {
-            &Some(ref pi) => {
-                let address = &pi.get_address();
-                let price = pi.get_price();
-                let (payment_txn, receipt) = pay_a_payee(price, address)?;
-                Ok((payment_txn, receipt))
-            }
-            &None => Err(VcxError::from(VcxErrorKind::NoPaymentInformation)),
+        match self.payment_info {
+            Some(_) => Err(VcxError::from(VcxErrorKind::ActionNotSupported)),
+            None => Err(VcxError::from(VcxErrorKind::NoPaymentInformation)),
         }
     }
 
@@ -454,7 +445,7 @@ impl Credential {
         let cred_id = self.cred_id.as_ref()
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Credential object state: `cred_id` not found", self.source_id)))?;
 
-        libindy_prover_delete_credential(cred_id)
+        IndyHolder::delete_credential(cred_id)
     }
 
     fn get_presentation_proposal(&self) -> VcxResult<PresentationProposal> {
@@ -469,7 +460,7 @@ impl Credential {
         let cred_id = self.cred_id.as_ref()
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Credential object state: `cred_id` not found", self.source_id)))?;
 
-        let credential = prover_get_credential(&cred_id)?;
+        let credential = IndyHolder::get_credential(&cred_id)?;
 
         let presentation_proposal = PresentationProposal::V1(
             PresentationProposalV1::create()
@@ -493,7 +484,7 @@ impl Credential {
         let cred_id = self.cred_id.as_ref()
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Credential object state: `cred_id` not found", self.source_id)))?;
 
-        let credential_info = prover_get_credential(&cred_id)?;
+        let credential_info = IndyHolder::get_credential(&cred_id)?;
         let credential_info_json = json!(credential_info).to_string();
 
         trace!("Credential::get_info <<< credential_json: {:?}", credential_info_json);

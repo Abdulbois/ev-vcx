@@ -1,6 +1,8 @@
-use crate::error::{VcxError, VcxErrorKind, VcxResult};
 use serde_json;
+
+use crate::error::{VcxError, VcxErrorKind, VcxResult};
 use crate::settings;
+use crate::utils::libindy::ledger::types::TxnAuthorAgreement;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -15,25 +17,6 @@ pub struct TxnAuthorAgreementAcceptanceData {
     pub time_of_acceptance: u64,
 }
 
-pub fn set_txn_author_agreement(text: Option<String>,
-                                version: Option<String>,
-                                taa_digest: Option<String>,
-                                acc_mech_type: String,
-                                time_of_acceptance: u64) -> VcxResult<()> {
-    let meta = TxnAuthorAgreementAcceptanceData {
-        text,
-        version,
-        taa_digest,
-        acceptance_mechanism_type: acc_mech_type,
-        time_of_acceptance,
-    };
-
-    let meta = json!(meta).to_string();
-    settings::set_config_value(settings::CONFIG_TXN_AUTHOR_AGREEMENT, &meta);
-
-    Ok(())
-}
-
 pub fn get_txn_author_agreement() -> VcxResult<Option<TxnAuthorAgreementAcceptanceData>> {
     match settings::get_config_value(settings::CONFIG_TXN_AUTHOR_AGREEMENT) {
         Ok(value) => {
@@ -43,6 +26,18 @@ pub fn get_txn_author_agreement() -> VcxResult<Option<TxnAuthorAgreementAcceptan
             Ok(Some(meta))
         }
         Err(_) => Ok(None)
+    }
+}
+
+impl Into<TxnAuthorAgreement> for TxnAuthorAgreementAcceptanceData {
+    fn into(self) -> TxnAuthorAgreement {
+        TxnAuthorAgreement {
+            text: self.text,
+            version: self.version,
+            taa_digest: self.taa_digest,
+            acc_mech_type: self.acceptance_mechanism_type,
+            time: self.time_of_acceptance,
+        }
     }
 }
 
@@ -57,29 +52,17 @@ mod tests {
     const TIME_OF_ACCEPTANCE: u64 = 123456789;
 
     #[test]
-    fn set_txn_author_agreement_works() {
-        let _setup = SetupDefaults::init();
-
-        assert!(settings::get_config_value(settings::CONFIG_TXN_AUTHOR_AGREEMENT).is_err());
-
-        set_txn_author_agreement(Some(TEXT.to_string()),
-                                 Some(VERSION.to_string()),
-                                 None,
-                                 ACCEPTANCE_MECHANISM.to_string(),
-                                 TIME_OF_ACCEPTANCE).unwrap();
-
-        assert!(settings::get_config_value(settings::CONFIG_TXN_AUTHOR_AGREEMENT).is_ok());
-    }
-
-    #[test]
     fn get_txn_author_agreement_works() {
         let _setup = SetupDefaults::init();
 
-        set_txn_author_agreement(Some(TEXT.to_string()),
-                                 Some(VERSION.to_string()),
-                                 None,
-                                 ACCEPTANCE_MECHANISM.to_string(),
-                                 TIME_OF_ACCEPTANCE).unwrap();
+        let meta = TxnAuthorAgreementAcceptanceData {
+            text: Some(TEXT.to_string()),
+            version: Some(VERSION.to_string()),
+            taa_digest: None,
+            acceptance_mechanism_type: ACCEPTANCE_MECHANISM.to_string(),
+            time_of_acceptance: TIME_OF_ACCEPTANCE,
+        };
+        settings::set_config_value(settings::CONFIG_TXN_AUTHOR_AGREEMENT, &json!(meta).to_string());
 
         let meta = get_txn_author_agreement().unwrap().unwrap();
 

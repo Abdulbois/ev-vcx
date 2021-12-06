@@ -748,21 +748,6 @@ mod tests {
     }
 
     #[test]
-    fn test_get_payment_txn() {
-        let _setup = SetupMocks::init();
-
-        let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-        let handle = credential_def::create_and_publish_credentialdef("sid".to_string(),
-                                                                      "name".to_string(),
-                                                                      did, SCHEMA_ID.to_string(),
-                                                                      "tag".to_string(),
-                                                                      "{}".to_string()).unwrap();
-        let (h, cb, r) = return_types::return_u32_str();
-        let _rc = vcx_credentialdef_get_payment_txn(h, handle, Some(cb));
-        r.recv_medium().unwrap();
-    }
-
-    #[test]
     fn test_vcx_prepare_cred_def_success() {
         let _setup = SetupMocks::init();
 
