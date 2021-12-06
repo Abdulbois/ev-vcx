@@ -1,5 +1,27 @@
 # Changelog
 
+## Release notes - EvLibVcx 0.13.0 Dec 10 2021
+
+### Tasks
+* Added protocol type `4.0` (`protocol_type` setting in configuration JSON) implying that all input and output messages (`Credential Offers`, `Credential`, `Proof Requests`) will be in the Aries message format instead of legacy one.
+* Migrated from the usage of [Hyperledger Indy-SDK](https://github.com/hyperledger/indy-sdk.git) to Evernym [VDR-Tools](https://gitlab.com/evernym/verity/vdr-tools.git).
+* Added ability to connect to multiple Indy Pool Ledger networks and read data from them.
+* Added helper function  `vcx_extract_attached_message` to extract attachment content from Aries message containing attachment decorator.
+* Added helper function  `vcx_resolve_message_by_url` to resolve message by URL.
+* Extend the result of `vcx_disclosed_proof_retrieve_credentials` to return more information for each requested attribute and predicate:
+  * values of requested attributes fetched from credential (case-insensitive)
+  * if an attribute can be self-attested (only when `protocol_type:4.0` is used)
+  * if an attribute is missing (only when `protocol_type:4.0` is used)
+* Added support for [Out-Of-Band 1.1](https://github.com/hyperledger/aries-rfcs/tree/main/features/0434-outofband) Aries protocol.
+* Added support for [Issue Credential 2.0](https://github.com/hyperledger/aries-rfcs/tree/main/features/0453-issue-credential-v2) Aries protocol (indy credentials only).
+* Added support for [Present Proof 2.0](https://github.com/hyperledger/aries-rfcs/tree/main/features/0454-present-proof-v2) Aries protocol (indy credentials only).
+* Added support for NodeJS 12.
+* Added React-Native package.
+
+### Bugfixes
+* Various efficiency improvements.
+* Added functions missing in Objective-C wrapper (`connectionGetPwDid`, `connectionGetTheirDid`, `connectionInfo`, wallet related functions).
+
 ## Release notes - EvLibVcx 0.12.0 Jun 17 2021
 
 ### Tasks
