@@ -739,6 +739,46 @@ vcx_error_t vcx_connection_get_problem_report(vcx_command_handle_t command_handl
                                               vcx_connection_handle_t connection_handle,
                                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
+/// Try to upgrade legacy Connection
+///   1. Query Cloud Agent for upgrade information
+///   2. Apply upgrade information if received
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// connection_handle: handle pointing to Connection state object.
+///
+/// data: (Optional) connection upgrade information
+///                 {
+///                     endpoint: string,
+///                     verkey: string,
+///                     did: string,
+///                 }
+///
+/// cb: Callback that returns serialized representation of upgraded connection state object
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_connection_upgrade(vcx_command_handle_t command_handle,
+                                   vcx_connection_handle_t connection_handle,
+                                   const char* data,
+                                   void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Check if connection is outdated and require upgrade
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// serialized: serialized representation of connection state object
+///
+/// cb: Callback that returns bool flag indicating upgrade requirement
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_connection_need_upgrade(vcx_command_handle_t command_handle,
+                                        const char* serialized,
+                                        void (*cb)(vcx_command_handle_t, vcx_error_t, vcx_bool_t))
+
 // Create a Credential object that requests and receives a credential for an institution
 //
 // #Params

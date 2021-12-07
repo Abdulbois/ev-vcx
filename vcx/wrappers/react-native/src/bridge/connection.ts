@@ -113,6 +113,15 @@ interface IConnectionSendPing {
   comment: string
 }
 
+interface IConnectionNeedUpgrade {
+  serialized: string
+}
+
+interface IConnectionUpgrade {
+  handle: number
+  data?: string | null | undefined
+}
+
 export class Connection {
   /**
    * Create a Connection object that provides a pairwise connection for an institution's user.
@@ -626,5 +635,45 @@ export class Connection {
    */
   public static async sendPing({ handle, comment }: IConnectionSendPing): Promise<void> {
     return await RNIndy.connectionSendPing(handle, comment)
+  }
+
+  /**
+   * Check if connection is outdated and require upgrade
+   *
+   * @param  serialized           serialized representation of connection state object
+   *
+   * @return                      bool flag indicating upgrade requirement
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
+  public static async connectionNeedUpgrade({ serialized }: IConnectionNeedUpgrade): Promise<boolean> {
+    return await RNIndy.connectionNeedUpgrade(serialized)
+  }
+
+  /**
+   * Try to upgrade legacy Connection
+   *   1. Query Cloud Agent for upgrade information
+   *   2. Apply upgrade information if received
+   *
+   * If connection cannot be upgraded (Enterprise side has not upgraded connection yet) ono of the error may be returned:
+   *     - ConnectionNotReadyToUpgrade 1065
+   *     - NotReady 1005
+   *     - ActionNotSupported 1103
+   *     - InvalidAgencyResponse 1020
+   *
+   * @param  connectionHandle handle pointing to a Connection object.
+   * @param  data: (Optional) connection upgrade information
+   *                 {
+   *                     endpoint: string,
+   *                     verkey: string,
+   *                     did: string,
+   *                 }
+   *
+   * @return                  serialized representation of upgraded connection state object
+   *
+   * @throws VcxException     If an exception occurred in Libvcx library.
+   */
+  public static async upgrade({ handle, data }: IConnectionUpgrade): Promise<string> {
+    return await RNIndy.connectionUpgrade(handle, data)
   }
 }

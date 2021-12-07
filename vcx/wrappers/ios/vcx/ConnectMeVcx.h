@@ -943,6 +943,44 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 - (void)connectionGetProblemReport:(NSInteger) connectionHandle
                         completion:(void (^)(NSError *error, NSString *message))completion;
 
+/// Check if connection is outdated and require upgrade
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// serializedConnection: serialized representation of connection state object
+///
+/// #Returns
+/// bool flag indicating upgrade requirement
+- (void)connectionNeedUpgrade:(NSString *) serializedConnection
+                   completion:(void (^)(NSError *error, vcx_bool_t need))completion;
+
+/// Try to upgrade legacy Connection
+///   1. Query Cloud Agent for upgrade information
+///   2. Apply upgrade information if received
+///
+/// If connection cannot be upgraded (Enterprise side has not upgraded connection yet) ono of the error may be returned:
+///     - ConnectionNotReadyToUpgrade 1065
+///     - NotReady 1005
+///     - ActionNotSupported 1103
+///     - InvalidAgencyResponse 1020
+///
+/// #Params
+/// connection_handle: handle pointing to Connection state object.
+///
+/// data: (Optional) connection upgrade information
+///                 {
+///                     endpoint: string,
+///                     verkey: string,
+///                     did: string,
+///                 }
+///
+/// #Returns
+/// Serialized representation of upgraded connection state object (handle kept the same)
+- (void)connectionUpgrade:(NSInteger) connectionHandle
+                     data:data
+               completion:(void (^)(NSError *error, NSString *serialized))completion;
+
 /// Create a Connection object that provides a pairwise connection for an institution's user
 ///
 /// # Params

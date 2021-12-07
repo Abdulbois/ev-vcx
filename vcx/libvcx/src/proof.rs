@@ -750,7 +750,7 @@ impl Handle<Proofs> {
             let new_proof = match proof {
                 Proofs::Pending(obj) => {
                     // if Aries connection is established --> Convert Pending object to V3 Aries proof
-                    if connection_handle.is_v3_connection()? {
+                    if connection_handle.is_aries_connection()? {
                         debug!("converting pending proof into aries object");
 
                         let revocation_details = serde_json::to_string(&obj.revocation_interval)
@@ -796,7 +796,7 @@ impl Handle<Proofs> {
             let new_proof = match proof {
                 Proofs::Pending(obj) => {
                     // if Aries connection is established --> Convert Pending object to V3 Aries proof
-                    if connection_handle.is_v3_connection()? {
+                    if connection_handle.is_aries_connection()? {
                         debug!("converting pending proof into aries object");
 
                         let revocation_interval = serde_json::to_string(&obj.revocation_interval)

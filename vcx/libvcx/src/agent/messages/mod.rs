@@ -12,6 +12,7 @@ pub mod wallet_backup;
 pub mod deaddrop;
 pub mod token_provisioning;
 pub mod update_agent;
+pub mod connection_upgrade;
 
 use crate::settings;
 use crate::utils::libindy::crypto;
@@ -43,6 +44,7 @@ use crate::agent::messages::provision::ProblemReport;
 use crate::agent::messages::update_agent::{UpdateComMethod, ComMethodUpdated};
 use crate::legacy::messages::proof_presentation::proof_request::ProofRequestMessage;
 use crate::utils::validation;
+use crate::agent::messages::connection_upgrade::{GetUpgradeInfo, UpgradeInfoResponse, GetUpgradeInfoBuilder};
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
@@ -82,6 +84,10 @@ pub enum A2AMessageV1 {
     UpdateConfigsResponse(UpdateConfigsResponse),
     UpdateComMethod(UpdateComMethod),
     ComMethodUpdated(ComMethodUpdated),
+
+    /// PW Connection Upgrade
+    GetUpgradeInfo(GetUpgradeInfo),
+    UpgradeInfoResponse(UpgradeInfoResponse),
 }
 
 impl<'de> Deserialize<'de> for A2AMessageV1 {
@@ -215,6 +221,16 @@ impl<'de> Deserialize<'de> for A2AMessageV1 {
                     .map(A2AMessageV1::UpdateConfigsResponse)
                     .map_err(de::Error::custom)
             }
+            "GET_UPGRADE_INFO" => {
+                GetUpgradeInfo::deserialize(value)
+                    .map(A2AMessageV1::GetUpgradeInfo)
+                    .map_err(de::Error::custom)
+            }
+            "UPGRADE_INFO" => {
+                UpgradeInfoResponse::deserialize(value)
+                    .map(A2AMessageV1::UpgradeInfoResponse)
+                    .map_err(de::Error::custom)
+            }
             _ => Err(de::Error::custom("Unexpected @type field structure."))
         }
     }
@@ -281,6 +297,10 @@ pub enum A2AMessageV2 {
     /// Dead Drop
     RetrieveDeadDrop(RetrieveDeadDrop),
     RetrievedDeadDropResult(RetrievedDeadDropResult),
+
+    /// PW Connection Upgrade
+    GetUpgradeInfo(GetUpgradeInfo),
+    UpgradeInfoResponse(UpgradeInfoResponse),
 }
 
 impl<'de> Deserialize<'de> for A2AMessageV2 {
@@ -507,6 +527,16 @@ impl<'de> Deserialize<'de> for A2AMessageV2 {
             "DEAD_DROP_RETRIEVED_RESULT" => {
                 RetrievedDeadDropResult::deserialize(value)
                     .map(|msg| A2AMessageV2::RetrievedDeadDropResult(msg))
+                    .map_err(de::Error::custom)
+            }
+            "GET_UPGRADE_INFO" => {
+                GetUpgradeInfo::deserialize(value)
+                    .map(A2AMessageV2::GetUpgradeInfo)
+                    .map_err(de::Error::custom)
+            }
+            "UPGRADE_INFO" => {
+                UpgradeInfoResponse::deserialize(value)
+                    .map(A2AMessageV2::UpgradeInfoResponse)
                     .map_err(de::Error::custom)
             }
             _ => Err(de::Error::custom("Unexpected @type field structure."))
@@ -849,6 +879,8 @@ pub enum A2AMessageKinds {
     BackupRestored,
     RetrieveDeadDrop,
     RetrievedDeadDropResult,
+    GetUpgradeInfo,
+    ConnectionUpgradeInfoResponse,
 }
 
 impl A2AMessageKinds {
@@ -894,6 +926,8 @@ impl A2AMessageKinds {
             A2AMessageKinds::BackupRestored => MessageFamilies::WalletBackup,
             A2AMessageKinds::RetrieveDeadDrop => MessageFamilies::DeadDrop,
             A2AMessageKinds::RetrievedDeadDropResult => MessageFamilies::DeadDrop,
+            A2AMessageKinds::GetUpgradeInfo => MessageFamilies::Migration,
+            A2AMessageKinds::ConnectionUpgradeInfoResponse => MessageFamilies::Migration,
         }
     }
 
@@ -939,6 +973,8 @@ impl A2AMessageKinds {
             A2AMessageKinds::BackupRestored => "WALLET_BACKUP_RESTORED".to_string(),
             A2AMessageKinds::RetrieveDeadDrop => "DEAD_DROP_RETRIEVE".to_string(),
             A2AMessageKinds::RetrievedDeadDropResult => "DEAD_DROP_RETRIEVE_RESULT".to_string(),
+            A2AMessageKinds::GetUpgradeInfo => "GET_UPGRADE_INFO".to_string(),
+            A2AMessageKinds::ConnectionUpgradeInfoResponse => "UPGRADE_INFO".to_string(),
         }
     }
 }
@@ -1310,6 +1346,8 @@ pub fn wallet_backup_restore() -> BackupRestoreBuilder { BackupRestoreBuilder::c
 pub fn retrieve_dead_drop() -> RetrieveDeadDropBuilder { RetrieveDeadDropBuilder::create() }
 
 pub fn backup_wallet() -> BackupBuilder { BackupBuilder::create() }
+
+pub fn get_upgrade_info() -> GetUpgradeInfoBuilder { GetUpgradeInfoBuilder::create() }
 
 #[cfg(test)]
 pub mod tests {

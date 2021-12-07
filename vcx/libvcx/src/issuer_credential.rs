@@ -752,7 +752,7 @@ impl Handle<IssuerCredentials> {
             let new_credential = match credential {
                 IssuerCredentials::Pending(obj) => {
                     // if Aries connection is established --> Convert Pending object to Aries credential
-                    if connection_handle.is_v3_connection()? {
+                    if connection_handle.is_aries_connection()? {
                         debug!("converting pending issuer credential into aries object");
                         let mut issuer = Issuer::create_from_data(
                             &obj.cred_def_id,
