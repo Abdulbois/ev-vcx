@@ -794,6 +794,21 @@ RCT_EXPORT_METHOD(getClaimVcx: (int)credentialHandle
   }];
 }
 
+RCT_EXPORT_METHOD(getCredentialInfo: (int)credentialHandle
+                  resolver: (RCTPromiseResolveBlock) resolve
+                  rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] credentialGetInfo:credentialHandle completion:^(NSError *error, NSString *message) {
+    if (error != nil && error.code != 0) {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while getting claim", error);
+    }
+    else {
+      resolve(message);
+    }
+  }];
+}
+
 RCT_EXPORT_METHOD(exportWallet: (NSString *)exportPath
                                encryptWith: (NSString *)encryptionKey
                                     resolver: (RCTPromiseResolveBlock) resolve

@@ -200,6 +200,27 @@ export class Credential {
   }
 
   /**
+   * Retrieve information about a stored credential.
+   *
+   * @param  handle               handle pointing to a Credential object.
+   *
+   * @return                      Credential information
+   * {
+   *     "referent": string, // cred_id in the wallet
+   *     "attrs": {"key1":"raw_value1", "key2":"raw_value2"},
+   *     "schema_id": string,
+   *     "cred_def_id": string,
+   *     "rev_reg_id": Optional<string>,
+   *     "cred_rev_id": Optional<string>
+   * }
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
+  public static async getInfo({ handle }: ICredentialGetCredentialMessageData): Promise<string> {
+    return await RNIndy.getCredentialInfo(handle)
+  }
+
+  /**
    * Retrieve information about a stored credential in user's wallet, including credential id and the credential itself.
    *
    * @param  handle               handle pointing to a Credential object.
