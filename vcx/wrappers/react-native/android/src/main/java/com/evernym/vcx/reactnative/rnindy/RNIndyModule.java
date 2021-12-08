@@ -1032,6 +1032,25 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void getCredentialInfo(int credentialHandle, Promise promise) {
+        try {
+            CredentialApi.credentialGetInfo(credentialHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "getCredentialInfo - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "getCredentialInfo - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
     public void deleteCredential(int credentialHandle, Promise promise) {
         try {
             CredentialApi.deleteCredential(credentialHandle).whenComplete((result, t) -> {
