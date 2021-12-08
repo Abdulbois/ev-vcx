@@ -71,14 +71,6 @@ async def test_release():
     credential_def.release()
 
 
-@pytest.mark.asyncio
-@pytest.mark.usefixtures('vcx_init_test_mode')
-async def test_get_cred_def_id_and_payment_txn():
-    credential_def = await CredentialDef.create(source_id, name, schema_id, 0, "tag")
-    assert await credential_def.get_cred_def_id() == '2hoqvcwupRTUNkXn6ArYzs:3:CL:2471'
-    txn = await credential_def.get_payment_txn()
-    assert txn
-
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('vcx_init_test_mode')

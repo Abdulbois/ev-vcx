@@ -958,17 +958,11 @@ pub  extern fn vcx_wallet_validate_payment_address(command_handle: i32,
 pub mod tests {
     use super::*;
     use crate::api::return_types;
-    use std::ptr;
     use std::ffi::CString;
     use crate::utils::libindy::wallet::{delete_wallet, init_wallet};
-    #[cfg(feature = "pool_tests")]
-    use crate::utils::libindy::payments::build_test_address;
     use crate::utils::devsetup::*;
     use crate::settings;
 
-    const ADDRESS: *const c_char = "address\0".as_ptr().cast();
-    const MSG: &[u8] = "message\0".as_bytes();
-    const MSG_LEN: usize = MSG.len() - 1;
 
     const XTYPE: *const c_char = "record_type\0".as_ptr().cast();
     const ID: *const c_char = "123\0".as_ptr().cast();
@@ -980,138 +974,7 @@ pub mod tests {
             "retrieveTags": false
         }"#, "\0").as_ptr().cast();
 
-    #[test]
-    fn test_get_token_info() {
-        let _setup = SetupMocks::init();
-
-        let (h, cb, r) = return_types::return_u32_str();
-        assert_eq!(vcx_wallet_get_token_info(h,
-                                             0,
-                                             Some(cb)),
-                   error::SUCCESS.code_num);
-        r.recv_medium().unwrap();
-    }
-
-    #[test]
-    fn test_send_tokens() {
-        let _setup = SetupMocks::init();
-
-        let (h, cb, r) = return_types::return_u32_str();
-        assert_eq!(vcx_wallet_send_tokens(h,
-                                          0,
-                                          "1\0".as_ptr().cast(),
-                                          ADDRESS,
-                                          Some(cb)),
-                   error::SUCCESS.code_num);
-        r.recv_medium().unwrap();
-    }
-
-    #[test]
-    fn test_create_address() {
-        let _setup = SetupMocks::init();
-
-        let (h, cb, r) = return_types::return_u32_str();
-        assert_eq!(vcx_wallet_create_payment_address(h,
-                                                     ptr::null_mut(),
-                                                     Some(cb)),
-                   error::SUCCESS.code_num);
-        r.recv_medium().unwrap();
-    }
-
-    #[test]
-    fn test_sign_with_address_api() {
-        let _setup = SetupMocks::init();
-
-        let (h, cb, r) = return_types::return_u32_bin();
-        assert_eq!(vcx_wallet_sign_with_address(h,
-                                                ADDRESS,
-                                                MSG.as_ptr(),
-                                                MSG_LEN as u32,
-                                                Some(cb)),
-                   error::SUCCESS.code_num);
-        let res = r.recv_medium().unwrap();
-        assert_eq!(&MSG[..MSG_LEN], res.as_slice());
-    }
-
-    #[test]
-    fn test_verify_with_address_api() {
-        let _setup = SetupMocks::init();
-
-        let (h, cb, r) = return_types::return_u32_bool();
-        let sig = "signature\0";
-        let sig_len = sig.len() - 1;
-        assert_eq!(vcx_wallet_verify_with_address(h,
-                                                  ADDRESS,
-                                                  MSG.as_ptr(),
-                                                  MSG_LEN as u32,
-                                                  sig.as_ptr(),
-                                                  sig_len as u32,
-                                                  Some(cb)),
-                   error::SUCCESS.code_num);
-        let res = r.recv_medium().unwrap();
-        assert!(res);
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_sign_verify_with_address() {
-        let _setup = SetupLibraryWalletPoolZeroFees::init();
-
-        let (h_sign, cb_sign, r_sign) = return_types::return_u32_bin();
-        let (h_verify, cb_verify, r_verify) = return_types::return_u32_bool();
-        let (h_addr, cb_addr, r_addr) = return_types::return_u32_str();
-
-        vcx_wallet_create_payment_address(h_addr,
-                                          ptr::null_mut(),
-                                          Some(cb_addr));
-        let addr = r_addr.recv_medium().unwrap().unwrap();
-        let addr_raw = CString::new(addr.as_bytes()).unwrap();
-
-        let res_sign = vcx_wallet_sign_with_address(h_sign,
-                                                    addr_raw.as_ptr(),
-                                                    MSG.as_ptr(),
-                                                    MSG_LEN as u32,
-                                                    Some(cb_sign));
-        assert_eq!(res_sign, error::SUCCESS.code_num);
-
-        let addr_raw = CString::new(addr).unwrap();
-        let sig = r_sign.recv_medium().unwrap();
-
-        let res_verify = vcx_wallet_verify_with_address(h_verify,
-                                                      addr_raw.as_ptr(),
-                                                      MSG.as_ptr(),
-                                                      MSG_LEN as u32,
-                                                      sig.as_ptr(),
-                                                      sig.len() as u32,
-                                                      Some(cb_verify));
-        assert_eq!(res_verify, error::SUCCESS.code_num);
-        let valid = r_verify.recv_medium().unwrap();
-        assert!(valid);
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_send_payment() {
-        let _setup = SetupLibraryWalletPoolZeroFees::init();
-
-        let recipient = CStringUtils::string_to_cstring(build_test_address("2ZrAm5Jc3sP4NAXMQbaWzDxEa12xxJW3VgWjbbPtMPQCoznJyS"));
-        println!("sending payment to {:?}", recipient);
-        let balance = crate::utils::libindy::payments::get_wallet_token_info().unwrap().get_balance();
-        let tokens = 5;
-        let tokens_cstr = CString::new(tokens.to_string()).unwrap();
-        let (h, cb, r) = return_types::return_u32_str();
-        assert_eq!(vcx_wallet_send_tokens(h,
-                                          0,
-                                          tokens_cstr.as_ptr(),
-                                          recipient.as_ptr(),
-                                          Some(cb)),
-                   error::SUCCESS.code_num);
-        r.recv_medium().unwrap();
-        let new_balance = crate::utils::libindy::payments::get_wallet_token_info().unwrap().get_balance();
-        assert_eq!(balance - tokens, new_balance);
-    }
-
-    #[test]
+        #[test]
     fn test_add_record() {
         let _setup = SetupLibraryWallet::init();
 

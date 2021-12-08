@@ -141,22 +141,6 @@ class CredentialApiTest {
         assertTrue(message.length() > 0);
     }
 
-
-
-    @Test
-    @DisplayName("send credential request with message id")
-    void sendRequestWithMsgId() throws VcxException, ExecutionException, InterruptedException {
-        int connection = TestHelper._createConnection();
-        String payload= "{ 'connection_type': 'SMS', 'phone':'7202200000' }";
-        TestHelper.getResultFromFuture(ConnectionApi.vcxConnectionConnect(connection,TestHelper.convertToValidJson(payload)));
-        GetCredentialCreateMsgidResult credential = TestHelper.getResultFromFuture(CredentialApi.credentialCreateWithMsgid("1", connection, "1"));
-        assertNotSame(0, credential);
-        TestHelper.getResultFromFuture(CredentialApi.credentialSendRequest(credential.getCredential_handle(), connection, 0));
-        int state = TestHelper.getResultFromFuture(CredentialApi.credentialGetState(credential.getCredential_handle()));
-        assertEquals(2, state);
-
-    }
-
     @Test
     @DisplayName("get credential offers for a connection")
     void getOffers() throws VcxException, ExecutionException, InterruptedException {

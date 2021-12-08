@@ -8,14 +8,14 @@ use std::collections::HashMap;
 use std::sync::RwLock;
 use crate::utils::{get_temp_dir_path, error};
 use std::path::Path;
-use crate::messages::validation;
+use crate::utils::validation;
 use serde_json::Value;
 use strum::IntoEnumIterator;
 use std::borrow::Borrow;
 use reqwest::Url;
 use crate::error::prelude::*;
 use crate::utils::file::read_file;
-use crate::v3::messages::a2a::protocol_registry::Actors;
+use crate::aries::messages::a2a::protocol_registry::Actors;
 use crate::settings::protocol::ProtocolTypes;
 
 pub static CONFIG_POOL_NAME: &str = "pool_name";
@@ -51,6 +51,7 @@ pub static CONFIG_DID_METHOD: &str = "did_method";
 pub static CONFIG_ACTORS: &str = "actors"; // inviter, invitee, issuer, holder, prover, verifier, sender, receiver
 pub static CONFIG_POOL_NETWORKS: &str = "pool_networks";
 pub static CONFIG_USE_LATEST_PROTOCOLS: &'static str = "use_latest_protocols";
+pub static CONFIG_INDY_POOL_NETWORKS: &str = "indy_pool_networks";
 
 pub static UNINITIALIZED_WALLET_KEY: &str = "<KEY_IS_NOT_SET>";
 pub static DEFAULT_GENESIS_PATH: &str = "genesis.txn";
@@ -230,8 +231,9 @@ pub fn process_config_string(config: &str, do_validation: bool) -> VcxResult<u32
         set_config_value(CONFIG_AGENCY_VERKEY, &agency_config.agency_verkey);
     }
 
-    if let Ok(pool_config) = pool::get_pool_config_values(config) {
-        set_config_value(CONFIG_POOL_NETWORKS, &json!(pool_config).to_string());
+    let indy_pool_configs = pool::get_pool_config_values(config)?;
+    if !indy_pool_configs.is_empty() {
+        set_config_value(CONFIG_INDY_POOL_NETWORKS, &json!(indy_pool_configs).to_string());
     }
 
     if do_validation {
@@ -260,8 +262,8 @@ pub fn process_config_file(path: &str) -> VcxResult<u32> {
 pub fn process_init_pool_config_string(config: &str) -> VcxResult<()> {
     trace!("process_init_pool_config_string >>> config {}", secret!(config));
 
-    let pool_config = pool::get_init_pool_config_values(config)?;
-    set_config_value(CONFIG_POOL_NETWORKS, &json!(pool_config).to_string());
+    let indy_pool_configs = pool::get_init_pool_config_values(config)?;
+    set_config_value(CONFIG_INDY_POOL_NETWORKS, &json!(indy_pool_configs).to_string());
 
     trace!("process_init_pool_config_string <<<");
     Ok(())
@@ -334,7 +336,12 @@ pub fn get_payment_method() -> VcxResult<String> {
 }
 
 pub fn is_aries_protocol_set() -> bool {
-    get_protocol_type() == ProtocolTypes::V3
+    let protocol_type = get_protocol_type();
+    protocol_type == ProtocolTypes::V3 || protocol_type == ProtocolTypes::V4
+}
+
+pub fn is_strict_aries_protocol_set() -> bool {
+    get_protocol_type() == ProtocolTypes::V4
 }
 
 pub fn get_actors() -> Vec<Actors> {
@@ -377,7 +384,7 @@ pub fn clear_config() {
 pub mod tests {
     use super::*;
     use crate::utils::devsetup::{TempFile, SetupDefaults};
-    use crate::settings::pool::get_pool_networks;
+    use crate::settings::pool::get_indy_pool_networks;
 
     fn _institution_name() -> String {
         "enterprise".to_string()
@@ -400,7 +407,7 @@ pub mod tests {
             "sdk_to_remote_verkey" : "888MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
             "institution_name" : _institution_name(),
             "remote_to_sdk_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
-            "genesis_path":"/tmp/pool1.txn",
+            "genesis_transactions":"{}",
             "wallet_key":"key",
             "pool_config": _pool_config(),
             "payment_method": "null"
@@ -425,7 +432,7 @@ pub mod tests {
 
         assert_eq!(process_config_string(&config, true).unwrap(), error::SUCCESS.code_num);
 
-        assert_eq!(pool::get_pool_networks().unwrap().len(), 1);
+        assert_eq!(pool::get_indy_pool_networks().unwrap().len(), 1);
 
         assert_eq!(get_config_value(CONFIG_AGENCY_ENDPOINT).unwrap(), environment::DEMO_AGENCY_ENDPOINT);
         assert_eq!(get_config_value(CONFIG_AGENCY_DID).unwrap(), environment::DEMO_AGENCY_DID);
@@ -581,7 +588,7 @@ pub mod tests {
             "config_name":"config1",
             "wallet_name":"test_clear_config",
             "institution_name" : "evernym enterprise",
-            "genesis_path":"/tmp/pool1.txn",
+            "genesis_transactions":"/tmp/pool1.txn",
             "wallet_key":"key",
         }).to_string();
 
@@ -591,7 +598,7 @@ pub mod tests {
         assert_eq!(get_config_value("config_name").unwrap(), "config1".to_string());
         assert_eq!(get_config_value("wallet_name").unwrap(), "test_clear_config".to_string());
         assert_eq!(get_config_value("institution_name").unwrap(), "evernym enterprise".to_string());
-        assert_eq!(get_config_value("genesis_path").unwrap(), "/tmp/pool1.txn".to_string());
+        assert_eq!(get_config_value("genesis_transactions").unwrap(), "/tmp/pool1.txn".to_string());
         assert_eq!(get_config_value("wallet_key").unwrap(), "key".to_string());
 
         clear_config();
@@ -601,7 +608,7 @@ pub mod tests {
         assert_eq!(get_config_value("config_name").unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
         assert_eq!(get_config_value("wallet_name").unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
         assert_eq!(get_config_value("institution_name").unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
-        assert_eq!(get_config_value("genesis_path").unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
+        assert_eq!(get_config_value("genesis_transactions").unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
         assert_eq!(get_config_value("wallet_key").unwrap_err().kind(), VcxErrorKind::InvalidConfiguration);
     }
 
@@ -625,35 +632,28 @@ pub mod tests {
     fn test_process_pool_config() {
         let _setup = SetupDefaults::init();
 
-        let path = "path/test/";
-        let name = "pool1";
+        let transactions = "{}";
 
         // Only required field
         let config = json!({
-            "genesis_path": path
+            "genesis_transactions": transactions
         }).to_string();
 
         process_init_pool_config_string(&config.to_string()).unwrap();
 
-        let networks = get_pool_networks().unwrap();
+        let networks = get_indy_pool_networks().unwrap();
         assert_eq!(networks.len(), 1);
-        assert_eq!(networks[0].genesis_path, path.to_string());
 
         // With optional fields
         let config = json!({
-            "genesis_path": path,
-            "pool_name": name,
-            "pool_config": {
-                 "number_read_nodes": 2
-            }
+            "genesis_transactions": transactions,
+            "namespace_list": vec!["test"],
         }).to_string();
 
         process_init_pool_config_string(&config.to_string()).unwrap();
 
-        let networks = get_pool_networks().unwrap();
+        let networks = get_indy_pool_networks().unwrap();
         assert_eq!(networks.len(), 1);
-        assert_eq!(networks[0].genesis_path, path.to_string());
-        assert_eq!(networks[0].pool_name.clone().unwrap(), name.to_string());
 
         // Empty
         let config = json!({}).to_string();
@@ -664,30 +664,30 @@ pub mod tests {
     fn test_process_pool_config_for_multiple_networks() {
         let _setup = SetupDefaults::init();
 
-        let path = "path/test/";
-        let name = "pool1";
+        let genesis_transactions = "{}";
+        let namespace_list = vec!["pool1"];
 
-        let path_2 = "path/test/2";
-        let name_2 = "pool2";
+        let genesis_transactions_2 = "{}";
+        let namespace_list_2 = vec!["pool2"];
 
         let config = json!(
             vec![
                 json!({
-                    "pool_name": name,
-                    "genesis_path": path
+                    "namespace_list": namespace_list,
+                    "genesis_transactions": genesis_transactions
                 }),
                 json!({
-                    "pool_name": name_2,
-                    "genesis_path": path_2
+                    "namespace_list": namespace_list_2,
+                    "genesis_transactions": genesis_transactions_2
                 })
             ]
         );
 
         process_init_pool_config_string(&config.to_string()).unwrap();
 
-        let networks = get_pool_networks().unwrap();
+        let networks = get_indy_pool_networks().unwrap();
         assert_eq!(networks.len(), 2);
-        assert_eq!(networks[0].genesis_path, path.to_string());
-        assert_eq!(networks[1].genesis_path, path_2.to_string());
+        assert_eq!(networks[0].genesis_transactions, genesis_transactions.to_string());
+        assert_eq!(networks[1].genesis_transactions, genesis_transactions_2.to_string());
     }
 }

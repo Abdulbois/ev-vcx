@@ -1,4 +1,4 @@
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 use crate::credential_def::CredentialDef;
 use libc::c_char;
 use crate::utils::cstring::CStringUtils;
@@ -744,21 +744,6 @@ mod tests {
         let handle = r.recv_medium().unwrap();
         let (h, cb, r) = return_types::return_u32_str();
         assert_eq!(vcx_credentialdef_get_cred_def_id(h, handle, Some(cb)), error::SUCCESS.code_num);
-        r.recv_medium().unwrap();
-    }
-
-    #[test]
-    fn test_get_payment_txn() {
-        let _setup = SetupMocks::init();
-
-        let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-        let handle = credential_def::create_and_publish_credentialdef("sid".to_string(),
-                                                                      "name".to_string(),
-                                                                      did, SCHEMA_ID.to_string(),
-                                                                      "tag".to_string(),
-                                                                      "{}".to_string()).unwrap();
-        let (h, cb, r) = return_types::return_u32_str();
-        let _rc = vcx_credentialdef_get_payment_txn(h, handle, Some(cb));
         r.recv_medium().unwrap();
     }
 

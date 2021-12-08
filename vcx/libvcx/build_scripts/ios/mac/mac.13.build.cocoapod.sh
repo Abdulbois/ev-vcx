@@ -62,15 +62,16 @@ done
 if [[ "${IOS_ARCHS}" == *"x86_64"* ]]; then
     #xcodebuild -project vcx.xcodeproj -scheme vcx-demo -sdk iphonesimulator build-for-testing
     xcodebuild -project vcx.xcodeproj -scheme vcx-demo -destination 'platform=iOS Simulator,name=iPhone 8' test
+
     ## Need to do:
     ## a) gem install cocoapods -- sudo may be needed
     #if [ -z "$(which pod)" ]; then
     #    gem install cocoapods
     #fi
     ## b) pod setup
-    if [ ! -d "${HOME}/.cocoapods/repos/master" ]; then
-        pod setup
-    fi
+    #     if [ ! -d "${HOME}/.cocoapods/repos/master" ]; then
+    #        pod setup
+    #    fi
     ## c) brew install xctool
     #if [ -z "$(which xctool)" ]; then
     #    brew install xctool
@@ -96,6 +97,7 @@ cp -v vcx/vcx.h vcx.framework/Headers
 if [ -d $VCX_SDK/vcx/wrappers/ios/vcx/tmp ]; then
     rm -rf $VCX_SDK/vcx/wrappers/ios/vcx/tmp
 fi
+
 mkdir -p $VCX_SDK/vcx/wrappers/ios/vcx/tmp/vcx/
 cp -rvp vcx.framework $VCX_SDK/vcx/wrappers/ios/vcx/tmp/vcx/
 cd $VCX_SDK/vcx/wrappers/ios/vcx/tmp

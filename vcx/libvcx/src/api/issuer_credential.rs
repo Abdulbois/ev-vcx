@@ -10,8 +10,7 @@ use std::ptr;
 use crate::utils::threadpool::spawn;
 use crate::error::prelude::*;
 use indy_sys::CommandHandle;
-
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 
 /*
     The API represents an Issuer side in credential issuance process.
@@ -19,7 +18,7 @@ use crate::object_cache::Handle;
 
     # State
 
-    The set of object states, messages and transitions depends on the communication method is used.
+    The set of object states, agent and transitions depends on the communication method is used.
     There are two communication methods: `proprietary` and `aries`. The default communication method is `proprietary`.
     The communication method can be specified as a config option on one of *_init functions.
 
@@ -28,7 +27,7 @@ use crate::object_cache::Handle;
 
         VcxStateType::VcxStateOfferSent - once `vcx_issuer_send_credential_offer` (send `CRED_OFFER` message) is called.
 
-        VcxStateType::VcxStateRequestReceived - once `CRED_REQ` messages is received.
+        VcxStateType::VcxStateRequestReceived - once `CRED_REQ` agent is received.
                                                 use `vcx_issuer_credential_update_state` or `vcx_issuer_credential_update_state_with_message` functions for state updates.
         VcxStateType::VcxStateAccepted - once `vcx_issuer_send_credential` (send `CRED` message) is called.
 
@@ -37,10 +36,10 @@ use crate::object_cache::Handle;
 
         VcxStateType::VcxStateOfferSent - once `vcx_issuer_send_credential_offer` (send `CredentialOffer` message) is called.
 
-        VcxStateType::VcxStateRequestReceived - once `CredentialRequest` messages is received.
+        VcxStateType::VcxStateRequestReceived - once `CredentialRequest` agent is received.
         VcxStateType::None - once error occurred
                              use `vcx_issuer_credential_update_state` or `vcx_issuer_credential_update_state_with_message` functions for state updates.
-        VcxStateType::VcxStateRejected - once `ProblemReport` messages is received.
+        VcxStateType::VcxStateRejected - once `ProblemReport` agent is received.
 
         VcxStateType::VcxStateAccepted - once `vcx_issuer_send_credential` (send `Credential` message) is called.
 
@@ -262,8 +261,8 @@ pub extern fn vcx_issuer_get_credential_offer_msg(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Query the agency for the received messages.
-/// Checks for any messages changing state in the object and updates the state attribute.
+/// Query the agency for the received agent.
+/// Checks for any agent changing state in the object and updates the state attribute.
 ///
 /// #Params
 /// command_handle: command handle to map callback to user context.
@@ -1025,23 +1024,6 @@ pub mod tests {
     }
 
     #[test]
-    fn test_create_credential_invalid_price() {
-        let _setup = SetupMocks::init();
-
-        settings::set_config_value(settings::CONFIG_INSTITUTION_DID, DEFAULT_DID);
-        let (h, cb, _r) = return_types::return_u32_ih();
-        assert_eq!(vcx_issuer_create_credential(h,
-                                                DEFAULT_CREDENTIAL_NAME_CSTR,
-                                                crate::credential_def::tests::create_cred_def_fake(),
-                                                DEFAULT_DID_CSTR,
-                                                DEFAULT_ATTR_CSTR,
-                                                DEFAULT_CREDENTIAL_NAME_CSTR,
-                                                "-1\0".as_ptr().cast(),
-                                                Some(cb)),
-                   error::INVALID_OPTION.code_num);
-    }
-
-    #[test]
     fn test_vcx_issuer_credential_get_state() {
         let _setup = SetupMocks::init();
 
@@ -1054,17 +1036,6 @@ pub mod tests {
                    error::SUCCESS.code_num);
         let state = r.recv_medium().unwrap();
         assert_eq!(state, VcxStateType::VcxStateInitialized as u32);
-    }
-
-    #[test]
-    fn test_get_payment_txn() {
-        let _setup = SetupMocks::init();
-        let credential = issuer_credential::tests::create_standard_issuer_credential_json(None);
-        let handle = issuer_credential::from_string(&credential).unwrap();
-
-        let (h, cb, r) = return_types::return_u32_str();
-        vcx_issuer_credential_get_payment_txn(h, handle, Some(cb));
-        r.recv_medium().unwrap();
     }
 
     #[test]

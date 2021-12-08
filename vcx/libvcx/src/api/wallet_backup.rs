@@ -4,8 +4,8 @@ use crate::utils::error;
 use crate::utils::threadpool::spawn;
 use crate::error::prelude::*;
 use crate::wallet_backup::{WalletBackup, create_wallet_backup, from_string, restore_wallet};
-use crate::object_cache::Handle;
-use crate::messages::get_message::Message;
+use crate::utils::object_cache::Handle;
+use crate::agent::messages::get_message::Message;
 use std::ptr;
 use indy_sys::CommandHandle;
 

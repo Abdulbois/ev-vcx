@@ -21,7 +21,7 @@ extern crate strum_macros;
 pub mod utils;
 pub mod settings;
 #[macro_use]
-pub mod messages;
+pub mod agent;
 
 pub mod api;
 pub mod connection;
@@ -31,10 +31,10 @@ pub mod schema;
 pub mod credential_def;
 pub mod error;
 pub mod credential;
-pub mod object_cache;
 pub mod disclosed_proof;
 pub mod wallet_backup;
-pub mod v3;
+pub mod aries;
+pub mod legacy;
 
 #[allow(unused_imports)]
 #[allow(dead_code)]
@@ -44,7 +44,7 @@ mod tests {
     use crate::credential_def::CredentialDef;
     use crate::disclosed_proof::DisclosedProofs;
     use crate::issuer_credential::IssuerCredentials;
-    use crate::object_cache::Handle;
+    use crate::utils::object_cache::Handle;
     use crate::connection::Connections;
     use crate::credential::Credentials;
     use crate::proof::Proofs;
@@ -68,6 +68,7 @@ mod tests {
         get_temp_dir_path
     };
     use crate::utils::devsetup::*;
+    use crate::utils::libindy::ledger::query::Query;
 
     #[cfg(all(feature = "agency", feature = "pool_tests"))]
     #[test]
@@ -238,10 +239,10 @@ mod tests {
 
     fn revoke_credential(issuer_handle: Handle<IssuerCredentials>, rev_reg_id: Option<String>) {
         // GET REV REG DELTA BEFORE REVOCATION
-        let (_, delta, timestamp) = crate::utils::libindy::anoncreds::get_rev_reg_delta_json(&rev_reg_id.clone().unwrap(), None, None).unwrap();
+        let (_, delta, timestamp) = Query::get_rev_reg_delta(&rev_reg_id.clone().unwrap(), None, None).unwrap();
         println!("revoking credential");
         issuer_handle.revoke_credential().unwrap();
-        let (_, delta_after_revoke, _) = crate::utils::libindy::anoncreds::get_rev_reg_delta_json(&rev_reg_id.unwrap(), Some(timestamp + 1), None).unwrap();
+        let (_, delta_after_revoke, _) = Query::get_rev_reg_delta(&rev_reg_id.unwrap(), Some(timestamp + 1), None).unwrap();
         assert_ne!(delta, delta_after_revoke);
     }
 

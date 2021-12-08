@@ -16,7 +16,7 @@ if [ -f "$LICENSE_CHANGE_DATE_FILE" ]; then
 
   COMMIT_LICENSE_DATE=$(git show -s --format=%ci HEAD)
   COMMIT_DATE_UNIX=$(git show -s --format=%ct HEAD)
-  
+
   FUTURE_YEARS_IN_SECONDS=94670778 # 3 year in the future
 
   CONVERT_DATE=$((COMMIT_DATE_UNIX+FUTURE_YEARS_IN_SECONDS))

@@ -14,9 +14,10 @@ In your maven project add to pom.xml file next content:
     
 
     <repository>
-        <id>sovrin</id>
-        <url>https://repo.sovrin.org/repository/maven-public</url>
+        <id>evernym</id>
+        <url>https://evernym.mycloudrepo.io/public/repositories/libvcx-java</url>
     </repository>
+
 
 2. Inside dependencies tag block add:    
     
@@ -24,12 +25,12 @@ In your maven project add to pom.xml file next content:
     <dependency>
         <groupId>com.evernym</groupId>
         <artifactId>vcx</artifactId>
-        <version>0.6.2</version>
+        <version>0.12.0.1738</version>
     </dependency>
      
-**Note** that before you can use java wrapper you must install  c-callable SDK and Vcx.  
-* See the section "Installing the SDK" in the [Indy SDK documentation](../../../README.md#installing-the-sdk) 
-* See the section "Installing VCX" in the [VCX documentation](../../README.md#installing-the-vcx) 
+**Note** that before you can use java wrapper you must install  c-callable VDR-Tools and Vcx.  
+* See the section "Installing the SDK" in the [VDR Tools documentation](https://gitlab.com/evernym/verity/vdr-tools/-/blob/main/README.md) 
+* See the section "Installing VCX" in the [VCX documentation](../../../README.md) 
 
 ### How to build
 
@@ -37,18 +38,18 @@ In your maven project add to pom.xml file next content:
 
  - run `./gradlew clean build`. 
 
-The jar will be present in `indy-sdk/vcx/wrappers/java/vcx/build/libs`
+The jar will be present in `ev-vcx/vcx/wrappers/java/vcx/build/libs`
 
 ## AAR
 
- - Copy the binaries i.e `libvcx.so` to folder `indy-sdk/vcx/wrappers/java/vcx/android/src/main/jniLibs/<ARCH>`.
+ - Copy the binaries i.e `libvcx.so` to folder `ev-vcx/vcx/wrappers/java/vcx/android/src/main/jniLibs/<ARCH>`.
     - Make sure the binaries are in correct architecture folders.
- - run `./gradlew clean build --project-dir=android` in folder `indy-sdk/vcx/wrappers/java/vcx`
+ - run `./gradlew clean build --project-dir=android` in folder `ev-vcx/vcx/wrappers/java/vcx`
 
 ###Publishing the AAR
-- run `./gradlew clean assemble --project-dir=android` in folder `indy-sdk/vcx/wrappers/java/vcx`
+- run `./gradlew clean assemble --project-dir=android` in folder `ev-vcx/vcx/wrappers/java/vcx`
 
-Aar will be present in `indy-sdk/vcx/wrappers/java/vcx/android/build/outputs/aar`
+Aar will be present in `ev-vcx/vcx/wrappers/java/vcx/android/build/outputs/aar`
 
 #### Logging
 The Java wrapper uses slf4j as a facade for various logging frameworks, such as java.util.logging, logback and log4j.

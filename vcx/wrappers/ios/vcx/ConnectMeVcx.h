@@ -96,6 +96,35 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 - (void)initWithConfig:(NSString *)config
             completion:(void (^)(NSError *error))completion;
 
+/// Set maximum log level
+///
+/// # Arguments
+/// * `max_lvl` - Maximum log level represented as u32.
+/// Possible values are from 0 to 5 inclusive: 0 - Off, 1 - Error, 2 - Warn, 3 - Trace, 4 - Debug, 5 - Trace
+///
+/// # Return
+/// On success returns `ErrorCode::Success`
+/// ErrorCode::CommonInvalidParam1 is returned in case of `max_lvl` value is out of range [0-5]
+- (void)vcxSetLogMaxLevel:(NSInteger *)maxLvl
+                completion:(void (^)(NSError *error))completion;
+
+/// Initializes VCX with config file
+///
+/// An example file is at libvcx/sample_config/config.json
+/// The list of available options see here: https://github.com/hyperledger/indy-sdk/blob/master/docs/configuration.md
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// config_path: path to a config file to populate config attributes
+///
+/// cb: Callback that provides error status of initialization
+///
+/// #Returns
+/// Error code as a u32
+- (void)initWithConfigPath:(NSString *)configPath
+                completion:(void (^)(NSError *error))completion;
+
 /// Connect to a Pool Ledger
 ///
 /// You can deffer connecting to the Pool Ledger during library initialization (vcx_init or vcx_init_with_config)
@@ -961,6 +990,122 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
                         abbreviated:(BOOL *) abbreviated
          withCompletion:(void (^)(NSError *error, NSString *inviteDetails))completion;
 
+/// Send discovery features message to the specified connection to discover which features it supports, and to what extent.
+///
+/// Note that this function is useful in case `aries` communication method is used.
+/// In other cases it returns ActionNotSupported error.
+///
+/// #params
+///
+/// command_handle: command handle to map callback to user context.
+///
+/// connection_handle: connection to use to send message.
+///                    Was provided during creation. Used to identify connection object.
+///                    Note that connection must be in Accepted state.
+///
+/// query: (Optional) query string to match against supported message types.
+///
+/// comment: (Optional) human-friendly description of the query.
+///
+/// cb: Callback that provides success or failure of request
+///
+/// # Example
+/// query -> `did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/`
+///
+/// comment -> `share please`
+///
+/// #Returns
+/// Error code as a u32
+- (void)connectionSendDiscoveryFeatures:(VcxHandle)connectionHandle
+                   comment:(NSString *)comment
+                   query:(NSString *)query
+            withCompletion:(void (^)(NSError *error))completion;
+
+/// Retrieves pw_did from Connection object
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// connection_handle: Connection handle that identifies pairwise connection
+///
+/// cb: Callback that provides your pw_did for this connection
+///
+/// #Returns
+/// Error code as a u32
+- (void)connectionGetPwDid:(VcxHandle)connectionHandle
+            withCompletion:(void (^)(NSError *error, NSString* message))completion;
+
+/// Retrieves their_pw_did from Connection object
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// connection_handle: Connection handle that identifies pairwise connection
+///
+/// cb: Callback that provides your pw_did for this connection
+///
+/// #Returns
+/// Error code as a u32
+- (void)connectionGetTheirDid:(VcxHandle)connectionHandle
+               withCompletion:(void (^)(NSError *error, NSString* pwDid))completion;
+
+/// Get the information about the connection state.
+///
+/// Note: This method can be used for `aries` communication method only.
+///     For other communication method it returns ActionNotSupported error.
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// connection_handle: was provided during creation. Used to identify connection object
+///
+/// cb: Callback that provides the json string of connection information
+///
+/// # Example
+/// info ->
+///      {
+///         "current": {
+///             "did": <str>
+///             "recipientKeys": array<str>
+///             "routingKeys": array<str>
+///             "serviceEndpoint": <str>,
+///             "protocols": array<str> -  The set of protocol supported by current side.
+///         },
+///         "remote: { <Option> - details about remote connection side
+///             "did": <str> - DID of remote side
+///             "recipientKeys": array<str> - Recipient keys
+///             "routingKeys": array<str> - Routing keys
+///             "serviceEndpoint": <str> - Endpoint
+///             "protocols": array<str> - The set of protocol supported by side. Is filled after DiscoveryFeatures process was completed.
+///          }
+///    }
+///
+/// #Returns
+/// Error code as a u32
+- (void)connectionInfo:(VcxHandle)connectionHandle
+        withCompletion:(void (^)(NSError *error, NSString* info))completion;
+
+/// Approves the credential offer and gets the credential request message that can be sent to the specified connection
+///
+/// #params
+/// command_handle: command handle to map callback to user context
+///
+/// credential_handle: credential handle that was provided during creation. Used to identify credential object
+///
+/// my_pw_did: Use Connection api (vcx_connection_get_pw_did) with specified connection_handle to retrieve your pw_did
+///
+/// their_pw_did: Use Connection api (vcx_connection_get_their_pw_did) with specified connection_handle to retrieve theri pw_did
+///
+/// cb: Callback that provides error status of credential request
+///
+/// #Returns
+/// Error code as a u32
+- (void)credentialGetRequestMsg:(VcxHandle)credentialHandle
+                        myPwDid:(NSString *)myPwDid
+                     theirPwDid:(NSString *)theirPwDid
+                  paymentHandle:(vcx_payment_handle_t)paymentHandle
+                 withCompletion:(void (^)(NSError *error))completion;
+
 /// Update information on the agent (ie, comm method and type)
 ///
 /// #Params
@@ -1559,6 +1704,13 @@ withSelectedCredentials:(NSString *)selectedCredentials
                     withMsgId:(NSString *)msgId
                withCompletion:(void (^)(NSError *error, vcx_proof_handle_t proofHandle, NSString *proofRequest))completion;
 
+- (void)generateProof:(NSString *)proofRequestId
+       requestedAttrs:(NSString *)requestedAttrs
+  requestedPredicates:(NSString *)requestedPredicates
+   revocationInterval:(NSString *)revocationInterval
+            proofName:(NSString *)proofName
+           completion:(void (^)(NSError *error, NSString *proofHandle))completion;
+
 /// Request a new proof after receiving a proof proposal (this enables negotiation)
 ///
 /// #Params
@@ -2152,40 +2304,6 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 /// Error code as a u32
 - (void) getLedgerFees:(void(^)(NSError *error, NSString *fees)) completion;
 
-/// Retrieve author agreement and acceptance mechanisms set on the Ledger
-///
-/// #params
-///
-/// command_handle: command handle to map callback to user context.
-///
-/// cb: Callback that provides array of matching messages retrieved
-///
-/// # Example author_agreement -> "{"text":"Default agreement", "version":"1.0.0", "aml": {"label1": "description"}}"
-///
-/// #Returns
-/// Error code as a u32
-- (void) getTxnAuthorAgreement:(void(^)(NSError *error, NSString *authorAgreement)) completion;
-
-/// Set some accepted agreement as active.
-///
-/// As result of successful call of this function appropriate metadata will be appended to each write request.
-///
-/// #Params
-/// text and version - (optional) raw data about TAA from ledger.
-///     These parameters should be passed together.
-///     These parameters are required if hash parameter is ommited.
-/// hash - (optional) hash on text and version. This parameter is required if text and version parameters are ommited.
-/// acc_mech_type - mechanism how user has accepted the TAA
-/// time_of_acceptance - UTC timestamp when user has accepted the TAA
-///
-/// #Returns
-/// Error code as a u32
-- (vcx_error_t) activateTxnAuthorAgreement:(NSString *)text
-                               withVersion:(NSString *)version
-                                  withHash:(NSString *)hash
-                             withMechanism:(NSString *)mechanism
-                             withTimestamp:(long)timestamp;
-
 /**
  Fetch and Cache public entities from the Ledger associated with stored in the wallet credentials.
  This function performs two steps:
@@ -2615,6 +2733,9 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
                             connectionHandle:(NSInteger) connectionHandle
                                  completion:(void (^)(NSError *error))completion;
 
+- (int) proofVerifierProofRelease:(NSInteger) connectionHandle
+                       completion:(void (^)(NSError *error))completion;
+
 /// Create pairwise agent which can be later used for connection establishing.
 ///
 /// You can pass `agent_info` into `vcx_connection_connect` function as field of `connection_options` JSON parameter.
@@ -2743,6 +2864,31 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 /// Null
 - (void) walletCloseSearch:(NSInteger)searchHandle
                 completion:(void (^)(NSError *error))completion;
+
+/// Extract content of Aries message containing attachment decorator.
+/// RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+///
+/// #params
+/// message: aries message containing attachment decorator
+///
+/// #Returns
+/// Attached message as JSON string
+- (void)extractAttachedMessage:(NSString *)message
+             completion:(void (^)(NSError *error, NSString* attachedMessage))completion;
+
+/// Resolve message by the given URL.
+/// Supported cases:
+///   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+///   2. Message inside response `location` header for GET request
+///   3. Message inside response for GET request
+///
+/// #params
+/// url: url to fetch message
+///
+/// #Returns
+/// Error code as a u32
+- (void)resolveMessageByUrl:(NSString *)url
+                 completion:(void (^)(NSError *error, NSString* message))completion;
 
 @end
 

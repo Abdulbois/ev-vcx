@@ -3152,36 +3152,6 @@ vcx_error_t vcx_get_logger(const void* vcx_get_logger,
 ///
 vcx_error_t vcx_get_current_error(const char ** error_json_p);
 
-/// Retrieve author agreement set on the Ledger
-///
-/// #params
-///
-/// command_handle: command handle to map callback to user context.
-///
-/// cb: Callback that provides array of matching messages retrieved
-///
-/// #Returns
-/// Error code as a u32
-vcx_error_t vcx_get_ledger_author_agreement(vcx_u32_t command_handle,
-                                            void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
-
-/// Set some accepted agreement as active.
-///
-/// As result of succesfull call of this funciton appropriate metadata will be appended to each write request by `indy_append_txn_author_agreement_meta_to_request` libindy call.
-///
-/// #Params
-/// text and version - (optional) raw data about TAA from ledger.
-///     These parameters should be passed together.
-///     These parameters are required if hash parameter is ommited.
-/// hash - (optional) hash on text and version. This parameter is required if text and version parameters are ommited.
-/// acc_mech_type - mechanism how user has accepted the TAA
-/// time_of_acceptance - UTC timestamp when user has accepted the TAA
-///
-/// #Returns
-/// Error code as a u32
-vcx_error_t vcx_set_active_txn_author_agreement_meta(const char *text, const char *version, const char *hash, const char *acc_mech_type, vcx_u64_t type_);
-
-
 /// -> Create a Wallet Backup object that provides a Cloud wallet backup and provision's backup protocol with Agent
 ///
 /// #Params
@@ -3364,6 +3334,41 @@ vcx_error_t vcx_fetch_public_entities(vcx_u32_t command_handle,
 /// Error code as a u32
 vcx_error_t vcx_create_pairwise_agent(vcx_command_handle_t command_handle,
                                       void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Extract content of Aries message containing attachment decorator.
+/// RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+///
+/// #params
+///
+/// message: aries message containing attachment decorator
+/// command_handle: command handle to map callback to user context.
+///
+/// cb: Callback that provides attached message
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_extract_attached_message(vcx_command_handle_t command_handle,
+                               const char *message,
+                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Resolve message by the given URL.
+/// Supported cases:
+///   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+///   2. Message inside response `location` header for GET request
+///   3. Message inside response for GET request
+///
+/// #params
+///
+/// url: url to fetch message
+/// command_handle: command handle to map callback to user context.
+///
+/// cb: Callback that provides resolved message
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_resolve_message_by_url(vcx_command_handle_t command_handle,
+                                       const char *url,
+                                       void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
 #ifdef __cplusplus
 } // extern "C"

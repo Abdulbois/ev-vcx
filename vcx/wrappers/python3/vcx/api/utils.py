@@ -287,55 +287,6 @@ async def vcx_messages_update_status(msg_json: str):
     return result
 
 
-async def vcx_get_ledger_author_agreement():
-    """
-    Retrieve author agreement and acceptance mechanisms set on the Ledger
-    :return: {"text":"Default agreement", "version":"1.0.0", "aml": {"label1": "description"}}
-    """
-    logger = logging.getLogger(__name__)
-
-    if not hasattr(vcx_get_ledger_author_agreement, "cb"):
-        logger.debug("vcx_get_ledger_author_agreement: Creating callback")
-        vcx_get_ledger_author_agreement.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
-    result = await do_call('vcx_get_ledger_author_agreement',
-                           vcx_get_ledger_author_agreement.cb)
-
-    logger.debug("vcx_get_ledger_author_agreement completed")
-    return result.decode()
-
-
-def vcx_set_active_txn_author_agreement_meta(text: Optional[str],
-                                             version: Optional[str],
-                                             hash: Optional[str],
-                                             acc_mech_type: str,
-                                             time_of_acceptance: int) -> None:
-    """
-    Set some accepted agreement as active.
-    As result of successful call of this function appropriate metadata will be appended to each write request.
-    
-    :param text and version - (optional) raw data about TAA from ledger.
-               These parameters should be passed together.
-               These parameters are required if hash parameter is ommited.
-    :param hash - (optional) hash on text and version. This parameter is required if text and version parameters are ommited.
-    :param acc_mech_type - mechanism how user has accepted the TAA
-    :param time_of_acceptance - UTC timestamp when user has accepted the TAA
-
-    :return: no value
-    """
-    logger = logging.getLogger(__name__)
-
-    name = 'vcx_set_active_txn_author_agreement_meta'
-
-    c_text = c_char_p(text.encode('utf-8')) if text else None
-    c_version = c_char_p(version.encode('utf-8')) if version else None
-    c_hash = c_char_p(hash.encode('utf-8')) if hash else None
-    c_acc_mech_type = c_char_p(acc_mech_type.encode('utf-8'))
-    c_time_of_acceptance = c_uint64(time_of_acceptance)
-
-    do_call_sync(name, c_text, c_version, c_hash, c_acc_mech_type, c_time_of_acceptance)
-    logger.debug("set_active_txn_author_agreement_meta completed")
-
-
 async def vcx_get_request_price(action_json: str,
                                 requester_info_json: Optional[str]):
     """
@@ -435,10 +386,10 @@ async def vcx_fetch_public_entities() -> None:
         1) Retrieves the list of all credentials stored in the opened wallet.
         2) Fetch and cache Schemas / Credential Definitions / Revocation Registry Definitions
            correspondent to received credentials from the connected Ledger.
-   
+
     This helper function can be used, for instance as a background task, to refresh library cache.
     This allows us to reduce the time taken for Proof generation by using already cached entities instead of queering the Ledger.
-   
+
     NOTE: Library must be already initialized (wallet and pool must be opened).
 
     :return: None
@@ -476,8 +427,8 @@ async def vcx_health_check() -> None:
 
     logger.debug("vcx_health_check completed")
     return result
-    
-    
+
+
 async def vcx_create_pairwise_agent() -> str:
     """
     Create pairwise agent which can be later used for connection establishing.
@@ -509,3 +460,54 @@ async def vcx_create_pairwise_agent() -> str:
 
     logger.debug("vcx_create_pairwise_agent completed")
     return result.decode()
+
+
+async def vcx_extract_attached_message(message: str) -> str:
+    """
+    Extract content of Aries message containing attachment decorator.
+    RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+
+    :param message: aries message containing attachment decorator
+    :return: attached message as JSON string
+    """
+    logger = logging.getLogger(__name__)
+
+    if not hasattr(vcx_extract_attached_message, "cb"):
+        logger.debug("vcx_extract_attached_message: Creating callback")
+        vcx_extract_attached_message.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
+
+    c_message = c_char_p(message.encode('utf-8'))
+
+    result = await do_call('vcx_extract_attached_message',
+                           c_message,
+                           vcx_extract_attached_message.cb)
+
+    logger.debug("vcx_extract_attached_message completed")
+    return result
+
+
+async def resolve_message_by_url(url: str) -> str:
+    """
+    Resolve message by the given URL.
+    Supported cases:
+      1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+      2. Message inside response `location` header for GET request
+      3. Message inside response for GET request
+
+    :param url: url to fetch message
+    :return: resolved message
+    """
+    logger = logging.getLogger(__name__)
+
+    if not hasattr(resolve_message_by_url, "cb"):
+        logger.debug("resolve_message_by_url: Creating callback")
+        resolve_message_by_url.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
+
+    c_url = c_char_p(url.encode('utf-8'))
+
+    result = await do_call('vcx_resolve_message_by_url',
+                           c_url,
+                           resolve_message_by_url.cb)
+
+    logger.debug("resolve_message_by_url completed")
+    return result

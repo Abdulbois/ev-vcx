@@ -46,17 +46,6 @@ async def test_serialize_with_bad_handle():
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('vcx_init_test_mode')
-async def test_deserialize_and_payment_txn():
-    schema = await Schema.create(source_id, name, version, attrs, 0)
-    data = await schema.serialize()
-    schema2 = await Schema.deserialize(data)
-    assert schema2.source_id == data.get('data').get('source_id')
-    txn = await schema.get_payment_txn()
-    assert txn
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures('vcx_init_test_mode')
 async def test_deserialize_with_invalid_data():
     with pytest.raises(VcxError) as e:
         data = {'invalid': -99}

@@ -9,7 +9,7 @@ use indy_sys::CommandHandle;
 
 use crate::connection::Connections;
 use crate::credential::Credentials;
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 
 /*
     The API represents a Holder side in credential issuance process.
@@ -17,7 +17,7 @@ use crate::object_cache::Handle;
 
     # State
 
-    The set of object states, messages and transitions depends on the communication method is used.
+    The set of object states, agent and transitions depends on the communication method is used.
     There are two communication methods: `proprietary` and `aries`. The default communication method is `proprietary`.
     The communication method can be specified as a config option on one of *_init functions.
 
@@ -26,7 +26,7 @@ use crate::object_cache::Handle;
 
         VcxStateType::VcxStateOfferSent - once `vcx_credential_send_request` (send `CRED_REQ` message) is called.
 
-        VcxStateType::VcxStateAccepted - once `CRED` messages is received.
+        VcxStateType::VcxStateAccepted - once `CRED` agent is received.
                                          use `vcx_credential_update_state` or `vcx_credential_update_state_with_message` functions for state updates.
 
     aries:
@@ -34,9 +34,9 @@ use crate::object_cache::Handle;
 
         VcxStateType::VcxStateOfferSent - once `vcx_credential_send_request` (send `CredentialRequest` message) is called.
 
-        VcxStateType::VcxStateAccepted - once `Credential` messages is received.
+        VcxStateType::VcxStateAccepted - once `Credential` agent is received.
 
-        VcxStateType::VcxStateRejected - 1) once `ProblemReport` messages is received.
+        VcxStateType::VcxStateRejected - 1) once `ProblemReport` agent is received.
                                             use `vcx_credential_update_state` or `vcx_credential_update_state_with_message` functions for state updates.
                                          2) once `vcx_credential_reject` is called.
 
@@ -593,8 +593,8 @@ pub extern fn vcx_credential_get_offers(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Query the agency for the received messages.
-/// Checks for any messages changing state in the credential object and updates the state attribute.
+/// Query the agency for the received agent.
+/// Checks for any agent changing state in the credential object and updates the state attribute.
 /// If it detects a credential it will store the credential in the wallet.
 ///
 /// #Params
@@ -907,7 +907,7 @@ pub extern fn vcx_credential_get_payment_txn(command_handle: CommandHandle,
 }
 
 /// Send a Credential rejection to the connection.
-/// It can be called once Credential Offer or Credential messages are received.
+/// It can be called once Credential Offer or Credential agent are received.
 ///
 /// Note that this function can be used for `aries` communication protocol.
 /// In other cases it returns ActionNotSupported error.
@@ -1121,7 +1121,7 @@ mod tests {
 
     use crate::credential::tests::BAD_CREDENTIAL_OFFER;
     use crate::utils::constants;
-    use crate::messages::issuance::credential_request::CredentialRequest;
+    use crate::legacy::messages::issuance::credential_request::CredentialRequest;
 
     fn _vcx_credential_create_with_offer_c_closure(offer: &str) -> Result<Handle<Credentials>, u32> {
         let (h, cb, r) = return_types::return_u32_crdh();
@@ -1296,17 +1296,6 @@ mod tests {
         let (h, cb, r) = return_types::return_u32_str();
         assert_eq!(vcx_get_credential(h, handle, Some(cb)), error::SUCCESS.code_num);
         assert_eq!(r.recv_medium().err(), Some(error::NOT_READY.code_num));
-    }
-
-    #[test]
-    fn test_get_payment_txn() {
-        let _setup = SetupMocks::init();
-
-        let handle = credential::from_string(crate::utils::constants::FULL_CREDENTIAL_SERIALIZED).unwrap();
-
-        let (h, cb, r) = return_types::return_u32_str();
-        vcx_credential_get_payment_txn(h, handle, Some(cb));
-        r.recv_medium().unwrap();
     }
 
     #[test]

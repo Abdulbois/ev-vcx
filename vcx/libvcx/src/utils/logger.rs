@@ -152,7 +152,7 @@ impl log::Log for LibvcxLogger {
 //DEBUG	Designates fine-grained informational events that are most useful to debug an application.
 //ERROR	Designates error events that might still allow the application to continue running.
 //FATAL	Designates very severe error events that will presumably lead the application to abort.
-//INFO	Designates informational messages that highlight the progress of the application at coarse-grained level.
+//INFO	Designates informational agent that highlight the progress of the application at coarse-grained level.
 //OFF	The highest possible rank and is intended to turn off logging.
 //TRACE	Designates finer-grained informational events than the DEBUG.
 //WARN	Designates potentially harmful situations.
@@ -201,7 +201,7 @@ impl LibvcxDefaultLogger {
             match EnvLoggerBuilder::new()
                 .format(|buf, record| writeln!(buf, "{:>5}|{:<30}|{:>35}:{:<4}| {}", record.level(), record.target(), record.file().get_or_insert(""), record.line().get_or_insert(0), record.args()))
                 .filter(None, LevelFilter::Off)
-                .parse(pattern.as_ref().map(String::as_str).unwrap_or("warn"))
+                .parse_filters(pattern.as_ref().map(String::as_str).unwrap_or("warn"))
                 .try_init() {
                 Ok(()) => {}
                 Err(e) => {

@@ -12,8 +12,7 @@ from vcx.api.credential_def import CredentialDef
 from vcx.api.issuer_credential import IssuerCredential
 from vcx.api.proof import Proof
 from vcx.api.schema import Schema
-from vcx.api.utils import vcx_agent_provision, vcx_get_ledger_author_agreement, \
-    vcx_set_active_txn_author_agreement_meta
+from vcx.api.utils import vcx_agent_provision
 from vcx.api.vcx_init import vcx_init_with_config
 from vcx.state import State, ProofState
 
@@ -34,11 +33,20 @@ provisionConfig = {
     'wallet_name': 'faber_wallet',
     'wallet_key': '123',
     'enterprise_seed': '000000000000000000000000Trustee2',
-    'protocol_type': '3.0',
+    'protocol_type': '4.0',
     'name': 'Faber',
     'logo': 'https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png',
-    'path': 'docker.txn',
-    'payment_method': 'null',
+    'pool_networks': [
+        {
+            'genesis_path': 'docker.txn',
+            'namespace_list': ["staging"],
+            'taa_config': {
+                'taa_digest': '8cee5d7a573e4893b08ff53a0761a22a1607df3b3fcd7e75b98696c92879641f',
+                'acc_mech_type': 'at_submission',
+                'time': int(time.time())
+            }
+        }
+    ]
 }
 
 
@@ -58,6 +66,7 @@ async def main():
             "0 - establish connection \n "
             "1 - issue credential \n "
             "2 - ask for proof request \n "
+            "3 - send message \n "
             "else finish \n") \
             .lower().strip()
         if answer == '0':
@@ -67,6 +76,9 @@ async def main():
         elif answer == '2':
             institution_did = json.loads(config)['institution_did']
             await ask_for_proof(connection_to_alice, proof_attrs(institution_did), proof_predicates(institution_did))
+        elif answer == '3':
+            message = {"response":"PostMigrationNewConn: I am fine","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/questionanswer/1.0/answer","~thread":{"thId":"93bccf5a-4ab0-402a-bab4-c96018fb8265"}}
+            await connection_to_alice.send_message(json.dumps(message), "test", "test")
         else:
             break
 
@@ -92,18 +104,6 @@ async def connect(use_public_did: bool = False):
 
     print("Connection is established")
     return connection_to_alice
-
-
-async def accept_taa():
-    # To support ledger which transaction author agreement accept needed
-    print("#2.1 Accept transaction author agreement")
-    txn_author_agreement = await vcx_get_ledger_author_agreement()
-    txn_author_agreement_json = json.loads(txn_author_agreement)
-    first_acc_mech_type = list(txn_author_agreement_json['aml'].keys())[0]
-    vcx_set_active_txn_author_agreement_meta(text=txn_author_agreement_json['text'],
-                                             version=txn_author_agreement_json['version'],
-                                             hash=None,
-                                             acc_mech_type=first_acc_mech_type, time_of_acceptance=int(time.time()))
 
 
 def schema_attributes():
@@ -133,8 +133,6 @@ def credential_name():
 
 
 async def issue_credential(connection_to_alice, schema_attributes, credential_values, credential_name):
-    await accept_taa()
-
     print("#3 Create a new schema on the ledger")
     version = format("%d.%d.%d" % (random.randint(1, 101), random.randint(1, 101), random.randint(1, 101)))
     schema = await Schema.create('schema_uuid', 'degree schema', version, schema_attributes, 0)
@@ -186,6 +184,9 @@ async def issue_credential(connection_to_alice, schema_attributes, credential_va
 
 def proof_attrs(institution_did):
     return [
+        {'name': 'Sex', 'restrictions': {
+            'schema_id': 'LnXR1rPnncTPZvRdmJKhJQ:2:degree schema:35.5.94'
+        }},
         {'name': 'MemberID'},
     ]
 
@@ -199,7 +200,7 @@ def proof_predicates(institution_did):
 
 async def ask_for_proof(connection_to_alice, proof_attrs, proof_predicates):
     print("#19 Create a Proof object")
-    proof = await Proof.create('proof_uuid', 'proof_from_alice', proof_attrs, {}, [])
+    proof = await Proof.create('proof_uuid', 'proof_from_alice', proof_attrs, {}, proof_predicates)
 
     print("#20 Request proof of degree from alice")
     await proof.request_proof(connection_to_alice)

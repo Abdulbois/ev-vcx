@@ -1,13 +1,23 @@
+use std::fs;
+use std::sync::Once;
 use crate::utils::{threadpool, get_temp_dir_path};
 use crate::{settings, utils};
-use std::fs;
 use crate::utils::libindy::wallet::{reset_wallet_handle, delete_wallet, create_wallet};
-use crate::messages::agent_provisioning::agent_provisioning_v0_7::provision;
-use crate::utils::libindy::pool::reset_pool_handles;
+use crate::utils::libindy::vdr::tests::{open_test_pool, delete_test_pool};
+use crate::agent::provisioning::agent_provisioning_v0_7;
+use crate::utils::libindy::vdr::reset_vdr;
 use crate::settings::set_defaults;
-use futures::Future;
-use std::sync::Once;
 use crate::utils::libindy::crypto::sign;
+use crate::utils::constants;
+use crate::utils::libindy::wallet;
+use crate::utils::object_cache::{ObjectCache, Handle};
+use crate::indy::WalletHandle;
+use crate::utils::libindy::wallet::init_wallet;
+use crate::utils::file::write_file;
+use crate::utils::logger::LibvcxDefaultLogger;
+use crate::settings::wallet::get_wallet_name;
+use crate::agent::provisioning;
+use crate::utils::libindy::ledger::utils::TxnTypes;
 
 pub struct SetupEmpty; // empty
 
@@ -40,7 +50,9 @@ pub struct SetupLibraryAgencyV2; // init indy wallet, init pool, provision 2 age
 pub struct SetupLibraryAgencyV2ZeroFees; // init indy wallet, init pool, provision 2 agents. use protocol type 2.0, set zero fees
 
 //TODO: This will be removed once libvcx only supports provisioning 0.7
-pub struct SetupLibraryAgencyV2NewProvisioning; // init indy wallet, init pool, provision 2 agents. use protocol type 2.0, set zero fees
+pub struct SetupLibraryAgencyV2NewProvisioning;
+
+// init indy wallet, init pool, provision 2 agents. use protocol type 2.0, set zero fees
 pub struct SetupLibraryAgencyV2ZeroFeesNewProvisioning; // init indy wallet, init pool, provision 2 agents. use protocol type 2.0, set zero fees
 
 pub struct SetupConsumer; // init indy wallet, init pool, provision 1 consumer agent, use protocol type 1.0
@@ -55,7 +67,7 @@ fn setup() {
 fn tear_down() {
     settings::clear_config();
     reset_wallet_handle();
-    reset_pool_handles();
+    reset_vdr();
 }
 
 impl SetupEmpty {
@@ -150,8 +162,6 @@ impl SetupWalletAndPool {
         setup();
         settings::set_config_value(settings::CONFIG_ENABLE_TEST_MODE, "false");
         create_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
-        create_test_pool();
-        settings::set_config_value(settings::CONFIG_GENESIS_PATH, utils::get_temp_dir_path(settings::DEFAULT_GENESIS_PATH).to_str().unwrap());
         SetupWalletAndPool
     }
 }
@@ -340,19 +350,6 @@ macro_rules! assert_match {
     );
 }
 
-use crate::utils::constants;
-use crate::utils::libindy::wallet;
-use crate::object_cache::{ObjectCache, Handle};
-
-use crate::indy::WalletHandle;
-use crate::utils::libindy::wallet::init_wallet;
-use crate::utils::plugins::init_plugin;
-use crate::utils::libindy::pool::tests::{open_test_pool, delete_test_pool, create_test_pool};
-use crate::utils::file::write_file;
-use crate::utils::logger::LibvcxDefaultLogger;
-use crate::settings::wallet::get_wallet_name;
-use crate::messages::agent_provisioning;
-
 static mut INSTITUTION_CONFIG: Handle<String> = Handle::dummy();
 static mut CONSUMER_CONFIG: Handle<String> = Handle::dummy();
 
@@ -431,23 +428,19 @@ pub fn create_new_seed() -> String {
     format!("{:032}", x)
 }
 
-pub fn setup_indy_env(use_zero_fees: bool) {
+pub fn setup_indy_env(_use_zero_fees: bool) {
     settings::set_config_value(settings::CONFIG_ENABLE_TEST_MODE, "false");
-
-    init_plugin(settings::DEFAULT_PAYMENT_PLUGIN, settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
     init_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
 
     settings::set_config_value(settings::CONFIG_GENESIS_PATH, utils::get_temp_dir_path(settings::DEFAULT_GENESIS_PATH).to_str().unwrap());
     open_test_pool();
 
-    crate::utils::libindy::anoncreds::libindy_prover_create_master_secret(settings::DEFAULT_LINK_SECRET_ALIAS).unwrap();
+    crate::utils::libindy::anoncreds::holder::Holder::create_master_secret(settings::DEFAULT_LINK_SECRET_ALIAS).unwrap();
 
-    let (my_did, my_vk) = crate::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
+    let (my_did, my_vk) = crate::utils::libindy::crypto::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
     settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &my_did);
     settings::set_config_value(settings::CONFIG_INSTITUTION_VERKEY, &my_vk);
-
-    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
 }
 
 pub fn cleanup_indy_env() {
@@ -469,7 +462,6 @@ pub fn set_institution() {
     settings::clear_config();
     unsafe {
         CONFIG_STRING.get(INSTITUTION_CONFIG, |t| {
-            settings::set_config_value(settings::CONFIG_PAYMENT_METHOD, settings::DEFAULT_PAYMENT_METHOD);
             settings::process_config_string(&t, true)
         }).unwrap();
     }
@@ -480,7 +472,6 @@ pub fn set_consumer() {
     settings::clear_config();
     unsafe {
         CONFIG_STRING.get(CONSUMER_CONFIG, |t| {
-            settings::set_config_value(settings::CONFIG_PAYMENT_METHOD, settings::DEFAULT_PAYMENT_METHOD);
             settings::process_config_string(&t, true)
         }).unwrap();
     }
@@ -492,10 +483,8 @@ fn change_wallet_handle() {
     unsafe { wallet::WALLET_HANDLE = WalletHandle(wallet_handle.parse::<i32>().unwrap()) }
 }
 
-pub fn setup_agency_env(protocol_type: &str, use_zero_fees: bool) {
+pub fn setup_agency_env(protocol_type: &str, _use_zero_fees: bool) {
     settings::clear_config();
-
-    init_plugin(settings::DEFAULT_PAYMENT_PLUGIN, settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
     let enterprise_wallet_name = format!("{}_{}", constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
 
@@ -515,7 +504,7 @@ pub fn setup_agency_env(protocol_type: &str, use_zero_fees: bool) {
         "protocol_type": protocol_type,
     });
 
-    let enterprise_config = agent_provisioning::provision(&config.to_string()).unwrap();
+    let enterprise_config = provisioning::provision(&config.to_string()).unwrap();
 
     crate::api::vcx::vcx_shutdown(false);
 
@@ -536,7 +525,7 @@ pub fn setup_agency_env(protocol_type: &str, use_zero_fees: bool) {
         "protocol_type": protocol_type,
     });
 
-    let consumer_config = agent_provisioning::provision(&config.to_string()).unwrap();
+    let consumer_config = provisioning::provision(&config.to_string()).unwrap();
 
     unsafe {
         INSTITUTION_CONFIG = CONFIG_STRING.add(config_with_wallet_handle(&enterprise_wallet_name, &enterprise_config)).unwrap();
@@ -559,19 +548,24 @@ pub fn setup_agency_env(protocol_type: &str, use_zero_fees: bool) {
 
     // make enterprise and consumer trustees on the ledger
     wallet::init_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
-    let (trustee_did, _) = crate::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
-    let req_nym = crate::indy::ledger::build_nym_request(&trustee_did, &did1, Some(&vk1), None, Some("TRUSTEE")).wait().unwrap();
-    crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
-    let req_nym = crate::indy::ledger::build_nym_request(&trustee_did, &did2, Some(&vk2), None, Some("TRUSTEE")).wait().unwrap();
-    crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
+
+    let data = json!({
+        "dest": did1,
+        "verkey": vk1,
+        "role": "TRUSTEE",
+    }).to_string();
+    crate::utils::libindy::ledger::utils::sign_and_submit_txn(&data, TxnTypes::DID).unwrap();
+
+    let data = json!({
+        "dest": did2,
+        "verkey": vk2,
+        "role": "TRUSTEE",
+    }).to_string();
+    crate::utils::libindy::ledger::utils::sign_and_submit_txn(&data, TxnTypes::DID).unwrap();
     wallet::delete_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
 
     // as trustees, mint tokens into each wallet
     set_consumer();
-    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
-
-    set_institution();
-    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
 }
 
 pub fn sign_provision_token(keys: &str, nonce: &str, time: &str, sponsee_id: &str, sponsor_id: &str) -> String {
@@ -580,10 +574,9 @@ pub fn sign_provision_token(keys: &str, nonce: &str, time: &str, sponsee_id: &st
 }
 
 //TODO: This will be removed once libvcx only supports provisioning 0.7
-pub fn setup_agency_env_new_protocol(protocol_type: &str, use_zero_fees: bool) {
+pub fn setup_agency_env_new_protocol(protocol_type: &str, _use_zero_fees: bool) {
     settings::clear_config();
 
-    init_plugin(settings::DEFAULT_PAYMENT_PLUGIN, settings::DEFAULT_PAYMENT_INIT_FUNCTION);
     let sponsee_id = "id";
     let sponsor_id = "evernym-test-sponsorabc123";
     let nonce = "nonce";
@@ -621,7 +614,7 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, use_zero_fees: bool) {
         "protocol_type": protocol_type,
     });
 
-    let enterprise_config = provision(&config.to_string(), &test_token).unwrap();
+    let enterprise_config = agent_provisioning_v0_7::provision(&config.to_string(), &test_token).unwrap();
 
     crate::api::vcx::vcx_shutdown(false);
 
@@ -642,7 +635,7 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, use_zero_fees: bool) {
         "protocol_type": protocol_type,
     });
 
-    let consumer_config = provision(&config.to_string(), &test_token).unwrap();
+    let consumer_config = agent_provisioning_v0_7::provision(&config.to_string(), &test_token).unwrap();
 
     unsafe {
         INSTITUTION_CONFIG = CONFIG_STRING.add(config_with_wallet_handle(&enterprise_wallet_name, &enterprise_config)).unwrap();
@@ -665,20 +658,22 @@ pub fn setup_agency_env_new_protocol(protocol_type: &str, use_zero_fees: bool) {
 
     // make enterprise and consumer trustees on the ledger
     wallet::init_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
-    let (trustee_did, _) = crate::utils::libindy::signus::create_and_store_my_did(Some(constants::TRUSTEE_SEED), None).unwrap();
-    let req_nym = crate::indy::ledger::build_nym_request(&trustee_did, &did1, Some(&vk1), None, Some("TRUSTEE")).wait().unwrap();
-    crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
-    let req_nym = crate::indy::ledger::build_nym_request(&trustee_did, &did2, Some(&vk2), None, Some("TRUSTEE")).wait().unwrap();
-    crate::utils::libindy::ledger::libindy_sign_and_submit_request(&trustee_did, &req_nym).unwrap();
+    let data = json!({
+        "dest": did1,
+        "verkey": vk1,
+        "role": "TRUSTEE",
+    }).to_string();
+    crate::utils::libindy::ledger::utils::sign_and_submit_txn(&data, TxnTypes::DID).unwrap();
+
+    let data = json!({
+        "dest": did2,
+        "verkey": vk2,
+        "role": "TRUSTEE",
+    }).to_string();
+    crate::utils::libindy::ledger::utils::sign_and_submit_txn(&data, TxnTypes::DID).unwrap();
     wallet::delete_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
 
-    // as trustees, mint tokens into each wallet
-    set_consumer();
-    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
-
     set_institution();
-    crate::utils::libindy::payments::tests::token_setup(None, None, use_zero_fees);
-
 }
 
 pub fn config_with_wallet_handle(wallet_n: &str, config: &str) -> String {
@@ -700,8 +695,6 @@ pub fn cleanup_wallet_env(test_name: &str) -> Result<(), String> {
 pub fn setup_consumer_env(protocol_type: &str) {
     settings::clear_config();
 
-    init_plugin(settings::DEFAULT_PAYMENT_PLUGIN, settings::DEFAULT_PAYMENT_INIT_FUNCTION);
-
     let consumer_wallet_name = format!("{}_{}", constants::CONSUMER_PREFIX, settings::DEFAULT_WALLET_NAME);
     let seed2 = create_new_seed();
     let config = json!({
@@ -719,7 +712,7 @@ pub fn setup_consumer_env(protocol_type: &str) {
         "protocol_type": protocol_type,
     });
 
-    let consumer_config = agent_provisioning::provision(&config.to_string()).unwrap();
+    let consumer_config = provisioning::provision(&config.to_string()).unwrap();
 
     unsafe {
         CONSUMER_CONFIG = CONFIG_STRING.add(config_with_wallet_handle(&consumer_wallet_name, &consumer_config.to_string())).unwrap();

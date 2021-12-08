@@ -1,14 +1,14 @@
 use crate::utils::{version_constants, threadpool};
 use libc::c_char;
 use crate::utils::cstring::CStringUtils;
-use crate::utils::libindy::{wallet, pool, ledger};
+use crate::utils::libindy::{wallet, vdr};
 use crate::utils::error;
 use crate::settings;
 use std::ffi::CString;
 use crate::utils::threadpool::spawn;
 use crate::error::prelude::*;
 use crate::indy::{INVALID_WALLET_HANDLE, CommandHandle};
-use crate::utils::libindy::pool::init_pool;
+use crate::utils::libindy::vdr::init_vdr;
 use std::thread;
 
 /// Initializes VCX with config settings
@@ -131,12 +131,12 @@ fn _finish_init(command_handle: CommandHandle, cb: extern fn(xcommand_handle: Co
 
     spawn(move || {
         let pool_open_thread = thread::spawn(|| {
-            if settings::get_config_value(settings::CONFIG_POOL_NETWORKS).is_err() {
+            if settings::pool::get_indy_pool_networks().is_err() {
                 info!("Skipping connection to Pool Ledger Network as no configs passed");
                 return Ok(());
             }
 
-            init_pool()
+            init_vdr()
                 .map(|res| {
                     info!("Init Pool Successful.");
                     res
@@ -242,7 +242,7 @@ pub extern fn vcx_init_pool(command_handle: CommandHandle,
     }
 
     spawn(move || {
-        match init_pool() {
+        match init_vdr() {
             Ok(()) => {
                 trace!("vcx_init_pool_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -290,7 +290,7 @@ pub extern fn vcx_shutdown(delete: bool) -> u32 {
         Err(_) => {}
     };
 
-    match pool::close() {
+    match vdr::close_vdr() {
         Ok(()) => {}
         Err(_) => {}
     };
@@ -314,10 +314,7 @@ pub extern fn vcx_shutdown(delete: bool) -> u32 {
             Err(_) => (),
         };
 
-        match pool::delete() {
-            Ok(()) => (),
-            Err(_) => (),
-        };
+        vdr::close_vdr().ok();
     }
 
     settings::clear_config();
@@ -362,86 +359,6 @@ pub extern fn vcx_update_institution_info(name: *const c_char, logo_url: *const 
     error::SUCCESS.code_num
 }
 
-/// Retrieve author agreement and acceptance mechanisms set on the Ledger
-///
-/// #params
-///
-/// command_handle: command handle to map callback to user context.
-///
-/// cb: Callback that provides array of matching messages retrieved
-///
-/// # Example author_agreement -> "{"text":"Default agreement", "version":"1.0.0", "aml": {"label1": "description"}}"
-///
-/// #Returns
-/// Error code as a u32
-#[no_mangle]
-pub extern fn vcx_get_ledger_author_agreement(command_handle: CommandHandle,
-                                              cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, author_agreement: *const c_char)>) -> u32 {
-    info!("vcx_get_ledger_author_agreement >>>");
-
-    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
-
-    trace!("vcx_get_ledger_author_agreement(command_handle: {})",
-           command_handle);
-
-    spawn(move || {
-        match ledger::libindy_get_txn_author_agreement() {
-            Ok(x) => {
-                trace!("vcx_ledger_get_fees_cb(command_handle: {}, rc: {}, author_agreement: {})",
-                       command_handle, error::SUCCESS.as_str(), x);
-
-                let msg = CStringUtils::string_to_cstring(x);
-                cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
-            }
-            Err(e) => {
-                error!("vcx_get_ledger_author_agreement(command_handle: {}, rc: {})",
-                       command_handle, e);
-                cb(command_handle, e.into(), ::std::ptr::null_mut());
-            }
-        };
-
-        Ok(())
-    });
-
-    error::SUCCESS.code_num
-}
-
-/// Set some accepted agreement as active.
-///
-/// As result of successful call of this function appropriate metadata will be appended to each write request.
-///
-/// #Params
-/// text and version - (optional) raw data about TAA from ledger.
-///     These parameters should be passed together.
-///     These parameters are required if hash parameter is ommited.
-/// hash - (optional) hash on text and version. This parameter is required if text and version parameters are ommited.
-/// acc_mech_type - mechanism how user has accepted the TAA
-/// time_of_acceptance - UTC timestamp when user has accepted the TAA
-///
-/// #Returns
-/// Error code as a u32
-#[no_mangle]
-pub extern fn vcx_set_active_txn_author_agreement_meta(text: *const c_char,
-                                                       version: *const c_char,
-                                                       hash: *const c_char,
-                                                       acc_mech_type: *const c_char,
-                                                       time_of_acceptance: u64) -> u32 {
-    info!("vcx_set_active_txn_author_agreement_meta >>>");
-
-    check_useful_opt_c_str!(text, VcxErrorKind::InvalidOption);
-    check_useful_opt_c_str!(version, VcxErrorKind::InvalidOption);
-    check_useful_opt_c_str!(hash, VcxErrorKind::InvalidOption);
-    check_useful_c_str!(acc_mech_type, VcxErrorKind::InvalidOption);
-
-    trace!("vcx_set_active_txn_author_agreement_meta(text: {:?}, version: {:?}, hash: {:?}, acc_mech_type: {:?}, time_of_acceptance: {:?})",
-           text, version, hash, acc_mech_type, time_of_acceptance);
-
-    match crate::utils::author_agreement::set_txn_author_agreement(text, version, hash, acc_mech_type, time_of_acceptance) {
-        Ok(()) => error::SUCCESS.code_num,
-        Err(err) => err.into()
-    }
-}
-
 /// Get details for last occurred error.
 ///
 /// This function should be called in two places to handle both cases of error occurrence:
@@ -476,27 +393,28 @@ mod tests {
     use std::ptr;
     use crate::utils::libindy::{
         wallet::{import, tests::export_test_wallet},
-        pool::get_pool,
+        vdr::get_vdr,
     };
     use crate::api::return_types;
-    #[cfg(any(feature = "agency", feature = "pool_tests"))]
-    use crate::utils::get_temp_dir_path;
     use crate::utils::devsetup::*;
     #[cfg(feature = "pool_tests")]
-    use crate::utils::libindy::pool::tests::delete_test_pool;
+    use crate::utils::libindy::vdr::tests::{get_txns, delete_test_pool};
 
     #[cfg(any(feature = "agency", feature = "pool_tests"))]
     fn config() -> String {
         json!({
-            "agency_endpoint" : "https://agency.com",
-            "agency_did" : "72x8p4HubxzUK1dwxcc5FU",
+           "wallet_name": settings::DEFAULT_WALLET_NAME,
+           "wallet_key": settings::DEFAULT_WALLET_KEY,
+           "wallet_key_derivation": settings::DEFAULT_WALLET_KEY_DERIVATION,
+           "agency_endpoint" : "https://agency.com",
+           "agency_did" : "72x8p4HubxzUK1dwxcc5FU",
            "remote_to_sdk_did" : "UJGjM6Cea2YVixjWwHN9wq",
            "sdk_to_remote_did" : "AB3JM851T4EQmhh8CdagSP",
            "sdk_to_remote_verkey" : "888MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
            "institution_name" : "evernym enterprise",
            "agency_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
            "remote_to_sdk_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
-           "genesis_path": get_temp_dir_path("pool1.txn").to_str().unwrap(),
+           "genesis_transactions": get_txns(),
            "payment_method": "null",
            "pool_config": json!({"timeout":60}).to_string()
        }).to_string()
@@ -511,7 +429,7 @@ mod tests {
         if rc != error::SUCCESS.code_num {
             return Err(rc);
         }
-        r.recv_medium()
+        r.recv_long()
     }
 
     fn _vcx_init_with_config_c_closure(config: &str) -> Result<(), u32> {
@@ -529,20 +447,19 @@ mod tests {
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_init_with_file() {
-        let _setup = SetupWalletAndPool::init();
+        let _setup = SetupWallet::init();
 
         let config = TempFile::create_with_data("test_init.json", &config());
 
         _vcx_init_c_closure(&config.path).unwrap();
 
         // Assert wallet and pool was initialized
-        assert_ne!(get_pool(None).unwrap(), 0);
+        get_vdr().unwrap();
     }
 
-    #[cfg(feature = "pool_tests")]
     #[test]
     fn test_init_with_file_no_payment_method() {
-        let _setup = SetupWalletAndPool::init();
+        let _setup = SetupWallet::init();
 
         let config = json!({
             "wallet_name": settings::DEFAULT_WALLET_NAME,
@@ -558,12 +475,12 @@ mod tests {
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_init_with_config() {
-        let _setup = SetupWalletAndPool::init();
+        let _setup = SetupWallet::init();
 
         _vcx_init_with_config_c_closure(&config()).unwrap();
 
         // Assert pool was initialized
-        assert_ne!(get_pool(None).unwrap(), 0);
+        get_vdr().unwrap();
     }
 
     #[cfg(feature = "pool_tests")]
@@ -571,13 +488,17 @@ mod tests {
     fn test_init_fails_when_open_pool_fails() {
         let _setup = SetupWallet::init();
 
-        // Write invalid genesis.txn
-        let _genesis_transactions = TempFile::create_with_data(crate::utils::constants::GENESIS_PATH, "{}");
+        // Use invalid genesis transactions
+        let config = json!({
+           "agency_endpoint" : "https://agency.com",
+           "agency_did" : "72x8p4HubxzUK1dwxcc5FU",
+           "agency_verkey" : "91qMFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE",
+           "genesis_transactions": "{'date':'ds'}",
+       }).to_string();
 
-        let err = _vcx_init_with_config_c_closure(&config()).unwrap_err();
+        let err = _vcx_init_with_config_c_closure(&config).unwrap_err();
         assert_eq!(err, error::POOL_LEDGER_CONNECT.code_num);
-
-        assert_eq!(get_pool(None).unwrap_err().kind(), VcxErrorKind::NoPoolOpen);
+        assert!(get_vdr().is_err());
 
         delete_test_pool();
     }
@@ -595,7 +516,7 @@ mod tests {
         _vcx_init_with_config_c_closure(&content).unwrap();
 
         // assert that pool was never initialized
-        assert!(get_pool(None).is_err());
+        assert!(get_vdr().is_err());
     }
 
     #[test]
@@ -629,7 +550,7 @@ mod tests {
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_vcx_init_with_default_values() {
-        let _setup = SetupWalletAndPool::init();
+        let _setup = SetupWallet::init();
 
         _vcx_init_with_config_c_closure("{}").unwrap();
     }
@@ -637,7 +558,7 @@ mod tests {
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_vcx_init_called_twice_fails() {
-        let _setup = SetupWalletAndPool::init();
+        let _setup = SetupWallet::init();
 
         _vcx_init_with_config_c_closure("{}").unwrap();
 
@@ -653,7 +574,6 @@ mod tests {
             let _setup = SetupDefaults::init();
 
             wallet::create_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
-            pool::tests::create_test_pool();
 
             _vcx_init_with_config_c_closure("{}").unwrap();
 
@@ -669,7 +589,7 @@ mod tests {
     #[cfg(feature = "pool_tests")]
     #[test]
     fn test_init_fails_with_open_wallet() {
-        let _setup = SetupLibraryWalletPool::init();
+        let _setup = SetupLibraryWallet::init();
 
         let config = TempFile::create_with_data("test_init.json", &config());
 
@@ -890,49 +810,6 @@ mod tests {
         let config = CString::new("{}").unwrap();
         crate::api::utils::vcx_agent_provision_async(0, config.as_ptr(), Some(cb));
         ::std::thread::sleep(::std::time::Duration::from_secs(1));
-    }
-
-    #[test]
-    fn test_vcx_set_active_txn_author_agreement_meta() {
-        let _setup = SetupMocks::init();
-
-        assert!(&settings::get_config_value(crate::settings::CONFIG_TXN_AUTHOR_AGREEMENT).is_err());
-
-        let text = "text\0";
-        let version = "1.0.0\0";
-        let acc_mech_type = "type 1\0";
-        let time_of_acceptance = 123456789;
-
-        assert_eq!(error::SUCCESS.code_num, vcx_set_active_txn_author_agreement_meta(text.as_ptr().cast(),
-                                                                                     version.as_ptr().cast(),
-                                                                                     ::std::ptr::null(),
-                                                                                     acc_mech_type.as_ptr().cast(),
-                                                                                     time_of_acceptance));
-
-        let expected = json!({
-            "text": &text[..text.len() - 1],
-            "version": &version[..version.len() - 1],
-            "acceptanceMechanismType": &acc_mech_type[..acc_mech_type.len() - 1],
-            "timeOfAcceptance": time_of_acceptance,
-        });
-
-        let auth_agreement = settings::get_config_value(crate::settings::CONFIG_TXN_AUTHOR_AGREEMENT).unwrap();
-        let auth_agreement = ::serde_json::from_str::<::serde_json::Value>(&auth_agreement).unwrap();
-
-        assert_eq!(expected, auth_agreement);
-
-        crate::settings::set_defaults();
-    }
-
-    #[test]
-    fn test_vcx_get_ledger_author_agreement() {
-        let _setup = SetupMocks::init();
-
-        let (h, cb, r) = return_types::return_u32_str();
-        assert_eq!(vcx_get_ledger_author_agreement(h,
-                                                   Some(cb)), error::SUCCESS.code_num);
-        let agreement = r.recv_short().unwrap();
-        assert_eq!(crate::utils::constants::DEFAULT_AUTHOR_AGREEMENT, agreement.unwrap());
     }
 
     #[cfg(feature = "pool_tests")]

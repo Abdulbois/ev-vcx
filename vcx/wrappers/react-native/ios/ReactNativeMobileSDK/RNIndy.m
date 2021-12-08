@@ -123,23 +123,15 @@ RCT_EXPORT_METHOD(init: (NSString *)config
                   rejecter: (RCTPromiseRejectBlock) reject)
 {
   ConnectMeVcx *conn = [[ConnectMeVcx alloc] init];
-  //int retCode = [conn initNullPay];
-  int retCode = [conn initSovToken];
-
-  if(retCode != 0) {
-    NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)retCode];
-    reject(indyErrorCode, [NSString stringWithFormat:@"Error occurred while initializing sovtoken: %ld", (long)retCode], NULL);
-  } else {
-    [conn initWithConfig:config completion:^(NSError *error) {
-      if (error != nil && error.code != 0 && error.code != 1044)
-      {
-        NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-        reject(indyErrorCode, [NSString stringWithFormat:@"Error occurred while initializing vcx: %@ :: %ld",error.domain, (long)error.code], error);
-      }else{
-        resolve(@true);
-      }
-    }];
-  }
+  [conn initWithConfig:config completion:^(NSError *error) {
+    if (error != nil && error.code != 0 && error.code != 1044)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, [NSString stringWithFormat:@"Error occurred while initializing vcx: %@ :: %ld",error.domain, (long)error.code], error);
+    }else{
+      resolve(@true);
+    }
+  }];
 }
 
 RCT_EXPORT_METHOD(reset:
@@ -1196,6 +1188,22 @@ RCT_EXPORT_METHOD(proofGenerate:(NSInteger)proofHandle
   }];
 }
 
+RCT_EXPORT_METHOD(proofGetState: (NSInteger) proofHandle
+                               resolver: (RCTPromiseResolveBlock) resolve
+                               rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] proofGetState:proofHandle
+                                  completion:^(NSError *error, NSInteger state)
+  {
+    if (error != nil && error.code != 0) {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while getting proof state", error);
+    } else {
+      resolve(@(state));
+    }
+  }];
+}
+
 RCT_EXPORT_METHOD(proofSend:(NSInteger)proof_handle
                   withConnectionHandle:(NSInteger)connection_handle
                   resolver: (RCTPromiseResolveBlock) resolve
@@ -1469,90 +1477,6 @@ RCT_EXPORT_METHOD(getLedgerFees: (RCTPromiseResolveBlock) resolve
       resolve(fees);
     }
   }];
-}
-
-RCT_EXPORT_METHOD(appendTxnAuthorAgreement:(NSString *)requestJson
-                  withAgreement:(NSString *)text
-                  withVersion:(NSString *)version
-                  withDigest:(NSString *)taaDigest
-                  withMechanism:(NSString *)mechanism
-                  withTimestamp:(NSInteger)time
-                  resolver: (RCTPromiseResolveBlock) resolve
-                  rejecter: (RCTPromiseRejectBlock) reject)
-{
-  NSNumber *val = [NSNumber numberWithInteger:time];
-  [IndySdk appendTxnAuthorAgreement:requestJson
-                            withAgreement:text
-                            withVersion:version
-                            withDigest:taaDigest
-                            withMechanism:mechanism
-                            withTimestamp:val
-                            completion:^(NSError *error, NSString *jsonResult)
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while appending TxnAuthorAgreement", error);
-    } else {
-      resolve(jsonResult);
-    }
-  }];
-}
-
-
-RCT_EXPORT_METHOD(getTxnAuthorAgreement:(RCTPromiseResolveBlock) resolve
-                  rejecter: (RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] getTxnAuthorAgreement: ^(NSError *error, NSString *authorAgreement)
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while getting TxnAuthorAgreement", error);
-    } else {
-      resolve(authorAgreement);
-    }
-  }];
-}
-
-
-RCT_EXPORT_METHOD(getAcceptanceMechanisms:(NSString *)requesterDID
-                  withTimestamp:(NSInteger)timestamp
-                  withVersion:(NSString *)version
-                  resolver: (RCTPromiseResolveBlock) resolve
-                  rejecter: (RCTPromiseRejectBlock) reject)
-{
-  NSNumber *val = [NSNumber numberWithInteger: timestamp];
-  [IndySdk getAcceptanceMechanisms: val
-                  withVersion:version
-                  fromRequester:requesterDID
-                  completion:^(NSError *error, NSString *jsonResult)
-  {
-    if (error != nil && error.code != 0)
-    {
-      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
-      reject(indyErrorCode, @"Error occurred while getting Acceptance Mechanisms", error);
-    } else {
-      resolve(jsonResult);
-    }
-  }];
-}
-
-RCT_EXPORT_METHOD(setActiveTxnAuthorAgreementMeta:(NSString *)text
-                  withVersion:(NSString *)version
-                  withDigest:(NSString *)taaDigest
-                  withMechanism:(NSString *)mechanism
-                  withTimestamp:(NSInteger)time
-                  resolver: (RCTPromiseResolveBlock) resolve
-                  rejecter: (RCTPromiseRejectBlock) reject)
-{
-  [[[ConnectMeVcx alloc] init] activateTxnAuthorAgreement: text
-                            withVersion:version
-                            withHash: taaDigest
-                            withMechanism: mechanism
-                            withTimestamp: time
-  ];
-   resolve(@{});
 }
 
 RCT_EXPORT_METHOD(fetchPublicEntities:(RCTPromiseResolveBlock) resolve
@@ -2121,4 +2045,39 @@ RCT_EXPORT_METHOD(healthCheck:(RCTPromiseResolveBlock) resolve
     }
   }];
 }
+
+RCT_EXPORT_METHOD(extractAttachedMessage: (NSString *)message
+                           resolver: (RCTPromiseResolveBlock) resolve
+                           rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] extractAttachedMessage:message completion:^(NSError *error, NSString *attachedMessage) {
+    NSLog(@"extractAttachedMessage callback:%@",attachedMessage);
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, [NSString stringWithFormat:@"Error occurred while extracting attached message: %@ :: %ld",error.domain, (long)error.code], error);
+
+    }else{
+      resolve(attachedMessage);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(resolveMessageByUrl: (NSString *)url
+                           resolver: (RCTPromiseResolveBlock) resolve
+                           rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] resolveMessageByUrl:url completion:^(NSError *error, NSString *message) {
+    NSLog(@"resolveMessageByUrl callback:%@",message);
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, [NSString stringWithFormat:@"Error occurred while getting message: %@ :: %ld",error.domain, (long)error.code], error);
+
+    }else{
+      resolve(message);
+    }
+  }];
+}
+
 @end

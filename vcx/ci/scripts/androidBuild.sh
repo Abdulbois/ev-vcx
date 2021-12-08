@@ -63,15 +63,28 @@ generate_flags(){
 get_libindy() {
     set -xv
     if [ -z ${LIBINDY_DIR} ]; then
-        [ -z ${LIBINDY_BRANCH} ] && exit 1
-        [ -z ${LIBINDY_VERSION} ] && exit 1
-		SIMPLE_LIBINDY_VERSION=$(echo ${LIBINDY_VERSION} | cut -f1 -d'-')
+
         if [ ! -d "libindy_${ARCH}" ]; then
 
-            wget -q https://repo.sovrin.org/android/libindy/${LIBINDY_BRANCH}/${LIBINDY_VERSION}/libindy_android_${ARCH}_${SIMPLE_LIBINDY_VERSION}.zip
-            unzip libindy_android_${ARCH}_${SIMPLE_LIBINDY_VERSION}.zip
+            if [ $1 == "arm" ]; then
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/23460916/download
+            elif [ $1 == "arm64" ]; then
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/23460898/download
+            elif [ $1 == "armv7" ]; then
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/23460931/download
+            elif [ $1 == "x86" ]; then
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/23460883/download
+            elif [ $1 == "x86_64" ]; then
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/23460923/download
+            else
+                echo "please provide the arch e.g arm, arm64, armv7, x86, or x86_64"
+                exit 1
+            fi
+
+            unzip download
 
         fi
+
         export LIBINDY_DIR="${PWD}/libindy_${ARCH}"
     fi
 
@@ -103,8 +116,6 @@ setup() {
     echo "Working Directory: ${PWD}"
     set -e
     export ARCH=$1
-    export LIBINDY_BRANCH=$2
-    export LIBINDY_VERSION=$3
 
     export PATH=$PATH:/opt/gradle/gradle-3.4.1/bin
     export PATH=${PATH}:$ANDROID_HOME/platform-tools:$ANDROID_HOME/tools:$ANDROID_HOME/build-tools/25.0.2/
@@ -128,5 +139,5 @@ setup() {
 }
 
 setup $@
-get_libindy
+get_libindy $1
 build_vcx

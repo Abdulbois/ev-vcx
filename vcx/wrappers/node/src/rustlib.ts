@@ -1,13 +1,7 @@
-import * as ref from 'ref'
-import * as StructType from 'ref-struct'
+import * as ref from 'ref-napi'
 
 import { VCXRuntime } from './vcx'
 
-export const VcxStatus = StructType({
-  handle: 'int',
-  msg: 'string',
-  status: 'int'
-})
 
 interface IUintTypes {
   [key: string]: string
@@ -66,10 +60,6 @@ export interface IFFIEntryPoint {
   vcx_messages_download: (commandId: number, status: string, uids: string, pairwiseDids: string, cb: any) => number,
   vcx_download_message: (commandId: number, uid: string, cb: any) => number,
   vcx_messages_update_status: (commandId: number, status: string, msgIds: string, cb: any) => number,
-  vcx_get_ledger_author_agreement: (commandId: number, cb: any) => number,
-  vcx_set_active_txn_author_agreement_meta: (text: string | undefined | null, version: string | undefined | null,
-                                             hash: string | undefined | null, accMechType: string,
-                                             timeOfAcceptance: number) => number,
 
   // Evernym extensions
   vcx_pack_message: (commandId: number, walletHandle: number, message: number, messageLen: number, keys: string,
@@ -107,6 +97,9 @@ export interface IFFIEntryPoint {
   vcx_endorse_transaction: (commandId: number, transaction: string, cb: any) => number,
   vcx_fetch_public_entities: (commandId: number, cb: any) => number,
   vcx_health_check: (commandId: number, cb: any) => number,
+  vcx_create_pairwise_agent: (commandId: number, cb: any) => number,
+  vcx_extract_attached_message: (commandId: number, message: string, cb: any) => number,
+  vcx_resolve_message_by_url: (commandId: number, url: string, cb: any) => number,
 
   // connection
   vcx_connection_delete_connection: (commandId: number, handle: number, cb: any) => number,
@@ -295,12 +288,12 @@ export const FFIConfiguration: { [ Key in keyof IFFIEntryPoint ]: any } = {
   vcx_download_message: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_STRING_DATA, FFI_CALLBACK_PTR]],
   vcx_messages_update_status: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_STRING_DATA, FFI_STRING_DATA,
     FFI_CALLBACK_PTR]],
-  vcx_get_ledger_author_agreement: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CALLBACK_PTR]],
-  vcx_set_active_txn_author_agreement_meta: [FFI_ERROR_CODE, [FFI_STRING_DATA, FFI_STRING_DATA,
-    FFI_STRING_DATA, FFI_STRING_DATA, FFI_UNSIGNED_LONG]],
   vcx_endorse_transaction: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_STRING_DATA, FFI_CALLBACK_PTR]],
   vcx_fetch_public_entities: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CALLBACK_PTR]],
   vcx_health_check: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CALLBACK_PTR]],
+  vcx_create_pairwise_agent: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CALLBACK_PTR]],
+  vcx_extract_attached_message: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_STRING_DATA, FFI_CALLBACK_PTR]],
+  vcx_resolve_message_by_url: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_STRING_DATA, FFI_CALLBACK_PTR]],
 
   // Evernym extensions
   vcx_pack_message: [FFI_INDY_NUMBER, [FFI_INDY_NUMBER, FFI_INDY_NUMBER, FFI_UNSIGNED_INT, FFI_UNSIGNED_INT,

@@ -38,6 +38,7 @@ request = {
   }
 
 proposal = {
+    "@type":"https://didcomm.org/present-proof/1.0/presentation-preview",
     "attributes": [
         {
             "name": "name",

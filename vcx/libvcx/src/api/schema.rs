@@ -1,7 +1,7 @@
 use libc::c_char;
 use crate::utils::cstring::CStringUtils;
 use crate::schema::CreateSchema;
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 use crate::utils::error;
 use std::ptr;
 use crate::schema;
@@ -645,20 +645,6 @@ mod tests {
         let schema_data_as_string = schema_data_as_string.unwrap();
         let schema_as_json: serde_json::Value = serde_json::from_str(&schema_data_as_string).unwrap();
         assert_eq!(schema_as_json["data"].to_string(), data);
-    }
-
-    #[test]
-    fn test_get_payment_txn() {
-        let _setup = SetupMocks::init();
-
-        let (h, cb, r) = return_types::return_u32_str();
-
-        let (_, schema_name, schema_version, data) = prepare_schema_data();
-        let handle = vcx_schema_create_c_closure(&schema_name, &schema_version, &data).unwrap();
-
-        let _rc = vcx_schema_get_payment_txn(h, handle, Some(cb));
-        let txn = r.recv_short().unwrap();
-        assert!(txn.is_some());
     }
 
     #[cfg(feature = "pool_tests")]

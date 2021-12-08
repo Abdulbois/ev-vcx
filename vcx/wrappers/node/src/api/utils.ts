@@ -1,10 +1,17 @@
-import { Callback } from 'ffi'
+import { Callback } from 'ffi-napi'
 
 import { VCXInternalError } from '../errors'
 import { initRustAPI, rustAPI } from '../rustlib'
 import { createFFICallbackPromise } from '../utils/ffi-helpers'
 import { IInitVCXOptions } from './common'
 // import { resolve } from 'url';
+
+// tslint:disable-next-line:interface-name
+export interface PtrBuffer extends Buffer {
+  // Buffer.deref typing provided by @types/ref-napi is wrong, so we overwrite the typing/
+  // An issue is currently dealing with fixing it https://github.com/DefinitelyTyped/DefinitelyTyped/pull/44004#issuecomment-744497037
+  deref: () => PtrBuffer
+}
 
 export async function provisionAgent (configAgent: string, options: IInitVCXOptions = {}): Promise<string> {
   /**
@@ -263,48 +270,6 @@ export async function getLedgerFees (): Promise<string> {
     throw new VCXInternalError(err)
   }
 }
-
-export async function getLedgerAuthorAgreement (): Promise<string> {
-  /**
-   * Retrieve author agreement set on the sovrin network
-   */
-  try {
-    const agreement = await createFFICallbackPromise<string>(
-      (resolve, reject, cb) => {
-        const rc = rustAPI().vcx_get_ledger_author_agreement(0, cb)
-        if (rc) {
-          reject(rc)
-        }
-      },
-      (resolve, reject) => Callback(
-        'void',
-        ['uint32','uint32','string'],
-        (xhandle: number, err: number, agreement: string) => {
-          if (err) {
-            reject(err)
-            return
-          }
-          resolve(agreement)
-        })
-    )
-    return agreement
-  } catch (err) {
-    throw new VCXInternalError(err)
-  }
-}
-
-export function setActiveTxnAuthorAgreementMeta (text: string | null | undefined,
-                                                 version: string | null | undefined,
-                                                 hash: string | null | undefined,
-                                                 acc_mech_type: string,
-                                                 time_of_acceptance: number) {
-  /**
-   * Set some accepted agreement as active.
-   * As result of successful call of this function appropriate metadata will be appended to each write request.
-   */
-  return rustAPI().vcx_set_active_txn_author_agreement_meta(text, version, hash, acc_mech_type, time_of_acceptance)
-}
-
 export function shutdownVcx (deleteWallet: boolean): number {
   return rustAPI().vcx_shutdown(deleteWallet)
 }
@@ -541,6 +506,70 @@ export async function createPairwiseAgent(): Promise<string> {
             return
           }
           resolve(agentInfo)
+        })
+    )
+  } catch (err) {
+    throw new VCXInternalError(err)
+  }
+}
+
+export interface IExtractAttachedMessage {
+  message: string, // aries message containing attachment decorator
+}
+
+export async function extractAttachedMessage({ message }: IExtractAttachedMessage): Promise<string> {
+  /**
+   *  Extract content of Aries message containing attachment decorator.
+   */
+  try {
+    return await createFFICallbackPromise<string>(
+      (resolve, reject, cb) => {
+        const rc = rustAPI().vcx_extract_attached_message(0, message, cb)
+        if (rc) {
+          reject(rc)
+        }
+      },
+      (resolve, reject) => Callback(
+        'void',
+        ['uint32','uint32','string'],
+        (xhandle: number, err: number, messages: string) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(messages)
+        })
+    )
+  } catch (err) {
+    throw new VCXInternalError(err)
+  }
+}
+
+export interface IResolveMessageByUrl {
+  url: string, // url to fetch message
+}
+
+export async function resolveMessageByUrl({ url }: IResolveMessageByUrl): Promise<string> {
+  /**
+   *  Resolve message by the given URL.
+   */
+  try {
+    return await createFFICallbackPromise<string>(
+      (resolve, reject, cb) => {
+        const rc = rustAPI().vcx_resolve_message_by_url(0, url, cb)
+        if (rc) {
+          reject(rc)
+        }
+      },
+      (resolve, reject) => Callback(
+        'void',
+        ['uint32','uint32','string'],
+        (xhandle: number, err: number, messages: string) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(messages)
         })
     )
   } catch (err) {

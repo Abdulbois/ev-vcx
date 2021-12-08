@@ -1172,36 +1172,30 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         BridgeUtils.writeCACert(this.getReactApplicationContext());
 
         try {
-            int retCode = VcxApi.initSovToken();
-            if(retCode != 0) {
-                promise.reject("Could not init sovtoken", String.valueOf(retCode));
-            } else {
-                VcxApi.vcxInitWithConfig(config).exceptionally((t) -> {
-                    VcxException ex = (VcxException) t;
-                    ex.printStackTrace();
-                    Log.e(TAG, "vcxInitWithConfig - Error: ", ex);
-                    promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                    return -1;
-                }).thenAccept(result -> {
-                    // Need to put this logic in every accept because that is how ugly Java's
-                    // promise API is
-                    // even if exceptionally is called, then also thenAccept block will be called
-                    // we either need to switch to complete method and pass two callbacks as
-                    // parameter
-                    // till we change to that API, we have to live with this IF condition
-                    // also reason to add this if condition is because we already rejected promise
-                    // in
-                    // exceptionally block, if we call promise.resolve now, then it `thenAccept`
-                    // block
-                    // would throw an exception that would not be caught here, because this is an
-                    // async
-                    // block and above try catch would not catch this exception
-                    if (result != -1) {
-                        promise.resolve(true);
-                    }
-                });
-            }
-
+          VcxApi.vcxInitWithConfig(config).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "vcxInitWithConfig - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return -1;
+            }).thenAccept(result -> {
+                // Need to put this logic in every accept because that is how ugly Java's
+                // promise API is
+                // even if exceptionally is called, then also thenAccept block will be called
+                // we either need to switch to complete method and pass two callbacks as
+                // parameter
+                // till we change to that API, we have to live with this IF condition
+                // also reason to add this if condition is because we already rejected promise
+                // in
+                // exceptionally block, if we call promise.resolve now, then it `thenAccept`
+                // block
+                // would throw an exception that would not be caught here, because this is an
+                // async
+                // block and above try catch would not catch this exception
+                if (result != -1) {
+                    promise.resolve(true);
+                }
+            });
         } catch (AlreadyInitializedException e) {
             // even if we get already initialized exception
             // then also we will resolve promise, because we don't care if vcx is already
@@ -2045,7 +2039,7 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void searchNextWalletRecords(int searchHandle, int count, Promise promise) {
         try {
-            ProofApi.searchNextRecords(searchHandle, count).exceptionally((t) -> {
+            WalletApi.searchNextRecords(searchHandle, count).exceptionally((t) -> {
                 VcxException ex = (VcxException) t;
                 ex.printStackTrace();
                 Log.e(TAG, "searchNextWalletRecords - Error: ", ex);
@@ -2245,79 +2239,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void getTxnAuthorAgreement(Promise promise) {
-        try {
-            // IndyApi.getTxnAuthorAgreement(submitterDid, data).exceptionally((e) -> {
-            UtilsApi.getLedgerAuthorAgreement().exceptionally((e) -> {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "getLedgerAuthorAgreement - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "getLedgerAuthorAgreement - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void getAcceptanceMechanisms(String submitterDid, int timestamp, String version, Promise promise) {
-        Long longtimestamp= new Long(timestamp);
-        try {
-            IndyApi.getAcceptanceMechanisms(submitterDid, longtimestamp, version).exceptionally((e) -> {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "getAcceptanceMechanisms - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "getAcceptanceMechanisms - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void setActiveTxnAuthorAgreementMeta(String text, String version, String taaDigest, String mechanism, int timestamp, Promise promise) {
-         Long longtimestamp= new Long(timestamp);
-        try {
-            UtilsApi.setActiveTxnAuthorAgreementMeta(text, version, taaDigest, mechanism, longtimestamp);
-            promise.resolve("");
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "setActiveTxnAuthorAgreementMeta - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void appendTxnAuthorAgreement(String requestJson, String text, String version, String taaDigest, String mechanism, int timestamp, Promise promise) {
-        Long longtimestamp= new Long(timestamp);
-        try {
-            IndyApi.appendTxnAuthorAgreement(requestJson, text, version, taaDigest, mechanism, longtimestamp).exceptionally((e) -> {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "appendTxnAuthorAgreement - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "appendTxnAuthorAgreement - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
     public void fetchPublicEntities(Promise promise) {
         Log.d(TAG, "fetchPublicEntities() called");
         try {
@@ -2355,6 +2276,44 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             Log.e(TAG, "vcxHealthCheck - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
 
+        }
+    }
+
+    @ReactMethod
+    public void extractAttachedMessage(String message, Promise promise) {
+        try {
+            UtilsApi.vcxExtractAttachedMessage(message).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "extractAttachedMessage - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "extractAttachedMessage - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void resolveMessageByUrl(String url, Promise promise) {
+        try {
+            UtilsApi.vcxResolveMessageByUrl(url).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "resolveMessageByUrl - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "resolveMessageByUrl - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
 }
