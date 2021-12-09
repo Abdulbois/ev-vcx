@@ -76,6 +76,10 @@ impl Default for DidDoc {
 }
 
 impl DidDoc {
+    pub fn create() -> DidDoc {
+        DidDoc::default()
+    }
+
     pub fn set_id(&mut self, id: String) {
         self.id = id;
     }

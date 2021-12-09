@@ -18,18 +18,20 @@ use crate::utils::error;
 use crate::utils::libindy::crypto::create_and_store_my_did;
 use crate::utils::libindy::crypto;
 use crate::utils::json::mapped_key_rewrite;
-
+use crate::settings::protocol::ProtocolTypes;
 use crate::aries::handlers::connection::Connection as ConnectionV3;
-use crate::aries::handlers::connection::states::ActorDidExchangeState;
+use crate::aries::handlers::connection::states::{ActorDidExchangeState, DidExchangeState};
 use crate::aries::handlers::connection::agent::AgentInfo;
 use crate::aries::messages::connection::invite::Invitation as InvitationV3;
 use crate::aries::messages::a2a::A2AMessage;
 use crate::aries::handlers::connection::types::CompletedConnection;
 use crate::aries::messages::invite_action::invite::{Invite as InviteForAction, InviteActionData};
-
-use crate::settings::protocol::ProtocolTypes;
 use crate::aries::messages::committedanswer::question::{QuestionResponse, Question};
 use crate::aries::messages::committedanswer::answer::Answer;
+use crate::aries::handlers::connection::connection_fsm::DidExchangeSM;
+use crate::aries::handlers::connection::states::CompleteState;
+use crate::aries::messages::connection::did_doc::DidDoc;
+use crate::agent::messages::connection_upgrade::{UpgradeInfo, UpgradeInfoItem};
 
 lazy_static! {
     static ref CONNECTION_MAP: ObjectCache<Connections> = Default::default();
@@ -62,7 +64,7 @@ impl Default for ConnectionOptions {
             phone: None,
             use_public_did: None,
             update_agent_info: Some(true),
-            pairwise_agent_info: None
+            pairwise_agent_info: None,
         }
     }
 }
@@ -103,6 +105,14 @@ pub struct Connection {
     their_public_did: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     version: Option<ProtocolTypes>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectionUpgradeInfo {
+    pub endpoint: String,
+    pub verkey: String,
+    pub did: String,
 }
 
 impl Connection {
@@ -337,7 +347,7 @@ impl Connection {
                 self.set_pw_verkey(&agent_info.pw_vk);
                 self.set_agent_did(&agent_info.agent_did);
                 self.set_agent_verkey(&agent_info.agent_vk);
-            },
+            }
             None => {
                 let (for_did, for_verkey) = agent::messages::create_keys()
                     .for_did(&self.pw_did)?
@@ -440,7 +450,7 @@ impl Connection {
 
         let msg_options: SendMessageOptions = serde_json::from_str(msg_options)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
-                                          format!("Cannot parse SendMessageOptions from `msg_options` JSON string. Err: {:?}", err)))?;
+                                              format!("Cannot parse SendMessageOptions from `msg_options` JSON string. Err: {:?}", err)))?;
 
         let response =
             crate::agent::messages::send_message()
@@ -555,6 +565,80 @@ impl Connection {
         debug!("Connection {}: Sent send invite action", self.source_id);
         trace!("Connection::send_invite_action <<<");
         return Ok(invite);
+    }
+
+    pub fn need_upgrade(serialized: &str) -> VcxResult<bool> {
+        let connection = from_string(serialized)?;
+        let is_aries_connection = connection.is_aries_connection()?;
+        Ok(!is_aries_connection)
+    }
+
+    pub fn upgrade(&self, data: Option<String>) -> VcxResult<ConnectionV3> {
+        trace!("Connection::upgrade >>>");
+
+        if self.state != VcxStateType::VcxStateAccepted {
+            return Err(VcxError::from_msg(VcxErrorKind::NotReady, "Connection is not completed!"));
+        }
+
+        let upgrade_data: ConnectionUpgradeInfo =
+            match data {
+                Some(data) => {
+                    ::serde_json::from_str(&data)
+                        .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
+                                                          format!("Could not connection upgrade data. Err: {:?}", err)))?
+                }
+                None => {
+                    let mut upgrade_info: UpgradeInfo =
+                        crate::agent::messages::get_upgrade_info()
+                            .for_did(&self.pw_did)?
+                            .send_secure()
+                            .map_err(|err| VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade,
+                                                              format!("Connection upgrade data was not received from the Agent. Err: {:?}", err)))?;
+
+                    let connection_upgrade_info: UpgradeInfoItem = upgrade_info.remove(&self.agent_did)
+                        .ok_or(VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade,
+                                                  "Connection upgrade is not needed because the enterprise side has not migrated the connection yet"))?;
+
+                    ConnectionUpgradeInfo {
+                        endpoint: connection_upgrade_info.their_agency_endpoint,
+                        verkey: connection_upgrade_info.their_agency_verkey,
+                        did: connection_upgrade_info.their_agency_did,
+                    }
+                }
+            };
+
+
+        // Connection upgrade change only Agency related information.
+        // Agent and Pairwise leave the same as in legacy connection
+
+        let mut did_doc = DidDoc::default();
+        did_doc.set_id(self.their_pw_did.clone());
+        did_doc.set_service_endpoint(upgrade_data.endpoint);
+        did_doc.set_keys(
+            vec![self.their_pw_verkey.clone()],
+            vec![
+                self.their_pw_verkey.clone(),
+                upgrade_data.verkey
+            ],
+        );
+
+        Ok(ConnectionV3 {
+            connection_sm: DidExchangeSM {
+                source_id: self.source_id.clone(),
+                agent_info: AgentInfo {
+                    pw_did: self.pw_did.clone(),
+                    pw_vk: self.pw_verkey.clone(),
+                    agent_did: self.agent_did.clone(),
+                    agent_vk: self.agent_vk.clone(),
+                },
+                state: ActorDidExchangeState::Invitee(DidExchangeState::Completed(CompleteState {
+                    invitation: None,
+                    did_doc,
+                    protocols: None,
+                    thread: Thread::default(),
+                })),
+            }
+        })
     }
 }
 
@@ -830,7 +914,6 @@ impl Handle<Connections> {
     }
 
     pub fn connect(self, options: Option<String>) -> VcxResult<u32> {
-
         CONNECTION_MAP.get_mut(self, |connection| {
             match connection {
                 Connections::V1(connection) => {
@@ -962,7 +1045,7 @@ impl Handle<Connections> {
         }).map_err(handle_err)
     }
 
-    pub fn is_v3_connection(self) -> VcxResult<bool> {
+    pub fn is_aries_connection(self) -> VcxResult<bool> {
         CONNECTION_MAP.get(self, |connection| {
             match connection {
                 Connections::V1(_) => Ok(false),
@@ -1010,7 +1093,7 @@ impl Handle<Connections> {
             match connection {
                 Connections::V1(connection) => {
                     connection.send_answer(question.clone(), answer.clone())
-                },
+                }
                 Connections::V3(connection) => {
                     connection.send_answer(question.clone(), answer.clone())
                 }
@@ -1023,7 +1106,7 @@ impl Handle<Connections> {
             match connection {
                 Connections::V1(connection) => {
                     connection.send_invite_action(data.clone())
-                },
+                }
                 Connections::V3(connection) => {
                     connection.send_invite_action(data.clone())
                 }
@@ -1060,6 +1143,23 @@ impl Handle<Connections> {
                 }
             }
         }).map_err(handle_err)
+    }
+
+    pub fn upgrade(self, data: Option<String>) -> VcxResult<String> {
+        CONNECTION_MAP.get_mut(self, |connection| {
+            let new_connection = match connection {
+                Connections::V1(connection) => {
+                    Connections::V3(connection.upgrade(data)?)
+                }
+                Connections::V3(connection) => {
+                    Connections::V3(connection.upgrade(data)?)
+                }
+            };
+            *connection = new_connection;
+            Ok(())
+        }).map_err(handle_err)?;
+
+        self.to_string()
     }
 }
 
@@ -1391,7 +1491,7 @@ impl Into<(Connection, ActorDidExchangeState)> for ConnectionV3 {
             state: VcxStateType::from_u32(self.state()),
             uuid: String::new(),
             endpoint: invitation.as_ref().map(|invitation_| invitation_.service_endpoint()).unwrap_or_default(),
-            invite_detail: Some(InviteDetail{
+            invite_detail: Some(InviteDetail {
                 sender_detail: SenderDetail {
                     name: invitation.as_ref().and_then(|invitation_| invitation_.name().map(String::from)),
                     verkey: invitation.as_ref().and_then(|invitation_| invitation_.recipient_key()).unwrap_or_default(),

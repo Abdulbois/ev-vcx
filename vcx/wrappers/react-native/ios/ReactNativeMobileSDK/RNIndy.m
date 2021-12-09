@@ -1977,6 +1977,44 @@ RCT_EXPORT_METHOD(connectionGetProblemReport:(NSInteger) connectionHandle
   }];
 }
 
+RCT_EXPORT_METHOD(connectionUpgrade: (NSInteger) connectionHandle
+                               data: (NSString *) data
+                           resolver: (RCTPromiseResolveBlock) resolve
+                           rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] connectionUpgrade:connectionHandle
+                                            data:data
+                                      completion:^(NSError *error, NSString* serialized)
+  {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while upgrading connection", error);
+    } else {
+      resolve(serialized);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(connectionNeedUpgrade: (NSString *) serializedConnection
+                               resolver: (RCTPromiseResolveBlock) resolve
+                               rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] connectionNeedUpgrade:serializedConnection
+                                          completion:^(NSError *error, vcx_bool_t need)
+  {
+    if (error != nil && error.code != 0) {
+      NSString *vcxErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(vcxErrorCode, @"Error occurred", error);
+    } else need) {
+        resolve(@YES);
+      } else {
+        resolve(@NO);
+      }
+    }
+  }];
+}
+
 RCT_EXPORT_METHOD(credentialGetRequestMsg:(NSInteger) connectionHandle
                         myPwDid:(NSString *)myPwDid
                      theirPwDid:(NSString *)theirPwDid

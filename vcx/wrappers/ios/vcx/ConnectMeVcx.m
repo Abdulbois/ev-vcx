@@ -963,6 +963,41 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
     }
 }
 
+- (void)connectionUpgrade:(NSInteger) connectionHandle
+                     data:data
+               completion:(void (^)(NSError *error, NSString *serialized))completion
+{
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char * cData = [data cStringUsingEncoding:NSUTF8StringEncoding];
+    vcx_error_t ret = vcx_connection_upgrade(handle, connectionHandle, cData, VcxWrapperCommonStringCallback);
+    if( ret != 0 )
+    {
+       [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+       dispatch_async(dispatch_get_main_queue(), ^{
+           completion(error, nil);
+       });
+    }
+}
+
+- (void)connectionNeedUpgrade:(NSString *) serializedConnection
+                   completion:(void (^)(NSError *error, vcx_bool_t need))completion
+{
+  vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+
+  const char * cSerializedConnection = [serializedConnection cStringUsingEncoding:NSUTF8StringEncoding];
+  vcx_error_t ret = vcx_connection_need_upgrade(handle, cSerializedConnection, VcxWrapperCommonBoolCallback);
+  if (ret != 0) {
+      [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
+
+      NSError *error = [NSError errorFromVcxError:ret];
+      dispatch_async(dispatch_get_main_queue(), ^{
+          completion(error, false);
+      });
+  }
+}
+
 - (void)agentUpdateInfo: (NSString *) config
             completion: (void (^)(NSError *error)) completion
 {

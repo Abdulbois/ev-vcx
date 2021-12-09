@@ -134,6 +134,8 @@ export interface IFFIEntryPoint {
   vcx_connection_get_their_pw_did: (commandId: number, handle: number, cb: any) => number,
   vcx_connection_info: (commandId: number, handle: number, cb: any) => number,
   vcx_connection_get_problem_report: (commandId: number, handle: number, cb: any) => number,
+  vcx_connection_need_upgrade: (commandId: number, serialized: string, cb: any) => number,
+  vcx_connection_upgrade: (commandId: number, handle: number, data: string | null | undefined, cb: any) => number,
 
   // issuer
   vcx_issuer_credential_release: (handle: number) => number,
@@ -376,6 +378,8 @@ export const FFIConfiguration: { [ Key in keyof IFFIEntryPoint ]: any } = {
   vcx_connection_get_redirect_details: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CONNECTION_HANDLE, FFI_CALLBACK_PTR]],
   vcx_connection_info: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CONNECTION_HANDLE, FFI_CALLBACK_PTR]],
   vcx_connection_get_problem_report: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CONNECTION_HANDLE, FFI_CALLBACK_PTR]],
+  vcx_connection_need_upgrade: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_STRING_DATA, FFI_CALLBACK_PTR]],
+  vcx_connection_upgrade: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CONNECTION_HANDLE, FFI_STRING_DATA, FFI_CALLBACK_PTR]],
 
   // issuer
   vcx_issuer_credential_deserialize: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_STRING_DATA, FFI_CALLBACK_PTR]],

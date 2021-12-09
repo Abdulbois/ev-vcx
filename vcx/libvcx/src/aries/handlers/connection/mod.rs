@@ -10,7 +10,7 @@ use core::fmt::Debug;
 use crate::error::prelude::*;
 use crate::aries::handlers::connection::connection_fsm::{Actor, DidExchangeSM};
 use crate::aries::handlers::connection::messages::DidExchangeMessages;
-use crate::aries::handlers::connection::states::ActorDidExchangeState;
+use crate::aries::handlers::connection::states::{ActorDidExchangeState, DidExchangeState, CompleteState};
 use crate::aries::handlers::connection::agent::AgentInfo;
 use crate::aries::messages::a2a::A2AMessage;
 use crate::aries::messages::connection::invite::Invitation;
@@ -22,13 +22,13 @@ use crate::aries::messages::questionanswer::question::{Question, QuestionRespons
 use crate::aries::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
 use crate::aries::messages::invite_action::invite::InviteActionData;
 use crate::aries::messages::invite_action::invite::Invite as InviteForAction;
-use crate::connection::ConnectionOptions;
+use crate::connection::{ConnectionOptions, ConnectionUpgradeInfo};
 use crate::aries::messages::connection::problem_report::ProblemReport;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connection {
-    connection_sm: DidExchangeSM
+    pub connection_sm: DidExchangeSM
 }
 
 impl Connection {
@@ -248,7 +248,7 @@ impl Connection {
         AgentInfo::send_message_anonymously(message, did_doc)
     }
 
-    fn parse_generic_message(message: &str, _message_options: &str) -> A2AMessage {
+    pub fn parse_generic_message(message: &str, _message_options: &str) -> A2AMessage {
         match ::serde_json::from_str::<A2AMessage>(message) {
             Ok(a2a_message) => a2a_message,
             Err(_) => {
@@ -398,6 +398,43 @@ impl Connection {
 
         let problem_report: Option<&ProblemReport> = self.connection_sm.problem_report();
         Ok(json!(&problem_report).to_string())
+    }
+
+    pub fn upgrade(&self, data: Option<String>) -> VcxResult<Connection> {
+        self.get_completed_connection()
+            .map_err(|_| VcxError::from_msg(VcxErrorKind::NotReady, "Connection is not completed!"))?;
+
+        let data = data.ok_or(
+            VcxError::from_msg(VcxErrorKind::ActionNotSupported, "ConnectionUpgradeInformation must be provided to upgrade Aries connection.")
+        )?;
+
+        let data: ConnectionUpgradeInfo = ::serde_json::from_str(&data)
+            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
+                                              format!("Could not connection upgrade data. Err: {:?}", err)))?;
+
+        let mut did_doc = DidDoc::default();
+        did_doc.set_id(self.remote_did()?);
+        did_doc.set_service_endpoint(data.endpoint);
+        did_doc.set_keys(
+            vec![self.remote_vk()?],
+            vec![
+                self.remote_vk()?,
+                data.verkey
+            ],
+        );
+
+        Ok(Connection {
+            connection_sm: DidExchangeSM {
+                source_id: self.source_id(),
+                agent_info: self.agent_info().clone(),
+                state: ActorDidExchangeState::Invitee(DidExchangeState::Completed(CompleteState {
+                    invitation: self.get_invitation(),
+                    did_doc,
+                    protocols: None,
+                    thread: self.connection_sm.thread().cloned().unwrap_or_default(),
+                })),
+            }
+        })
     }
 }
 

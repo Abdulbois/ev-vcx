@@ -43,9 +43,9 @@ use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DidExchangeSM {
-    source_id: String,
-    agent_info: AgentInfo,
-    state: ActorDidExchangeState,
+    pub source_id: String,
+    pub agent_info: AgentInfo,
+    pub state: ActorDidExchangeState,
 }
 
 
@@ -1076,6 +1076,22 @@ impl DidExchangeSM {
     pub fn prev_agent_info(&self) -> Option<&AgentInfo> {
         match self.state {
             ActorDidExchangeState::Inviter(DidExchangeState::Responded(ref state)) => Some(&state.prev_agent_info),
+            _ => None
+        }
+    }
+
+    pub fn thread(&self) -> Option<&Thread> {
+        match self.state {
+            ActorDidExchangeState::Inviter(DidExchangeState::Invited(_)) |
+            ActorDidExchangeState::Invitee(DidExchangeState::Invited(_)) => None,
+            ActorDidExchangeState::Inviter(DidExchangeState::Requested(ref state)) |
+            ActorDidExchangeState::Invitee(DidExchangeState::Requested(ref state)) => Some(&state.thread),
+            ActorDidExchangeState::Inviter(DidExchangeState::Responded(ref state)) |
+            ActorDidExchangeState::Invitee(DidExchangeState::Responded(ref state)) => Some(&state.thread),
+            ActorDidExchangeState::Inviter(DidExchangeState::Completed(ref state)) |
+            ActorDidExchangeState::Invitee(DidExchangeState::Completed(ref state)) => Some(&state.thread),
+            ActorDidExchangeState::Inviter(DidExchangeState::Failed(ref state)) |
+            ActorDidExchangeState::Invitee(DidExchangeState::Failed(ref state)) => Some(&state.thread),
             _ => None
         }
     }

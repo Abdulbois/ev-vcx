@@ -194,6 +194,12 @@ vcx_error_t vcx_connection_delete_connection(vcx_command_handle_t command_handle
 /** Get Problem Report message for Connection object in Failed or Rejected state. */
 vcx_error_t vcx_connection_get_problem_report(vcx_command_handle_t command_handle, vcx_connection_handle_t connection_handle, void (*cb)(vcx_command_handle_t, vcx_error_t err));
 
+/** Check if connection is outdated and require upgrade. */
+vcx_error_t vcx_connection_need_upgrade(vcx_command_handle_t command_handle, const char* serialized, void (*cb)(vcx_command_handle_t, vcx_error_t err, vcx_bool_t needed));
+
+/** Try to upgrade legacy Connection. */
+vcx_error_t vcx_connection_upgrade(vcx_command_handle_t command_handle, vcx_connection_handle_t connection_handle, const char* data, void (*cb)(vcx_command_handle_t, vcx_error_t err, const char *serialized));
+
 /** Send a message to the specified connection
 ///
 /// #params

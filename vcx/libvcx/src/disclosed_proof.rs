@@ -375,7 +375,7 @@ pub fn create_proof_with_msgid(source_id: &str, connection_handle: Handle<Connec
 
     let proof_request = get_proof_request(connection_handle, &msg_id)?;
 
-    let proof = if connection_handle.is_v3_connection()? {
+    let proof = if connection_handle.is_aries_connection()? {
         create_proof_v3(source_id, &proof_request)?
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidConnectionHandle, format!("Connection can not be used for Proprietary Issuance protocol")))?
     } else {
@@ -483,7 +483,7 @@ impl Handle<DisclosedProofs> {
                 DisclosedProofs::Pending(obj) => {
                     // if Aries connection is established --> Convert DisclosedProofs object to Aries presentation
                     // if connection handle is 0 --> ephemeral Aries proof
-                    if connection_handle.is_v3_connection()? || connection_handle == 0 {
+                    if connection_handle.is_aries_connection()? || connection_handle == 0 {
                         debug!("Convert pending proof into aries proof");
 
                         let proof_request = take(&mut obj.proof_request)
@@ -555,7 +555,7 @@ impl Handle<DisclosedProofs> {
             let new_proof = match proof {
                 DisclosedProofs::Pending(obj) => {
                     // if Aries connection is established --> Convert DisclosedProofs object to Aries presentation
-                    if connection_handle.is_v3_connection()? {
+                    if connection_handle.is_aries_connection()? {
                         debug!("Convert pending proof into aries proof");
 
                         let proof_request = take(&mut obj.proof_request)
@@ -609,7 +609,7 @@ impl Handle<DisclosedProofs> {
             let new_proof = match proof {
                 DisclosedProofs::Pending(obj) => {
                     // if Aries connection is established --> Convert DisclosedProofs object to Aries presentation
-                    if connection_handle.is_v3_connection()? {
+                    if connection_handle.is_aries_connection()? {
                         debug!("Convert pending proof into aries proof");
 
                         let proof_request = obj.proof_request.clone()
@@ -697,7 +697,7 @@ fn get_proof_request(connection_handle: Handle<Connections>, msg_id: &str) -> Vc
     trace!("get_proof_request >>> connection_handle: {}, msg_id: {}", connection_handle, msg_id);
     debug!("DisclosedProof: getting proof request with id: {}", msg_id);
 
-    if connection_handle.is_v3_connection()? {
+    if connection_handle.is_aries_connection()? {
         let presentation_request = Prover::get_presentation_request(connection_handle, msg_id)?;
         return serde_json::to_string_pretty(&presentation_request)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson, format!("Cannot serialize Proof Request. Err: {}", err)));
@@ -734,7 +734,7 @@ pub fn get_proof_request_messages(connection_handle: Handle<Connections>, match_
     trace!("get_proof_request_messages >>> connection_handle: {}, match_name: {:?}", connection_handle, match_name);
     debug!("DisclosedProof: getting all proof request agent for connection {}", connection_handle);
 
-    if connection_handle.is_v3_connection()? {
+    if connection_handle.is_aries_connection()? {
         let presentation_requests = Prover::get_presentation_request_messages(connection_handle, match_name)?;
 
         let mut msgs: Vec<Value> = Vec::new();

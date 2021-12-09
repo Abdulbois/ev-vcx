@@ -587,17 +587,6 @@ public class UtilsApi extends VcxJava.API {
         return future;
     }
 
-    private static Callback vcxExtractAttachedMessageCB = new Callback() {
-        @SuppressWarnings({"unused", "unchecked"})
-        public void callback(int commandHandle, int err, String attachedMessage) {
-            logger.debug("callback() called with: commandHandle = [" + commandHandle + "], err = [" + err + "], attachedMessage = [****]");
-            CompletableFuture<String> future = (CompletableFuture<String>) removeFuture(commandHandle);
-            if (!checkCallback(future, err)) return;
-            String result = attachedMessage;
-            future.complete(result);
-        }
-    };
-
     /**
      * Extract content of Aries message containing attachment decorator.
      * RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
@@ -617,7 +606,7 @@ public class UtilsApi extends VcxJava.API {
         int result = LibVcx.api.vcx_extract_attached_message(
                 commandHandle,
                 message,
-                vcxExtractAttachedMessageCB
+                stringCB
         );
         checkResult(result);
         return future;
@@ -645,7 +634,7 @@ public class UtilsApi extends VcxJava.API {
         int result = LibVcx.api.vcx_resolve_message_by_url(
                 commandHandle,
                 url,
-                vcxExtractAttachedMessageCB
+                stringCB
         );
         checkResult(result);
         return future;

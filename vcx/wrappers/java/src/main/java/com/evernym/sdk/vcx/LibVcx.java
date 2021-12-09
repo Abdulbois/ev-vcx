@@ -252,6 +252,16 @@ public abstract class LibVcx {
         public int vcx_connection_get_problem_report(int command_handle, int connection_handle, Callback cb);
 
         /**
+         * Check if connection is outdated and require upgrade
+         */
+        public int vcx_connection_need_upgrade(int command_handle, String serialized_connection, Callback cb);
+
+        /**
+         * Try to upgrade legacy Connection
+         */
+        public int vcx_connection_upgrade(int command_handle, int connection_handle, String data, Callback cb);
+
+        /**
          * The API represents an Issuer side in credential issuance process.
          * Assumes that pairwise connection between Issuer and Holder is already established.
          */
