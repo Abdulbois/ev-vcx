@@ -23,7 +23,6 @@ macro_rules! secret {
     ($val:expr) => {{ "_" }};
 }
 
-#[cfg(test)]
 macro_rules! map (
     { $($key:expr => $value:expr),+ } => {
         {

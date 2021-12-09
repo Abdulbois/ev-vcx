@@ -60,10 +60,6 @@ export interface IFFIEntryPoint {
   vcx_messages_download: (commandId: number, status: string, uids: string, pairwiseDids: string, cb: any) => number,
   vcx_download_message: (commandId: number, uid: string, cb: any) => number,
   vcx_messages_update_status: (commandId: number, status: string, msgIds: string, cb: any) => number,
-  vcx_get_ledger_author_agreement: (commandId: number, cb: any) => number,
-  vcx_set_active_txn_author_agreement_meta: (text: string | undefined | null, version: string | undefined | null,
-                                             hash: string | undefined | null, accMechType: string,
-                                             timeOfAcceptance: number) => number,
 
   // Evernym extensions
   vcx_pack_message: (commandId: number, walletHandle: number, message: number, messageLen: number, keys: string,
@@ -294,9 +290,6 @@ export const FFIConfiguration: { [ Key in keyof IFFIEntryPoint ]: any } = {
   vcx_download_message: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_STRING_DATA, FFI_CALLBACK_PTR]],
   vcx_messages_update_status: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_STRING_DATA, FFI_STRING_DATA,
     FFI_CALLBACK_PTR]],
-  vcx_get_ledger_author_agreement: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CALLBACK_PTR]],
-  vcx_set_active_txn_author_agreement_meta: [FFI_ERROR_CODE, [FFI_STRING_DATA, FFI_STRING_DATA,
-    FFI_STRING_DATA, FFI_STRING_DATA, FFI_UNSIGNED_LONG]],
   vcx_endorse_transaction: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_STRING_DATA, FFI_CALLBACK_PTR]],
   vcx_fetch_public_entities: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CALLBACK_PTR]],
   vcx_health_check: [FFI_ERROR_CODE, [FFI_COMMAND_HANDLE, FFI_CALLBACK_PTR]],

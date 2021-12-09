@@ -23,8 +23,8 @@ use crate::aries::messages::{
 use crate::connection::Connections;
 use crate::utils::object_cache::Handle;
 use crate::utils::libindy::{
-    anoncreds::prover_get_credential,
-    types::CredentialInfo,
+    anoncreds::types::CredentialInfo,
+    anoncreds::holder::Holder as IndyHolder,
 };
 
 // Holder
@@ -111,7 +111,7 @@ impl Holder {
         let (cred_id, _) = self.get_credential()?;
         let credential_offer = self.get_credential_offer()?;
 
-        let credential = prover_get_credential(&cred_id)?;
+        let credential = IndyHolder::get_credential(&cred_id)?;
 
         let presentation_proposal = PresentationProposal::V1(
             PresentationProposalV1::create()

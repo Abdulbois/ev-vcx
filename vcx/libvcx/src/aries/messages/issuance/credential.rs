@@ -11,8 +11,8 @@ use crate::error::{VcxResult, VcxError};
 use crate::aries::messages::thread::Thread;
 use crate::agent::messages::payload::PayloadKinds;
 use crate::legacy::messages::issuance::credential::CredentialMessage;
-use crate::utils::libindy::types::Credential as IndyCredential;
-use crate::utils::libindy::types::CredentialOffer as IndyCredentialOffer;
+use crate::utils::libindy::anoncreds::types::Credential as IndyCredential;
+use crate::utils::libindy::anoncreds::types::CredentialOffer as IndyCredentialOffer;
 use crate::aries::messages::a2a::message_type::{MessageType, MessageTypeVersion};
 
 #[derive(Debug, Serialize, PartialEq, Clone)]

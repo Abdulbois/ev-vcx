@@ -13,7 +13,7 @@ use crate::error::{VcxResult, VcxError, VcxErrorKind};
 use crate::legacy::messages::issuance::credential_offer::CredentialOffer as ProprietaryCredentialOffer;
 use crate::aries::messages::thread::Thread;
 use crate::agent::messages::payload::PayloadKinds;
-use crate::utils::libindy::anoncreds::ensure_credential_definition_contains_offered_attributes;
+use crate::utils::libindy::anoncreds::utils::ensure_credential_definition_contains_offered_attributes;
 use crate::aries::messages::a2a::message_type::{MessageType, MessageTypeVersion};
 
 #[derive(Debug, Serialize, PartialEq, Clone)]

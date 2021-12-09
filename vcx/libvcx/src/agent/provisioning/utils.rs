@@ -3,8 +3,11 @@ use crate::agent::provisioning::types::ProvisioningConfig;
 use crate::settings;
 use crate::settings::agency::get_agency_config_values;
 use crate::utils::option_util::get_or_default;
-use crate::utils::libindy::signus::create_and_store_my_did;
-use crate::utils::libindy::{wallet, anoncreds};
+use crate::utils::libindy::crypto::create_and_store_my_did;
+use crate::utils::libindy::{
+    wallet,
+    anoncreds::holder::Holder,
+};
 use crate::settings::protocol::ProtocolTypes;
 use crate::agent::messages::{prepare_message_for_agency, parse_response_from_agency, A2AMessage};
 use crate::utils::httpclient;
@@ -70,7 +73,7 @@ pub fn configure_wallet(my_config: &ProvisioningConfig) -> VcxResult<(String, St
     trace!("initialized wallet");
 
     // If MS is already in wallet then just continue
-    anoncreds::libindy_prover_create_master_secret(settings::DEFAULT_LINK_SECRET_ALIAS).ok();
+    Holder::create_master_secret(settings::DEFAULT_LINK_SECRET_ALIAS).ok();
 
     let (my_did, my_vk) = create_and_store_my_did(
         my_config.agent_seed.as_ref().map(String::as_str),
@@ -148,8 +151,14 @@ pub fn get_final_config(my_did: &str,
     if let Some(_pool_networks) = &my_config.pool_networks {
         final_config["pool_networks"] = json!(_pool_networks);
     }
+    if let Some(_indy_pool_networks) = &my_config.indy_pool_networks {
+        final_config["indy_pool_networks"] = json!(_indy_pool_networks);
+    }
     if let Some(pool_network_alias) = &my_config.pool_network_alias {
         final_config["pool_network_alias"] = json!(pool_network_alias);
+    }
+    if let Some(author_agreement) = &my_config.author_agreement {
+        final_config["author_agreement"] = json!(author_agreement);
     }
 
     Ok(final_config.to_string())

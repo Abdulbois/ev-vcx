@@ -1,6 +1,5 @@
 use crate::aries::messages::a2a::{A2AMessage, MessageId};
 use crate::aries::messages::thread::Thread;
-use crate::legacy::messages::proof_presentation::proof_request::{AttrInfo, Restrictions, PredicateInfo};
 use crate::aries::messages::a2a::message_type::{
     MessageType,
     MessageTypePrefix,
@@ -8,6 +7,7 @@ use crate::aries::messages::a2a::message_type::{
 };
 use crate::aries::messages::a2a::message_family::MessageTypeFamilies;
 use crate::aries::messages::proof_presentation::presentation_preview::PresentationPreview;
+use crate::utils::libindy::anoncreds::proof_request::{AttributeInfo, PredicateInfo, Restrictions};
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct PresentationProposal {
@@ -48,10 +48,10 @@ impl PresentationProposal {
         self
     }
 
-    pub fn to_proof_request_requested_attributes(&self) -> Vec<AttrInfo> {
+    pub fn to_proof_request_requested_attributes(&self) -> Vec<AttributeInfo> {
         self.presentation_proposal.attributes
             .iter()
-            .map(|attribute| AttrInfo {
+            .map(|attribute| AttributeInfo {
                 name: Some(attribute.name.clone()),
                 names: None,
                 restrictions: attribute.cred_def_id
@@ -95,7 +95,7 @@ impl Default for PresentationProposal {
                 prefix: MessageTypePrefix::DID,
                 family: MessageTypeFamilies::PresentProof,
                 version: MessageTypeVersion::V10,
-                type_: A2AMessage::PROPOSE_PRESENTATION.to_string()
+                type_: A2AMessage::PROPOSE_PRESENTATION.to_string(),
             },
             comment: Default::default(),
             presentation_proposal: Default::default(),

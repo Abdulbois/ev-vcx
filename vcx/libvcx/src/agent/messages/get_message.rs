@@ -218,7 +218,7 @@ impl GetMessagesBuilder {
         msgs
             .into_iter()
             .map(|connection| {
-                crate::utils::libindy::signus::get_local_verkey(&connection.pairwise_did)
+                crate::utils::libindy::crypto::get_local_verkey(&connection.pairwise_did)
                     .map(|vk| {
                         let msgs = connection.msgs.iter().map(|message| message.decrypt(&vk)).collect();
                         MessageByConnection {

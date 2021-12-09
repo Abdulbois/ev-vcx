@@ -15,10 +15,10 @@ use crate::aries::messages::{
         presentation_request::PresentationRequest,
         presentation::Presentation,
         presentation_proposal::PresentationProposal,
-        v10::presentation_request::PresentationRequestData,
     },
     error::ProblemReport,
 };
+use crate::utils::libindy::anoncreds::proof_request::ProofRequest;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Verifier {
@@ -36,7 +36,7 @@ impl Verifier {
         debug!("Verifier {}: Creating Verifier state object", source_id);
 
         let presentation_request =
-            PresentationRequestData::create()
+            ProofRequest::create()
                 .set_name(name)
                 .set_requested_attributes(requested_attrs)?
                 .set_requested_predicates(requested_predicates)?
@@ -142,7 +142,7 @@ impl Verifier {
         debug!("Verifier {}: Requesting presentation", self.get_source_id());
 
         let presentation_request =
-            PresentationRequestData::create()
+            ProofRequest::create()
                 .set_name(name)
                 .set_requested_attributes(requested_attrs)?
                 .set_requested_predicates(requested_predicates)?

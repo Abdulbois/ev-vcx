@@ -22,13 +22,12 @@ pub mod test {
     use crate::utils::devsetup::*;
     use crate::utils::libindy::wallet::*;
     use indy_sys::WalletHandle;
-    use crate::utils::plugins::init_plugin;
     use crate::agent::messages::payload::PayloadV1;
     use crate::api::VcxStateType;
     use crate::aries::handlers::connection::types::OutofbandMeta;
-    
-    use crate::utils::libindy::anoncreds::prover_get_credentials;
-    use crate::utils::libindy::types::CredentialInfo;
+
+    use crate::utils::libindy::anoncreds::holder::Holder;
+    use crate::utils::libindy::anoncreds::types::CredentialInfo;
     use crate::agent::provisioning;
 
     pub fn source_id() -> String {
@@ -44,7 +43,6 @@ pub mod test {
                 "agency_did":"VsKV7grR1BUE29mG2Fm2kX",
                 "agency_endpoint":"http://localhost:8080",
                 "agency_verkey":"Hezce2UWMZ3wUhVkh2LfKSs8nDzWwzs2Win7EzNN3YaR",
-                "genesis_path":"<CHANGE_ME>",
                 "institution_did":"V4SGRU86Z58d6TV7PBUe6f",
                 "institution_logo_url":"<CHANGE_ME>",
                 "institution_name":"<CHANGE_ME>",
@@ -94,27 +92,19 @@ pub mod test {
         }
     }
 
-    pub struct PaymentPlugin {}
-
-    impl PaymentPlugin {
-        pub fn load() {
-            init_plugin(crate::settings::DEFAULT_PAYMENT_PLUGIN, crate::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
-        }
-    }
-
     pub struct Pool {}
 
     impl Pool {
         pub fn open() -> Pool {
-            crate::utils::libindy::pool::tests::open_test_pool();
+            crate::utils::libindy::vdr::tests::open_test_pool();
             Pool {}
         }
     }
 
     impl Drop for Pool {
         fn drop(&mut self) {
-            crate::utils::libindy::pool::close().unwrap();
-            crate::utils::libindy::pool::tests::delete_test_pool();
+            crate::utils::libindy::vdr::close_vdr().unwrap();
+            crate::utils::libindy::vdr::tests::delete_test_pool();
         }
     }
 
@@ -439,7 +429,7 @@ pub mod test {
 
         pub fn get_credentials(&self) -> Vec<CredentialInfo> {
             self.activate();
-            prover_get_credentials().unwrap()
+            Holder::get_credentials().unwrap()
         }
 
         pub fn get_credentials_for_presentation(&self) -> serde_json::Value {
@@ -544,7 +534,6 @@ pub mod test {
         use super::*;
         #[test]
         fn aries_demo() {
-            PaymentPlugin::load();
             let _pool = Pool::open();
 
             let mut faber = Faber::setup();
@@ -585,7 +574,6 @@ pub mod test {
 
         #[test]
         fn aries_demo_handle_connection_related_messages() {
-            PaymentPlugin::load();
             let _pool = Pool::open();
 
             let mut faber = Faber::setup();
@@ -629,7 +617,6 @@ pub mod test {
 
         #[test]
         fn aries_demo_create_with_message_id_flow() {
-            PaymentPlugin::load();
             let _pool = Pool::open();
 
             let mut faber = Faber::setup();
@@ -693,7 +680,6 @@ pub mod test {
 
         #[test]
         fn aries_demo_download_message_flow() {
-            PaymentPlugin::load();
             let _pool = Pool::open();
 
             let mut faber = Faber::setup();
@@ -764,7 +750,6 @@ pub mod test {
 
         #[test]
         fn test_outofband_connection_works() {
-            PaymentPlugin::load();
             let _pool = Pool::open();
 
             let mut faber = Faber::setup();
@@ -809,7 +794,6 @@ pub mod test {
 
         #[test]
         fn test_outofband_connection_works_without_handshake() {
-            PaymentPlugin::load();
             let _pool = Pool::open();
 
             let mut faber = Faber::setup();
@@ -860,4 +844,3 @@ pub mod test {
         }
     }
 }
-

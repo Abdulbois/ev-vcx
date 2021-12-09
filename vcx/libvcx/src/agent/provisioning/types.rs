@@ -29,6 +29,7 @@ pub struct ProvisioningConfig {
     pub genesis_path: Option<String>,
     pub pool_config: Option<String>,
     pub pool_networks: Option<serde_json::Value>,
+    pub indy_pool_networks: Option<serde_json::Value>,
     // predefined alias
     pub pool_network_alias: Option<String>,
 
@@ -40,4 +41,5 @@ pub struct ProvisioningConfig {
 
     // rest
     pub did_method: Option<String>,
+    pub author_agreement: Option<serde_json::Value>,
 }

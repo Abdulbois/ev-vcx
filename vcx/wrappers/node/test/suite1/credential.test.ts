@@ -177,14 +177,6 @@ describe('Credential:', () => {
     })
   })
 
-  describe('getPaymentInfo:', () => {
-    it('success', async () => {
-      const credential = await credentialCreateWithOffer()
-      const paymentInfo = await credential.getPaymentInfo()
-      assert.ok(paymentInfo)
-    })
-  })
-
   describe('acceptOffer:', () => {
     it('success: accept credential offer', async () => {
       const data = await dataCredentialCreateWithOffer()

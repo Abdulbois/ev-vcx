@@ -1071,6 +1071,25 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void getCredentialInfo(int credentialHandle, Promise promise) {
+        try {
+            CredentialApi.credentialGetInfo(credentialHandle).exceptionally((t) -> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "getCredentialInfo - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "getCredentialInfo - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
     public void deleteCredential(int credentialHandle, Promise promise) {
         try {
             CredentialApi.deleteCredential(credentialHandle).whenComplete((result, t) -> {
@@ -2254,79 +2273,6 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         } catch(VcxException e) {
             e.printStackTrace();
             Log.e(TAG, "getLedgerFees - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void getTxnAuthorAgreement(Promise promise) {
-        try {
-            // IndyApi.getTxnAuthorAgreement(submitterDid, data).exceptionally((e) -> {
-            UtilsApi.getLedgerAuthorAgreement().exceptionally((e) -> {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "getLedgerAuthorAgreement - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "getLedgerAuthorAgreement - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void getAcceptanceMechanisms(String submitterDid, int timestamp, String version, Promise promise) {
-        Long longtimestamp= new Long(timestamp);
-        try {
-            IndyApi.getAcceptanceMechanisms(submitterDid, longtimestamp, version).exceptionally((e) -> {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "getAcceptanceMechanisms - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "getAcceptanceMechanisms - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void setActiveTxnAuthorAgreementMeta(String text, String version, String taaDigest, String mechanism, int timestamp, Promise promise) {
-         Long longtimestamp= new Long(timestamp);
-        try {
-            UtilsApi.setActiveTxnAuthorAgreementMeta(text, version, taaDigest, mechanism, longtimestamp);
-            promise.resolve("");
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "setActiveTxnAuthorAgreementMeta - Error: ", e);
-            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-        }
-    }
-
-    @ReactMethod
-    public void appendTxnAuthorAgreement(String requestJson, String text, String version, String taaDigest, String mechanism, int timestamp, Promise promise) {
-        Long longtimestamp= new Long(timestamp);
-        try {
-            IndyApi.appendTxnAuthorAgreement(requestJson, text, version, taaDigest, mechanism, longtimestamp).exceptionally((e) -> {
-                VcxException ex = (VcxException) e;
-                ex.printStackTrace();
-                Log.e(TAG, "appendTxnAuthorAgreement - Error: ", ex);
-                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                return null;
-            }).thenAccept(result -> {
-                BridgeUtils.resolveIfValid(promise, result);
-            });
-        } catch (VcxException e) {
-            e.printStackTrace();
-            Log.e(TAG, "appendTxnAuthorAgreement - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
