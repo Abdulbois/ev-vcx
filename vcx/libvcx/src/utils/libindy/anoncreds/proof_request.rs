@@ -38,51 +38,53 @@ impl AttributeInfo {
             return false;
         }
 
-        if self.self_attest_allowed == Some(true) {
-            return true;
+        match (self.self_attest_allowed, self.restrictions.as_ref()) {
+            (Some(true), Some(restrictions)) => self.check_restrictions(restrictions),
+            (Some(true), None) => true,
+            (Some(false), Some(_)) => false,
+            (Some(false), None) => false,
+            (None, Some(restrictions)) => self.check_restrictions(restrictions),
+            (None, None) => true
         }
+    }
 
-        match self.restrictions {
-            None => return true,
-            Some(ref restrictions) => {
+    fn check_restrictions(&self, restrictions: &Restrictions) -> bool {
+        match restrictions {
+            Restrictions::V1(restrictions) => {
+                if restrictions.is_empty() {
+                    return true;
+                }
+                restrictions
+                    .iter()
+                    .all(|restriction| {
+                        if restriction.schema_id.is_some() ||
+                            restriction.schema_issuer_did.is_some() ||
+                            restriction.schema_name.is_some() ||
+                            restriction.schema_version.is_some() ||
+                            restriction.issuer_did.is_some() ||
+                            restriction.cred_def_id.is_some() {
+                            return false;
+                        }
+                        return true;
+                    })
+            },
+            Restrictions::V2(restrictions) => {
                 match restrictions {
-                    Restrictions::V1(restrictions) => {
-                        if restrictions.is_empty() {
+                    serde_json::Value::Object(object) => object.is_empty(),
+                    serde_json::Value::Array(array) => {
+                        if array.is_empty() {
                             return true;
                         }
-                        restrictions
+                        array
                             .iter()
-                            .all(|restriction| {
-                                if restriction.schema_id.is_some() ||
-                                    restriction.schema_issuer_did.is_some() ||
-                                    restriction.schema_name.is_some() ||
-                                    restriction.schema_version.is_some() ||
-                                    restriction.issuer_did.is_some() ||
-                                    restriction.cred_def_id.is_some() {
-                                    return false;
-                                }
-                                return true;
+                            .all(|item| match item {
+                                serde_json::Value::Object(object) => object.is_empty(),
+                                _ => false,
                             })
-                    },
-                    Restrictions::V2(restrictions) => {
-                        match restrictions {
-                            serde_json::Value::Object(object) => object.is_empty(),
-                            serde_json::Value::Array(array) => {
-                                if array.is_empty() {
-                                    return true;
-                                }
-                                array
-                                    .iter()
-                                    .all(|item| match item {
-                                        serde_json::Value::Object(object) => object.is_empty(),
-                                        _ => false,
-                                    })
-                            }
-                            _ => return false
-                        }
-                    },
+                    }
+                    _ => return false
                 }
-            }
+            },
         }
     }
 }
