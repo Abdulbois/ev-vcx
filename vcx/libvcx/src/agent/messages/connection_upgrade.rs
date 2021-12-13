@@ -23,11 +23,11 @@ pub struct UpgradeInfoResponse {
     data: UpgradeInfo,
 }
 
-pub type UpgradeInfo = HashMap<String, UpgradeInfoItem>;
+pub type UpgradeInfo = HashMap<String, ConnectionUpgradeInfo>;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UpgradeInfoItem {
+pub struct ConnectionUpgradeInfo {
     pub their_agency_endpoint: String,
     pub their_agency_verkey: String,
     pub their_agency_did: String,

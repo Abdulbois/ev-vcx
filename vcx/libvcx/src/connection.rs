@@ -31,7 +31,7 @@ use crate::aries::messages::committedanswer::answer::Answer;
 use crate::aries::handlers::connection::connection_fsm::DidExchangeSM;
 use crate::aries::handlers::connection::states::CompleteState;
 use crate::aries::messages::connection::did_doc::DidDoc;
-use crate::agent::messages::connection_upgrade::{UpgradeInfo, UpgradeInfoItem};
+use crate::agent::messages::connection_upgrade::{UpgradeInfo, ConnectionUpgradeInfo};
 
 lazy_static! {
     static ref CONNECTION_MAP: ObjectCache<Connections> = Default::default();
@@ -105,14 +105,6 @@ pub struct Connection {
     their_public_did: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     version: Option<ProtocolTypes>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ConnectionUpgradeInfo {
-    pub endpoint: String,
-    pub verkey: String,
-    pub did: String,
 }
 
 impl Connection {
@@ -577,7 +569,7 @@ impl Connection {
         trace!("Connection::upgrade >>>");
 
         if self.state != VcxStateType::VcxStateAccepted {
-            return Err(VcxError::from_msg(VcxErrorKind::NotReady, "Connection is not completed!"));
+            return Err(VcxError::from_msg(VcxErrorKind::NotReady, "Uncompleted Connection cannot be upgraded!"));
         }
 
         let upgrade_data: ConnectionUpgradeInfo =
@@ -585,25 +577,19 @@ impl Connection {
                 Some(data) => {
                     ::serde_json::from_str(&data)
                         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
-                                                          format!("Could not connection upgrade data. Err: {:?}", err)))?
+                                                          format!("Could not parse ConnectionUpgrade information. Err: {:?}", err)))?
                 }
                 None => {
                     let mut upgrade_info: UpgradeInfo =
                         crate::agent::messages::get_upgrade_info()
                             .for_did(&self.pw_did)?
                             .send_secure()
-                            .map_err(|err| VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade,
-                                                              format!("Connection upgrade data was not received from the Agent. Err: {:?}", err)))?;
+                            .map_err(|_| VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade,
+                                                              "Connection upgrade is not needed because the enterprise side has not migrated the connection yet."))?;
 
-                    let connection_upgrade_info: UpgradeInfoItem = upgrade_info.remove(&self.agent_did)
+                    upgrade_info.remove(&self.agent_did)
                         .ok_or(VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade,
-                                                  "Connection upgrade is not needed because the enterprise side has not migrated the connection yet"))?;
-
-                    ConnectionUpgradeInfo {
-                        endpoint: connection_upgrade_info.their_agency_endpoint,
-                        verkey: connection_upgrade_info.their_agency_verkey,
-                        did: connection_upgrade_info.their_agency_did,
-                    }
+                                                  "Connection upgrade is not needed because the enterprise side has not migrated the connection yet."))?
                 }
             };
 
@@ -613,12 +599,12 @@ impl Connection {
 
         let mut did_doc = DidDoc::default();
         did_doc.set_id(self.their_pw_did.clone());
-        did_doc.set_service_endpoint(upgrade_data.endpoint);
+        did_doc.set_service_endpoint(upgrade_data.their_agency_endpoint);
         did_doc.set_keys(
             vec![self.their_pw_verkey.clone()],
             vec![
                 self.their_pw_verkey.clone(),
-                upgrade_data.verkey
+                upgrade_data.their_agency_verkey
             ],
         );
 
