@@ -22,9 +22,10 @@ use crate::aries::messages::questionanswer::question::{Question, QuestionRespons
 use crate::aries::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
 use crate::aries::messages::invite_action::invite::InviteActionData;
 use crate::aries::messages::invite_action::invite::Invite as InviteForAction;
-use crate::connection::{ConnectionOptions, ConnectionUpgradeInfo};
+use crate::connection::ConnectionOptions;
 use crate::aries::messages::connection::problem_report::ProblemReport;
 use serde::Serialize;
+use crate::agent::messages::connection_upgrade::ConnectionUpgradeInfo;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connection {
@@ -405,21 +406,21 @@ impl Connection {
             .map_err(|_| VcxError::from_msg(VcxErrorKind::NotReady, "Connection is not completed!"))?;
 
         let data = data.ok_or(
-            VcxError::from_msg(VcxErrorKind::ActionNotSupported, "ConnectionUpgradeInformation must be provided to upgrade Aries connection.")
+            VcxError::from_msg(VcxErrorKind::ActionNotSupported, "ConnectionUpgrade information must be provided to upgrade Aries connection.")
         )?;
 
         let data: ConnectionUpgradeInfo = ::serde_json::from_str(&data)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
-                                              format!("Could not connection upgrade data. Err: {:?}", err)))?;
+                                              format!("Could not parse ConnectionUpgrade information. Err: {:?}", err)))?;
 
         let mut did_doc = DidDoc::default();
         did_doc.set_id(self.remote_did()?);
-        did_doc.set_service_endpoint(data.endpoint);
+        did_doc.set_service_endpoint(data.their_agency_endpoint);
         did_doc.set_keys(
             vec![self.remote_vk()?],
             vec![
                 self.remote_vk()?,
-                data.verkey
+                data.their_agency_verkey
             ],
         );
 

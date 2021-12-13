@@ -956,10 +956,10 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
                    completion:(void (^)(NSError *error, vcx_bool_t need))completion;
 
 /// Try to upgrade legacy Connection
-///   1. Query Cloud Agent for upgrade information
+///   1. Query Cloud Agent for upgrade information (if not provided)
 ///   2. Apply upgrade information if received
 ///
-/// If connection cannot be upgraded (Enterprise side has not upgraded connection yet) ono of the error may be returned:
+/// If connection cannot be upgraded (Enterprise side has not upgraded connection yet) one of the errors may be returned:
 ///     - ConnectionNotReadyToUpgrade 1065
 ///     - NotReady 1005
 ///     - ActionNotSupported 1103
@@ -968,11 +968,11 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 /// #Params
 /// connection_handle: handle pointing to Connection state object.
 ///
-/// data: (Optional) connection upgrade information
+/// data: (Optional) connection upgrade information to use instead of querying of Cloud Agent
 ///                 {
-///                     endpoint: string,
-///                     verkey: string,
-///                     did: string,
+///                     theirAgencyEndpoint: string,
+///                     theirAgencyVerkey: string,
+///                     theirAgencyDid: string,
 ///                 }
 ///
 /// #Returns

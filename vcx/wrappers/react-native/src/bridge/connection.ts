@@ -652,21 +652,21 @@ export class Connection {
 
   /**
    * Try to upgrade legacy Connection
-   *   1. Query Cloud Agent for upgrade information
+   *   1. Query Cloud Agent for upgrade information (if not provided)
    *   2. Apply upgrade information if received
    *
-   * If connection cannot be upgraded (Enterprise side has not upgraded connection yet) ono of the error may be returned:
+   * If connection cannot be upgraded (Enterprise side has not upgraded connection yet) one of the errors may be returned:
    *     - ConnectionNotReadyToUpgrade 1065
    *     - NotReady 1005
    *     - ActionNotSupported 1103
    *     - InvalidAgencyResponse 1020
    *
    * @param  connectionHandle handle pointing to a Connection object.
-   * @param  data: (Optional) connection upgrade information
+   * @param  data: (Optional) connection upgrade information to use instead of querying of Cloud Agent
    *                 {
-   *                     endpoint: string,
-   *                     verkey: string,
-   *                     did: string,
+   *                     theirAgencyEndpoint: string,
+   *                     theirAgencyVerkey: string,
+   *                     theirAgencyDid: string,
    *                 }
    *
    * @return                  serialized representation of upgraded connection state object

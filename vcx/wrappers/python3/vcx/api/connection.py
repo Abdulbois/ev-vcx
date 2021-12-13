@@ -996,18 +996,18 @@ class Connection(VcxStateful):
 
     async def upgrade(self, data: Optional[str] = None) -> str:
         """
-         Try to upgrade legacy Connection
-           1. Query Cloud Agent for upgrade information
-           2. Apply upgrade information if received
+        Try to upgrade legacy Connection
+          1. Query Cloud Agent for upgrade information (if not provided)
+          2. Apply upgrade information if received
 
-          data: (Optional) connection upgrade information
-                         {
-                             endpoint: string,
-                             verkey: string,
-                             did: string,
-                         }
+          data: (Optional) connection upgrade information to use instead of querying of Cloud Agent
+                           {
+                               theirAgencyEndpoint: string,
+                               theirAgencyVerkey: string,
+                               theirAgencyDid: string,
+                           }
 
-          If connection cannot be upgraded (Enterprise side has not upgraded connection yet) ono of the error may be returned:
+          If connection cannot be upgraded (Enterprise side has not upgraded connection yet) one of the error may be returned:
               - ConnectionNotReadyToUpgrade 1065
               - NotReady 1005
               - ActionNotSupported 1103
