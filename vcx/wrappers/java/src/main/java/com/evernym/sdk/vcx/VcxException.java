@@ -188,8 +188,8 @@ public class VcxException extends Exception {
                 return new InvalidSchemaCreationException();
             case INVALID_SCHEMA_HANDLE:
                 return new InvalidSchemahandleException();
-            case INVALID_MASTER_SECRET:
-                return new InvalidMasterSecretException();
+            case INVALID_CREDENTIAL_OFFER:
+                return new InvalidCredentialOfferException();
             case ALREADY_INITIALIZED:
                 return new AlreadyInitializedException();
             case INVALID_INVITE_DETAILS:
