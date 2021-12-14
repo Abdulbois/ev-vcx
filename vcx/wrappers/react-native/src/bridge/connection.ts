@@ -646,7 +646,7 @@ export class Connection {
    *
    * @throws VcxException         If an exception occurred in Libvcx library.
    */
-  public static async connectionNeedUpgrade({ serialized }: IConnectionNeedUpgrade): Promise<boolean> {
+  public static async needUpgrade({ serialized }: IConnectionNeedUpgrade): Promise<boolean> {
     return await RNIndy.connectionNeedUpgrade(serialized)
   }
 
