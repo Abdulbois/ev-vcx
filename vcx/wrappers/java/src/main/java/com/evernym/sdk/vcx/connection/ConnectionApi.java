@@ -1371,6 +1371,7 @@ public class ConnectionApi extends VcxJava.API {
      *                     theirAgencyEndpoint: string,
      *                     theirAgencyVerkey: string,
      *                     theirAgencyDid: string,
+     *                     direction: string, // one of `v1tov2` or `v2tov1`
      *                 }
 	 *
 	 * @return                  Serialized representation of upgraded connection state object (handle kept the same)

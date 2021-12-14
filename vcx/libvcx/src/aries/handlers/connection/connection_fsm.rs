@@ -1073,6 +1073,12 @@ impl DidExchangeSM {
             .ok_or(VcxError::from_msg(VcxErrorKind::NotReady, "Remote Connection DIDDoc is not received yet"))
     }
 
+    pub fn remote_endpoint(&self) -> VcxResult<String> {
+        self.did_doc()
+            .map(|did_doc| did_doc.get_endpoint())
+            .ok_or(VcxError::from_msg(VcxErrorKind::NotReady, "Remote Connection DIDDoc is not received yet"))
+    }
+
     pub fn prev_agent_info(&self) -> Option<&AgentInfo> {
         match self.state {
             ActorDidExchangeState::Inviter(DidExchangeState::Responded(ref state)) => Some(&state.prev_agent_info),

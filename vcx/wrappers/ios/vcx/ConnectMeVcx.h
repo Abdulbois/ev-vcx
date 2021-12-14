@@ -973,6 +973,7 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 ///                     theirAgencyEndpoint: string,
 ///                     theirAgencyVerkey: string,
 ///                     theirAgencyDid: string,
+///                     direction: string, // one of `v1tov2` or `v2tov1`
 ///                 }
 ///
 /// #Returns

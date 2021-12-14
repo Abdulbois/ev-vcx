@@ -99,6 +99,13 @@ impl From<Invitations> for DidDoc {
 }
 
 impl Invitations {
+    pub fn id(&self) -> String{
+        match self {
+            Invitations::ConnectionInvitation(invitation_)=> invitation_.id().to_string(),
+            Invitations::OutofbandInvitation(invitation_)=> invitation_.id().to_string(),
+        }
+    }
+
     pub fn recipient_key(&self) -> Option<String> {
         match self {
             Invitations::ConnectionInvitation(invitation_)=>

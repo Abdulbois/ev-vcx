@@ -13,7 +13,7 @@ pub struct GetUpgradeInfo {
     #[serde(rename = "@type")]
     msg_type: MessageTypes,
     #[serde(rename = "pairwiseDIDs")]
-    pairwise_dids: Vec<String>
+    pairwise_dids: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,17 +26,28 @@ pub struct UpgradeInfoResponse {
 pub type UpgradeInfo = HashMap<String, ConnectionUpgradeInfo>;
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ConnectionUpgradeInfo {
+    #[serde(rename = "theirAgencyEndpoint")]
     pub their_agency_endpoint: String,
+    #[serde(rename = "theirAgencyVerKey")]
     pub their_agency_verkey: String,
+    #[serde(rename = "theirAgencyDID")]
     pub their_agency_did: String,
+    pub direction: ConnectionUpgradeDirections,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub enum ConnectionUpgradeDirections {
+    #[serde(rename = "v1tov2")]
+    V1ToV2,
+    #[serde(rename = "v2tov1")]
+    V2ToV1,
 }
 
 #[derive(Debug)]
 pub struct GetUpgradeInfoBuilder {
     version: ProtocolTypes,
-    pairwise_dids: Vec<String>
+    pairwise_dids: Vec<String>,
 }
 
 impl GetUpgradeInfoBuilder {
@@ -45,7 +56,7 @@ impl GetUpgradeInfoBuilder {
 
         GetUpgradeInfoBuilder {
             version: ProtocolTypes::V3,
-            pairwise_dids: Vec::new()
+            pairwise_dids: Vec::new(),
         }
     }
 
