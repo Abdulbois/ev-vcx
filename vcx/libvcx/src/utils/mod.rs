@@ -51,6 +51,7 @@ pub mod health_check;
 pub mod random;
 pub mod object_cache;
 pub mod validation;
+pub mod casts;
 
 #[cfg(test)]
 pub mod plugins;

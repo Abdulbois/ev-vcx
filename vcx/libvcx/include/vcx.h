@@ -750,9 +750,10 @@ vcx_error_t vcx_connection_get_problem_report(vcx_command_handle_t command_handl
 ///
 /// data: (Optional) connection upgrade information
 ///                 {
-///                     endpoint: string,
-///                     verkey: string,
-///                     did: string,
+///                     theirAgencyEndpoint: string,
+///                     theirAgencyVerkey: string,
+///                     theirAgencyDid: string,
+///                     direction: string, // one of `v1tov2` or `v2tov1`
 ///                 }
 ///
 /// cb: Callback that returns serialized representation of upgraded connection state object

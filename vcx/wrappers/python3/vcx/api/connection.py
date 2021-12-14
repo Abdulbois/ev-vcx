@@ -1005,6 +1005,7 @@ class Connection(VcxStateful):
                                theirAgencyEndpoint: string,
                                theirAgencyVerkey: string,
                                theirAgencyDid: string,
+                               direction: string, // one of `v1tov2` or `v2tov1`
                            }
 
           If connection cannot be upgraded (Enterprise side has not upgraded connection yet) one of the error may be returned:

@@ -1896,6 +1896,7 @@ pub extern fn vcx_connection_need_upgrade(command_handle: CommandHandle,
 ///                     theirAgencyEndpoint: string,
 ///                     theirAgencyVerkey: string,
 ///                     theirAgencyDid: string,
+///                     direction: string, // one of `v1tov2` or `v2tov1`
 ///                 }
 ///
 /// cb: Callback that returns serialized representation of upgraded connection state object (handle kept the same)

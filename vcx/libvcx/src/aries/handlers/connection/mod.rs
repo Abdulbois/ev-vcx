@@ -10,7 +10,7 @@ use core::fmt::Debug;
 use crate::error::prelude::*;
 use crate::aries::handlers::connection::connection_fsm::{Actor, DidExchangeSM};
 use crate::aries::handlers::connection::messages::DidExchangeMessages;
-use crate::aries::handlers::connection::states::{ActorDidExchangeState, DidExchangeState, CompleteState};
+use crate::aries::handlers::connection::states::ActorDidExchangeState;
 use crate::aries::handlers::connection::agent::AgentInfo;
 use crate::aries::messages::a2a::A2AMessage;
 use crate::aries::messages::connection::invite::Invitation;
@@ -22,10 +22,11 @@ use crate::aries::messages::questionanswer::question::{Question, QuestionRespons
 use crate::aries::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
 use crate::aries::messages::invite_action::invite::InviteActionData;
 use crate::aries::messages::invite_action::invite::Invite as InviteForAction;
-use crate::connection::ConnectionOptions;
+use crate::connection::{ConnectionOptions, Connections};
 use crate::aries::messages::connection::problem_report::ProblemReport;
+use crate::agent::messages::connection_upgrade::{ConnectionUpgradeInfo, ConnectionUpgradeDirections};
+use crate::connection::Connection as ConnectionV1;
 use serde::Serialize;
-use crate::agent::messages::connection_upgrade::ConnectionUpgradeInfo;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connection {
@@ -102,6 +103,10 @@ impl Connection {
 
     pub fn remote_vk(&self) -> VcxResult<String> {
         self.connection_sm.remote_vk()
+    }
+
+    pub fn remote_endpoint(&self) -> VcxResult<String> {
+        self.connection_sm.remote_endpoint()
     }
 
     pub fn state_object<'a>(&'a self) -> &'a ActorDidExchangeState {
@@ -401,41 +406,30 @@ impl Connection {
         Ok(json!(&problem_report).to_string())
     }
 
-    pub fn upgrade(&self, data: Option<String>) -> VcxResult<Connection> {
+    pub fn upgrade(&self, data: Option<String>) -> VcxResult<Connections> {
         self.get_completed_connection()
             .map_err(|_| VcxError::from_msg(VcxErrorKind::NotReady, "Connection is not completed!"))?;
 
         let data = data.ok_or(
-            VcxError::from_msg(VcxErrorKind::ActionNotSupported, "ConnectionUpgrade information must be provided to upgrade Aries connection.")
+            VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade, "ConnectionUpgrade information must be provided to upgrade Aries connection.")
         )?;
 
         let data: ConnectionUpgradeInfo = ::serde_json::from_str(&data)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
                                               format!("Could not parse ConnectionUpgrade information. Err: {:?}", err)))?;
 
-        let mut did_doc = DidDoc::default();
-        did_doc.set_id(self.remote_did()?);
-        did_doc.set_service_endpoint(data.their_agency_endpoint);
-        did_doc.set_keys(
-            vec![self.remote_vk()?],
-            vec![
-                self.remote_vk()?,
-                data.their_agency_verkey
-            ],
-        );
+        let invitation: Invitations = self.get_invitation().ok_or(
+            VcxError::from_msg(VcxErrorKind::NotReady, "Connection is not completed!")
+        )?;
 
-        Ok(Connection {
-            connection_sm: DidExchangeSM {
-                source_id: self.source_id(),
-                agent_info: self.agent_info().clone(),
-                state: ActorDidExchangeState::Invitee(DidExchangeState::Completed(CompleteState {
-                    invitation: self.get_invitation(),
-                    did_doc,
-                    protocols: None,
-                    thread: self.connection_sm.thread().cloned().unwrap_or_default(),
-                })),
+        match data.direction {
+            ConnectionUpgradeDirections::V2ToV1 => {
+                Ok(Connections::V1(ConnectionV1::from((self, invitation, data))))
             }
-        })
+            ConnectionUpgradeDirections::V1ToV2 => {
+                Ok(Connections::V3(Connection::from((self, data))))
+            }
+        }
     }
 }
 

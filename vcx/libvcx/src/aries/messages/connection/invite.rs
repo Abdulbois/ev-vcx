@@ -32,6 +32,10 @@ impl Invitation {
         Invitation::default()
     }
 
+    pub fn id(&self) -> &MessageId {
+        &self.id
+    }
+
     pub fn set_label(mut self, label: String) -> Invitation {
         self.label = label;
         self
@@ -76,14 +80,14 @@ impl Default for Invitation {
                 prefix: MessageTypePrefix::DID,
                 family: MessageTypeFamilies::Connections,
                 version: MessageTypeVersion::V10,
-                type_: A2AMessage::CONNECTION_INVITATION.to_string()
+                type_: A2AMessage::CONNECTION_INVITATION.to_string(),
             },
             label: Default::default(),
             recipient_keys: Default::default(),
             routing_keys: Default::default(),
             service_endpoint: Default::default(),
             profile_url: Default::default(),
-            public_did: Default::default()
+            public_did: Default::default(),
         }
     }
 }
