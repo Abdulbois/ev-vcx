@@ -2006,7 +2006,8 @@ RCT_EXPORT_METHOD(connectionNeedUpgrade: (NSString *) serializedConnection
     if (error != nil && error.code != 0) {
       NSString *vcxErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
       reject(vcxErrorCode, @"Error occurred", error);
-    } else need) {
+    } else {
+      if (need) {
         resolve(@YES);
       } else {
         resolve(@NO);
