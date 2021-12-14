@@ -842,21 +842,21 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     public void connectionUpgrade(int connectionHandle, String data, Promise promise) {
         try {
             ConnectionApi.connectionUpgrade(connectionHandle, data).exceptionally((t) -> {
-                   VcxException ex = (VcxException) t;
-                   ex.printStackTrace();
-                   Log.e(TAG, "connectionUpgrade - Error: ", ex);
-                   promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
-                   return null;
-               }).thenAccept(result -> {
-                   Log.e(TAG, ">>>><<<< got result back");
-                   BridgeUtils.resolveIfValid(promise, result);
-               });
-           } catch (VcxException e) {
-               e.printStackTrace();
-               Log.e(TAG, "connectionUpgrade - Error: ", e);
-               promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
-
-           }
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "connectionUpgrade - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                Log.e(TAG, ">>>><<<< got result back");
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch (VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "connectionUpgrade - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
 
     @ReactMethod
     public void connectionNeedUpgrade(String serialized, Promise promise) {
