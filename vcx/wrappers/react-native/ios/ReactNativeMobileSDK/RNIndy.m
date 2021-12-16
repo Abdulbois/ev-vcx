@@ -2101,6 +2101,23 @@ RCT_EXPORT_METHOD(extractAttachedMessage: (NSString *)message
   }];
 }
 
+RCT_EXPORT_METHOD(extractThreadId: (NSString *)message
+                           resolver: (RCTPromiseResolveBlock) resolve
+                           rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] extractThreadId:message completion:^(NSError *error, NSString *threadId) {
+    NSLog(@"extractThreadId callback:%@",threadId);
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, [NSString stringWithFormat:@"Error occurred while extracting attached message: %@ :: %ld",error.domain, (long)error.code], error);
+
+    }else{
+      resolve(threadId);
+    }
+  }];
+}
+
 RCT_EXPORT_METHOD(resolveMessageByUrl: (NSString *)url
                            resolver: (RCTPromiseResolveBlock) resolve
                            rejecter: (RCTPromiseRejectBlock) reject)

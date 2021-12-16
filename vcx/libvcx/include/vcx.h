@@ -3391,6 +3391,21 @@ vcx_error_t vcx_extract_attached_message(vcx_command_handle_t command_handle,
                                const char *message,
                                void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
+/// Extract thread id for message
+///
+/// #params
+///
+/// command_handle: command handle to map callback to user context.
+/// message: message to get thread id from
+///
+/// cb: Callback that provides thread id
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_extract_thread_id(vcx_command_handle_t command_handle,
+                               const char *message,
+                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
 /// Resolve message by the given URL.
 /// Supported cases:
 ///   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string

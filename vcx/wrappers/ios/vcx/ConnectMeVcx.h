@@ -2914,6 +2914,17 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 - (void)extractAttachedMessage:(NSString *)message
              completion:(void (^)(NSError *error, NSString* attachedMessage))completion;
 
+/// Extract thread id for message
+///
+/// #params
+/// command_handle: command handle to map callback to user context.
+/// message: message to get thread id from
+///
+/// #Returns
+/// Thread id
+- (void)extractThreadId:(NSString *)message
+             completion:(void (^)(NSError *error, NSString* threadId))completion;
+
 /// Resolve message by the given URL.
 /// Supported cases:
 ///   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string

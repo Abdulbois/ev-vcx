@@ -545,6 +545,34 @@ export async function extractAttachedMessage({ message }: IExtractAttachedMessag
   }
 }
 
+export async function extractThreadId({ message }: IExtractAttachedMessage): Promise<string> {
+  /**
+   *  Extract content of Aries message containing attachment decorator.
+   */
+  try {
+    return await createFFICallbackPromise<string>(
+      (resolve, reject, cb) => {
+        const rc = rustAPI().vcx_extract_thread_id(0, message, cb)
+        if (rc) {
+          reject(rc)
+        }
+      },
+      (resolve, reject) => Callback(
+        'void',
+        ['uint32','uint32','string'],
+        (xhandle: number, err: number, messages: string) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(messages)
+        })
+    )
+  } catch (err) {
+    throw new VCXInternalError(err)
+  }
+}
+
 export interface IResolveMessageByUrl {
   url: string, // url to fetch message
 }

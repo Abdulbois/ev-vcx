@@ -271,7 +271,7 @@ fn _store_credential(credential_offer: &CredentialOffer,
                      cred_def_json: &str) -> VcxResult<String> {
     credential.ensure_match_offer(credential_offer)?;
     let (_, credential_json) = credential.credentials_attach().content()?;
-    let cred_id = IndyHolder::store_credential(None,
+    let cred_id = IndyHolder::store_credential(credential.thread().thid.as_deref(),
                                                   req_meta,
                                                   &credential_json,
                                                   cred_def_json)?;
