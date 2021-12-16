@@ -732,6 +732,9 @@ public abstract class LibVcx {
         /** Extract content of Aries message containing attachment decorator. */
         int vcx_extract_attached_message(int command_handle, String message, Callback cb);
 
+        /** Extract thread id for message. */
+        int vcx_extract_thread_id(int command_handle, String message, Callback cb);
+
         /** Resolve message by the given URL. */
         int vcx_resolve_message_by_url(int command_handle, String url, Callback cb);
 
