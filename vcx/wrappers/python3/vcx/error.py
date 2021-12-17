@@ -68,6 +68,7 @@ class ErrorCode(IntEnum):
     ConnectionAlreadyExists = 1062,
     ConnectionDoesNotExist = 1063,
     InsufficientTokenAmount = 1064,
+    ConnectionNotReadyToUpgrade = 1065,
     InvalidPaymentAddress = 1066,
     InvalidLibindyParam = 1067,
     MissingWalletKey = 1069,

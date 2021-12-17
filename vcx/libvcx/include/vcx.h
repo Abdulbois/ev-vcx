@@ -739,6 +739,47 @@ vcx_error_t vcx_connection_get_problem_report(vcx_command_handle_t command_handl
                                               vcx_connection_handle_t connection_handle,
                                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
+/// Try to upgrade legacy Connection
+///   1. Query Cloud Agent for upgrade information
+///   2. Apply upgrade information if received
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// connection_handle: handle pointing to Connection state object.
+///
+/// data: (Optional) connection upgrade information
+///                 {
+///                     theirAgencyEndpoint: string,
+///                     theirAgencyVerkey: string,
+///                     theirAgencyDid: string,
+///                     direction: string, // one of `v1tov2` or `v2tov1`
+///                 }
+///
+/// cb: Callback that returns serialized representation of upgraded connection state object
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_connection_upgrade(vcx_command_handle_t command_handle,
+                                   vcx_connection_handle_t connection_handle,
+                                   const char* data,
+                                   void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Check if connection is outdated and require upgrade
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// serialized: serialized representation of connection state object
+///
+/// cb: Callback that returns bool flag indicating upgrade requirement
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_connection_need_upgrade(vcx_command_handle_t command_handle,
+                                        const char* serialized,
+                                        void (*cb)(vcx_command_handle_t, vcx_error_t, vcx_bool_t))
+
 // Create a Credential object that requests and receives a credential for an institution
 //
 // #Params
@@ -3152,36 +3193,6 @@ vcx_error_t vcx_get_logger(const void* vcx_get_logger,
 ///
 vcx_error_t vcx_get_current_error(const char ** error_json_p);
 
-/// Retrieve author agreement set on the Ledger
-///
-/// #params
-///
-/// command_handle: command handle to map callback to user context.
-///
-/// cb: Callback that provides array of matching messages retrieved
-///
-/// #Returns
-/// Error code as a u32
-vcx_error_t vcx_get_ledger_author_agreement(vcx_u32_t command_handle,
-                                            void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
-
-/// Set some accepted agreement as active.
-///
-/// As result of succesfull call of this funciton appropriate metadata will be appended to each write request by `indy_append_txn_author_agreement_meta_to_request` libindy call.
-///
-/// #Params
-/// text and version - (optional) raw data about TAA from ledger.
-///     These parameters should be passed together.
-///     These parameters are required if hash parameter is ommited.
-/// hash - (optional) hash on text and version. This parameter is required if text and version parameters are ommited.
-/// acc_mech_type - mechanism how user has accepted the TAA
-/// time_of_acceptance - UTC timestamp when user has accepted the TAA
-///
-/// #Returns
-/// Error code as a u32
-vcx_error_t vcx_set_active_txn_author_agreement_meta(const char *text, const char *version, const char *hash, const char *acc_mech_type, vcx_u64_t type_);
-
-
 /// -> Create a Wallet Backup object that provides a Cloud wallet backup and provision's backup protocol with Agent
 ///
 /// #Params
@@ -3378,6 +3389,21 @@ vcx_error_t vcx_create_pairwise_agent(vcx_command_handle_t command_handle,
 /// #Returns
 /// Error code as a u32
 vcx_error_t vcx_extract_attached_message(vcx_command_handle_t command_handle,
+                               const char *message,
+                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Extract thread id for message
+///
+/// #params
+///
+/// command_handle: command handle to map callback to user context.
+/// message: message to get thread id from
+///
+/// cb: Callback that provides thread id
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_extract_thread_id(vcx_command_handle_t command_handle,
                                const char *message,
                                void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 

@@ -1828,6 +1828,118 @@ pub extern fn vcx_connection_get_problem_report(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
+/// Check if connection is outdated and require upgrade
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// serialized: serialized representation of connection state object
+///
+///
+/// cb: Callback that returns bool flag indicating upgrade requirement
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_connection_need_upgrade(command_handle: CommandHandle,
+                                          serialized: *const c_char,
+                                          cb: Option<extern fn(command_handle_: CommandHandle,
+                                                               err: u32,
+                                                               valid: bool)>) -> u32 {
+    info!("vcx_connection_need_upgrade >>>");
+
+    check_useful_c_str!(serialized, VcxErrorKind::InvalidOption);
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_connection_need_upgrade(command_handle: {}, serialized: {})",
+           command_handle, secret!(serialized));
+
+    spawn(move || {
+        match Connection::need_upgrade(&serialized) {
+            Ok(need_upgrade) => {
+                trace!("vcx_connection_need_upgrade_cb(command_handle: {}, rc: {}, need_upgrade: {})",
+                       command_handle, error::SUCCESS.as_str(), need_upgrade);
+
+                cb(command_handle, error::SUCCESS.code_num, need_upgrade);
+            }
+            Err(e) => {
+                warn!("vcx_connection_need_upgrade_cb(command_handle: {}, rc: {}, need_upgrade: {})",
+                      command_handle, e, false);
+
+                cb(command_handle, e.into(), false);
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
+/// Try to upgrade legacy Connection
+///   1. Query Cloud Agent for upgrade information (if not provided)
+///   2. Apply upgrade information if received
+///
+/// If connection cannot be upgraded (Enterprise side has not upgraded connection yet) one of the errors may be returned:
+///     - ConnectionNotReadyToUpgrade 1065
+///     - NotReady 1005
+///     - ActionNotSupported 1103
+///     - InvalidAgencyResponse 1020
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// connection_handle: handle pointing to Connection state object.
+///
+/// data: (Optional) connection upgrade information to use instead of querying of Cloud Agent
+///                 {
+///                     theirAgencyEndpoint: string,
+///                     theirAgencyVerkey: string,
+///                     theirAgencyDid: string,
+///                     direction: string, // one of `v1tov2` or `v2tov1`
+///                 }
+///
+/// cb: Callback that returns serialized representation of upgraded connection state object (handle kept the same)
+///
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_connection_upgrade(command_handle: CommandHandle,
+                                     connection_handle: Handle<Connections>,
+                                     data: *const c_char,
+                                     cb: Option<extern fn(xcommand_handle: CommandHandle,
+                                                          err: u32,
+                                                          serialized: *const c_char)>) -> u32 {
+    info!("vcx_connection_upgrade >>>");
+
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+    check_useful_opt_c_str!(data, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_connection_upgrade(command_handle: {}, connection_handle: {}, data: {:?})",
+           command_handle, connection_handle, data);
+
+    spawn(move || {
+        match connection_handle.upgrade(data) {
+            Ok(serialized) => {
+                trace!("vcx_connection_upgrade_cb(command_handle: {}, rc: {}, serialized: {})",
+                       command_handle, error::SUCCESS.as_str(), secret!(serialized));
+                let serialized = CStringUtils::string_to_cstring(serialized);
+                cb(command_handle, error::SUCCESS.code_num, serialized.as_ptr());
+            }
+            Err(x) => {
+                error!("vcx_connection_upgrade_cb(command_handle: {}, rc: {})",
+                       command_handle, x);
+                cb(command_handle, x.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1842,6 +1954,7 @@ mod tests {
     use crate::utils::httpclient::AgencyMock;
 
     const EMPTY_JSON: *const c_char = "{}\0".as_ptr().cast();
+
     #[test]
     fn test_vcx_connection_create() {
         let _setup = SetupMocks::init();
@@ -1959,16 +2072,6 @@ mod tests {
         assert_eq!(rc, error::SUCCESS.code_num);
 
         assert!(r.recv_medium().unwrap().is_some());
-    }
-
-    #[test]
-    fn test_vcx_connection_release() {
-        let _setup = SetupMocks::init();
-
-        let handle = build_test_connection();
-
-        let rc = vcx_connection_release(handle);
-        assert_eq!(rc, error::SUCCESS.code_num);
     }
 
     #[test]

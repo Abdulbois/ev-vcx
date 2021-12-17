@@ -963,6 +963,41 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
     }
 }
 
+- (void)connectionUpgrade:(NSInteger) connectionHandle
+                     data:data
+               completion:(void (^)(NSError *error, NSString *serialized))completion
+{
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char * cData = [data cStringUsingEncoding:NSUTF8StringEncoding];
+    vcx_error_t ret = vcx_connection_upgrade(handle, connectionHandle, cData, VcxWrapperCommonStringCallback);
+    if( ret != 0 )
+    {
+       [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+       dispatch_async(dispatch_get_main_queue(), ^{
+           completion(error, nil);
+       });
+    }
+}
+
+- (void)connectionNeedUpgrade:(NSString *) serializedConnection
+                   completion:(void (^)(NSError *error, vcx_bool_t need))completion
+{
+  vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+
+  const char * cSerializedConnection = [serializedConnection cStringUsingEncoding:NSUTF8StringEncoding];
+  vcx_error_t ret = vcx_connection_need_upgrade(handle, cSerializedConnection, VcxWrapperCommonBoolCallback);
+  if (ret != 0) {
+      [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
+
+      NSError *error = [NSError errorFromVcxError:ret];
+      dispatch_async(dispatch_get_main_queue(), ^{
+          completion(error, false);
+      });
+  }
+}
+
 - (void)agentUpdateInfo: (NSString *) config
             completion: (void (^)(NSError *error)) completion
 {
@@ -2211,61 +2246,6 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
    }
 }
 
-/// Retrieve author agreement set on the Ledger
-///
-/// #params
-/// completion: Callback that provides array of matching messages retrieved
-///
-/// #Returns
-/// Error code as a u32
-- (void) getTxnAuthorAgreement:(void(^)(NSError *error, NSString *authorAgreement)) completion
-{
-    vcx_error_t ret;
-    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
-    ret = vcx_get_ledger_author_agreement(handle, VcxWrapperCommonStringCallback);
-
-    if (ret != 0)
-    {
-        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
-
-        NSError *error = [NSError errorFromVcxError:ret];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error, nil);
-        });
-    }
-}
-
-
-/// Set some accepted agreement as active.
-///
-/// As result of succesfull call of this funciton appropriate metadata will be appended to each write request by `indy_append_txn_author_agreement_meta_to_request` libindy call.
-///
-/// #Params
-/// text and version - (optional) raw data about TAA from ledger.
-///     These parameters should be passed together.
-///     These parameters are required if hash parameter is ommited.
-/// hash - (optional) hash on text and version. This parameter is required if text and version parameters are ommited.
-/// acc_mech_type - mechanism how user has accepted the TAA
-/// time_of_acceptance - UTC timestamp when user has accepted the TAA
-///
-/// #Returns
-/// Error code as a u32
-- (vcx_error_t) activateTxnAuthorAgreement:(NSString *)text
-                               withVersion:(NSString *)version
-                                  withHash:(NSString *)hash
-                             withMechanism:(NSString *)mechanism
-                             withTimestamp:(long)timestamp
-{
-    return vcx_set_active_txn_author_agreement_meta(
-        [text UTF8String],
-        [version UTF8String],
-        [hash UTF8String],
-        [mechanism UTF8String],
-        timestamp
-    );
-
-}
-
 - (void) createPairwiseAgent:(void (^)(NSError *error, NSString *agentInfo))completion
 {
     vcx_command_handle_t handle= [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
@@ -2684,65 +2664,6 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
     }
 }
 
-- (void)addTxnAuthorAgreement:(NSString *)submitterDid
-                         text:(NSString *)text
-                      version:(NSString *)version
-                 withCompletion:(void (^)(NSError *error))completion
-{
-    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
-    const char * submitter_did = [submitterDid cStringUsingEncoding:NSUTF8StringEncoding];
-    const char * text_ctype = [text cStringUsingEncoding:NSUTF8StringEncoding];
-    const char * version_ctype = [version cStringUsingEncoding:NSUTF8StringEncoding];
-
-    vcx_error_t ret = indy_build_txn_author_agreement_request(
-                                                              handle,
-                                                              submitter_did,
-                                                              text_ctype,
-                                                              version_ctype,
-                                                              VcxWrapperCommonCallback
-                                                             );
-
-    if (ret != 0) {
-        [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
-
-        NSError *error = [NSError errorFromVcxError:ret];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error);
-        });
-    }
-}
-
-- (void)addAcceptanceMechanisms:(NSString *)submitterDid
-                            aml:(NSString *)aml
-                        version:(NSString *)version
-                     amlContext:(NSString *)amlContext
-                 withCompletion:(void (^)(NSError *error))completion
-{
-    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
-    const char * submitter_did = [submitterDid cStringUsingEncoding:NSUTF8StringEncoding];
-    const char * aml_ctype = [aml cStringUsingEncoding:NSUTF8StringEncoding];
-    const char * version_ctype = [version cStringUsingEncoding:NSUTF8StringEncoding];
-    const char * aml_context_ctype = [amlContext cStringUsingEncoding:NSUTF8StringEncoding];
-
-    vcx_error_t ret = indy_build_acceptance_mechanisms_request(
-                                                              handle,
-                                                              submitter_did,
-                                                              aml_ctype,
-                                                              version_ctype,
-                                                              aml_context_ctype,
-                                                              VcxWrapperCommonCallback
-                                                             );
-
-    if (ret != 0) {
-        [[VcxCallbacks sharedInstance] deleteCommandHandleFor:handle];
-
-        NSError *error = [NSError errorFromVcxError:ret];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            completion(error);
-        });
-    }
-}
-
 - (void)anonDecrypt:(VcxHandle)walletHandle
         recipientVk:(NSString *)recipientVk
        encryptedMsg:(NSData *)encryptedMsg
@@ -2965,6 +2886,24 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
     vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
     const char * message_ = [message cStringUsingEncoding:NSUTF8StringEncoding];
     ret = vcx_extract_attached_message(handle, message_, VcxWrapperCommonStringCallback);
+
+    if( ret != 0 )
+    {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error, nil);
+        });
+    }
+}
+
+- (void)extractThreadId:(NSString *)message
+             completion:(void (^)(NSError *error, NSString* threadId))completion{
+    vcx_error_t ret;
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char * message_ = [message cStringUsingEncoding:NSUTF8StringEncoding];
+    ret = vcx_extract_thread_id(handle, message_, VcxWrapperCommonStringCallback);
 
     if( ret != 0 )
     {

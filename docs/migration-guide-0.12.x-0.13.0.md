@@ -10,13 +10,13 @@ to simplify their transition to LibVCX 0.13.x from LibVCX 0.12.x.
 
 #### Protocols
 
-* Added protocol type `4.0` (`protocol_type` setting in configuration JSON):
+Added protocol type `4.0` (`protocol_type` setting in configuration JSON) implying that all input and output messages (`Credential Offers`, `Credential`, `Proof Requests`) will be in the Aries message format instead of legacy one.
 
-  * Difference with protocol type `3.0`:
+* Difference with protocol type `3.0`:
     * all functions return messages (`Credential Offer`, `Proof Request`, `Credential`) in the `Aries` message format instead of legacy one.
-    * changed the format of result value for `vcx_disclosed_proof_retrieve_credentials` function ( will be explained below).      
+    * changed the format of result value for function to receive credentials for proof request `vcx_disclosed_proof_retrieve_credentials` function ( will be explained below).      
 
-  * Same as for protocol type `3.0`:
+* Same as for protocol type `3.0`:
     * use aries cross domain message format for communication with Agent
     * use pack/unpack cryptography functions for messages encoding
     * use aries protocols for communication with other Users.
@@ -26,7 +26,7 @@ to simplify their transition to LibVCX 0.13.x from LibVCX 0.12.x.
 
 * Credential Offer
 
-    * **OLD Message**
+    * **OLD Message example**
 
         ```
         [
@@ -54,7 +54,7 @@ to simplify their transition to LibVCX 0.13.x from LibVCX 0.12.x.
         
         ```
        
-   * **NEW Message**
+   * **NEW Message example**
         ```
         {
            "@id":"6269f643-beb2-4e98-92f1-b9683fa1cb36",
@@ -102,7 +102,7 @@ to simplify their transition to LibVCX 0.13.x from LibVCX 0.12.x.
         ```
 
 * Proof Request
-   * **OLD Message**
+   * **OLD Message example**
         ```
         {
             "@type": {
@@ -142,7 +142,7 @@ to simplify their transition to LibVCX 0.13.x from LibVCX 0.12.x.
         
         ```
    
-   * **NEW Message**
+   * **NEW Message example**
         ```
         {
            "@id":"d7f98364-2995-413d-8d20-ee1c817e1dd2",
@@ -182,59 +182,76 @@ to simplify their transition to LibVCX 0.13.x from LibVCX 0.12.x.
   }
   ```
 
-
 #### Multiple Ledgers connection
 
-Added ability to connect to multiple Indy Pool Ledger networks and read data from them.
+Added ability to connect to multiple Indy Pool Ledger networks.
+If library is connected to multiple networks, and it needs to get Schema or Credential Definition for the first time, it will send a read query to all connected networks and pick first returned as the resulting value.
 
-In order to achieve this goal you need to specify multiple Pool Ledgers (using `indy_pool_networks` field) in the library configuration JSON.
+In order to connect to multiple networks, you need to use `indy_pool_networks` option instead of top-level `genesis_path`, `pool_name` in the library configuration JSON.
 
-Top level `genesis_path`, `pool_name` fields should be deleted from config file.
-
-```
-    // rest settings
-    'agency_url': 'https://eas01.pps.evernym.com',
-    'agency_did': 'UNM2cmvMVoWpk6r3pG5FAq',
-    'agency_verkey': 'FvA7e4DuD2f9kYHq6B3n7hE7NQvmpgeFRrox3ELKv9vX',
-    ...
-    ...
-    ...
-    'indy_pool_networks': [
-        // there are 3 format of how pool network object may look:
-        {
-            // Option 1 - using path to file containing genesis transactions 
-            'genesis_path': 'docker.txn',
-            // list of associated networks. Used for fully-qualified DID's resolution. 
-            // NOTE: MUST be unique for all passing ledgers.
-            'namespace_list': ["staging"],
-            // (Optional) transaction autor agreemnt data if needed
-            'taa_config': {
-                'taa_digest': 'hash',
-                'acc_mech_type': 'acceptance mechanism type',
-                'time': int(time of acceptance)
-            }
-        },
-        {
-             // Option 2 - using path predefined pool ledger alias (`production`, `demo`, `staging`, `devrc`)
-            'pool_network_alias': 'production',
-            // `namespace_list` and `taa_config` same as for Option 1
-        },
-        {
-            // Option 3 - using genesis transactions
-            'genesis_transactions': '{....}',
-            // `namespace_list` and `taa_config` same as for Option 1
+There are three formats of object which can be passed into `indy_pool_networks` field:
+*  Option 1 - using path to file containing genesis transactions
+    ```
+    {
+        'genesis_path': 'docker.txn',
+        // list of associated networks. Used for fully-qualified DID's resolution. 
+        // NOTE: MUST be unique for all passing ledgers.
+        'namespace_list': ["staging"],
+        // (Optional) transaction autor agreemnt data if needed
+        'taa_config': {
+            'taa_digest': 'hash',
+            'acc_mech_type': 'acceptance mechanism type',
+            'time': int(time of acceptance)
         }
-    ],
-```
+    }
+    ```
+
+*  Option 2 - using path predefined pool ledger alias (`production`, `demo`, `staging`, `devrc`)
+    ```
+    {
+        'pool_network_alias': 'production',
+        // `namespace_list` and `taa_config` same as for Option 1
+    }
+    ```
+   
+*  Option 3 - using genesis transactions
+    ```
+    {
+            'genesis_transactions': '{....}',
+        // `namespace_list` and `taa_config` same as for Option 1
+    }
+    ```
+
+    #### Config example
+
+      ```
+      {
+        // rest settings
+        'agency_url': 'https://eas01.pps.evernym.com',
+        'agency_did': 'UNM2cmvMVoWpk6r3pG5FAq',
+        'agency_verkey': 'FvA7e4DuD2f9kYHq6B3n7hE7NQvmpgeFRrox3ELKv9vX',
+        ...
+        ...
+        ...
+        'indy_pool_networks': [
+            {
+                'genesis_path': 'docker.txn',
+                'namespace_list': ["staging"]
+            },
+            {
+                'pool_network_alias': 'production',
+                'namespace_list': ["production"]
+            }
+        ],
+      }
+      ```
 
 #### Credentials For Proof Request
 
-Extend the result of `vcx_disclosed_proof_retrieve_credentials` to return more information for each requested attribute and predicate:
+For protocol type `4.0` the format of resulting value for the function to get credentials `vcx_disclosed_proof_retrieve_credentials` for a Proof Request changed to return more information for each requested attribute and predicate:
   * values of requested attributes fetched from credential.
-  * if an attribute can be self-attested (only when `protocol_type:4.0` is used)
-  * if an attribute is missing (only when `protocol_type:4.0` is used)
-  
-**NOTE**, that format of resulting value different when `protocol_type:4.0` is set for using. 
+  * if an attribute can be self-attested
+  * if an attribute is missing
   
 * **Protocol Type 1.0, 2.0, 3.0**
 ```

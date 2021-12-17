@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use crate::issuer_credential::PaymentInfo;
 use crate::aries::messages::thread::Thread;
-use crate::utils::libindy::anoncreds::ensure_credential_definition_contains_offered_attributes;
+use crate::utils::libindy::anoncreds::utils::ensure_credential_definition_contains_offered_attributes;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct CredentialOffer {

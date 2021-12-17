@@ -930,7 +930,7 @@ public class ConnectionApi extends VcxJava.API {
 	 *         msg_type: String,            // type of message to send. can be any string.
 	 *         msg_title: String,           // message title (user notification)
 	 *         ref_msg_id: Option(String),  // If responding to a message, id of the message
-	 *     }                             
+	 *     }
 	 *
 	 * @return                      id of sent message
 	 *
@@ -967,7 +967,7 @@ public class ConnectionApi extends VcxJava.API {
 	 * @param  connectionHandle     handle pointing to a Connection object.
 	 * @param  data                 raw data buffer for signature
 	 * @param  dataLength           length of data buffer
-	 *                                 
+	 *
 	 * @return                      generated signature bytes
 	 *
 	 * @throws VcxException         If an exception occurred in Libvcx library.
@@ -984,7 +984,7 @@ public class ConnectionApi extends VcxJava.API {
         return future;
     }
 
-    private static Callback vcxConnectionVerifySignatureCB = new Callback() {
+    private static Callback boolCB = new Callback() {
 
         @SuppressWarnings({"unused", "unchecked"})
         public void callback(int xcommand_handle, int err, boolean valid) {
@@ -1016,7 +1016,7 @@ public class ConnectionApi extends VcxJava.API {
 
         CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
         int commandHandle = addFuture(future);
-        int result = LibVcx.api.vcx_connection_verify_signature(commandHandle, connectionHandle, data, dataLength, signature, signatureLength, vcxConnectionVerifySignatureCB);
+        int result = LibVcx.api.vcx_connection_verify_signature(commandHandle, connectionHandle, data, dataLength, signature, signatureLength, boolCB);
         checkResult(future, result);
 
         return future;
@@ -1099,7 +1099,7 @@ public class ConnectionApi extends VcxJava.API {
 	 * <p>
 	 * Note: This method can be used for `aries` communication method only.
 	 * For other communication method it returns ActionNotSupported error.
-	 * 
+	 *
 	 * @param  connectionHandle     handle pointing to a Connection object.
 	 *
 	 * @return                      Connection Information as JSON string.
@@ -1197,7 +1197,7 @@ public class ConnectionApi extends VcxJava.API {
 	 *
 	 * @param  connectionHandle handle pointing to a Connection object to send answer message.
 	 * @param  question         A JSON string representing Question received via pairwise connection.
-	 *                          Aries question-answer:   
+	 *                          Aries question-answer:
 	 *                              {
 	 *                                  "@type": "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/questionanswer/1.0/question",
 	 *                                  "@id": "518be002-de8e-456e-b3d5-8fe472477a86",
@@ -1331,6 +1331,63 @@ public class ConnectionApi extends VcxJava.API {
 		int commandHandle = addFuture(future);
 
 		int result = LibVcx.api.vcx_connection_get_problem_report(commandHandle, connectionHandle, stringCb);
+		checkResult(result);
+
+		return future;
+	}
+
+	/**
+	 * Check if connection is outdated and require upgrade
+	 *
+	 * @param  serialized           serialized representation of connection state object
+	 *
+	 * @return                      bool whether the signature was valid or not
+	 *
+	 * @throws VcxException         bool flag indicating upgrade requirement
+	 */
+    public static CompletableFuture<Boolean> connectionNeedUpgrade(String serialized) throws VcxException {
+        CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
+        int commandHandle = addFuture(future);
+        int result = LibVcx.api.vcx_connection_need_upgrade(commandHandle, serialized, boolCB);
+        checkResult(future, result);
+
+        return future;
+    }
+
+	/**
+     * Try to upgrade legacy Connection
+     *   1. Query Cloud Agent for upgrade information (if not provided)
+     *   2. Apply upgrade information if received
+     *
+     * If connection cannot be upgraded (Enterprise side has not upgraded connection yet) one of the errors may be returned:
+     *     - ConnectionNotReadyToUpgrade 1065
+     *     - NotReady 1005
+     *     - ActionNotSupported 1103
+     *     - InvalidAgencyResponse 1020
+	 *
+	 * @param  connectionHandle handle pointing to Connection state object.
+	 * @param  data: (Optional) connection upgrade information to use instead of querying of Cloud Agent
+     *                 {
+     *                     theirAgencyEndpoint: string,
+     *                     theirAgencyVerkey: string,
+     *                     theirAgencyDid: string,
+     *                     direction: string, // one of `v1tov2` or `v2tov1`
+     *                 }
+	 *
+	 * @return                  Serialized representation of upgraded connection state object (handle kept the same)
+	 *
+	 * @throws VcxException     If an exception occurred in Libvcx library.
+	 */
+	public static CompletableFuture<String> connectionUpgrade(
+	    int connectionHandle,
+	    String data
+    ) throws VcxException {
+
+		logger.debug("connectionUpgrade() called with: connectionHandle = [" + connectionHandle + "]");
+		CompletableFuture<String> future = new CompletableFuture<String>();
+		int commandHandle = addFuture(future);
+
+		int result = LibVcx.api.vcx_connection_upgrade(commandHandle, connectionHandle, data, stringCb);
 		checkResult(result);
 
 		return future;

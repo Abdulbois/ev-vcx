@@ -88,6 +88,7 @@ impl_error! {
     CONNECTION_ALREADY_EXISTS: 1062 => "Connection invitation has been already accepted. You have to use another invitation to set up a new connection.",
     CONNECTION_DOES_NOT_EXIST: 1063 => "Connection does not exist.",
     INSUFFICIENT_TOKEN_AMOUNT: 1064 => "Insufficient amount of tokens to process request",
+    CONNECTION_NOT_READY_TO_UPGRADE: 1065 => "Connection upgrade is not need. Enterprise side has not upgraded connection yet",
     INVALID_PAYMENT_ADDRESS: 1066 => "Invalid payment address",
     INVALID_LIBINDY_PARAM: 1067 => "Parameter passed to libindy was invalid",
     MISSING_WALLET_KEY: 1069 => "Configuration is missing wallet key",

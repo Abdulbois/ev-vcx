@@ -12,7 +12,7 @@ use std::collections::HashMap;
 
 use crate::connection::create_agent_keys;
 use crate::utils::httpclient;
-use crate::utils::libindy::signus::create_and_store_my_did;
+use crate::utils::libindy::crypto::create_and_store_my_did;
 use crate::settings;
 use crate::error::prelude::*;
 use crate::settings::protocol::ProtocolTypes;

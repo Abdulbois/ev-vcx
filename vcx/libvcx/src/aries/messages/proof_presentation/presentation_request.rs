@@ -7,8 +7,9 @@ use crate::aries::messages::proof_presentation::v20::presentation_request::Prese
 use crate::aries::messages::connection::service::Service;
 use crate::aries::messages::thread::Thread;
 use crate::aries::messages::attachment::Attachments;
-use crate::legacy::messages::proof_presentation::proof_request::{ProofRequestMessage, ProofRequestData};
+use crate::legacy::messages::proof_presentation::proof_request::ProofRequestMessage;
 use crate::aries::messages::a2a::message_type::{MessageType, MessageTypeVersion};
+use crate::utils::libindy::anoncreds::proof_request::ProofRequest;
 
 #[derive(Debug, Serialize, PartialEq, Clone)]
 #[serde(untagged)]
@@ -105,7 +106,7 @@ impl TryInto<ProofRequestMessage> for PresentationRequest {
     fn try_into(self) -> Result<ProofRequestMessage, Self::Error> {
         let thid = self.thread().and_then(|thread| thread.thid.clone()).unwrap_or(self.id());
         let (_, attachment_content) = &self.request_presentations_attach().content()?;
-        let proof_request_data: ProofRequestData = ::serde_json::from_str(&attachment_content)
+        let proof_request_data: ProofRequest = ::serde_json::from_str(&attachment_content)
             .map_err(|err| VcxError::from_msg(
                 VcxErrorKind::InvalidProof,
                 format!("Cannot deserialize Proof: {:?}", err))

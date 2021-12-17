@@ -22,13 +22,15 @@ use crate::aries::messages::questionanswer::question::{Question, QuestionRespons
 use crate::aries::messages::committedanswer::question::{Question as CommittedQuestion, QuestionResponse as CommittedQuestionResponse};
 use crate::aries::messages::invite_action::invite::InviteActionData;
 use crate::aries::messages::invite_action::invite::Invite as InviteForAction;
-use crate::connection::ConnectionOptions;
+use crate::connection::{ConnectionOptions, Connections};
 use crate::aries::messages::connection::problem_report::ProblemReport;
+use crate::agent::messages::connection_upgrade::{ConnectionUpgradeInfo, ConnectionUpgradeDirections};
+use crate::connection::Connection as ConnectionV1;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connection {
-    connection_sm: DidExchangeSM
+    pub connection_sm: DidExchangeSM
 }
 
 impl Connection {
@@ -101,6 +103,10 @@ impl Connection {
 
     pub fn remote_vk(&self) -> VcxResult<String> {
         self.connection_sm.remote_vk()
+    }
+
+    pub fn remote_endpoint(&self) -> VcxResult<String> {
+        self.connection_sm.remote_endpoint()
     }
 
     pub fn state_object<'a>(&'a self) -> &'a ActorDidExchangeState {
@@ -248,7 +254,7 @@ impl Connection {
         AgentInfo::send_message_anonymously(message, did_doc)
     }
 
-    fn parse_generic_message(message: &str, _message_options: &str) -> A2AMessage {
+    pub fn parse_generic_message(message: &str, _message_options: &str) -> A2AMessage {
         match ::serde_json::from_str::<A2AMessage>(message) {
             Ok(a2a_message) => a2a_message,
             Err(_) => {
@@ -398,6 +404,32 @@ impl Connection {
 
         let problem_report: Option<&ProblemReport> = self.connection_sm.problem_report();
         Ok(json!(&problem_report).to_string())
+    }
+
+    pub fn upgrade(&self, data: Option<String>) -> VcxResult<Connections> {
+        self.get_completed_connection()
+            .map_err(|_| VcxError::from_msg(VcxErrorKind::NotReady, "Connection is not completed!"))?;
+
+        let data = data.ok_or(
+            VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade, "ConnectionUpgrade information must be provided to upgrade Aries connection.")
+        )?;
+
+        let data: ConnectionUpgradeInfo = ::serde_json::from_str(&data)
+            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
+                                              format!("Could not parse ConnectionUpgrade information. Err: {:?}", err)))?;
+
+        let invitation: Invitations = self.get_invitation().ok_or(
+            VcxError::from_msg(VcxErrorKind::NotReady, "Connection is not completed!")
+        )?;
+
+        match data.direction {
+            ConnectionUpgradeDirections::V2ToV1 => {
+                Ok(Connections::V1(ConnectionV1::from((self, invitation, data))))
+            }
+            ConnectionUpgradeDirections::V1ToV2 => {
+                Ok(Connections::V3(Connection::from((self, data))))
+            }
+        }
     }
 }
 

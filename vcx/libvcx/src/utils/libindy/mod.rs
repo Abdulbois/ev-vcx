@@ -1,19 +1,14 @@
-pub mod ledger;
-pub mod anoncreds;
-pub mod signus;
 pub mod wallet;
-pub mod pool;
+pub mod vdr;
 pub mod crypto;
+pub mod cache;
+pub mod logger;
+pub mod error_codes;
+pub mod anoncreds;
+pub mod ledger;
 
 #[allow(unused)]
 pub mod payments;
-
-pub mod cache;
-pub mod logger;
-pub mod types;
-pub mod environment;
-
-pub mod error_codes;
 
 #[cfg(all(feature="mysql", not(feature="sqlite")))]
 pub mod mysql_wallet;
@@ -89,14 +84,5 @@ pub mod tests {
                 }
             }
         }
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_init_pool_and_wallet() {
-        let _setup = SetupWalletAndPool::init();
-
-        pool::init_pool().unwrap();
-        wallet::init_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
     }
 }

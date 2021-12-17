@@ -358,6 +358,26 @@ export interface IConnectionInviteActionData {
   ack_on?: [string],
 }
 
+/**
+ * @description Interface that represents the parameters for `Connection.upgrade` function.
+ * @interface
+ */
+export interface IConnectionUpgradeData {
+  // Upgrade information
+  //         {
+  //             "agency": {
+  //                 "endpoint": string - VAS public endpoint
+  //                 "did": string - VAS DID
+  //                 "verkey": string - VAS Verkey
+  //             },
+  //             "agent": {
+  //                 "did": string - Agent DID
+  //                 "verkey": string - Agent Verkey
+  //             },
+  //         }
+  data: string,
+}
+
 export function voidPtrToUint8Array (origPtr: any, length: number): Buffer {
   /**
    * Read the contents of the pointer and copy it into a new Buffer
@@ -1260,5 +1280,83 @@ export class Connection extends VCXBaseWithState<IConnectionData> {
     } catch (err) {
       throw new VCXInternalError(err)
     }
+  }
+
+  /**
+   * Try to upgrade legacy Connection
+   *   1. Query Cloud Agent for upgrade information (if not provided)
+   *   2. Apply upgrade information if received
+   *
+   * If connection cannot be upgraded (Enterprise side has not upgraded connection yet) one of the errors may be returned:
+   *     - ConnectionNotReadyToUpgrade 1065
+   *     - NotReady 1005
+   *     - ActionNotSupported 1103
+   *     - InvalidAgencyResponse 1020
+   *
+   * data: (Optional) connection upgrade information to use instead of querying of Cloud Agent
+   *                 {
+   *                     theirAgencyEndpoint: string,
+   *                     theirAgencyVerkey: string,
+   *                     theirAgencyDid: string,
+   *                     direction: string, // one of `v1tov2` or `v2tov1`
+   *                 }
+   *
+   * return serialized representation of upgraded connection state object
+   */
+  public async upgrade (data?: string): Promise<string> {
+    try {
+      return await createFFICallbackPromise<string>(
+        (resolve, reject, cb) => {
+          const rc = rustAPI().vcx_connection_upgrade(0, this.handle, data, cb)
+          if (rc) {
+            reject(rc)
+          }
+        },
+        (resolve, reject) => ffi.Callback(
+          'void',
+          ['uint32', 'uint32', 'string'],
+          (xHandle: number, err: number, serialized: string) => {
+            if (err) {
+              reject(err)
+              return
+            }
+            resolve(serialized)
+          })
+      )
+    } catch (err) {
+      throw new VCXInternalError(err)
+    }
+  }
+}
+
+/**
+ * Check if connection is outdated and require upgrade
+ *
+ * serialized: serialized representation of connection state object
+ *
+ * return bool flag indicating upgrade requirement
+ */
+export async function needUpgrade (serialized: string): Promise<boolean> {
+  try {
+    return await createFFICallbackPromise<boolean>(
+      (resolve, reject, cb) => {
+        const rc = rustAPI().vcx_connection_need_upgrade(0, serialized, cb)
+        if (rc) {
+          reject(rc)
+        }
+      },
+      (resolve, reject) => ffi.Callback(
+        'void',
+        ['uint32', 'uint32', 'bool'],
+        (xHandle: number, err: number, valid: boolean) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(valid)
+        })
+    )
+  } catch (err) {
+    throw new VCXInternalError(err)
   }
 }

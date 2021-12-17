@@ -3,12 +3,12 @@ use crate::aries::messages::{
     proof_presentation::{
         presentation_proposal::PresentationProposal,
         presentation::Presentation,
-        v10::presentation_request::PresentationRequestData
     },
     error::ProblemReport,
 };
 use crate::connection::Connections;
 use crate::utils::object_cache::Handle;
+use crate::utils::libindy::anoncreds::proof_request::ProofRequest;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub enum VerifierMessages {
@@ -18,7 +18,7 @@ pub enum VerifierMessages {
     PresentationReceived(Presentation),
     PresentationProposalReceived(PresentationProposal),
     PresentationRejectReceived(ProblemReport),
-    RequestPresentation(Handle<Connections>, PresentationRequestData),
+    RequestPresentation(Handle<Connections>, ProofRequest),
     Unknown
 }
 

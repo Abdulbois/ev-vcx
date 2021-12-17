@@ -943,6 +943,45 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 - (void)connectionGetProblemReport:(NSInteger) connectionHandle
                         completion:(void (^)(NSError *error, NSString *message))completion;
 
+/// Check if connection is outdated and require upgrade
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// serializedConnection: serialized representation of connection state object
+///
+/// #Returns
+/// bool flag indicating upgrade requirement
+- (void)connectionNeedUpgrade:(NSString *) serializedConnection
+                   completion:(void (^)(NSError *error, vcx_bool_t need))completion;
+
+/// Try to upgrade legacy Connection
+///   1. Query Cloud Agent for upgrade information (if not provided)
+///   2. Apply upgrade information if received
+///
+/// If connection cannot be upgraded (Enterprise side has not upgraded connection yet) one of the errors may be returned:
+///     - ConnectionNotReadyToUpgrade 1065
+///     - NotReady 1005
+///     - ActionNotSupported 1103
+///     - InvalidAgencyResponse 1020
+///
+/// #Params
+/// connection_handle: handle pointing to Connection state object.
+///
+/// data: (Optional) connection upgrade information to use instead of querying of Cloud Agent
+///                 {
+///                     theirAgencyEndpoint: string,
+///                     theirAgencyVerkey: string,
+///                     theirAgencyDid: string,
+///                     direction: string, // one of `v1tov2` or `v2tov1`
+///                 }
+///
+/// #Returns
+/// Serialized representation of upgraded connection state object (handle kept the same)
+- (void)connectionUpgrade:(NSInteger) connectionHandle
+                     data:data
+               completion:(void (^)(NSError *error, NSString *serialized))completion;
+
 /// Create a Connection object that provides a pairwise connection for an institution's user
 ///
 /// # Params
@@ -2304,40 +2343,6 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 /// Error code as a u32
 - (void) getLedgerFees:(void(^)(NSError *error, NSString *fees)) completion;
 
-/// Retrieve author agreement and acceptance mechanisms set on the Ledger
-///
-/// #params
-///
-/// command_handle: command handle to map callback to user context.
-///
-/// cb: Callback that provides array of matching messages retrieved
-///
-/// # Example author_agreement -> "{"text":"Default agreement", "version":"1.0.0", "aml": {"label1": "description"}}"
-///
-/// #Returns
-/// Error code as a u32
-- (void) getTxnAuthorAgreement:(void(^)(NSError *error, NSString *authorAgreement)) completion;
-
-/// Set some accepted agreement as active.
-///
-/// As result of successful call of this function appropriate metadata will be appended to each write request.
-///
-/// #Params
-/// text and version - (optional) raw data about TAA from ledger.
-///     These parameters should be passed together.
-///     These parameters are required if hash parameter is ommited.
-/// hash - (optional) hash on text and version. This parameter is required if text and version parameters are ommited.
-/// acc_mech_type - mechanism how user has accepted the TAA
-/// time_of_acceptance - UTC timestamp when user has accepted the TAA
-///
-/// #Returns
-/// Error code as a u32
-- (vcx_error_t) activateTxnAuthorAgreement:(NSString *)text
-                               withVersion:(NSString *)version
-                                  withHash:(NSString *)hash
-                             withMechanism:(NSString *)mechanism
-                             withTimestamp:(long)timestamp;
-
 /**
  Fetch and Cache public entities from the Ledger associated with stored in the wallet credentials.
  This function performs two steps:
@@ -2909,6 +2914,17 @@ withConnectionHandle:(vcx_connection_handle_t)connection_handle
 /// Attached message as JSON string
 - (void)extractAttachedMessage:(NSString *)message
              completion:(void (^)(NSError *error, NSString* attachedMessage))completion;
+
+/// Extract thread id for message
+///
+/// #params
+/// command_handle: command handle to map callback to user context.
+/// message: message to get thread id from
+///
+/// #Returns
+/// Thread id
+- (void)extractThreadId:(NSString *)message
+             completion:(void (^)(NSError *error, NSString* threadId))completion;
 
 /// Resolve message by the given URL.
 /// Supported cases:

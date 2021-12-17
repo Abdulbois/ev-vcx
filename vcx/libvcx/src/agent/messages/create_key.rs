@@ -133,7 +133,7 @@ mod tests {
     use super::*;
     use crate::utils::constants::{MY1_SEED, MY2_SEED, MY3_SEED, CREATE_KEYS_V2_RESPONSE};
     use crate::utils::constants::CREATE_KEYS_RESPONSE;
-    use crate::utils::libindy::signus::create_and_store_my_did;
+    use crate::utils::libindy::crypto::create_and_store_my_did;
     use crate::agent::messages::create_keys;
     use crate::utils::devsetup::*;
 

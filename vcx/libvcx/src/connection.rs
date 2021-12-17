@@ -15,21 +15,19 @@ use crate::agent::messages::get_message::{Message, MessagePayload};
 use crate::utils::object_cache::ObjectCache;
 use crate::settings;
 use crate::utils::error;
-use crate::utils::libindy::signus::create_and_store_my_did;
+use crate::utils::libindy::crypto::create_and_store_my_did;
 use crate::utils::libindy::crypto;
 use crate::utils::json::mapped_key_rewrite;
-
+use crate::settings::protocol::ProtocolTypes;
 use crate::aries::handlers::connection::Connection as ConnectionV3;
-use crate::aries::handlers::connection::states::ActorDidExchangeState;
 use crate::aries::handlers::connection::agent::AgentInfo;
 use crate::aries::messages::connection::invite::Invitation as InvitationV3;
 use crate::aries::messages::a2a::A2AMessage;
 use crate::aries::handlers::connection::types::CompletedConnection;
 use crate::aries::messages::invite_action::invite::{Invite as InviteForAction, InviteActionData};
-
-use crate::settings::protocol::ProtocolTypes;
 use crate::aries::messages::committedanswer::question::{QuestionResponse, Question};
 use crate::aries::messages::committedanswer::answer::Answer;
+use crate::agent::messages::connection_upgrade::{UpgradeInfo, ConnectionUpgradeInfo, ConnectionUpgradeDirections};
 
 lazy_static! {
     static ref CONNECTION_MAP: ObjectCache<Connections> = Default::default();
@@ -62,7 +60,7 @@ impl Default for ConnectionOptions {
             phone: None,
             use_public_did: None,
             update_agent_info: Some(true),
-            pairwise_agent_info: None
+            pairwise_agent_info: None,
         }
     }
 }
@@ -84,25 +82,25 @@ impl ConnectionOptions {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Connection {
-    source_id: String,
-    pw_did: String,
-    pw_verkey: String,
-    state: VcxStateType,
-    uuid: String,
-    endpoint: String,
+    pub source_id: String,
+    pub pw_did: String,
+    pub pw_verkey: String,
+    pub state: VcxStateType,
+    pub uuid: String,
+    pub endpoint: String,
     // For QR code invitation
-    invite_detail: Option<InviteDetail>,
-    redirect_detail: Option<RedirectDetail>,
-    invite_url: Option<String>,
-    agent_did: String,
-    agent_vk: String,
-    their_pw_did: String,
-    their_pw_verkey: String,
+    pub invite_detail: Option<InviteDetail>,
+    pub redirect_detail: Option<RedirectDetail>,
+    pub invite_url: Option<String>,
+    pub agent_did: String,
+    pub agent_vk: String,
+    pub their_pw_did: String,
+    pub their_pw_verkey: String,
     // used by proof_presentation/credentials when sending to edge device
-    public_did: Option<String>,
-    their_public_did: Option<String>,
+    pub public_did: Option<String>,
+    pub their_public_did: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    version: Option<ProtocolTypes>,
+    pub version: Option<ProtocolTypes>,
 }
 
 impl Connection {
@@ -337,7 +335,7 @@ impl Connection {
                 self.set_pw_verkey(&agent_info.pw_vk);
                 self.set_agent_did(&agent_info.agent_did);
                 self.set_agent_verkey(&agent_info.agent_vk);
-            },
+            }
             None => {
                 let (for_did, for_verkey) = agent::messages::create_keys()
                     .for_did(&self.pw_did)?
@@ -440,7 +438,7 @@ impl Connection {
 
         let msg_options: SendMessageOptions = serde_json::from_str(msg_options)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
-                                          format!("Cannot parse SendMessageOptions from `msg_options` JSON string. Err: {:?}", err)))?;
+                                              format!("Cannot parse SendMessageOptions from `msg_options` JSON string. Err: {:?}", err)))?;
 
         let response =
             crate::agent::messages::send_message()
@@ -555,6 +553,54 @@ impl Connection {
         debug!("Connection {}: Sent send invite action", self.source_id);
         trace!("Connection::send_invite_action <<<");
         return Ok(invite);
+    }
+
+    pub fn need_upgrade(serialized: &str) -> VcxResult<bool> {
+        let connection = from_string(serialized)?;
+        let is_aries_connection = connection.is_aries_connection()?;
+        Ok(!is_aries_connection)
+    }
+
+    pub fn upgrade(&self, data: Option<String>) -> VcxResult<Connections> {
+        trace!("Connection::upgrade >>>");
+
+        if self.state != VcxStateType::VcxStateAccepted {
+            return Err(VcxError::from_msg(VcxErrorKind::NotReady, "Uncompleted Connection cannot be upgraded!"));
+        }
+
+        let invitation: &InviteDetail = self.invite_detail.as_ref()
+            .ok_or(VcxError::from_msg(VcxErrorKind::NotReady, "Uncompleted Connection cannot be upgraded!"))?;
+
+        let upgrade_data: ConnectionUpgradeInfo =
+            match data {
+                Some(data) => {
+                    ::serde_json::from_str(&data)
+                        .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
+                                                          format!("Could not parse ConnectionUpgrade information. Err: {:?}", err)))?
+                }
+                None => {
+                    let mut upgrade_info: UpgradeInfo =
+                        crate::agent::messages::get_upgrade_info()
+                            .for_did(&self.pw_did)?
+                            .send_secure()
+                            .map_err(|_| VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade,
+                                                            "Connection upgrade is not needed because the enterprise side has not migrated the connection yet."))?;
+
+                    upgrade_info.remove(&self.pw_did)
+                        .ok_or(VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade,
+                                                  "Connection upgrade is not needed because the enterprise side has not migrated the connection yet."))?
+                }
+            };
+
+        match upgrade_data.direction {
+            ConnectionUpgradeDirections::V1ToV2 => {
+                Ok(Connections::V3(ConnectionV3::from((self, invitation, upgrade_data))))
+            }
+            ConnectionUpgradeDirections::V2ToV1 => {
+                return Err(VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade,
+                                              "Connection upgrade is not needed because connection is already in the required state."));
+            }
+        }
     }
 }
 
@@ -830,7 +876,6 @@ impl Handle<Connections> {
     }
 
     pub fn connect(self, options: Option<String>) -> VcxResult<u32> {
-
         CONNECTION_MAP.get_mut(self, |connection| {
             match connection {
                 Connections::V1(connection) => {
@@ -962,7 +1007,7 @@ impl Handle<Connections> {
         }).map_err(handle_err)
     }
 
-    pub fn is_v3_connection(self) -> VcxResult<bool> {
+    pub fn is_aries_connection(self) -> VcxResult<bool> {
         CONNECTION_MAP.get(self, |connection| {
             match connection {
                 Connections::V1(_) => Ok(false),
@@ -1010,7 +1055,7 @@ impl Handle<Connections> {
             match connection {
                 Connections::V1(connection) => {
                     connection.send_answer(question.clone(), answer.clone())
-                },
+                }
                 Connections::V3(connection) => {
                     connection.send_answer(question.clone(), answer.clone())
                 }
@@ -1023,7 +1068,7 @@ impl Handle<Connections> {
             match connection {
                 Connections::V1(connection) => {
                     connection.send_invite_action(data.clone())
-                },
+                }
                 Connections::V3(connection) => {
                     connection.send_invite_action(data.clone())
                 }
@@ -1060,6 +1105,23 @@ impl Handle<Connections> {
                 }
             }
         }).map_err(handle_err)
+    }
+
+    pub fn upgrade(self, data: Option<String>) -> VcxResult<String> {
+        CONNECTION_MAP.get_mut(self, |connection| {
+            let new_connection = match connection {
+                Connections::V1(connection) => {
+                    connection.upgrade(data)?
+                }
+                Connections::V3(connection) => {
+                    connection.upgrade(data)?
+                }
+            };
+            *connection = new_connection;
+            Ok(())
+        }).map_err(handle_err)?;
+
+        self.to_string()
     }
 }
 
@@ -1380,55 +1442,6 @@ fn unabbrv_event_detail(val: Value) -> Value {
         Some(new_key.to_string())
     })
 }
-
-impl Into<(Connection, ActorDidExchangeState)> for ConnectionV3 {
-    fn into(self) -> (Connection, ActorDidExchangeState) {
-        let invitation = self.get_invitation();
-        let data = Connection {
-            source_id: self.source_id().clone(),
-            pw_did: self.agent_info().pw_did.clone(),
-            pw_verkey: self.agent_info().pw_vk.clone(),
-            state: VcxStateType::from_u32(self.state()),
-            uuid: String::new(),
-            endpoint: invitation.as_ref().map(|invitation_| invitation_.service_endpoint()).unwrap_or_default(),
-            invite_detail: Some(InviteDetail{
-                sender_detail: SenderDetail {
-                    name: invitation.as_ref().and_then(|invitation_| invitation_.name().map(String::from)),
-                    verkey: invitation.as_ref().and_then(|invitation_| invitation_.recipient_key()).unwrap_or_default(),
-                    logo_url: invitation.as_ref().and_then(|invitation_| invitation_.logo_url().map(String::from)),
-                    public_did: invitation.as_ref().and_then(|invitation_| invitation_.public_did().map(String::from)),
-                    ..SenderDetail::default()
-                },
-                ..InviteDetail::default()
-            }),
-            redirect_detail: None,
-            invite_url: None,
-            agent_did: self.agent_info().agent_did.clone(),
-            agent_vk: self.agent_info().agent_vk.clone(),
-            their_pw_did: self.remote_did().unwrap_or_default(),
-            their_pw_verkey: self.remote_vk().unwrap_or_default(),
-            public_did: settings::get_config_value(settings::CONFIG_INSTITUTION_DID).ok(),
-            their_public_did: invitation.as_ref().and_then(|invitation_| invitation_.public_did().map(String::from)),
-            version: Some(ProtocolTypes::V2), // TODO check correctness
-        };
-
-        (data, self.state_object().to_owned())
-    }
-}
-
-impl From<(Connection, ActorDidExchangeState)> for ConnectionV3 {
-    fn from((connection, state): (Connection, ActorDidExchangeState)) -> ConnectionV3 {
-        let agent_info = AgentInfo {
-            pw_did: connection.get_pw_did().to_string(),
-            pw_vk: connection.get_pw_verkey().to_string(),
-            agent_did: connection.get_agent_did().to_string(),
-            agent_vk: connection.get_agent_verkey().to_string(),
-        };
-
-        ConnectionV3::from_parts(connection.get_source_id().to_string(), agent_info, state)
-    }
-}
-
 
 #[cfg(test)]
 pub mod tests {
@@ -1984,5 +1997,60 @@ pub mod tests {
         assert!(connection_handle > 0);
         assert_eq!(VcxStateType::VcxStateAccepted as u32, connection_handle.get_state());
         assert_eq!(connection_serialized, connection_handle.to_string().unwrap());
+    }
+
+    #[test]
+    fn upgrade_connection_test() {
+        let _setup = SetupEmpty::init();
+
+        let serialized_connection_v1 = r#"{"data": {"agent_did": "5NR8Wmmpmu6QChiLCLgDU1", "agent_vk": "3P7yrKuon8BSuUqxPUfjxuwJaDMYKpM1MsdsN66aqtU4", "endpoint": "", "invite_detail": {"connReqId": "151a8b3c-4e1e-4031-9ab9-9f96dba6fd57", "senderAgencyDetail": {"DID": "UNM2cmvMVoWpk6r3pG5FAq", "endpoint": "https://eas.pps.evernym.com/agency/msg", "verKey": "FvA7e4DuD2f9kYHq6B3n7hE7NQvmpgeFRrox3ELKv9vX"}, "senderDetail": {"DID": "5kGK21ByLeD5mECcLbM55B", "agentKeyDlgProof": {"agentDID": "3FVxaayeybv78Wm65g4T1L", "agentDelegatedKey": "2E8Lh8fY92LBxkSNugGpwdr5SfUDiUGjywQd6hsficbZ", "signature": "Sqj+/KtxBFHVhexJbHzLSlD2y+B2shmW0OUobPmHWNNP//B34t0WYJIhygSlj5BpKXhlD06PukoyvikXBI12CQ=="}, "logoUrl": "https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png", "name": "Faber", "verKey": "3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU"}, "statusCode": "MS-101", "statusMsg": "message created", "targetName": "there", "threadId": null, "version": "1.0"}, "invite_url": null, "public_did": null, "pw_did": "M1MRZJ6yD9u9W3qX2qP1qr", "pw_verkey": "BuS24QAxPU3xuqssvNYDZAiDVMx1GRhEyrkd1fev96Hm", "redirect_detail": null, "source_id": "faber", "state": 4, "their_public_did": null, "their_pw_did": "5kGK21ByLeD5mECcLbM55B", "their_pw_verkey": "3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU", "uuid": "", "version": "1.0"}, "version": "1.0"}"#;
+        let connection_ = from_string(serialized_connection_v1).unwrap();
+
+        CONNECTION_MAP.get_mut(connection_, |connection| {
+            match connection {
+                Connections::V1(_) => Ok(()),
+                Connections::V3(_) => Err(VcxError::from_msg(VcxErrorKind::InvalidState, "It is suppose to be V1")),
+            }
+        }).unwrap();
+
+        let upgrade_connection_data = ConnectionUpgradeInfo {
+            their_agency_endpoint: "https://vas.com".to_string(),
+            their_agency_verkey: "VB7GyEnU2uxPDw2EDByCHQ".to_string(),
+            their_agency_did: "GMeP8Ro8kUQqPTSMonhRYfxGicDPT976n9BgpwZwGiPD".to_string(),
+            direction: ConnectionUpgradeDirections::V1ToV2,
+        };
+
+        connection_.upgrade(Some(json!(upgrade_connection_data).to_string())).unwrap();
+
+        CONNECTION_MAP.get_mut(connection_, |connection| {
+            match connection {
+                Connections::V1(_) => Err(VcxError::from_msg(VcxErrorKind::InvalidState, "It is suppose to be V3")),
+                Connections::V3(_) => Ok(()),
+            }
+        }).unwrap();
+
+        let serialized = connection_.to_string().unwrap();
+        let expted_serialized = r#"{"data":{"agent_did":"5NR8Wmmpmu6QChiLCLgDU1","agent_vk":"3P7yrKuon8BSuUqxPUfjxuwJaDMYKpM1MsdsN66aqtU4","endpoint":"https://vas.com","invite_detail":{"connReqId":"","senderAgencyDetail":{"DID":"","endpoint":"","verKey":""},"senderDetail":{"DID":"","agentKeyDlgProof":{"agentDID":"","agentDelegatedKey":"","signature":""},"logoUrl":"https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png","name":"Faber","verKey":"3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU"},"statusCode":"","statusMsg":"","targetName":"","threadId":null},"invite_url":null,"public_did":null,"pw_did":"M1MRZJ6yD9u9W3qX2qP1qr","pw_verkey":"BuS24QAxPU3xuqssvNYDZAiDVMx1GRhEyrkd1fev96Hm","redirect_detail":null,"source_id":"faber","state":4,"their_public_did":null,"their_pw_did":"5kGK21ByLeD5mECcLbM55B","their_pw_verkey":"3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU","uuid":"","version":"2.0"},"state":{"Invitee":{"Completed":{"did_doc":{"@context":"https://w3id.org/did/v1","authentication":[{"publicKey":"5kGK21ByLeD5mECcLbM55B#1","type":"Ed25519SignatureAuthentication2018"}],"id":"5kGK21ByLeD5mECcLbM55B","publicKey":[{"controller":"5kGK21ByLeD5mECcLbM55B","id":"5kGK21ByLeD5mECcLbM55B#1","publicKeyBase58":"3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU","type":"Ed25519VerificationKey2018"}],"service":[{"id":"did:example:123456789abcdefghi;indy","priority":0,"recipientKeys":["3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU"],"routingKeys":["3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU","VB7GyEnU2uxPDw2EDByCHQ"],"serviceEndpoint":"https://vas.com","type":"IndyAgent"}]},"invitation":{"ConnectionInvitation":{"@id":"UNM2cmvMVoWpk6r3pG5FAq","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/invitation","label":"Faber","profileUrl":"https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png","recipientKeys":["3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU"],"routingKeys":["3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU","VB7GyEnU2uxPDw2EDByCHQ"],"serviceEndpoint":"https://vas.com"}},"protocols":null,"thread":{"received_orders":{},"sender_order":0}}}},"version":"2.0"}"#;
+        assert_eq!(serialized, expted_serialized);
+
+        let upgrade_connection_data = ConnectionUpgradeInfo {
+            their_agency_endpoint: "https://eas.com".to_string(),
+            their_agency_verkey: "6F5i6Gc1X3tm6y7WHJAL2q".to_string(),
+            their_agency_did: "3rjc89idWZQzbHcUrHG2UomJn2h6nJ8exWmNuidyVv12".to_string(),
+            direction: ConnectionUpgradeDirections::V2ToV1,
+        };
+
+        connection_.upgrade(Some(json!(upgrade_connection_data).to_string())).unwrap();
+
+        CONNECTION_MAP.get_mut(connection_, |connection| {
+            match connection {
+                Connections::V1(_) => Ok(()),
+                Connections::V3(_) => Err(VcxError::from_msg(VcxErrorKind::InvalidState, "It is suppose to be V1")),
+            }
+        }).unwrap();
+
+        let serialized = connection_.to_string().unwrap();
+        let expted_serialized = r#"{"data":{"agent_did":"5NR8Wmmpmu6QChiLCLgDU1","agent_vk":"3P7yrKuon8BSuUqxPUfjxuwJaDMYKpM1MsdsN66aqtU4","endpoint":"https://eas.com","invite_detail":{"connReqId":"","senderAgencyDetail":{"DID":"3rjc89idWZQzbHcUrHG2UomJn2h6nJ8exWmNuidyVv12","endpoint":"https://eas.com","verKey":"6F5i6Gc1X3tm6y7WHJAL2q"},"senderDetail":{"DID":"5kGK21ByLeD5mECcLbM55B","agentKeyDlgProof":{"agentDID":"","agentDelegatedKey":"","signature":""},"logoUrl":"https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png","name":"Faber","verKey":"3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU"},"statusCode":"MS-101","statusMsg":"message created","targetName":"there","threadId":null,"version":"1.0"},"invite_url":null,"public_did":null,"pw_did":"M1MRZJ6yD9u9W3qX2qP1qr","pw_verkey":"BuS24QAxPU3xuqssvNYDZAiDVMx1GRhEyrkd1fev96Hm","redirect_detail":null,"source_id":"faber","state":4,"their_public_did":null,"their_pw_did":"5kGK21ByLeD5mECcLbM55B","their_pw_verkey":"3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU","uuid":"","version":"1.0"},"version":"1.0"}"#;
+        assert_eq!(serialized, expted_serialized);
     }
 }

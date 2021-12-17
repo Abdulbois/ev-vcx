@@ -177,7 +177,6 @@ mod tests {
     use crate::settings;
     use crate::utils::constants;
     use crate::utils::devsetup::{C_AGENCY_DID, C_AGENCY_VERKEY, C_AGENCY_ENDPOINT, cleanup_indy_env, sign_provision_token};
-    use crate::utils::plugins::init_plugin;
 
     fn get_provisioning_inputs(time: Option<String>, seed: Option<String>) -> (String, String, String) {
         let enterprise_wallet_name = format!("{}_{}", crate::utils::constants::ENTERPRISE_PREFIX, settings::DEFAULT_WALLET_NAME);
@@ -227,7 +226,6 @@ mod tests {
     #[test]
     fn test_agent_provisioning_0_7() {
         cleanup_indy_env();
-        init_plugin(crate::settings::DEFAULT_PAYMENT_PLUGIN, crate::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
         let (wallet_name, config, token) = get_provisioning_inputs(None, None);
         let _enterprise_config = provision(&config, &token).unwrap();
@@ -239,7 +237,6 @@ mod tests {
     #[test]
     fn test_agent_provisioning_0_7_fails_with_expired_time() {
         cleanup_indy_env();
-        init_plugin(crate::settings::DEFAULT_PAYMENT_PLUGIN, crate::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
         let new_time = "2020-03-20T13:00:00+00:00";
         let (wallet_name, config, token) = get_provisioning_inputs(Some(new_time.to_string()), None);
@@ -252,7 +249,6 @@ mod tests {
     #[test]
     fn test_agent_provisioning_0_7_fails_with_invalid_sig() {
         cleanup_indy_env();
-        init_plugin(crate::settings::DEFAULT_PAYMENT_PLUGIN, crate::settings::DEFAULT_PAYMENT_INIT_FUNCTION);
 
         let (wallet_name, config, token) = get_provisioning_inputs(None, Some("000000000000000000000000Truste22".to_string()));
         assert!(provision(&config, &token).is_err());
