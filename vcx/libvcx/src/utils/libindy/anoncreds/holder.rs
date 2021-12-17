@@ -153,7 +153,7 @@ impl Holder {
                         for (key, val) in credential.cred_info.attrs.iter() {
                             if attr_common_view(&key) == attr_common_view(name) {
                                 return Some(SelectedCredentialInfoWithValue {
-                                    requested_attributes: map!(key.to_string() => val.to_string()),
+                                    requested_attributes: map!(name.to_string() => val.to_string()),
                                     cred_info: credential.cred_info,
                                     interval: credential.interval,
                                 });
@@ -165,7 +165,7 @@ impl Holder {
                         for name in names {
                             for (key, val) in credential.cred_info.attrs.iter() {
                                 if attr_common_view(&key) == attr_common_view(name) {
-                                    values.insert(key.to_string(), val.to_string());
+                                    values.insert(name.to_string(), val.to_string());
                                 }
                             }
                         }
