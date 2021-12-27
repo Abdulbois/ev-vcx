@@ -2,6 +2,12 @@
 
 ## Release notes - EvLibVcx 0.13.0 Dec 10 2021
 
+[Migration guide](./docs/migration-guide-0.12.x-0.13.0.md)
+
+### Breaking Change
+* Removed `vcx_get_ledger_author_agreement` and `vcx_set_active_txn_author_agreement_meta` functions to get and set transaction author agreement data in the runtime. \
+  Now you **MUST** specify transaction author agreement data for every connecting pool network inside of library initialization config.
+
 ### Tasks
 * Added protocol type `4.0` (`protocol_type` setting in configuration JSON) implying that all input and output messages (`Credential Offers`, `Credential`, `Proof Requests`) will be in the Aries message format instead of legacy one.
 * Migrated from the usage of [Hyperledger Indy-SDK](https://github.com/hyperledger/indy-sdk.git) to Evernym [VDR-Tools](https://gitlab.com/evernym/verity/vdr-tools.git).

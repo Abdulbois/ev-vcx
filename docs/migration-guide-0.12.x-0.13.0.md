@@ -4,9 +4,56 @@
 This document is written for developers using LibVCX to provide necessary information and
 to simplify their transition to LibVCX 0.13.x from LibVCX 0.12.x.
 
+* [Transaction Author Agreement](#transaction-author-agreement)
 * [Protocols](#protocols)
 * [Multiple Ledgers connection](#multiple-ledgers-connection)
 * [Credentials For Proof Request](#credentials-for-proof-request)
+
+#### Transaction Author Agreement
+
+**BREAKING CHANGE**
+
+`vcx_get_ledger_author_agreement` and `vcx_set_active_txn_author_agreement_meta` functions to get and set transaction author agreement data in the runtime were removed.
+
+Now you **MUST** specify this information for every connecting pool network inside of library initialization config.
+As part of TAA config uou either can use combination of TAA `text` and `version` or TAA digest
+
+#### Config example with `text` and `version`
+
+```
+/// rest options
+...
+'pool_networks': [
+    {
+        'genesis_path': 'docker.txn',
+        'namespace_list': ["staging"],
+        'taa_config': {
+            'text': 'some text'
+            'version': '1.0.0',
+            'acc_mech_type': 'acc_type',
+            'time': time of acceptance as UTC int timespamp
+        }
+    }
+]
+```
+
+#### Config example with `taa_digest`
+
+```
+/// rest options
+...
+'pool_networks': [
+    {
+        'genesis_path': 'docker.txn',
+        'namespace_list': ["staging"],
+        'taa_config': {
+            'taa_digest': 'hashstring',
+            'acc_mech_type': 'acc_type',
+            'time': time of acceptance as UTC int timespamp
+        }
+    }
+]
+```
 
 #### Protocols
 
@@ -22,7 +69,6 @@ Added protocol type `4.0` (`protocol_type` setting in configuration JSON) implyi
     * use aries protocols for communication with other Users.
   
 ##### Changed Messages
-
 
 * Credential Offer
 

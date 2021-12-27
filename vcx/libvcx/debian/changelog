@@ -1,6 +1,8 @@
 libvcx (0.13.0) unstable; urgency=medium
 
 ## 0.13.0
+* Removed `vcx_get_ledger_author_agreement` and `vcx_set_active_txn_author_agreement_meta` functions to get and set transaction author agreement data in the runtime. \
+  Now you **MUST** specify transaction author agreement data for every connecting pool network inside of library initialization config.
 * Added protocol type `4.0` (`protocol_type` setting in configuration JSON) implying that all input and output messages (`Credential Offers`, `Credential`, `Proof Requests`) will be in the Aries message format instead of legacy one.
 * Migrated from the usage of Hyperledger Indy-SDK to Evernym VDR-Tools.
 * Added ability to connect to multiple Indy Pool Ledger networks and read data from them.
