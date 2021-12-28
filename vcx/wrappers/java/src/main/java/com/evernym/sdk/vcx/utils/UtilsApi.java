@@ -88,7 +88,7 @@ public class UtilsApi extends VcxJava.API {
      * @return                populated config that can be used for library initialization.
      *
      * @throws VcxException   If an exception occurred in Libvcx library.
-     * 
+     *
      **/
       public static String vcxAgentProvisionWithToken(String config, String token) throws VcxException {
         ParamGuard.notNullOrWhiteSpace(config, "config");
@@ -148,11 +148,6 @@ public class UtilsApi extends VcxJava.API {
      *                           // See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
      *     sponsee_id: String,
      *     sponsor_id: String,
-     *     com_method: {
-     *         type: u32 // 1 means push notifications, 4 means forward to sponsor app
-     *         id: String,
-     *         value: String,
-     *     },
      * }
      *
      * @return                provisioning token as JSON
@@ -399,63 +394,9 @@ public class UtilsApi extends VcxJava.API {
         return future;
     }
 
-    /**
-     * Retrieve author agreement and acceptance mechanisms set on the Ledger
-     *
-     * @return               transaction author agreement set on the ledger
-     *                       "{"text":"Default agreement", "version":"1.0.0", "aml": {"label1": "description"}}"
-     *
-     * @throws VcxException   If an exception occurred in Libvcx library.
-     */
-    public static CompletableFuture<String> getLedgerAuthorAgreement() throws VcxException {
-        logger.debug("getLedgerAuthorAgreement() called");
-        CompletableFuture<String> future = new CompletableFuture<>();
-        int commandHandle = addFuture(future);
-
-        int result = LibVcx.api.vcx_get_ledger_author_agreement(
-                commandHandle,
-                stringCB
-        );
-        checkResult(result);
-        return future;
-    }
-
-    /**
-     * Set some accepted agreement as active.
-     * <p>
-     * Either combination text/version ot hash must be passed.
-     * 
-     * @param  text                 Optional(string) text of transaction agreement
-     * @param  version              Optional(string) version of transaction agreement
-     * @param  hash                 Optional(string) hash on text and version. This parameter is required if text and version parameters are ommited.
-     * @param  accMechType          mechanism how user has accepted the TAA
-     * @param  timeOfAcceptance     UTC timestamp when user has accepted the TAA
-     *
-     * @throws VcxException   If an exception occurred in Libvcx library.
-     */
-    public static void setActiveTxnAuthorAgreementMeta(String text, String version,
-                                                         String hash, String accMechType, long timeOfAcceptance) throws VcxException {
-        ParamGuard.notNull(accMechType, "accMechType");
-        logger.debug("vcxProvisionAgent() called with: text = [" + text + "], version = [" + version + "]," +
-                " hash = [" + hash + "], accMechType = [" + accMechType + "], timeOfAcceptance = [" + timeOfAcceptance + "]");
-        int result = LibVcx.api.vcx_set_active_txn_author_agreement_meta(text, version, hash, accMechType, timeOfAcceptance);
-        checkResult(result);
-    }
-
     public static void vcxMockSetAgencyResponse(int messageIndex) {
         logger.debug("vcxMockSetAgencyResponse() called");
         LibVcx.api.vcx_set_next_agency_response(messageIndex);
-    }
-
-     /**
-      * Set the pool handle before calling vcx_init_minimal.
-      *
-      * @param  handle               pool handle that libvcx should use
-      *
-      * @throws VcxException   If an exception occurred in Libvcx library.
-      */
-    public static void setPoolHandle(int handle) {
-        LibVcx.api.vcx_pool_set_handle(handle);
     }
 
     private static Callback getReqPriceAsyncCB = new Callback() {
@@ -641,6 +582,83 @@ public class UtilsApi extends VcxJava.API {
         int result = LibVcx.api.vcx_create_pairwise_agent(
                 commandHandle,
                 vcxCreatePairwiseAgentCB
+        );
+        checkResult(result);
+        return future;
+    }
+
+    /**
+     * Extract content of Aries message containing attachment decorator.
+     * RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+     *
+     * @param  message        Aries message containing attachment decorator
+     *
+     * @return                Attached message as JSON string
+     *
+     * @throws VcxException   If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> vcxExtractAttachedMessage(String message) throws VcxException {
+        ParamGuard.notNull(message, "message");
+        logger.debug("vcxExtractAttachedMessage() called with: message = [****]");
+        CompletableFuture<String> future = new CompletableFuture<String>();
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_extract_attached_message(
+                commandHandle,
+                message,
+                stringCB
+        );
+        checkResult(result);
+        return future;
+    }
+
+    /**
+     * Extract thread id for message.
+     *
+     * @param  message        Message to get thread id from
+     *
+     * @return                Thread id
+     *
+     * @throws VcxException   If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> vcxExtractThreadId(String message) throws VcxException {
+        ParamGuard.notNull(message, "message");
+        logger.debug("extractThreadId() called with: message = [****]");
+        CompletableFuture<String> future = new CompletableFuture<String>();
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_extract_thread_id(
+                commandHandle,
+                message,
+                stringCB
+        );
+        checkResult(result);
+        return future;
+    }
+
+    /**
+     * Resolve message by the given URL.
+     * Supported cases:
+     *   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+     *   2. Message inside response `location` header for GET request
+     *   3. Message inside response for GET request
+     *
+     * @param  url            url to fetch message
+     *
+     * @return                Resolved message as JSON string
+     *
+     * @throws VcxException   If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> vcxResolveMessageByUrl(String url) throws VcxException {
+        ParamGuard.notNull(url, "url");
+        logger.debug("vcxResolveMessageByUrl() called with: url = [****]");
+        CompletableFuture<String> future = new CompletableFuture<String>();
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_resolve_message_by_url(
+                commandHandle,
+                url,
+                stringCB
         );
         checkResult(result);
         return future;

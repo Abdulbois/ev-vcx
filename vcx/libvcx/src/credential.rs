@@ -1,41 +1,43 @@
-use serde_json;
 use std::mem::take;
-use crate::connection::Connections;
 use serde_json::Value;
 use std::convert::TryInto;
-use error::prelude::*;
-use crate::object_cache::{ObjectCache, Handle};
-use api::VcxStateType;
-use issuer_credential::PaymentInfo;
-use messages::issuance::credential::CredentialMessage;
-use messages::issuance::credential_request::CredentialRequest;
-use messages::{
-    self,
+
+use crate::connection::Connections;
+use crate::error::prelude::*;
+use crate::utils::object_cache::{ObjectCache, Handle};
+use crate::api::VcxStateType;
+use crate::issuer_credential::PaymentInfo;
+use crate::legacy::messages::issuance::credential::CredentialMessage;
+use crate::legacy::messages::issuance::credential_request::CredentialRequest;
+use crate::aries::messages::thread::Thread;
+use crate::agent;
+use crate::agent::messages::{
     GeneralMessage,
     RemoteMessageType,
     payload::{
         Payloads,
         PayloadKinds,
     },
-    thread::Thread,
     get_message::{
         get_ref_msg,
         get_connection_messages,
     },
 };
-use utils::libindy::anoncreds::{libindy_prover_create_credential_req, libindy_prover_store_credential, get_cred_def_json, libindy_prover_delete_credential, prover_get_credential};
-use utils::libindy::payments::{pay_a_payee, PaymentTxn};
-use utils::{error, constants};
-
-use utils::httpclient::AgencyMock;
-
-use v3::{
+use crate::utils::libindy::anoncreds::holder::Holder as IndyHolder;
+use crate::utils::libindy::payments::{PaymentTxn};
+use crate::utils::{error, constants};
+use crate::utils::httpclient::AgencyMock;
+use crate::aries::{
     messages::issuance::credential_offer::CredentialOffer as CredentialOfferV3,
-    handlers::issuance::Holder,
+    handlers::issuance::holder::Holder,
 };
-use utils::agent_info::{get_agent_info, get_agent_attr, MyAgentInfo};
-use messages::issuance::credential_offer::{set_cred_offer_ref_message, parse_json_offer, CredentialOffer};
-use v3::messages::proof_presentation::presentation_proposal::{PresentationProposal, PresentationPreview};
+use crate::agent::agent_info::{get_agent_info, get_agent_attr, MyAgentInfo};
+use crate::legacy::messages::issuance::credential_offer::{set_cred_offer_ref_message, parse_json_offer, CredentialOffer};
+use crate::aries::messages::proof_presentation::presentation_preview::PresentationPreview;
+use crate::aries::messages::proof_presentation::presentation_proposal::PresentationProposal;
+use crate::aries::messages::proof_presentation::v10::presentation_proposal::PresentationProposal as PresentationProposalV1;
+use crate::settings;
+use crate::utils::libindy::ledger::query::Query;
 
 lazy_static! {
     static ref HANDLE_MAP: ObjectCache<Credentials>  = Default::default();
@@ -163,9 +165,9 @@ impl Credential {
     pub fn create_credential_request(cred_def_id: &str, prover_did: &str, cred_offer: &str) -> VcxResult<(String, String, String, String)> {
         trace!("Credential::create_credential_request >>> cred_def_id: {}, prover_did: {}, cred_offer: {}", secret!(cred_def_id), secret!(prover_did), secret!(cred_offer));
 
-        let (cred_def_id, cred_def_json) = get_cred_def_json(&cred_def_id)?;
+        let (cred_def_id, cred_def_json) = Query::get_cred_def(&cred_def_id)?;
 
-        let (cred_req, cred_req_meta) = libindy_prover_create_credential_req(&prover_did,
+        let (cred_req, cred_req_meta) = IndyHolder::create_credential_req(&prover_did,
                                                                              &cred_offer,
                                                                              &cred_def_json)
             .map_err(|err| err.extend("Cannot create credential request"))?;
@@ -185,13 +187,7 @@ impl Credential {
 
         self.credential_request = Some(cred_req);
 
-        if self.payment_info.is_some() {
-            let (payment_txn, _) = self.submit_payment()?;
-            self.payment_txn = Some(payment_txn);
-        }
-
         trace!("Credential::generate_request_msg <<< cred_req_json: {}", secret!(cred_req_json));
-
         Ok(cred_req_json)
     }
 
@@ -210,7 +206,7 @@ impl Credential {
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidCredentialOffer, "Invalid Credential Offer: `msg_ref_id` not found"))?;
 
         let response =
-            messages::send_message()
+            agent::messages::send_message()
                 .to(&my_agent.my_pw_did()?)?
                 .to_vk(&my_agent.my_pw_vk()?)?
                 .msg_type(&RemoteMessageType::CredReq)?
@@ -274,18 +270,17 @@ impl Credential {
         let cred_req: &CredentialRequest = self.credential_request.as_ref()
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, "Invalid Credential object state:`credential_request` not found"))?;
 
-        let (_, cred_def_json) = get_cred_def_json(&cred_req.cred_def_id)?;
+        let (_, cred_def_json) = Query::get_cred_def(&cred_req.cred_def_id)?;
 
         self.credential = Some(credential);
-        self.cred_id = Some(libindy_prover_store_credential(None,
-                                                            &cred_req.libindy_cred_req_meta,
-                                                            &credential_msg.libindy_cred,
-                                                            &cred_def_json,
-                                                            match credential_msg.rev_reg_def_json.len() {
-                                                                0 => None,
-                                                                _ => Some(&credential_msg.rev_reg_def_json),
-                                                            })?);
 
+        let cred_id =  IndyHolder::store_credential(None,
+                                                    &cred_req.libindy_cred_req_meta,
+                                                    &credential_msg.libindy_cred,
+                                                    &cred_def_json,
+        )?;
+
+        self.cred_id = Some(cred_id);
         self.state = VcxStateType::VcxStateAccepted;
 
         trace!("Credential::_check_msg <<<");
@@ -299,7 +294,7 @@ impl Credential {
 
         match self.state {
             VcxStateType::VcxStateOfferSent => {
-                //Check for messages
+                //Check for agent
                 let _ = self._check_msg(message);
             }
             VcxStateType::VcxStateAccepted => {
@@ -416,14 +411,9 @@ impl Credential {
     fn submit_payment(&self) -> VcxResult<(PaymentTxn, String)> {
         debug!("Credential {}: Submitting payment for premium credentia", self.source_id);
 
-        match &self.payment_info {
-            &Some(ref pi) => {
-                let address = &pi.get_address();
-                let price = pi.get_price();
-                let (payment_txn, receipt) = pay_a_payee(price, address)?;
-                Ok((payment_txn, receipt))
-            }
-            &None => Err(VcxError::from(VcxErrorKind::NoPaymentInformation)),
+        match self.payment_info {
+            Some(_) => Err(VcxError::from(VcxErrorKind::ActionNotSupported)),
+            None => Err(VcxError::from(VcxErrorKind::NoPaymentInformation)),
         }
     }
 
@@ -434,7 +424,7 @@ impl Credential {
 
     #[cfg(test)]
     fn from_str(data: &str) -> VcxResult<Credential> {
-        use messages::ObjectWithVersion;
+        use crate::agent::messages::ObjectWithVersion;
         ObjectWithVersion::deserialize(data)
             .map(|obj: ObjectWithVersion<Credential>| obj.data)
             .map_err(|err| err.extend("Cannot deserialize Credential"))
@@ -455,7 +445,7 @@ impl Credential {
         let cred_id = self.cred_id.as_ref()
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Credential object state: `cred_id` not found", self.source_id)))?;
 
-        libindy_prover_delete_credential(cred_id)
+        IndyHolder::delete_credential(cred_id)
     }
 
     fn get_presentation_proposal(&self) -> VcxResult<PresentationProposal> {
@@ -470,14 +460,35 @@ impl Credential {
         let cred_id = self.cred_id.as_ref()
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Credential object state: `cred_id` not found", self.source_id)))?;
 
-        let credential = prover_get_credential(&cred_id)?;
+        let credential = IndyHolder::get_credential(&cred_id)?;
 
-        let presentation_proposal = PresentationProposal::default()
-            .set_comment(self.credential_name.clone().unwrap_or(String::from("Credential")))
-            .set_presentation_preview(PresentationPreview::for_credential(&credential));
+        let presentation_proposal = PresentationProposal::V1(
+            PresentationProposalV1::create()
+                .set_comment(self.credential_name.clone().unwrap_or(String::from("Credential")))
+                .set_presentation_preview(PresentationPreview::for_credential(&credential))
+        );
 
         trace!("Credential::get_presentation_proposal_msg <<< presentation_proposal: {:?}", presentation_proposal);
         Ok(presentation_proposal)
+    }
+
+    fn get_info(&self) -> VcxResult<String> {
+        trace!("Credential::get_info >>>");
+        debug!("Credential {}: Getting credential info", self.source_id);
+
+        if self.state != VcxStateType::VcxStateAccepted {
+            return Err(VcxError::from_msg(VcxErrorKind::NotReady,
+                                          format!("Credential object {} in state {} not ready to get information about stored credential", self.source_id, self.state as u32)));
+        }
+
+        let cred_id = self.cred_id.as_ref()
+            .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState, format!("Invalid {} Credential object state: `cred_id` not found", self.source_id)))?;
+
+        let credential_info = IndyHolder::get_credential(&cred_id)?;
+        let credential_info_json = json!(credential_info).to_string();
+
+        trace!("Credential::get_info <<< credential_json: {:?}", credential_info_json);
+        Ok(credential_info_json)
     }
 }
 
@@ -582,7 +593,7 @@ pub fn credential_create_with_msgid(source_id: &str, connection_handle: Handle<C
 
     let offer = get_credential_offer_msg(connection_handle, &msg_id)?;
 
-    let credential = if connection_handle.is_v3_connection()? {
+    let credential = if connection_handle.is_aries_connection()? {
         create_credential_v3(source_id, &offer)?
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidConnectionHandle, format!("Connection can not be used for Proprietary Issuance protocol")))?
     } else {
@@ -594,160 +605,170 @@ pub fn credential_create_with_msgid(source_id: &str, connection_handle: Handle<C
     debug!("inserting credential {} into handle map", source_id);
     Ok((handle, offer))
 }
+
 impl Handle<Credentials> {
-
-        pub fn update_state(self, message: Option<String>) -> VcxResult<u32> {
-            HANDLE_MAP.get_mut(self, |obj| {
-                match obj {
-                    Credentials::Pending(obj) => {
-                        obj.update_state(message.clone())
-                    }
-                    Credentials::V1(obj) => {
-                        obj.update_state(message.clone())
-                    }
-                    Credentials::V3(obj) => {
-                        obj.update_state(message.clone())
-                    }
+    pub fn update_state(self, message: Option<String>) -> VcxResult<u32> {
+        HANDLE_MAP.get_mut(self, |obj| {
+            match obj {
+                Credentials::Pending(obj) => {
+                    obj.update_state(message.clone())
                 }
-            }).map_err(handle_err)
-        }
-
-        pub fn get_credential(self) -> VcxResult<String> {
-            HANDLE_MAP.get(self, |credential| {
-                match credential {
-                    Credentials::Pending(credential) => {
-                        credential.get_credential()
-                    }
-                    Credentials::V1(credential) => {
-                        credential.get_credential()
-                    }
-                    Credentials::V3(credential) => {
-                        let (cred_id, credential) = credential.get_credential()?;
-                        let credential: CredentialMessage = credential.try_into()?;
-
-                        let mut json = serde_json::Map::new();
-                        json.insert("credential_id".to_string(), Value::String(cred_id));
-                        json.insert("credential".to_string(), Value::String(json!(credential).to_string()));
-                        return Ok(serde_json::Value::from(json).to_string());
-                    }
+                Credentials::V1(obj) => {
+                    obj.update_state(message.clone())
                 }
-            }).map_err(handle_err)
-        }
-
-        pub fn delete_credential(self) -> VcxResult<()> {
-            HANDLE_MAP.get(self, |credential| {
-                match credential {
-                    Credentials::Pending(_) => {
-                        warn!("Cannot delete credential for Pending object");
-                        Err(VcxError::from_msg(VcxErrorKind::NotReady, "Cannot delete credential for Pending object: Credential is not received yet"))
-                    }
-                    Credentials::V1(credential) => credential.delete_credential(),
-                    Credentials::V3(credential) => credential.delete_credential(),
+                Credentials::V3(obj) => {
+                    obj.update_state(message.clone())
                 }
-            })
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn get_credential(self) -> VcxResult<String> {
+        HANDLE_MAP.get(self, |credential| {
+            match credential {
+                Credentials::Pending(credential) => {
+                    credential.get_credential()
+                }
+                Credentials::V1(credential) => {
+                    credential.get_credential()
+                }
+                Credentials::V3(credential) => {
+                    let (cred_id, credential) = credential.get_credential()?;
+
+                    // strict aries protocol is set. Return aries formatted Credential Offers
+                    if settings::is_strict_aries_protocol_set() {
+                        return Ok(json!(credential).to_string());
+                    }
+
+                    let credential: CredentialMessage = credential.try_into()?;
+                    let mut json = serde_json::Map::new();
+                    json.insert("credential_id".to_string(), Value::String(cred_id));
+                    json.insert("credential".to_string(), Value::String(json!(credential).to_string()));
+                    Ok(serde_json::Value::from(json).to_string())
+                }
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn delete_credential(self) -> VcxResult<()> {
+        HANDLE_MAP.get(self, |credential| {
+            match credential {
+                Credentials::Pending(_) => {
+                    warn!("Cannot delete credential for Pending object");
+                    Err(VcxError::from_msg(VcxErrorKind::NotReady, "Cannot delete credential for Pending object: Credential is not received yet"))
+                }
+                Credentials::V1(credential) => credential.delete_credential(),
+                Credentials::V3(credential) => credential.delete_credential(),
+            }
+        })
             .map_err(handle_err)
-                .and(self.release())
-        }
+            .and(self.release())
+    }
 
-        pub fn get_payment_txn(self) -> VcxResult<PaymentTxn> {
-            HANDLE_MAP.get(self, |obj| {
-                match obj {
-                    Credentials::Pending(obj) => obj.get_payment_txn(),
-                    Credentials::V1(obj) => obj.get_payment_txn(),
-                    Credentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries Credential type doesn't support this action: `get_payment_txn`."))
-                }
-            }).map_err(handle_err)
-        }
+    pub fn get_payment_txn(self) -> VcxResult<PaymentTxn> {
+        HANDLE_MAP.get(self, |obj| {
+            match obj {
+                Credentials::Pending(obj) => obj.get_payment_txn(),
+                Credentials::V1(obj) => obj.get_payment_txn(),
+                Credentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries Credential type doesn't support this action: `get_payment_txn`."))
+            }
+        }).map_err(handle_err)
+    }
 
-        pub fn get_credential_offer(self) -> VcxResult<String> {
-            HANDLE_MAP.get(self, |obj| {
-                match obj {
-                    Credentials::Pending(obj) => obj.get_credential_offer(),
-                    Credentials::V1(obj) => obj.get_credential_offer(),
-                    Credentials::V3(obj) => {
-                        let cred_offer = obj.get_credential_offer()?;
-                        let cred_offer: CredentialOffer = cred_offer.try_into()?;
+    pub fn get_credential_offer(self) -> VcxResult<String> {
+        HANDLE_MAP.get(self, |obj| {
+            match obj {
+                Credentials::Pending(obj) => obj.get_credential_offer(),
+                Credentials::V1(obj) => obj.get_credential_offer(),
+                Credentials::V3(obj) => {
+                    let cred_offer = obj.get_credential_offer()?;
 
-                        let cred_offer = json!({
+                    // strict aries protocol is set. Return aries formatted Credential Offers
+                    if settings::is_strict_aries_protocol_set() {
+                        return Ok(json!(cred_offer).to_string());
+                    }
+
+                    let cred_offer: CredentialOffer = cred_offer.try_into()?;
+                    let cred_offer = json!({
                             "credential_offer": cred_offer
                         });
-                        return Ok(cred_offer.to_string());
-                    }
+                    return Ok(cred_offer.to_string());
                 }
-            }).map_err(handle_err)
-        }
+            }
+        }).map_err(handle_err)
+    }
 
-        pub fn get_credential_id(self) -> VcxResult<String> {
-            HANDLE_MAP.get(self, |obj| {
-                match obj {
-                    Credentials::Pending(obj) => Ok(obj.get_credential_id()),
-                    Credentials::V1(obj) => Ok(obj.get_credential_id()),
-                    Credentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries Credential type doesn't support this action: `get_credential_id`."))
+    pub fn get_credential_id(self) -> VcxResult<String> {
+        HANDLE_MAP.get(self, |obj| {
+            match obj {
+                Credentials::Pending(obj) => Ok(obj.get_credential_id()),
+                Credentials::V1(obj) => Ok(obj.get_credential_id()),
+                Credentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries Credential type doesn't support this action: `get_credential_id`."))
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn get_state(self) -> VcxResult<u32> {
+        HANDLE_MAP.get(self, |obj| {
+            match obj {
+                Credentials::Pending(obj) => Ok(obj.get_state()),
+                Credentials::V1(obj) => Ok(obj.get_state()),
+                Credentials::V3(obj) => Ok(obj.get_state()),
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn generate_credential_request_msg(self, my_pw_did: &str, their_pw_did: &str) -> VcxResult<String> {
+        HANDLE_MAP.get_mut(self, |obj| {
+            match obj {
+                Credentials::Pending(obj) => {
+                    let req = obj.generate_request_msg(my_pw_did, their_pw_did)?;
+                    obj.set_state(VcxStateType::VcxStateOfferSent);
+                    Ok(req)
                 }
-            }).map_err(handle_err)
-        }
-
-        pub fn get_state(self) -> VcxResult<u32> {
-            HANDLE_MAP.get(self, |obj| {
-                match obj {
-                    Credentials::Pending(obj) => Ok(obj.get_state()),
-                    Credentials::V1(obj) => Ok(obj.get_state()),
-                    Credentials::V3(obj) => Ok(obj.get_state()),
+                Credentials::V1(obj) => {
+                    let req = obj.generate_request_msg(my_pw_did, their_pw_did)?;
+                    obj.set_state(VcxStateType::VcxStateOfferSent);
+                    Ok(req)
                 }
-            }).map_err(handle_err)
-        }
+                Credentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries Credential type doesn't support this action: `generate_credential_request_msg`."))
+            }
+        }).map_err(handle_err)
+    }
 
-        pub fn generate_credential_request_msg(self, my_pw_did: &str, their_pw_did: &str) -> VcxResult<String> {
-            HANDLE_MAP.get_mut(self, |obj| {
-                match obj {
-                    Credentials::Pending(obj) => {
-                        let req = obj.generate_request_msg(my_pw_did, their_pw_did)?;
-                        obj.set_state(VcxStateType::VcxStateOfferSent);
-                        Ok(req)
-                    }
-                    Credentials::V1(obj) => {
-                        let req = obj.generate_request_msg(my_pw_did, their_pw_did)?;
-                        obj.set_state(VcxStateType::VcxStateOfferSent);
-                        Ok(req)
-                    }
-                    Credentials::V3(_) => Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Aries Credential type doesn't support this action: `generate_credential_request_msg`."))
-                }
-            }).map_err(handle_err)
-        }
+    pub fn send_credential_request(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
+        HANDLE_MAP.get_mut(self, |credential| {
+            let new_credential = match credential {
+                Credentials::Pending(obj) => {
+                    // if Aries connection is established --> Convert PendingCredential object to Aries credential
+                    if connection_handle.is_aries_connection()? {
+                        let credential_offer = take(&mut obj.credential_offer)
+                            .ok_or(VcxError::from_msg(VcxErrorKind::NotReady,
+                                                      format!("Credential object {} in state {} not ready to get Credential Offer message", obj.source_id, obj.state as u32)))?;
 
-        pub fn send_credential_request(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
-            HANDLE_MAP.get_mut(self, |credential| {
-                let new_credential = match credential {
-                    Credentials::Pending(obj) => {
-                        // if Aries connection is established --> Convert PendingCredential object to Aries credential
-                        if connection_handle.is_v3_connection()? {
-                            let credential_offer = take(&mut obj.credential_offer)
-                                .ok_or(VcxError::from_msg(VcxErrorKind::NotReady,
-                                        format!("Credential object {} in state {} not ready to get Credential Offer message", obj.source_id, obj.state as u32)))?;
+                        let mut holder = Holder::create(credential_offer.try_into()?, &obj.get_source_id())?;
+                        holder.send_request(connection_handle)?;
 
-                            let mut holder = Holder::create(credential_offer.try_into()?, &obj.get_source_id())?;
-                            holder.send_request(connection_handle)?;
-
-                            Credentials::V3(holder)
-                        } else {  // else --> Convert PendingCredential object to Proprietary credential
-                            obj.send_request(connection_handle)?;
-                            Credentials::V1(take(obj))
-                        }
-                    }
-                    Credentials::V1(obj) => {
+                        Credentials::V3(holder)
+                    } else {  // else --> Convert PendingCredential object to Proprietary credential
                         obj.send_request(connection_handle)?;
                         Credentials::V1(take(obj))
                     }
-                    Credentials::V3(obj) => {
-                        obj.send_request(connection_handle)?;
-                        // TODO: avoid cloning
-                        Credentials::V3(obj.clone())
-                    }
-                };
-                *credential = new_credential;
-                Ok(error::SUCCESS.code_num)
-            }).map_err(handle_err)
-        }
+                }
+                Credentials::V1(obj) => {
+                    obj.send_request(connection_handle)?;
+                    Credentials::V1(take(obj))
+                }
+                Credentials::V3(obj) => {
+                    obj.send_request(connection_handle)?;
+                    // TODO: avoid cloning
+                    Credentials::V3(obj.clone())
+                }
+            };
+            *credential = new_credential;
+            Ok(error::SUCCESS.code_num)
+        }).map_err(handle_err)
+    }
 
     pub fn release(self) -> VcxResult<()> {
         HANDLE_MAP.release(self).map_err(handle_err)
@@ -769,7 +790,7 @@ impl Handle<Credentials> {
             match obj {
                 Credentials::Pending(obj) => Ok(obj.get_source_id()),
                 Credentials::V1(obj) => Ok(obj.get_source_id()),
-                Credentials::V3(obj) => Ok(obj.get_source_id()),
+                Credentials::V3(obj) => Ok(obj.get_source_id().to_string()),
             }
         }).map_err(handle_err)
     }
@@ -809,7 +830,7 @@ impl Handle<Credentials> {
             let new_credential = match credential {
                 Credentials::Pending(obj) => {
                     // if Aries connection is established --> Convert PendingCredential object to Aries credential
-                    if connection_handle.is_v3_connection()? {
+                    if connection_handle.is_aries_connection()? {
                         let credential_offer = take(&mut obj.credential_offer)
                             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidState,
                                                       format!("Credential object {} in state {} not ready to get Credential Offer message", obj.source_id, obj.state as u32)))?;
@@ -847,7 +868,7 @@ impl Handle<Credentials> {
                 Credentials::V3(obj) => obj.get_presentation_proposal(),
             }
         })
-            .map(|presentation_proposal| presentation_proposal.to_string())
+            .map(|presentation_proposal| json!(presentation_proposal).to_string())
             .map_err(handle_err)
     }
 
@@ -858,6 +879,15 @@ impl Handle<Credentials> {
                     Err(VcxError::from_msg(VcxErrorKind::ActionNotSupported, "Proprietary Credential type doesn't support this action: `get_problem_report_message`."))
                 }
                 Credentials::V3(obj) => obj.get_problem_report_message()
+            }
+        }).map_err(handle_err)
+    }
+
+    pub fn get_info(self) -> VcxResult<String> {
+        HANDLE_MAP.get(self, |obj| {
+            match obj {
+                Credentials::Pending(obj) | Credentials::V1(obj) => obj.get_info(),
+                Credentials::V3(obj) => obj.get_info()
             }
         }).map_err(handle_err)
     }
@@ -879,7 +909,7 @@ fn get_credential_offer_msg(connection_handle: Handle<Connections>, msg_id: &str
     trace!("get_credential_offer_msg >>> connection_handle: {}, msg_id: {}", connection_handle, msg_id);
     debug!("getting credential offer message with id {}", msg_id);
 
-    if connection_handle.is_v3_connection()? {
+    if connection_handle.is_aries_connection()? {
         let credential_offer = Holder::get_credential_offer_message(connection_handle, msg_id)?;
 
         return Ok(json!(credential_offer).to_string());
@@ -896,7 +926,7 @@ fn get_credential_offer_msg(connection_handle: Handle<Connections>, msg_id: &str
                                           Some(vec![msg_id.to_string()]),
                                           None,
                                           &my_agent.version()?)
-        .map_err(|err| err.extend("Cannot get connection messages"))?;
+        .map_err(|err| err.extend("Cannot get connection agent"))?;
 
     if message[0].msg_type != RemoteMessageType::CredOffer {
         return Err(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse,
@@ -923,22 +953,21 @@ fn get_credential_offer_msg(connection_handle: Handle<Connections>, msg_id: &str
 
 pub fn get_credential_offer_messages(connection_handle: Handle<Connections>) -> VcxResult<String> {
     trace!("Credential::get_credential_offer_messages >>> connection_handle: {}", connection_handle);
-    debug!("getting all credential offer messages from connection {}", connection_handle.get_source_id().unwrap_or_default());
+    debug!("getting all credential offer agent from connection {}", connection_handle.get_source_id().unwrap_or_default());
 
-    if connection_handle.is_v3_connection()? {
+    if connection_handle.is_aries_connection()? {
         let credential_offers = Holder::get_credential_offer_messages(connection_handle)?;
-        let msgs: Vec<Vec<::serde_json::Value>> = credential_offers
-            .into_iter()
-            .map(|credential_offer| credential_offer.try_into())
-            .collect::<VcxResult<Vec<CredentialOffer>>>()?
-            .into_iter()
-            .map(|msg| vec![json!(msg)])
-            .collect();
 
-        return serde_json::to_string(&msgs).
-            map_err(|err| {
-                VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize CredentialOffers. Err: {:?}", err))
-            });
+        let mut msgs: Vec<Value> = Vec::new();
+        for credential_offer in credential_offers {
+            if settings::is_strict_aries_protocol_set() {
+                msgs.push(json!(credential_offer));
+            } else {
+                let credential_offer: CredentialOffer = credential_offer.try_into()?;
+                msgs.push(json!(vec![credential_offer]));
+            }
+        }
+        return Ok(json!(msgs).to_string());
     }
 
     let my_agent = get_agent_info()?.pw_info(connection_handle)?;
@@ -952,7 +981,7 @@ pub fn get_credential_offer_messages(connection_handle: Handle<Connections>) -> 
                                           None,
                                           None,
                                           &my_agent.version()?)
-        .map_err(|err| err.extend("Cannot get messages"))?;
+        .map_err(|err| err.extend("Cannot get agent"))?;
 
     let mut messages = Vec::new();
 
@@ -979,15 +1008,13 @@ pub fn get_credential_offer_messages(connection_handle: Handle<Connections>) -> 
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use api::VcxStateType;
-    use utils::devsetup::*;
+    use crate::api::VcxStateType;
+    use crate::utils::devsetup::*;
     use crate::connection;
 
     pub const BAD_CREDENTIAL_OFFER: &str = r#"{"version": "0.1","to_did": "LtMgSjtFcyPwenK9SHCyb8","from_did": "LtMgSjtFcyPwenK9SHCyb8","claim": {"account_num": ["8BEaoLf8TBmK4BUyX8WWnA"],"name_on_account": ["Alice"]},"schema_seq_no": 48,"issuer_did": "Pd4fnFtRBcMKRVC2go5w3j","claim_name": "Account Certificate","claim_id": "3675417066","msg_ref_id": "ymy5nth"}"#;
 
-    use utils::constants::{DEFAULT_SERIALIZED_CREDENTIAL,
-                           DEFAULT_SERIALIZED_CREDENTIAL_PAYMENT_REQUIRED};
-    use utils::libindy::payments::{build_test_address, get_wallet_token_info};
+    use crate::utils::constants::DEFAULT_SERIALIZED_CREDENTIAL;
 
     pub fn create_credential(offer: &str) -> Credential {
         let mut credential = Credential::create("source_id");
@@ -997,16 +1024,6 @@ pub mod tests {
         credential.state = VcxStateType::VcxStateRequestReceived;
         apply_agent_info(&mut credential, &get_agent_info().unwrap());
         credential
-    }
-
-    fn create_credential_with_price(price: u64) -> Credential {
-        let mut cred: Credential = Credential::from_str(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
-        cred.payment_info = Some(PaymentInfo {
-            payment_required: "one-time".to_string(),
-            payment_addr: build_test_address("OsdjtGKavZDBuG2xFw2QunVwwGs5IB3j"),
-            price,
-        });
-        cred
     }
 
     fn _get_offer(handle: Handle<Connections>) -> String {
@@ -1059,6 +1076,7 @@ pub mod tests {
     }
 
     #[test]
+    #[ignore]
     fn full_credential_test() {
         let _setup = SetupMocks::init();
 
@@ -1074,8 +1092,8 @@ pub mod tests {
 
         assert_eq!(c_h.get_credential_id().unwrap(), "");
 
-        AgencyMock::set_next_response(::utils::constants::CREDENTIAL_RESPONSE);
-        AgencyMock::set_next_response(::utils::constants::UPDATE_CREDENTIAL_RESPONSE);
+        AgencyMock::set_next_response(crate::utils::constants::CREDENTIAL_RESPONSE);
+        AgencyMock::set_next_response(crate::utils::constants::UPDATE_CREDENTIAL_RESPONSE);
 
         c_h.update_state(None).unwrap();
         assert_eq!(c_h.get_state().unwrap(), VcxStateType::VcxStateAccepted as u32);
@@ -1092,6 +1110,7 @@ pub mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_get_request_msg() {
         let _setup = SetupMocks::init();
 
@@ -1121,43 +1140,12 @@ pub mod tests {
     }
 
     #[test]
-    fn test_pay_for_credential_with_sufficient_funds() {
-        let _setup = SetupMocks::init();
-
-        let cred = create_credential_with_price(1);
-        assert!(cred.is_payment_required());
-        let (payment, _receipt): (PaymentTxn, String) = cred.submit_payment().unwrap();
-        assert!(payment.amount > 0);
-    }
-
-    #[test]
     fn test_pay_for_non_premium_credential() {
         let _setup = SetupMocks::init();
 
         let cred: Credential = Credential::from_str(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
         assert!(cred.payment_info.is_none());
         assert_eq!(cred.submit_payment().unwrap_err().kind(), VcxErrorKind::NoPaymentInformation);
-    }
-
-    #[test]
-    fn test_pay_for_credential_with_insufficient_funds() {
-        let _setup = SetupMocks::init();
-
-        let cred = create_credential_with_price(10000000000);
-        assert!(cred.submit_payment().is_err());
-    }
-
-    #[test]
-    fn test_pay_for_credential_with_handle() {
-        let _setup = SetupMocks::init();
-
-        let handle = from_string(DEFAULT_SERIALIZED_CREDENTIAL_PAYMENT_REQUIRED).unwrap();
-        handle.submit_payment().unwrap();
-        handle.get_payment_information().unwrap();
-        let handle2 = from_string(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
-        assert!(!handle2.is_payment_required().unwrap());
-        let invalid_handle = Handle::<Credentials>::from(12345);
-        assert_eq!(invalid_handle.is_payment_required().unwrap_err().kind(), VcxErrorKind::InvalidCredentialHandle);
     }
 
     #[test]
@@ -1172,25 +1160,6 @@ pub mod tests {
     }
 
     #[test]
-    fn test_submit_payment_through_credential_request() {
-        let _setup = SetupMocks::init();
-
-        let connection_h = connection::tests::build_test_connection();
-
-        let balance = get_wallet_token_info().unwrap().get_balance();
-        assert!(balance > 0);
-
-        let price = 5;
-        let mut cred = create_credential_with_price(price);
-
-        assert_eq!(cred.send_request(Handle::dummy()).unwrap_err().kind(), VcxErrorKind::InvalidConnectionHandle);
-        assert_eq!(get_wallet_token_info().unwrap().get_balance(), balance);
-
-        cred.send_request(connection_h).unwrap();
-        assert_eq!(get_wallet_token_info().unwrap().get_balance(), balance); // test mode doesn't change balance?
-    }
-
-    #[test]
     fn test_get_cred_offer_returns_json_string_with_cred_offer_json_nested() {
         let _setup = SetupMocks::init();
 
@@ -1202,6 +1171,7 @@ pub mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_accept_credential_offer() {
         let _setup = SetupMocks::init();
 

@@ -68,6 +68,7 @@ class ErrorCode(IntEnum):
     ConnectionAlreadyExists = 1062,
     ConnectionDoesNotExist = 1063,
     InsufficientTokenAmount = 1064,
+    ConnectionNotReadyToUpgrade = 1065,
     InvalidPaymentAddress = 1066,
     InvalidLibindyParam = 1067,
     MissingWalletKey = 1069,
@@ -109,6 +110,7 @@ class ErrorCode(IntEnum):
     MessageIsOutOfThread = 1109,
     InvalidProofProposal = 1110,
     IncompatibleParameters = 1111,
+    ConnectionNotCompleted = 1112,
 
 
 class VcxError(Exception):

@@ -1,9 +1,9 @@
 use libc::c_char;
-use utils::logger::{EnabledCB, FlushCB, LibvcxLogger, LibvcxDefaultLogger, LogCB, LOGGER_STATE, CVoid};
-use utils::cstring::CStringUtils;
-use utils::error::SUCCESS;
+use crate::utils::logger::{EnabledCB, FlushCB, LibvcxLogger, LibvcxDefaultLogger, LogCB, LOGGER_STATE, CVoid};
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error::SUCCESS;
 use log::LevelFilter;
-use error::prelude::*;
+use crate::error::prelude::*;
 
 /// Set default logger implementation.
 ///
@@ -11,7 +11,7 @@ use error::prelude::*;
 /// More details about `env_logger` and its customization can be found here: https://crates.io/crates/env_logger
 ///
 /// #Params
-/// pattern: (optional) pattern that corresponds with the log messages to show.
+/// pattern: (optional) pattern that corresponds with the log agent to show.
 ///
 /// NOTE: You should specify either `pattern` parameter or `RUST_LOG` environment variable to init logger.
 ///

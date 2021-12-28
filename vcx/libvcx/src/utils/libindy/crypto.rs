@@ -1,10 +1,11 @@
-/* test isn't ready until > libindy 1.0.1 */
 use futures::Future;
-use indy::crypto;
 
-use utils::libindy::LibindyMock;
-use settings;
-use error::prelude::*;
+use crate::indy::{crypto, did};
+use crate::settings;
+use crate::error::prelude::*;
+use crate::utils::libindy::LibindyMock;
+use crate::utils::constants::*;
+use crate::utils::libindy::wallet::get_wallet_handle;
 
 pub fn prep_msg(sender_vk: &str, recipient_vk: &str, msg: &[u8]) -> VcxResult<Vec<u8>> {
     if settings::indy_mocks_enabled() {
@@ -13,7 +14,7 @@ pub fn prep_msg(sender_vk: &str, recipient_vk: &str, msg: &[u8]) -> VcxResult<Ve
         return Ok(Vec::from(msg).to_owned());
     }
 
-    crypto::auth_crypt(::utils::libindy::wallet::get_wallet_handle(), sender_vk, recipient_vk, msg)
+    crypto::auth_crypt(crate::utils::libindy::wallet::get_wallet_handle(), sender_vk, recipient_vk, msg)
         .wait()
         .map_err(VcxError::from)
 }
@@ -27,9 +28,9 @@ pub fn prep_anonymous_msg(recipient_vk: &str, msg: &[u8]) -> VcxResult<Vec<u8>> 
 }
 
 pub fn parse_msg(recipient_vk: &str, msg: &[u8]) -> VcxResult<(String, Vec<u8>)> {
-    if settings::indy_mocks_enabled() { return Ok((::utils::constants::VERKEY.to_string(), Vec::from(msg).to_owned())); }
+    if settings::indy_mocks_enabled() { return Ok((crate::utils::constants::VERKEY.to_string(), Vec::from(msg).to_owned())); }
 
-    crypto::auth_decrypt(::utils::libindy::wallet::get_wallet_handle(), recipient_vk, msg)
+    crypto::auth_decrypt(crate::utils::libindy::wallet::get_wallet_handle(), recipient_vk, msg)
         .wait()
         .map_err(VcxError::from)
 }
@@ -37,7 +38,7 @@ pub fn parse_msg(recipient_vk: &str, msg: &[u8]) -> VcxResult<(String, Vec<u8>)>
 pub fn parse_anonymous_msg(recipient_vk: &str, msg: &[u8]) -> VcxResult<Vec<u8>> {
     if settings::indy_mocks_enabled() { return Ok(Vec::from(msg).to_owned()); }
 
-    crypto::anon_decrypt(::utils::libindy::wallet::get_wallet_handle(), recipient_vk, msg)
+    crypto::anon_decrypt(crate::utils::libindy::wallet::get_wallet_handle(), recipient_vk, msg)
         .wait()
         .map_err(VcxError::from)
 }
@@ -45,7 +46,7 @@ pub fn parse_anonymous_msg(recipient_vk: &str, msg: &[u8]) -> VcxResult<Vec<u8>>
 pub fn sign(my_vk: &str, msg: &[u8]) -> VcxResult<Vec<u8>> {
     if settings::indy_mocks_enabled() { return Ok(Vec::from(msg).to_owned()); }
 
-    crypto::sign(::utils::libindy::wallet::get_wallet_handle(), my_vk, msg)
+    crypto::sign(crate::utils::libindy::wallet::get_wallet_handle(), my_vk, msg)
         .wait()
         .map_err(VcxError::from)
 }
@@ -61,7 +62,7 @@ pub fn verify(vk: &str, msg: &[u8], signature: &[u8]) -> VcxResult<bool> {
 pub fn pack_message(sender_vk: Option<&str>, receiver_keys: &str, msg: &[u8]) -> VcxResult<Vec<u8>> {
     if settings::indy_mocks_enabled() { return Ok(msg.to_vec()); }
 
-    crypto::pack_message(::utils::libindy::wallet::get_wallet_handle(), msg, receiver_keys, sender_vk)
+    crypto::pack_message(crate::utils::libindy::wallet::get_wallet_handle(), msg, receiver_keys, sender_vk)
         .wait()
         .map_err(VcxError::from)
 }
@@ -69,14 +70,36 @@ pub fn pack_message(sender_vk: Option<&str>, receiver_keys: &str, msg: &[u8]) ->
 pub fn unpack_message(msg: &[u8]) -> VcxResult<Vec<u8>> {
     if settings::indy_mocks_enabled() { return Ok(Vec::from(msg).to_owned()); }
 
-    crypto::unpack_message(::utils::libindy::wallet::get_wallet_handle(), msg)
+    crypto::unpack_message(crate::utils::libindy::wallet::get_wallet_handle(), msg)
         .wait()
         .map_err(VcxError::from)
 }
 
 pub fn create_key(seed: Option<&str>) -> VcxResult<String> {
     let key_json = json!({"seed": seed}).to_string();
-    crypto::create_key(::utils::libindy::wallet::get_wallet_handle(), Some(&key_json))
+    crypto::create_key(crate::utils::libindy::wallet::get_wallet_handle(), Some(&key_json))
+        .wait()
+        .map_err(VcxError::from)
+}
+
+pub fn create_and_store_my_did(seed: Option<&str>, method_name: Option<&str>) -> VcxResult<(String, String)> {
+    if settings::indy_mocks_enabled() {
+        return Ok((DID.to_string(), VERKEY.to_string()));
+    }
+
+    let my_did_json = json!({"seed": seed, "method_name": method_name});
+
+    did::create_and_store_my_did(get_wallet_handle(), &my_did_json.to_string())
+        .wait()
+        .map_err(VcxError::from)
+}
+
+pub fn get_local_verkey(did: &str) -> VcxResult<String> {
+    if settings::indy_mocks_enabled() {
+        return Ok(VERKEY.to_string());
+    }
+
+    did::key_for_local_did(get_wallet_handle(), did)
         .wait()
         .map_err(VcxError::from)
 }

@@ -49,13 +49,4 @@ public class VcxApiTest {
         String errorCMessage = VcxApi.vcxErrorCMessage(1001);
         assert (errorCMessage.equals("Unknown Error"));
     }
-
-    @Test
-    @DisplayName("init minimal")
-    void initMinimal() throws VcxException {
-        WalletApi.setWalletHandle(1);
-        UtilsApi.setPoolHandle(1);
-        assert (VcxApi.vcxInitMinimal("{\"institution_name\":\"f\",\"institution_did\":\"4\", \"institution_verkey\":\"4\"}") == 0);
-    }
-
 }

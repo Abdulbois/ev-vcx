@@ -1,4 +1,4 @@
-import { Callback } from 'ffi'
+import { Callback } from 'ffi-napi'
 
 import { VCXInternalError } from '../errors'
 import { rustAPI } from '../rustlib'
@@ -621,6 +621,36 @@ export class Credential extends VCXBaseWithState<ICredentialStructData> {
       return await createFFICallbackPromise<string>(
           (resolve, reject, cb) => {
             const rc = rustAPI().vcx_credential_get_problem_report(0, this.handle, cb)
+            if (rc) {
+              reject(rc)
+            }
+          },
+          (resolve, reject) => Callback(
+            'void',
+            ['uint32', 'uint32', 'string'],
+            (xHandle: number, err: number, message: string) => {
+              if (err) {
+                reject(err)
+                return
+              }
+              resolve(message)
+            })
+        )
+    } catch (err) {
+        throw new VCXInternalError(err)
+    }
+  }
+
+  /**
+   * Retrieve information about a stored credential.
+   *
+   * return Credential Info as JSON string or null
+   */
+  public async getInfo (): Promise<string> {
+    try {
+      return await createFFICallbackPromise<string>(
+          (resolve, reject, cb) => {
+            const rc = rustAPI().vcx_credential_get_info(0, this.handle, cb)
             if (rc) {
               reject(rc)
             }

@@ -1,16 +1,15 @@
-use serde_json;
 use libc::c_char;
-use utils::cstring::CStringUtils;
-use utils::error;
-use credential;
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
+use crate::credential;
 use std::ptr;
-use utils::threadpool::spawn;
-use error::prelude::*;
+use crate::utils::threadpool::spawn;
+use crate::error::prelude::*;
 use indy_sys::CommandHandle;
 
 use crate::connection::Connections;
 use crate::credential::Credentials;
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 
 /*
     The API represents a Holder side in credential issuance process.
@@ -18,7 +17,7 @@ use crate::object_cache::Handle;
 
     # State
 
-    The set of object states, messages and transitions depends on the communication method is used.
+    The set of object states, agent and transitions depends on the communication method is used.
     There are two communication methods: `proprietary` and `aries`. The default communication method is `proprietary`.
     The communication method can be specified as a config option on one of *_init functions.
 
@@ -27,7 +26,7 @@ use crate::object_cache::Handle;
 
         VcxStateType::VcxStateOfferSent - once `vcx_credential_send_request` (send `CRED_REQ` message) is called.
 
-        VcxStateType::VcxStateAccepted - once `CRED` messages is received.
+        VcxStateType::VcxStateAccepted - once `CRED` agent is received.
                                          use `vcx_credential_update_state` or `vcx_credential_update_state_with_message` functions for state updates.
 
     aries:
@@ -35,9 +34,9 @@ use crate::object_cache::Handle;
 
         VcxStateType::VcxStateOfferSent - once `vcx_credential_send_request` (send `CredentialRequest` message) is called.
 
-        VcxStateType::VcxStateAccepted - once `Credential` messages is received.
+        VcxStateType::VcxStateAccepted - once `Credential` agent is received.
 
-        VcxStateType::VcxStateRejected - 1) once `ProblemReport` messages is received.
+        VcxStateType::VcxStateRejected - 1) once `ProblemReport` agent is received.
                                             use `vcx_credential_update_state` or `vcx_credential_update_state_with_message` functions for state updates.
                                          2) once `vcx_credential_reject` is called.
 
@@ -594,8 +593,8 @@ pub extern fn vcx_credential_get_offers(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Query the agency for the received messages.
-/// Checks for any messages changing state in the credential object and updates the state attribute.
+/// Query the agency for the received agent.
+/// Checks for any agent changing state in the credential object and updates the state attribute.
 /// If it detects a credential it will store the credential in the wallet.
 ///
 /// #Params
@@ -835,10 +834,10 @@ pub extern fn vcx_credential_release(handle: Handle<Credentials>) -> u32 {
                 trace!("vcx_credential_release(handle: {}, rc: {})",
                        handle, error::SUCCESS.as_str());
             }
-
-            Err(e) => {
-                error!("vcx_credential_release(handle: {}, rc: {})",
-                       handle, e);
+            Err(_e) => {
+                // FIXME logging here results in panic while python tests
+                // error!("vcx_credential_release(handle: {}, rc: {})",
+                //        handle, e);
             }
         };
         Ok(())
@@ -908,7 +907,7 @@ pub extern fn vcx_credential_get_payment_txn(command_handle: CommandHandle,
 }
 
 /// Send a Credential rejection to the connection.
-/// It can be called once Credential Offer or Credential messages are received.
+/// It can be called once Credential Offer or Credential agent are received.
 ///
 /// Note that this function can be used for `aries` communication protocol.
 /// In other cases it returns ActionNotSupported error.
@@ -1057,23 +1056,72 @@ pub extern fn vcx_credential_get_problem_report(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
+/// Retrieve information about a stored credential.
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// credential_handle: credential handle that was provided during creation. Used to identify credential object
+///
+/// cb: Callback that provides error status of api call, or returns the credential information in json format.
+/// {
+///     "referent": string, // cred_id in the wallet
+///     "attrs": {"key1":"raw_value1", "key2":"raw_value2"},
+///     "schema_id": string,
+///     "cred_def_id": string,
+///     "rev_reg_id": Optional<string>,
+///     "cred_rev_id": Optional<string>
+/// }
+///
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+#[allow(unused_variables, unused_mut)]
+#[no_mangle]
+pub extern fn vcx_credential_get_info(command_handle: CommandHandle,
+                                  credential_handle: Handle<Credentials>,
+                                  cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, *const c_char)>) -> u32 {
+    info!("vcx_credential_get_info >>>");
+
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+
+    spawn(move || {
+        match credential_handle.get_info() {
+            Ok(info) => {
+                trace!("vcx_credential_get_info_cb(command_handle: {}, rc: {}, info: {})",
+                       command_handle, error::SUCCESS.as_str(), secret!(info));
+                let info = CStringUtils::string_to_cstring(info);
+                cb(command_handle, error::SUCCESS.code_num, info.as_ptr());
+            }
+            Err(e) => {
+                warn!("vcx_credential_get_info_cb(command_handle: {}, rc: {})",
+                      command_handle, e);
+                cb(command_handle, e.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
 #[cfg(test)]
 mod tests {
-    extern crate serde_json;
-
     use super::*;
     use std::ffi::CString;
-    use connection;
-    use api::VcxStateType;
+    use crate::connection;
+    use crate::api::VcxStateType;
     use crate::api::return_types;
     use serde_json::Value;
-    use utils::constants::{DEFAULT_SERIALIZED_CREDENTIAL, FULL_CREDENTIAL_SERIALIZED, PENDING_OBJECT_SERIALIZE_VERSION};
-    use utils::devsetup::*;
-    use utils::httpclient::AgencyMock;
+    use crate::utils::constants::{DEFAULT_SERIALIZED_CREDENTIAL, FULL_CREDENTIAL_SERIALIZED, PENDING_OBJECT_SERIALIZE_VERSION};
+    use crate::utils::devsetup::*;
+    use crate::utils::httpclient::AgencyMock;
 
-    use ::credential::tests::BAD_CREDENTIAL_OFFER;
-    use utils::constants;
-    use messages::issuance::credential_request::CredentialRequest;
+    use crate::credential::tests::BAD_CREDENTIAL_OFFER;
+    use crate::utils::constants;
+    use crate::legacy::messages::issuance::credential_request::CredentialRequest;
 
     fn _vcx_credential_create_with_offer_c_closure(offer: &str) -> Result<Handle<Credentials>, u32> {
         let (h, cb, r) = return_types::return_u32_crdh();
@@ -1134,7 +1182,7 @@ mod tests {
     fn test_vcx_credential_send_request() {
         let _setup = SetupMocks::init();
 
-        let handle = credential::credential_create_with_offer("test_send_request", ::utils::constants::CREDENTIAL_OFFER_JSON).unwrap();
+        let handle = credential::credential_create_with_offer("test_send_request", crate::utils::constants::CREDENTIAL_OFFER_JSON).unwrap();
         assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateRequestReceived as u32);
 
         let connection_handle = connection::tests::build_test_connection();
@@ -1148,7 +1196,7 @@ mod tests {
     fn test_vcx_credential_get_new_offers() {
         let _setup = SetupMocks::init();
 
-        let cxn = ::connection::tests::build_test_connection();
+        let cxn = crate::connection::tests::build_test_connection();
 
         let (h, cb, r) = return_types::return_u32_str();
         assert_eq!(vcx_credential_get_offers(h,
@@ -1162,7 +1210,7 @@ mod tests {
     fn test_vcx_credential_create() {
         let _setup = SetupMocks::init();
 
-        let cxn = ::connection::tests::build_test_connection();
+        let cxn = crate::connection::tests::build_test_connection();
 
         let (h, cb, r) = return_types::return_u32_crdh_str();
         assert_eq!(vcx_credential_create_with_msgid(h,
@@ -1188,11 +1236,11 @@ mod tests {
     fn test_vcx_credential_update_state() {
         let _setup = SetupMocks::init();
 
-        let cxn = ::connection::tests::build_test_connection();
+        let cxn = crate::connection::tests::build_test_connection();
 
         let handle = credential::from_string(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
 
-        AgencyMock::set_next_response(::utils::constants::NEW_CREDENTIAL_OFFER_RESPONSE);
+        AgencyMock::set_next_response(crate::utils::constants::NEW_CREDENTIAL_OFFER_RESPONSE);
 
         let (h, cb, r) = return_types::return_u32_u32();
         assert_eq!(vcx_credential_update_state(h, handle, Some(cb)), error::SUCCESS.code_num);
@@ -1207,14 +1255,14 @@ mod tests {
     fn test_vcx_credential_get_request_msg() {
         let _setup = SetupMocks::init();
 
-        let cxn = ::connection::tests::build_test_connection();
+        let cxn = crate::connection::tests::build_test_connection();
 
         let my_pw_did = CString::new(cxn.get_pw_did().unwrap()).unwrap();
         let their_pw_did = CString::new(cxn.get_their_pw_did().unwrap()).unwrap();
 
         let handle = credential::from_string(DEFAULT_SERIALIZED_CREDENTIAL).unwrap();
 
-        AgencyMock::set_next_response(::utils::constants::NEW_CREDENTIAL_OFFER_RESPONSE);
+        AgencyMock::set_next_response(crate::utils::constants::NEW_CREDENTIAL_OFFER_RESPONSE);
 
         let (h, cb, r) = return_types::return_u32_u32();
         assert_eq!(vcx_credential_update_state(h, handle, Some(cb)), error::SUCCESS.code_num);
@@ -1248,17 +1296,6 @@ mod tests {
         let (h, cb, r) = return_types::return_u32_str();
         assert_eq!(vcx_get_credential(h, handle, Some(cb)), error::SUCCESS.code_num);
         assert_eq!(r.recv_medium().err(), Some(error::NOT_READY.code_num));
-    }
-
-    #[test]
-    fn test_get_payment_txn() {
-        let _setup = SetupMocks::init();
-
-        let handle = credential::from_string(::utils::constants::FULL_CREDENTIAL_SERIALIZED).unwrap();
-
-        let (h, cb, r) = return_types::return_u32_str();
-        vcx_credential_get_payment_txn(h, handle, Some(cb));
-        r.recv_medium().unwrap();
     }
 
     #[test]

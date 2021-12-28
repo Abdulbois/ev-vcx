@@ -1,10 +1,11 @@
 use futures::Future;
-use indy::{wallet, ErrorCode};
-
-use settings;
-
-use error::prelude::*;
-use indy::{WalletHandle, INVALID_WALLET_HANDLE};
+use crate::indy::{wallet, ErrorCode};
+use crate::settings;
+use crate::error::prelude::*;
+use crate::indy::{WalletHandle, INVALID_WALLET_HANDLE};
+use crate::settings::wallet::{get_wallet_config, get_wallet_credentials};
+use crate::utils::constants::DEFAULT_SEARCH_HANDLE;
+use crate::utils::constants;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WalletRecord {
@@ -63,8 +64,8 @@ pub fn reset_wallet_handle() { set_wallet_handle(INVALID_WALLET_HANDLE); }
 pub fn create_wallet(wallet_name: &str, wallet_type: Option<&str>, storage_config: Option<&str>, storage_creds: Option<&str>) -> VcxResult<()> {
     trace!("creating wallet: {}", wallet_name);
 
-    let config = settings::get_wallet_config(wallet_name, wallet_type, storage_config);
-    let credentials = settings::get_wallet_credentials(storage_creds);
+    let config = get_wallet_config(wallet_name, wallet_type, storage_config);
+    let credentials = get_wallet_credentials(storage_creds);
 
     match wallet::create_wallet(&config, &credentials)
         .wait() {
@@ -90,8 +91,8 @@ pub fn open_wallet(wallet_name: &str, wallet_type: Option<&str>, storage_config:
         return Ok(set_wallet_handle(WalletHandle(1)));
     }
 
-    let config = settings::get_wallet_config(wallet_name, wallet_type, storage_config);
-    let credentials = settings::get_wallet_credentials(storage_creds);
+    let config = get_wallet_config(wallet_name, wallet_type, storage_config);
+    let credentials = get_wallet_credentials(storage_creds);
 
     let handle = wallet::open_wallet(&config, &credentials)
         .wait()
@@ -148,8 +149,8 @@ pub fn delete_wallet(wallet_name: &str, wallet_type: Option<&str>, storage_confi
 
     close_wallet().ok();
 
-    let config = settings::get_wallet_config(wallet_name, wallet_type, storage_config);
-    let credentials = settings::get_wallet_credentials(storage_creds);
+    let config = get_wallet_config(wallet_name, wallet_type, storage_config);
+    let credentials = get_wallet_credentials(storage_creds);
 
     wallet::delete_wallet(&config, &credentials)
         .wait()
@@ -214,6 +215,69 @@ pub fn update_record_value(xtype: &str, id: &str, value: &str) -> VcxResult<()> 
         .map_err(VcxError::from)
 }
 
+
+pub fn add_record_tags(xtype: &str, id: &str, tags: &str) -> VcxResult<()> {
+    trace!("add_record_tags >>> xtype: {}, id: {}, tags: {}", secret!(&xtype), secret!(&id), secret!(&tags));
+
+    if settings::indy_mocks_enabled() { return Ok(()); }
+
+    wallet::add_wallet_record_tags(get_wallet_handle(), xtype, id, tags)
+        .wait()
+        .map_err(VcxError::from)
+}
+
+
+pub fn update_record_tags(xtype: &str, id: &str, tags: &str) -> VcxResult<()> {
+    trace!("update_record_tags >>> xtype: {}, id: {}, tags: {}", secret!(&xtype), secret!(&id), secret!(&tags));
+
+    if settings::indy_mocks_enabled() { return Ok(()); }
+
+    wallet::update_wallet_record_tags(get_wallet_handle(), xtype, id, tags)
+        .wait()
+        .map_err(VcxError::from)
+}
+
+
+pub fn delete_record_tags(xtype: &str, id: &str, tags: &str) -> VcxResult<()> {
+    trace!("delete_record_tags >>> xtype: {}, id: {}, tags: {}", secret!(&xtype), secret!(&id), secret!(&tags));
+
+    if settings::indy_mocks_enabled() { return Ok(()); }
+
+    wallet::delete_wallet_record_tags(get_wallet_handle(), xtype, id, tags)
+        .wait()
+        .map_err(VcxError::from)
+}
+
+pub fn open_search(xtype: &str, query: &str, options: &str) -> VcxResult<i32> {
+    trace!("open_search >>> xtype: {}, query: {}, options: {}", secret!(&xtype), secret!(&query), secret!(&options));
+
+    if settings::indy_mocks_enabled() { return Ok(DEFAULT_SEARCH_HANDLE as i32); }
+
+    wallet::open_wallet_search(get_wallet_handle(), xtype, query, options)
+        .wait()
+        .map_err(VcxError::from)
+}
+
+pub fn search_next_records(search_handle: i32, count: usize) -> VcxResult<String> {
+    trace!("search_next_records >>> search_handle: {}, count: {}", &search_handle, secret!(&count));
+
+    if settings::indy_mocks_enabled() { return Ok(constants::DEFAULT_SEARCH_RECORD.to_string()); }
+
+    wallet::fetch_wallet_search_next_records(get_wallet_handle(), search_handle, count)
+        .wait()
+        .map_err(VcxError::from)
+}
+
+pub fn close_search(search_handle: i32) -> VcxResult<()> {
+    trace!("close_search >>> search_handle: {}", search_handle);
+
+    if settings::indy_mocks_enabled() { return Ok(()); }
+
+    wallet::close_wallet_search(search_handle)
+        .wait()
+        .map_err(VcxError::from)
+}
+
 pub fn export(wallet_handle: WalletHandle, path: &str, backup_key: &str) -> VcxResult<()> {
     trace!("export >>> wallet_handle: {:?}, path: {:?}, backup_key: {}", wallet_handle, secret!(path), secret!(backup_key));
 
@@ -226,12 +290,12 @@ pub fn export(wallet_handle: WalletHandle, path: &str, backup_key: &str) -> VcxR
 pub fn import(config: &str) -> VcxResult<()> {
     trace!("import >>> config {}", secret!(config));
 
-    ::settings::process_config_string(config, false)?;
+    crate::settings::process_config_string(config, false)?;
 
     let restore_config = RestoreWalletConfigs::from_str(config)?;
 
-    let config = settings::get_wallet_config(&restore_config.wallet_name, None, None);
-    let credentials = settings::get_wallet_credentials(None);
+    let config = get_wallet_config(&restore_config.wallet_name, None, None);
+    let credentials = get_wallet_credentials(None);
     let import_config = json!({"key": restore_config.backup_key, "path": restore_config.exported_wallet_path }).to_string();
 
     wallet::import_wallet(&config, &credentials, &import_config)
@@ -242,8 +306,8 @@ pub fn import(config: &str) -> VcxResult<()> {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use utils::get_temp_dir_path;
-    use utils::devsetup::{SetupLibraryWallet, SetupDefaults, TempFile, SetupEmpty};
+    use crate::utils::get_temp_dir_path;
+    use crate::utils::devsetup::{SetupLibraryWallet, SetupDefaults, TempFile, SetupEmpty};
 
     fn _record() -> (&'static str, &'static str, &'static str) {
         ("type1", "id1", "value1")
@@ -347,7 +411,7 @@ pub mod tests {
 
         delete_wallet(&wallet_name, None, None, None).unwrap();
 
-        ::settings::clear_config();
+        crate::settings::clear_config();
 
         let (type_, id, value) = _record();
 
@@ -392,7 +456,7 @@ pub mod tests {
         // Missing exported_wallet_path
         let res = import(&config.to_string()).unwrap_err();
         assert_eq!(res.kind(), VcxErrorKind::InvalidWalletImportConfig);
-        config[settings::CONFIG_EXPORTED_WALLET_PATH] = serde_json::to_value(
+        config["exported_wallet_path"] = serde_json::to_value(
             get_temp_dir_path(settings::DEFAULT_EXPORTED_WALLET_PATH).to_str().unwrap()
         ).unwrap();
 

@@ -1,18 +1,25 @@
 use serde_json;
 use libc::c_char;
-use messages;
+use crate::agent;
 use std::ptr;
-use utils::cstring::CStringUtils;
-use utils::error;
-use utils::threadpool::spawn;
-use utils::libindy::{payments, wallet};
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
+use crate::utils::threadpool::spawn;
+use crate::utils::libindy::{payments, wallet};
 use std::thread;
-use error::prelude::*;
+use crate::error::prelude::*;
 use indy_sys::CommandHandle;
-use utils::httpclient::AgencyMock;
-use utils::constants::*;
-use messages::agent_utils::{ComMethod, Config};
-use v3::handlers::connection::agent::AgentInfo;
+use crate::utils::httpclient::AgencyMock;
+use crate::utils::constants::*;
+use crate::agent::provisioning::types::ProvisioningConfig;
+use crate::aries::handlers::connection::agent::AgentInfo;
+use crate::agent::provisioning;
+use crate::agent::messages::update_agent;
+use crate::agent::messages::update_agent::ComMethod;
+use crate::aries::messages::message_with_attachment::extract_attached_message;
+use crate::aries::messages::message_with_thread::extract_thread_id;
+use crate::aries::utils::resolve_message_by_url;
+use crate::utils::libindy::anoncreds::holder::Holder;
 
 /// Provision an agent in the agency, populate configuration and wallet for this agent.
 ///
@@ -55,7 +62,7 @@ pub extern fn vcx_provision_agent_with_token(config: *const c_char, token: *cons
 
     trace!("vcx_provision_agent_with_token(config: {}, token: {})", secret!(config), secret!(token));
 
-    match messages::agent_provisioning::agent_provisioning_v0_7::provision(&config, &token) {
+    match agent::provisioning::agent_provisioning_v0_7::provision(&config, &token) {
         Err(e) => {
             error!("Provision Agent Error {}.", e);
             wallet::close_wallet().ok();
@@ -107,7 +114,7 @@ pub extern fn vcx_provision_agent_with_token_async(command_handle: CommandHandle
     trace!("vcx_provision_agent_with_token_async(config: {}, token: {})", secret!(config), secret!(token));
 
     thread::spawn(move || {
-        match messages::agent_provisioning::agent_provisioning_v0_7::provision(&config, &token) {
+        match agent::provisioning::agent_provisioning_v0_7::provision(&config, &token) {
             Err(e) => {
                 error!("vcx_provision_agent_with_token_async_cb(command_handle: {}, rc: {}, config: NULL", command_handle, e);
                 cb(command_handle, e.into(), ptr::null_mut());
@@ -146,7 +153,7 @@ pub extern fn vcx_provision_agent(config: *const c_char) -> *mut c_char {
 
     trace!("vcx_provision_agent(config: {})", secret!(config));
 
-    match messages::agent_utils::connect_register_provision(&config) {
+    match provisioning::provision(&config) {
         Err(e) => {
             error!("Provision Agent Error {}.", e);
             wallet::close_wallet().ok();
@@ -188,7 +195,7 @@ pub extern fn vcx_agent_provision_async(command_handle: CommandHandle,
            command_handle, secret!(config));
 
     thread::spawn(move || {
-        match messages::agent_utils::connect_register_provision(&config) {
+        match provisioning::provision(&config) {
             Err(e) => {
                 error!("vcx_agent_provision_async_cb(command_handle: {}, rc: {}, config: NULL", command_handle, e);
                 cb(command_handle, e.into(), ptr::null_mut());
@@ -217,14 +224,7 @@ pub extern fn vcx_agent_provision_async(command_handle: CommandHandle,
 ///                           // See: https://github.com/evernym/mobile-sdk/blob/master/docs/Configuration.md#agent-provisioning-options
 ///     sponsee_id: String,
 ///     sponsor_id: String,
-///     com_method: {
-///         type: u32 // 1 means push notifications, 4 means forward to sponsor app
-///         id: String,
-///         value: String,
-///     },
 /// }
-///
-/// # Example com_method -> "{"type": 1,"id":"123","value":"FCM:Value"}"
 ///
 /// cb: Callback that provides provision token or error status
 ///
@@ -250,17 +250,10 @@ pub extern fn vcx_get_provision_token(command_handle: CommandHandle,
         }
     };
 
-    let vcx_config: Config = match serde_json::from_value(configs["vcx_config"].clone()) {
+    let vcx_config: ProvisioningConfig = match serde_json::from_value(configs["vcx_config"].clone()) {
         Ok(x) => x,
         Err(_) => {
             return VcxError::from_msg(VcxErrorKind::InvalidConfiguration, "missing vcx_config").into();
-        }
-    };
-
-    let com_method: ComMethod = match serde_json::from_value(configs["com_method"].clone()) {
-        Ok(x) => x,
-        Err(e) => {
-            return VcxError::from_msg(VcxErrorKind::InvalidConfiguration, format!("Cannot parse ComMethod from JSON string. Err: {}", e)).into();
         }
     };
 
@@ -279,7 +272,7 @@ pub extern fn vcx_get_provision_token(command_handle: CommandHandle,
     };
 
     spawn(move || {
-        match messages::token_provisioning::token_provisioning::provision(vcx_config, &sponsee_id, &sponsor_id, com_method) {
+        match agent::messages::token_provisioning::token_provisioning::provision(vcx_config, &sponsee_id, &sponsor_id) {
             Ok(token) => {
                 trace!("vcx_get_provision_token_cb(command_handle: {}, rc: {}, token: {})",
                        command_handle, error::SUCCESS.as_str(), secret!(token));
@@ -336,7 +329,7 @@ pub extern fn vcx_agent_update_info(command_handle: CommandHandle,
     };
 
     spawn(move || {
-        match messages::agent_utils::update_agent_info(com_method) {
+        match update_agent::update_agent_info(com_method) {
             Ok(()) => {
                 trace!("vcx_agent_update_info_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -376,7 +369,7 @@ pub extern fn vcx_ledger_get_fees(command_handle: CommandHandle,
            command_handle);
 
     spawn(move || {
-        match ::utils::libindy::payments::get_ledger_fees() {
+        match crate::utils::libindy::payments::get_ledger_fees() {
             Ok(x) => {
                 trace!("vcx_ledger_get_fees_cb(command_handle: {}, rc: {}, fees: {})",
                        command_handle, error::SUCCESS.as_str(), x);
@@ -418,17 +411,17 @@ pub extern fn vcx_set_next_agency_response(message_index: u32) {
     AgencyMock::set_next_response(message);
 }
 
-/// Retrieve messages from the Cloud Agent
+/// Retrieve agent from the Cloud Agent
 ///
 /// #params
 ///
 /// command_handle: command handle to map callback to user context.
 ///
-/// message_status: optional - query for messages with the specified status
+/// message_status: optional - query for agent with the specified status
 ///
-/// uids: optional, comma separated - query for messages with the specified uids
+/// uids: optional, comma separated - query for agent with the specified uids
 ///
-/// cb: Callback that provides array of matching messages retrieved
+/// cb: Callback that provides array of matching agent retrieved
 ///
 /// #Returns
 /// Error code as a u32
@@ -461,19 +454,19 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
            command_handle, message_status, uids);
 
     spawn(move || {
-        match ::messages::get_message::download_agent_messages(message_status, uids) {
+        match crate::agent::messages::get_message::download_agent_messages(message_status, uids) {
             Ok(x) => {
                 match serde_json::to_string(&x) {
                     Ok(x) => {
-                        trace!("vcx_download_agent_messages(command_handle: {}, rc: {}, messages: {})",
+                        trace!("vcx_download_agent_messages(command_handle: {}, rc: {}, agent: {})",
                                command_handle, error::SUCCESS.as_str(), secret!(x));
 
                         let msg = CStringUtils::string_to_cstring(x);
                         cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
                     }
                     Err(e) => {
-                        let err = VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize downloaded messages as JSON. Error: {}", e));
-                        warn!("vcx_download_agent_messages(command_handle: {}, rc: {}, messages: {})",
+                        let err = VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize downloaded agent as JSON. Error: {}", e));
+                        warn!("vcx_download_agent_messages(command_handle: {}, rc: {}, agent: {})",
                               command_handle, err, "null");
 
                         cb(command_handle, err.into(), ptr::null_mut());
@@ -481,7 +474,7 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
                 };
             }
             Err(e) => {
-                warn!("vcx_download_agent_messages(command_handle: {}, rc: {}, messages: {})",
+                warn!("vcx_download_agent_messages(command_handle: {}, rc: {}, agent: {})",
                       command_handle, e, "null");
 
                 cb(command_handle, e.into(), ptr::null_mut());
@@ -494,13 +487,13 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
     error::SUCCESS.code_num
 }
 
-/// Retrieve messages from the agent
+/// Retrieve agent from the agent
 ///
 /// #params
 ///
 /// command_handle: command handle to map callback to user context.
 ///
-/// message_status: optional, comma separated -  - query for messages with the specified status.
+/// message_status: optional, comma separated -  - query for agent with the specified status.
 ///                            Statuses:
 ///                                 MS-101 - Created
 ///                                 MS-102 - Sent
@@ -509,11 +502,11 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
 ///                                 MS-105 - Rejected
 ///                                 MS-106 - Reviewed
 ///
-/// uids: optional, comma separated - query for messages with the specified uids
+/// uids: optional, comma separated - query for agent with the specified uids
 ///
 /// pw_dids: optional, comma separated - DID's pointing to specific connection
 ///
-/// cb: Callback that provides array of matching messages retrieved
+/// cb: Callback that provides array of matching agent retrieved
 ///
 /// # Example message_status -> MS-103, MS-106
 ///
@@ -521,7 +514,7 @@ pub extern fn vcx_download_agent_messages(command_handle: u32,
 ///
 /// # Example pw_dids -> did1, did2
 ///
-/// # Example messages -> "[{"pairwiseDID":"did","msgs":[{"statusCode":"MS-106","payload":null,"senderDID":"","uid":"6BDkgc3z0E","type":"aries","refMsgId":null,"deliveryDetails":[],"decryptedPayload":"{"@msg":".....","@type":{"fmt":"json","name":"aries","ver":"1.0"}}"}]}]"
+/// # Example agent -> "[{"pairwiseDID":"did","msgs":[{"statusCode":"MS-106","payload":null,"senderDID":"","uid":"6BDkgc3z0E","type":"aries","refMsgId":null,"deliveryDetails":[],"decryptedPayload":"{"@msg":".....","@type":{"fmt":"json","name":"aries","ver":"1.0"}}"}]}]"
 ///
 /// #Returns
 /// Error code as a u32
@@ -566,19 +559,19 @@ pub extern fn vcx_messages_download(command_handle: CommandHandle,
            command_handle, message_status, uids, secret!(pw_dids));
 
     spawn(move || {
-        match ::messages::get_message::download_messages(pw_dids, message_status, uids) {
+        match crate::agent::messages::get_message::download_messages(pw_dids, message_status, uids) {
             Ok(x) => {
                 match serde_json::to_string(&x) {
                     Ok(x) => {
-                        trace!("vcx_messages_download_cb(command_handle: {}, rc: {}, messages: {})",
+                        trace!("vcx_messages_download_cb(command_handle: {}, rc: {}, agent: {})",
                                command_handle, error::SUCCESS.as_str(), secret!(x));
 
                         let msg = CStringUtils::string_to_cstring(x);
                         cb(command_handle, error::SUCCESS.code_num, msg.as_ptr());
                     }
                     Err(e) => {
-                        let err = VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize downloaded messages as JSON. Error: {}", e));
-                        warn!("vcx_messages_download_cb(command_handle: {}, rc: {}, messages: {})",
+                        let err = VcxError::from_msg(VcxErrorKind::SerializationError, format!("Cannot serialize downloaded agent as JSON. Error: {}", e));
+                        warn!("vcx_messages_download_cb(command_handle: {}, rc: {}, agent: {})",
                               command_handle, err, "null");
 
                         cb(command_handle, err.into(), ptr::null_mut());
@@ -586,7 +579,7 @@ pub extern fn vcx_messages_download(command_handle: CommandHandle,
                 };
             }
             Err(e) => {
-                warn!("vcx_messages_download_cb(command_handle: {}, rc: {}, messages: {})",
+                warn!("vcx_messages_download_cb(command_handle: {}, rc: {}, agent: {})",
                       command_handle, e, "null");
 
                 cb(command_handle, e.into(), ptr::null_mut());
@@ -627,7 +620,7 @@ pub extern fn vcx_download_message(command_handle: CommandHandle,
            command_handle, uid);
 
     spawn(move || {
-        match ::messages::get_message::download_message(uid) {
+        match crate::agent::messages::get_message::download_message(uid) {
             Ok(message) => {
                 trace!("vcx_download_message_cb(command_handle: {}, rc: {}, message: {:?})",
                        command_handle, error::SUCCESS.as_str(), secret!(message));
@@ -650,7 +643,7 @@ pub extern fn vcx_download_message(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Update the status of messages from the specified connection
+/// Update the status of agent from the specified connection
 ///
 /// #params
 ///
@@ -665,7 +658,7 @@ pub extern fn vcx_download_message(command_handle: CommandHandle,
 ///                     MS-105 - Rejected
 ///                     MS-106 - Reviewed
 ///
-/// msg_json: messages to update: [{"pairwiseDID":"QSrw8hebcvQxiwBETmAaRs","uids":["mgrmngq"]},...]
+/// msg_json: agent to update: [{"pairwiseDID":"QSrw8hebcvQxiwBETmAaRs","uids":["mgrmngq"]},...]
 ///
 /// cb: Callback that provides success or failure of request
 ///
@@ -686,7 +679,7 @@ pub extern fn vcx_messages_update_status(command_handle: CommandHandle,
            command_handle, message_status, secret!(msg_json));
 
     spawn(move || {
-        match ::messages::update_message::update_agency_messages(&message_status, &msg_json) {
+        match crate::agent::messages::update_message::update_agency_messages(&message_status, &msg_json) {
             Ok(()) => {
                 trace!("vcx_messages_set_status_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -705,21 +698,6 @@ pub extern fn vcx_messages_update_status(command_handle: CommandHandle,
     });
 
     error::SUCCESS.code_num
-}
-
-/// Set the pool handle before calling vcx_init_minimal
-///
-/// #params
-///
-/// handle: pool handle that libvcx should use
-///
-/// #Returns
-/// Error code as u32
-#[no_mangle]
-pub extern fn vcx_pool_set_handle(handle: i32) -> i32 {
-    ::utils::libindy::pool::set_pool_handle(handle);
-
-    handle
 }
 
 /// Gets minimal request price for performing an action in case the requester can perform this action.
@@ -796,7 +774,7 @@ pub extern fn vcx_endorse_transaction(command_handle: CommandHandle,
            command_handle, secret!(transaction));
 
     spawn(move || {
-        match ::utils::libindy::ledger::endorse_transaction(&transaction) {
+        match crate::utils::libindy::ledger::utils::endorse_transaction(&transaction) {
             Ok(()) => {
                 trace!("vcx_endorse_transaction(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -845,7 +823,7 @@ pub extern fn vcx_fetch_public_entities(command_handle: CommandHandle,
     trace!("vcx_fetch_public_entities(command_handle: {})", command_handle);
 
     spawn(move || {
-        match ::utils::libindy::anoncreds::fetch_public_entities() {
+        match Holder::fetch_public_entities() {
             Ok(()) => {
                 trace!("vcx_fetch_public_entities_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -885,7 +863,7 @@ pub extern fn vcx_health_check(command_handle: CommandHandle,
     check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
 
     spawn(move || {
-        match ::utils::health_check::health_check() {
+        match crate::utils::health_check::health_check() {
             Ok(()) => {
                 trace!("vcx_health_check_cb(command_handle: {}, rc: {})",
                        command_handle, error::SUCCESS.as_str());
@@ -957,14 +935,161 @@ pub extern fn vcx_create_pairwise_agent(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
+/// Resolve message by the given URL.
+/// Supported cases:
+///   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+///   2. Message inside response `location` header for GET request
+///   3. Message inside response for GET request
+///
+/// #params
+///
+/// url: url to fetch message
+/// command_handle: command handle to map callback to user context.
+///
+/// cb: Callback that provides resolved message
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_resolve_message_by_url(command_handle: CommandHandle,
+                                         url: *const c_char,
+                                         cb: Option<extern fn(xcommand_handle: CommandHandle,
+                                                              err: u32,
+                                                              message: *const c_char)>) -> u32 {
+    info!("vcx_resolve_message_by_url >>>");
+
+    check_useful_c_str!(url, VcxErrorKind::InvalidOption);
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_resolve_message_by_url(command_handle: {}, url: {:?})",
+           command_handle, url);
+
+    spawn(move || {
+        match resolve_message_by_url(&url) {
+            Ok(message) => {
+                trace!("vcx_resolve_message_by_url_cb(command_handle: {}, rc: {}, message: {:?})",
+                       command_handle, error::SUCCESS.as_str(), secret!(message));
+
+                let message = CStringUtils::string_to_cstring(message);
+                cb(command_handle, error::SUCCESS.code_num, message.as_ptr());
+            }
+            Err(e) => {
+                warn!("vcx_resolve_message_by_url_cb(command_handle: {}, rc: {})",
+                      command_handle, e);
+                cb(command_handle, e.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
+/// Extract content of Aries message containing attachment decorator.
+/// RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+///
+/// #params
+///
+/// message: aries message containing attachment decorator
+/// command_handle: command handle to map callback to user context.
+///
+///
+/// cb: Callback that provides attached message
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_extract_attached_message(command_handle: CommandHandle,
+                                           message: *const c_char,
+                                           cb: Option<extern fn(xcommand_handle: CommandHandle,
+                                                                err: u32,
+                                                                attachment_content: *const c_char)>) -> u32 {
+    info!("vcx_extract_attached_message >>>");
+
+    check_useful_c_str!(message, VcxErrorKind::InvalidOption);
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_extract_attached_message(command_handle: {}, message: {:?})",
+           command_handle, message);
+
+    spawn(move || {
+        match extract_attached_message(&message) {
+            Ok(attachment_content) => {
+                trace!("vcx_extract_attached_message_cb(command_handle: {}, rc: {}, message: {:?})",
+                       command_handle, error::SUCCESS.as_str(), secret!(attachment_content));
+
+                let attachment_content = CStringUtils::string_to_cstring(attachment_content);
+                cb(command_handle, error::SUCCESS.code_num, attachment_content.as_ptr());
+            }
+            Err(e) => {
+                warn!("vcx_extract_attached_message_cb(command_handle: {}, rc: {})",
+                      command_handle, e);
+                cb(command_handle, e.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
+/// Extract thread id for message
+///
+/// #params
+///
+/// command_handle: command handle to map callback to user context.
+/// message: message to get thread id from
+///
+/// cb: Callback that provides thread id
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_extract_thread_id(command_handle: CommandHandle,
+                                    message: *const c_char,
+                                    cb: Option<extern fn(xcommand_handle: CommandHandle,
+                                                         err: u32,
+                                                         thid: *const c_char)>) -> u32 {
+    info!("vcx_extract_thread_id >>>");
+
+    check_useful_c_str!(message, VcxErrorKind::InvalidOption);
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_extract_thread_id(command_handle: {}, message: {:?})",
+           command_handle, message);
+
+    spawn(move || {
+        match extract_thread_id(&message) {
+            Ok(thread_id) => {
+                trace!("vcx_extract_thread_id_cb(command_handle: {}, rc: {}, thread_id: {:?})",
+                       command_handle, error::SUCCESS.as_str(), secret!(thread_id));
+
+                let thread_id = CStringUtils::string_to_cstring(thread_id);
+                cb(command_handle, error::SUCCESS.code_num, thread_id.as_ptr());
+            }
+            Err(e) => {
+                warn!("vcx_extract_thread_id_cb(command_handle: {}, rc: {})",
+                      command_handle, e);
+                cb(command_handle, e.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::ffi::CString;
-    use api::return_types;
-    use utils::devsetup::*;
-    use utils::httpclient::AgencyMock;
-    use utils::constants::REGISTER_RESPONSE;
+    use crate::api::return_types;
+    use crate::utils::devsetup::*;
+    use crate::utils::httpclient::AgencyMock;
+    use crate::utils::constants::REGISTER_RESPONSE;
 
     static CONFIG: &'static str = r#"{"agency_url":"https://enym-eagency.pdev.evernym.com","agency_did":"Ab8TvZa3Q19VNkQVzAWVL7","agency_verkey":"5LXaR43B1aQyeh94VBP8LG1Sgvjk7aNfqiksBCSjwqbf","wallet_name":"test_provision_agent","agent_seed":null,"enterprise_seed":null,"wallet_key":"key"}"#;
     const CONFIG_CSTR: *const c_char = concat!(r#"{"agency_url":"https://enym-eagency.pdev.evernym.com","agency_did":"Ab8TvZa3Q19VNkQVzAWVL7","agency_verkey":"5LXaR43B1aQyeh94VBP8LG1Sgvjk7aNfqiksBCSjwqbf","wallet_name":"test_provision_agent","agent_seed":null,"enterprise_seed":null,"wallet_key":"key"}"#, "\0").as_ptr().cast();

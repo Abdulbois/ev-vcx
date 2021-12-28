@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
 use std::path::{PathBuf, Path};
 use std::fs::{File, DirBuilder, OpenOptions};
-use error::prelude::*;
+use crate::error::prelude::*;
 
 pub fn read_file<P: AsRef<Path>>(file: P) -> VcxResult<String> {
     let mut file = File::open(file)

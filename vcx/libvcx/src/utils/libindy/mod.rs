@@ -1,21 +1,20 @@
-pub mod ledger;
-pub mod anoncreds;
-pub mod signus;
 pub mod wallet;
-pub mod pool;
+pub mod vdr;
 pub mod crypto;
-pub mod payments;
 pub mod cache;
 pub mod logger;
-pub mod types;
-
 pub mod error_codes;
+pub mod anoncreds;
+pub mod ledger;
+
+#[allow(unused)]
+pub mod payments;
 
 #[cfg(all(feature="mysql", not(feature="sqlite")))]
 pub mod mysql_wallet;
 
 use std::sync::Mutex;
-use settings;
+use crate::settings;
 
 lazy_static! {
     static ref LIBINDY_MOCK: Mutex<LibindyMock> = Mutex::new(LibindyMock::default());
@@ -43,13 +42,13 @@ impl LibindyMock {
 pub mod tests {
     use super::*;
     use futures::Future;
-    use utils::devsetup::*;
-    use settings;
+    use crate::utils::devsetup::*;
+    use crate::settings;
 
     // TODO:  Is used for Aries tests...try to remove and use one of devsetup's
     pub mod test_setup {
         use super::*;
-        use indy;
+        use crate::indy;
         use rand::Rng;
 
         pub const TRUSTEE_SEED: &'static str = "000000000000000000000000Trustee1";
@@ -85,14 +84,5 @@ pub mod tests {
                 }
             }
         }
-    }
-
-    #[cfg(feature = "pool_tests")]
-    #[test]
-    fn test_init_pool_and_wallet() {
-        let _setup = SetupWalletAndPool::init();
-
-        pool::init_pool().unwrap();
-        wallet::init_wallet(settings::DEFAULT_WALLET_NAME, None, None, None).unwrap();
     }
 }

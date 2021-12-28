@@ -188,8 +188,8 @@ public class VcxException extends Exception {
                 return new InvalidSchemaCreationException();
             case INVALID_SCHEMA_HANDLE:
                 return new InvalidSchemahandleException();
-            case INVALID_MASTER_SECRET:
-                return new InvalidMasterSecretException();
+            case INVALID_CREDENTIAL_OFFER:
+                return new InvalidCredentialOfferException();
             case ALREADY_INITIALIZED:
                 return new AlreadyInitializedException();
             case INVALID_INVITE_DETAILS:
@@ -308,6 +308,10 @@ public class VcxException extends Exception {
                 return new InvalidProofProposalException();
             case INCOMPATIBLE_PARAMETERS:
                 return new IncompatibleParametersException();
+            case CONNECTION_NOT_COMPLETED:
+                return new ConnectionNotCompletedException();
+            case CONNECTION_NOT_READY_TO_UPGRADE:
+                return new ConnectionNotReadyToUpgradeException();
             case UNIDENTIFIED_ERROR_CODE:
                 String message = String.format("An unmapped error with the code '%s' was returned by the SDK.", sdkErrorCode);
                 return new VcxException(message, sdkErrorCode);

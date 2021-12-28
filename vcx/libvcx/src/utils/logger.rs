@@ -1,27 +1,19 @@
-extern crate env_logger;
-extern crate log;
-extern crate libc;
-extern crate indy_sys;
-
-#[cfg(target_os = "android")]
-extern crate android_logger;
-
 use std::io::Write;
-use self::env_logger::Builder as EnvLoggerBuilder;
-use self::log::{Level, LevelFilter, Metadata, Record};
-use self::libc::{c_char};
+use env_logger::Builder as EnvLoggerBuilder;
+use log::{Level, LevelFilter, Metadata, Record};
+use libc::c_char;
 use std::env;
 use std::ptr;
-pub use self::indy_sys::{CVoid, logger::{EnabledCB, LogCB, FlushCB}};
+pub use indy_sys::{CVoid, logger::{EnabledCB, LogCB, FlushCB}};
 use std::ffi::CString;
 
 #[allow(unused_imports)]
 #[cfg(target_os = "android")]
-use self::android_logger::Filter;
-use utils::cstring::CStringUtils;
-use error::prelude::*;
+use android_logger::Filter;
+use crate::utils::cstring::CStringUtils;
+use crate::error::prelude::*;
 
-use utils::libindy;
+use crate::utils::libindy;
 
 #[cfg(debug_assertions)]
 const DEFAULT_MAX_LEVEL: LevelFilter = LevelFilter::Trace;
@@ -160,7 +152,7 @@ impl log::Log for LibvcxLogger {
 //DEBUG	Designates fine-grained informational events that are most useful to debug an application.
 //ERROR	Designates error events that might still allow the application to continue running.
 //FATAL	Designates very severe error events that will presumably lead the application to abort.
-//INFO	Designates informational messages that highlight the progress of the application at coarse-grained level.
+//INFO	Designates informational agent that highlight the progress of the application at coarse-grained level.
 //OFF	The highest possible rank and is intended to turn off logging.
 //TRACE	Designates finer-grained informational events than the DEBUG.
 //WARN	Designates potentially harmful situations.
@@ -209,7 +201,7 @@ impl LibvcxDefaultLogger {
             match EnvLoggerBuilder::new()
                 .format(|buf, record| writeln!(buf, "{:>5}|{:<30}|{:>35}:{:<4}| {}", record.level(), record.target(), record.file().get_or_insert(""), record.line().get_or_insert(0), record.args()))
                 .filter(None, LevelFilter::Off)
-                .parse(pattern.as_ref().map(String::as_str).unwrap_or("warn"))
+                .parse_filters(pattern.as_ref().map(String::as_str).unwrap_or("warn"))
                 .try_init() {
                 Ok(()) => {}
                 Err(e) => {

@@ -2,16 +2,18 @@ use serde_json;
 
 use std::string::ToString;
 
-use api::PublicEntityStateType;
-use utils::libindy::anoncreds;
-use utils::libindy::ledger;
-use utils::libindy::payments::PaymentTxn;
-use utils::constants::DEFAULT_SERIALIZE_VERSION;
-use object_cache::ObjectCache;
-use messages::ObjectWithVersion;
-use error::prelude::*;
+use crate::api::PublicEntityStateType;
+use crate::utils::libindy::anoncreds::issuer::Issuer as IndyIssuer;
+use crate::utils::libindy::ledger;
+use crate::utils::libindy::payments::PaymentTxn;
+use crate::utils::constants::DEFAULT_SERIALIZE_VERSION;
+use crate::utils::object_cache::ObjectCache;
+use crate::agent::messages::ObjectWithVersion;
+use crate::error::prelude::*;
+use crate::utils::libindy::ledger::request::Request;
 
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
+use crate::utils::libindy::ledger::query::Query;
 
 lazy_static! {
     static ref SCHEMA_MAP: ObjectCache<CreateSchema> = Default::default();
@@ -61,7 +63,7 @@ impl CreateSchema {
     }
 
     fn update_state(&mut self) -> VcxResult<u32> {
-        if anoncreds::get_schema_json(&self.schema_id).is_ok() {
+        if ledger::query::Query::get_schema(&self.schema_id).is_ok() {
             self.state = PublicEntityStateType::Published
         }
         Ok(self.state as u32)
@@ -86,12 +88,12 @@ pub fn create_and_publish_schema(source_id: &str,
     trace!("create_new_schema >>> source_id: {}, issuer_did: {}, name: {}, version: {}, data: {}", source_id, secret!(issuer_did), secret!(name), secret!(version), secret!(data));
     debug!("creating schema with source_id: {}, name: {}, issuer_did: {}", source_id, secret!(name), secret!(issuer_did));
 
-    let (schema_id, schema) = anoncreds::create_schema(&name, &version, &data)?;
-    let payment_txn = anoncreds::publish_schema(&schema)?;
+    let (schema_id, schema) = IndyIssuer::create_schema(&issuer_did, &name, &version, &data)?;
+    ledger::utils::publish_schema(&schema)?;
 
     debug!("created schema on ledger with id: {}", secret!(schema_id));
 
-    let schema_handle = _store_schema(source_id, name, version, schema_id, data, payment_txn, PublicEntityStateType::Published)?;
+    let schema_handle = _store_schema(source_id, name, version, schema_id, data, PublicEntityStateType::Published)?;
 
     Ok(schema_handle)
 }
@@ -106,13 +108,13 @@ pub fn prepare_schema_for_endorser(source_id: &str,
            source_id, secret!(issuer_did), secret!(name), secret!(version), secret!(data), secret!(endorser));
     debug!("preparing schema for endorser with source_id: {}, name: {}, issuer_did: {}", source_id, secret!(name), secret!(issuer_did));
 
-    let (schema_id, schema) = anoncreds::create_schema(&name, &version, &data)?;
-    let schema_request = anoncreds::build_schema_request(&schema)?;
-    let schema_request = ledger::set_endorser(&schema_request, &endorser)?;
+    let (schema_id, schema) = IndyIssuer::create_schema(&issuer_did, &name, &version, &data)?;
+    let schema_request = Request::schema(&schema)?;
+    let schema_request = Request::set_endorser(&schema_request, &endorser)?;
 
     debug!("prepared schema for endorser with id: {}", secret!(schema_id));
 
-    let schema_handle = _store_schema(source_id, name, version, schema_id, data, None, PublicEntityStateType::Built)?;
+    let schema_handle = _store_schema(source_id, name, version, schema_id, data, PublicEntityStateType::Built)?;
 
     Ok((schema_handle, schema_request))
 }
@@ -122,7 +124,6 @@ fn _store_schema(source_id: &str,
                  version: String,
                  schema_id: String,
                  data: String,
-                 payment_txn: Option<PaymentTxn>,
                  state: PublicEntityStateType) -> VcxResult<Handle<CreateSchema>> {
     let schema = CreateSchema {
         source_id: source_id.to_string(),
@@ -130,7 +131,7 @@ fn _store_schema(source_id: &str,
         data: serde_json::from_str(&data).unwrap_or_default(),
         version,
         schema_id,
-        payment_txn,
+        payment_txn: None,
         state,
     };
 
@@ -140,7 +141,7 @@ fn _store_schema(source_id: &str,
 pub fn get_schema_attrs(source_id: String, schema_id: String) -> VcxResult<(Handle<CreateSchema>, String)> {
     trace!("get_schema_attrs >>> source_id: {}, schema_id: {}", source_id, schema_id);
 
-    let (schema_id, schema_data_json) = anoncreds::get_schema_json(&schema_id)
+    let (schema_id, schema_data_json) = Query::get_schema(&schema_id)
         .map_err(|err| err.map(VcxErrorKind::InvalidSchemaSeqNo, "Schema not found"))?;
 
     let schema_data: SchemaData = serde_json::from_str(&schema_data_json)
@@ -222,12 +223,12 @@ pub fn release_all() {
 
 #[cfg(test)]
 pub mod tests {
-    use settings;
+    use crate::settings;
 
     use super::*;
     use rand::Rng;
-    use utils::constants::SCHEMA_ID;
-    use utils::devsetup::*;
+    use crate::utils::constants::SCHEMA_ID;
+    use crate::utils::devsetup::*;
 
     fn data() -> Vec<String> {
         vec!["address1".to_string(), "address2".to_string(), "zip".to_string(), "city".to_string(), "state".to_string()]
@@ -327,9 +328,9 @@ pub mod tests {
     #[cfg(feature = "pool_tests")]
     mod pool_tests {
         use super::*;
-        use utils::libindy::payments::add_new_did;
-        use utils::libindy::anoncreds::tests::create_and_write_test_schema;
-        use utils::constants;
+        use crate::utils::libindy::payments::add_new_did;
+        use crate::utils::libindy::anoncreds::tests::create_and_write_test_schema;
+        use crate::utils::constants;
 
         #[test]
         fn test_get_schema_attrs_from_ledger() {
@@ -424,7 +425,7 @@ pub mod tests {
             assert_eq!(0, handle.update_state().unwrap());
 
             settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &endorser_did);
-            ledger::endorse_transaction(&schema_request).unwrap();
+            ledger::utils::endorse_transaction(&schema_request).unwrap();
 
             ::std::thread::sleep(::std::time::Duration::from_millis(1000));
 

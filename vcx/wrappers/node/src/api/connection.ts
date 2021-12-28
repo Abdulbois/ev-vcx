@@ -1,5 +1,5 @@
-import * as ffi from 'ffi'
-import * as ref from 'ref'
+import * as ffi from 'ffi-napi'
+import * as ref from 'ref-napi'
 import { VCXInternalError } from '../errors'
 import { rustAPI } from '../rustlib'
 import { createFFICallbackPromise } from '../utils/ffi-helpers'
@@ -14,7 +14,8 @@ import { VCXBaseWithState } from './vcx-base-with-state'
  *   # States
  *
  *   The set of object states and transitions depends on communication method is used.
- *   The communication method can be specified as config option on one of *_init function. The default communication method us `proprietary`.
+ *   The communication method can be specified as config option on one of *_init function.
+ *   The default communication method us `proprietary`.
  *
  *   proprietary:
  *       Inviter:
@@ -23,7 +24,8 @@ import { VCXBaseWithState } from './vcx-base-with-state'
  *           VcxStateType::VcxStateOfferSent - once `vcx_connection_connect` (send Connection invite) is called.
  *
  *           VcxStateType::VcxStateAccepted - once `connReqAnswer` messages is received.
- *                                            use `vcx_connection_update_state` or `vcx_connection_update_state_with_message` functions for state updates.
+ *                                            use `vcx_connection_update_state` or
+ *                                            `vcx_connection_update_state_with_message` functions for state updates.
  *           VcxStateType::VcxStateNone - once `vcx_connection_delete_connection` (delete Connection object) is called.
  *
  *       Invitee:
@@ -195,7 +197,7 @@ export type IConnectionInvite = string
  *         "label": Optional<string>, - a string that the receiver may want to display to the user,
  *                                      likely about who sent the out-of-band message.
  *         "goal_code": Optional<string>, - a self-attested code the receiver may want to display to
- *                                          the user or use in automatically deciding what 
+ *                                          the user or use in automatically deciding what
  *                                          to do with the out-of-band message.
  *         "goal": Optional<string>, - a self-attested string that the receiver may want to display to the user
  *                                     about the context-specific goal of the out-of-band message.
@@ -223,7 +225,7 @@ export type IConnectionInvite = string
  *                 "routingKeys": [string],
  *                 "serviceEndpoint": string
  *             }
- *         ] - an item that is the equivalent of the service block of a DIDDoc 
+ *         ] - an item that is the equivalent of the service block of a DIDDoc
  *             that the receiver is to use in responding to the message.
  *     }
  */
@@ -354,6 +356,26 @@ export interface IConnectionInviteActionData {
   //     * at the time out outcome for the action is known - ["OUTCOME"]
   //     * both - ["ACCEPT", "OUTCOME"]
   ack_on?: [string],
+}
+
+/**
+ * @description Interface that represents the parameters for `Connection.upgrade` function.
+ * @interface
+ */
+export interface IConnectionUpgradeData {
+  // Upgrade information
+  //         {
+  //             "agency": {
+  //                 "endpoint": string - VAS public endpoint
+  //                 "did": string - VAS DID
+  //                 "verkey": string - VAS Verkey
+  //             },
+  //             "agent": {
+  //                 "did": string - Agent DID
+  //                 "verkey": string - Agent Verkey
+  //             },
+  //         }
+  data: string,
 }
 
 export function voidPtrToUint8Array (origPtr: any, length: number): Buffer {
@@ -841,7 +863,7 @@ export class Connection extends VCXBaseWithState<IConnectionData> {
   }
 
   /**
-   * Send discovery features message to the specified connection to discover 
+   * Send discovery features message to the specified connection to discover
    * which features it supports, and to what extent.
    *
    * Note that this function is useful in case `aries` communication method is used.
@@ -936,7 +958,7 @@ export class Connection extends VCXBaseWithState<IConnectionData> {
    *   }
    * }
    * await connection.sendAnswer(data)
-   * 
+   *
    * // committedanswer:
    * const data = {
    *   question: {
@@ -1258,5 +1280,83 @@ export class Connection extends VCXBaseWithState<IConnectionData> {
     } catch (err) {
       throw new VCXInternalError(err)
     }
+  }
+
+  /**
+   * Try to upgrade legacy Connection
+   *   1. Query Cloud Agent for upgrade information (if not provided)
+   *   2. Apply upgrade information if received
+   *
+   * If connection cannot be upgraded (Enterprise side has not upgraded connection yet) one of the errors may be returned:
+   *     - ConnectionNotReadyToUpgrade 1065
+   *     - NotReady 1005
+   *     - ActionNotSupported 1103
+   *     - InvalidAgencyResponse 1020
+   *
+   * data: (Optional) connection upgrade information to use instead of querying of Cloud Agent
+   *                 {
+   *                     theirAgencyEndpoint: string,
+   *                     theirAgencyVerkey: string,
+   *                     theirAgencyDid: string,
+   *                     direction: string, // one of `v1tov2` or `v2tov1`
+   *                 }
+   *
+   * return serialized representation of upgraded connection state object
+   */
+  public async upgrade (data?: string): Promise<string> {
+    try {
+      return await createFFICallbackPromise<string>(
+        (resolve, reject, cb) => {
+          const rc = rustAPI().vcx_connection_upgrade(0, this.handle, data, cb)
+          if (rc) {
+            reject(rc)
+          }
+        },
+        (resolve, reject) => ffi.Callback(
+          'void',
+          ['uint32', 'uint32', 'string'],
+          (xHandle: number, err: number, serialized: string) => {
+            if (err) {
+              reject(err)
+              return
+            }
+            resolve(serialized)
+          })
+      )
+    } catch (err) {
+      throw new VCXInternalError(err)
+    }
+  }
+}
+
+/**
+ * Check if connection is outdated and require upgrade
+ *
+ * serialized: serialized representation of connection state object
+ *
+ * return bool flag indicating upgrade requirement
+ */
+export async function needUpgrade (serialized: string): Promise<boolean> {
+  try {
+    return await createFFICallbackPromise<boolean>(
+      (resolve, reject, cb) => {
+        const rc = rustAPI().vcx_connection_need_upgrade(0, serialized, cb)
+        if (rc) {
+          reject(rc)
+        }
+      },
+      (resolve, reject) => ffi.Callback(
+        'void',
+        ['uint32', 'uint32', 'bool'],
+        (xHandle: number, err: number, valid: boolean) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(valid)
+        })
+    )
+  } catch (err) {
+    throw new VCXInternalError(err)
   }
 }

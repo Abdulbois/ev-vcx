@@ -169,12 +169,12 @@ class Connection(VcxStateful):
         c_source_id = c_char_p(source_id.encode('utf-8'))
         c_params = (c_source_id,)
 
-        return await Connection._create( "vcx_connection_create",
+        return await Connection._create("vcx_connection_create",
                                         constructor_params,
                                         c_params)
 
     @staticmethod
-    async def create_outofband(source_id: str, goal_code: Optional[str], goal: Optional[str], 
+    async def create_outofband(source_id: str, goal_code: Optional[str], goal: Optional[str],
                                handshake: bool, request_attach: Optional[str]):
         """
         Create a Connection object that provides an Out-of-Band Connection for an institution's user.
@@ -207,11 +207,11 @@ class Connection(VcxStateful):
         c_goal_code = c_char_p(goal_code.encode('utf-8')) if goal_code is not None else None
         c_goal = c_char_p(goal.encode('utf-8')) if goal is not None else None
         c_handshake = c_bool(handshake)
-        c_request_attach= c_char_p(request_attach.encode('utf-8')) if request_attach is not None else None
+        c_request_attach = c_char_p(request_attach.encode('utf-8')) if request_attach is not None else None
 
-        c_params = (c_source_id, c_goal_code, c_goal, c_handshake, c_request_attach, )
+        c_params = (c_source_id, c_goal_code, c_goal, c_handshake, c_request_attach,)
 
-        return await Connection._create( "vcx_connection_create_outofband",
+        return await Connection._create("vcx_connection_create_outofband",
                                         constructor_params,
                                         c_params)
 
@@ -245,9 +245,9 @@ class Connection(VcxStateful):
         c_source_id = c_char_p(source_id.encode('utf-8'))
         c_invite_details = c_char_p(invite_details.encode('utf-8'))
 
-        c_params = (c_source_id, c_invite_details, )
+        c_params = (c_source_id, c_invite_details,)
 
-        return await Connection._create( "vcx_connection_create_with_invite",
+        return await Connection._create("vcx_connection_create_with_invite",
                                         constructor_params,
                                         c_params)
 
@@ -255,7 +255,7 @@ class Connection(VcxStateful):
     async def accept_connection_invite(source_id: str, invite_details: str, connection_options: Optional[str] = None):
         """
         Accept connection for the given invitation.
-    
+
         This function performs the following actions:
         1. Creates Connection state object from the given invite_details
             (equal to `vcx_connection_create_with_invite` function).
@@ -312,17 +312,16 @@ class Connection(VcxStateful):
         c_connection_options = c_char_p(connection_options.encode('utf-8')) if connection_options is not None else None
 
         connection_handle, connection_serialized = await do_call('vcx_connection_accept_connection_invite',
-                                                                c_source_id,
-                                                                c_invite_details,
-                                                                c_connection_options,
-                                                                Connection.accept_connection_invite.cb)
+                                                                 c_source_id,
+                                                                 c_invite_details,
+                                                                 c_connection_options,
+                                                                 Connection.accept_connection_invite.cb)
 
         connection = Connection(source_id)
         connection.handle = connection_handle
         connection.serialized = json.loads(connection_serialized.decode())
 
         return connection
-
 
     @staticmethod
     async def create_with_outofband_invite(source_id: str, invite: str):
@@ -385,9 +384,9 @@ class Connection(VcxStateful):
         c_source_id = c_char_p(source_id.encode('utf-8'))
         c_invite = c_char_p(invite.encode('utf-8'))
 
-        c_params = (c_source_id, c_invite, )
+        c_params = (c_source_id, c_invite,)
 
-        return await Connection._create( "vcx_connection_create_with_outofband_invitation",
+        return await Connection._create("vcx_connection_create_with_outofband_invitation",
                                         constructor_params,
                                         c_params)
 
@@ -428,7 +427,7 @@ class Connection(VcxStateful):
                                                                              "agent_vk": string,
                                                                          }
                      }
-        
+
         Example options:
         {"connection_type":"SMS","phone":"5555555555","use_public_did":true}
         or:
@@ -537,7 +536,8 @@ class Connection(VcxStateful):
 
         if not hasattr(Connection.sign_data, "cb"):
             self.logger.debug("vcx_connection_sign_data: Creating callback")
-            Connection.sign_data.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, POINTER(c_uint8), c_uint32), transform_cb)
+            Connection.sign_data.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, POINTER(c_uint8), c_uint32),
+                                                transform_cb)
 
         c_connection_handle = c_uint32(self.handle)
         c_msg_len = c_uint32(len(msg))
@@ -698,7 +698,6 @@ class Connection(VcxStateful):
 
         return json.loads(details.decode())
 
-
     async def send_ping(self, comment: Optional[str] = None):
         """
         Send trust ping message to the specified connection to prove that two agents have a functional pairwise channel.
@@ -720,7 +719,6 @@ class Connection(VcxStateful):
                       c_connection_handle,
                       c_comment,
                       Connection.send_ping.cb)
-
 
     async def send_discovery_features(self, query: Optional[str] = None, comment: Optional[str] = None):
         """
@@ -747,12 +745,11 @@ class Connection(VcxStateful):
                       c_comment,
                       Connection.send_discovery_features.cb)
 
-
-    async def send_reuse(self, invite: str,):
+    async def send_reuse(self, invite: str, ):
         """
         Send a message to reuse existing Connection instead of setting up a new one
         as response on received Out-of-Band Invitation.
-    
+
         Note that this function works in case `aries` communication method is used.
             In other cases it returns ActionNotSupported error.
 
@@ -804,11 +801,10 @@ class Connection(VcxStateful):
                       c_invite,
                       Connection.send_reuse.cb)
 
-
-    async def send_answer(self, question: str, answer: str,):
+    async def send_answer(self, question: str, answer: str, ):
         """
         Send answer on received question message according to Aries question-answer or committedanswer protocols.
-    
+
         :param question: A JSON string representing Question received via pairwise connection.
            Aries question-answer:
                {
@@ -919,7 +915,7 @@ class Connection(VcxStateful):
 
         c_connection_handle = c_uint32(self.handle)
 
-        their_pw_did =\
+        their_pw_did = \
             await do_call('vcx_connection_get_their_pw_did', c_connection_handle, Connection.get_their_pw_did.cb)
         return their_pw_did.decode()
 
@@ -976,3 +972,62 @@ class Connection(VcxStateful):
 
         self.logger.debug("vcx_connection_get_problem_report completed")
         return result.decode() if result else None
+
+    async def need_upgrade(self, serialized: str) -> bool:
+        """
+        Check if connection is outdated and require upgrade
+
+        :param serialized: serialized representation of connection state object
+
+        :return: bool flag indicating upgrade requirement
+        """
+        if not hasattr(Connection.need_upgrade, "cb"):
+            self.logger.debug("need_upgrade: Creating callback")
+            Connection.need_upgrade.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_bool))
+
+        c_serialized = c_char_p(serialized.encode('utf-8'))
+
+        result = await do_call('vcx_connection_need_upgrade',
+                               c_serialized,
+                               Connection.need_upgrade.cb)
+
+        self.logger.debug("need_upgrade completed")
+        return result
+
+    async def upgrade(self, data: Optional[str] = None) -> str:
+        """
+        Try to upgrade legacy Connection
+          1. Query Cloud Agent for upgrade information (if not provided)
+          2. Apply upgrade information if received
+
+          data: (Optional) connection upgrade information to use instead of querying of Cloud Agent
+                           {
+                               theirAgencyEndpoint: string,
+                               theirAgencyVerkey: string,
+                               theirAgencyDid: string,
+                               direction: string, // one of `v1tov2` or `v2tov1`
+                           }
+
+          If connection cannot be upgraded (Enterprise side has not upgraded connection yet) one of the error may be returned:
+              - ConnectionNotReadyToUpgrade 1065
+              - NotReady 1005
+              - ActionNotSupported 1103
+              - InvalidAgencyResponse 1020
+
+        :return: serialized representation of upgraded connection state object
+        """
+
+        if not hasattr(Connection.upgrade, "cb"):
+            self.logger.debug("upgrade: Creating callback")
+            Connection.upgrade.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
+
+        c_connection_handle = c_uint32(self.handle)
+        c_data = c_char_p(data.encode('utf-8')) if data is not None else None
+
+        serialized = await do_call('vcx_connection_upgrade',
+                                   c_connection_handle,
+                                   c_data,
+                                   Connection.upgrade.cb)
+
+        self.logger.debug("upgrade completed")
+        return serialized.decode()

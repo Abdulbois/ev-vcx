@@ -13,7 +13,7 @@ public class DisclosedProofApiTest {
     private String sourceId = "123";
     private String name = "proof name";
     private String proofRequest = "{\"@topic\": {\"mid\": 9,\"tid\": 1},\"@type\": {\"name\": \"PROOF_REQUEST\",\"version\":\"1.0\"},\"msg_ref_id\": \"ymy5nth\",\"proof_request_data\": {\"name\": \"Account Certificate\", \"nonce\": \"838186471541979035208225\", \"requested_attributes\": { \"business_2\": { \"name\": \"business\" }, \"email_1\": { \"name\": \"email\" }, \"name_0\": { \"name\": \"name\" } }, \"requested_predicates\": {}, \"version\": \"0.1\" } }";
-    private String proposal = "{\"attributes\":[{\"name\":\"name\",\"value\":\"John Doe\"},{\"name\":\"email\",\"value\":\"johndoe@example.com\"}],\"predicates\":[]}";
+    private String proposal = "{\"@type\":\"https://didcomm.org/present-proof/1.0/presentation-preview\",\"attributes\":[{\"name\":\"name\",\"value\":\"John Doe\"},{\"name\":\"email\",\"value\":\"johndoe@example.com\"}],\"predicates\":[]}";
 
     @BeforeEach
     void setup() throws Exception {

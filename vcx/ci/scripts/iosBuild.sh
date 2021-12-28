@@ -14,14 +14,10 @@ setup_env() {
     export WRAPPER_BASE="vcx/wrappers/ios/vcx"
     export WRAPPER_LIBS="vcx/wrappers/ios/vcx/lib"
 
-    export INDY_BRANCH=$1
-    export INDY_VERSION=$2
-    export NULL_BRANCH=$3
-    export NULL_VERSION=$4
-    export SOVTOKEN_VER=$5
-    export SOVTOKEN_ZIP=$6
-    export RUST_VERSION=$7
-    export VCX_VERSION=$8
+    export VDRTOOLS_BRANCH=$1
+    export VDRTOOLS_VERSION=$2
+    export RUST_VERSION=$3
+    export VCX_VERSION=$4
 
     check_params
 
@@ -40,10 +36,9 @@ setup_env() {
 }
 
 check_params() {
-    if [ -z ${INDY_BRANCH} ] || [ -z ${INDY_VERSION} ] || [ -z ${NULL_BRANCH} ] || [ -z ${NULL_VERSION} ] \
-    || [ -z ${SOVTOKEN_VER} ] || [ -z ${SOVTOKEN_ZIP} ] || [ -z ${RUST_VERSION} ] || [ -z ${VCX_VERSION} ]; then
-        echo "missing parameters. Expected (INDY_BRANCH, INDY_VERSION, NULL_BRANCH, NULL_VERSION, SOVTOKEN_VER, SOVTOKEN_ZIP,
-        RUST_VERSION, VCX_VERSION)"
+    if [ -z ${VDRTOOLS_BRANCH} ] || [ -z ${VDRTOOLS_VERSION} ] \
+    || [ -z ${RUST_VERSION} ] || [ -z ${VCX_VERSION} ]; then
+        echo "missing parameters. Expected (INDY_BRANCH, INDY_VERSION, RUST_VERSION, VCX_VERSION)"
         exit 1
     fi
 }

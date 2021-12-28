@@ -1,30 +1,31 @@
-use crate::credential_def::CredentialDef;
-use crate::object_cache::Handle;
-use crate::connection::Connections;
 use std::mem::take;
 use std::collections::HashMap;
-use api::VcxStateType;
-use messages;
-use settings;
-use messages::{RemoteMessageType, MessageStatusCode, GeneralMessage};
-use messages::payload::{Payloads, PayloadKinds};
-use messages::thread::Thread;
-use messages::get_message::get_ref_msg;
-use utils::error;
-use utils::libindy::{payments, anoncreds};
-use utils::constants::CRED_MSG;
-use utils::openssl::encode;
-use utils::libindy::payments::PaymentTxn;
-use utils::qualifier;
-use object_cache::ObjectCache;
-use error::prelude::*;
 use std::convert::TryInto;
 
-use v3::handlers::issuance::Issuer;
-use utils::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
-use messages::issuance::credential_offer::CredentialOffer;
-use messages::issuance::credential::CredentialMessage;
-use messages::issuance::credential_request::CredentialRequest;
+use crate::credential_def::CredentialDef;
+use crate::utils::object_cache::Handle;
+use crate::connection::Connections;
+use crate::api::VcxStateType;
+use crate::{agent, aries};
+use crate::settings;
+use crate::agent::messages::{RemoteMessageType, MessageStatusCode, GeneralMessage};
+use crate::agent::messages::payload::{Payloads, PayloadKinds};
+use crate::aries::messages::thread::Thread;
+use crate::agent::messages::get_message::get_ref_msg;
+use crate::utils::error;
+use crate::utils::libindy::anoncreds;
+use crate::utils::constants::CRED_MSG;
+use crate::utils::openssl::encode;
+use crate::utils::libindy::payments::PaymentTxn;
+use crate::utils::qualifier;
+use crate::utils::object_cache::ObjectCache;
+use crate::error::prelude::*;
+use crate::aries::handlers::issuance::issuer::Issuer;
+use crate::agent::agent_info::{get_agent_info, MyAgentInfo, get_agent_attr};
+use crate::legacy::messages::issuance::credential_offer::CredentialOffer;
+use crate::legacy::messages::issuance::credential::CredentialMessage;
+use crate::legacy::messages::issuance::credential_request::CredentialRequest;
+use crate::utils::libindy::anoncreds::issuer::Issuer as LibindyIssuer;
 
 lazy_static! {
     static ref ISSUER_CREDENTIAL_MAP: ObjectCache<IssuerCredentials> = Default::default();
@@ -198,7 +199,7 @@ impl IssuerCredential {
         let payload = self.generate_credential_offer_msg()?;
 
         let response =
-            messages::send_message()
+            agent::messages::send_message()
                 .to(&agent_info.my_pw_did()?)?
                 .to_vk(&agent_info.my_pw_vk()?)?
                 .msg_type(&RemoteMessageType::CredOffer)?
@@ -270,7 +271,7 @@ impl IssuerCredential {
 
         self.thread.as_mut().map(|thread| thread.sender_order += 1);
 
-        let response = messages::send_message()
+        let response = agent::messages::send_message()
             .to(&agent_info.my_pw_did()?)?
             .to_vk(&agent_info.my_pw_vk()?)?
             .msg_type(&RemoteMessageType::Cred)?
@@ -317,7 +318,7 @@ impl IssuerCredential {
 
         let (payload, offer_uid) = match message {
             None => {
-                // Check cloud agent for pending messages
+                // Check cloud agent for pending agent
                 let (msg_id, message) = get_ref_msg(&self.msg_uid,
                                                     &get_agent_attr(&self.my_did)?,
                                                     &get_agent_attr(&self.my_vk)?,
@@ -393,11 +394,11 @@ impl IssuerCredential {
                                       format!("Invalid {} Issuer Credential object state: `credential_request` not found", self.source_id)))?;
 
         let (cred, cred_revoc_id, revoc_reg_delta_json) =
-            anoncreds::libindy_issuer_create_credential(&indy_cred_offer.libindy_offer,
-                                                        &indy_cred_req.libindy_cred_req,
-                                                        &credential_data,
-                                                        self.rev_reg_id.clone(),
-                                                        self.tails_file.clone())?;
+            LibindyIssuer::create_credential(&indy_cred_offer.libindy_offer,
+                                             &indy_cred_req.libindy_cred_req,
+                                             &credential_data,
+                                             self.rev_reg_id.as_deref(),
+                                             self.tails_file.as_deref())?;
 
         self.cred_rev_id = cred_revoc_id.clone();
 
@@ -431,7 +432,7 @@ impl IssuerCredential {
         debug!("IssuerCredential {}: Generating credential offer message", self.source_id);
 
         let attr_map = convert_to_map(&self.credential_attributes)?;
-        let libindy_offer = anoncreds::libindy_issuer_create_credential_offer(&self.cred_def_id)?;
+        let libindy_offer = LibindyIssuer::create_credential_offer(&self.cred_def_id)?;
 
         let my_did = self.my_did.clone().unwrap_or_default();
         let their_did = self.their_did.clone().unwrap_or_default();
@@ -479,9 +480,7 @@ impl IssuerCredential {
             .as_ref()
             .ok_or(VcxError::from_msg(VcxErrorKind::InvalidRevocationDetails, "Invalid RevocationInfo: `cred_rev_id` not found"))?;
 
-        let (payment, _) = anoncreds::revoke_credential(tails_file, rev_reg_id, cred_rev_id)?;
-
-        self.rev_cred_payment_txn = payment;
+        LibindyIssuer::revoke_credential(tails_file, rev_reg_id, cred_rev_id)?;
 
         trace!("IssuerCredential::revoke_cred <<<");
 
@@ -490,7 +489,7 @@ impl IssuerCredential {
 
     fn generate_payment_info(&mut self) -> VcxResult<Option<PaymentInfo>> {
         if self.price > 0 {
-            let address: String = ::utils::libindy::payments::create_address(None)?;
+            let address: String = crate::utils::libindy::payments::create_address(None)?;
             self.payment_address = Some(address.clone());
             Ok(Some(PaymentInfo {
                 payment_required: "one-time".to_string(),
@@ -504,12 +503,7 @@ impl IssuerCredential {
 
     fn verify_payment(&mut self) -> VcxResult<()> {
         if self.price > 0 {
-            let invoice_address = self.payment_address.as_ref()
-                .ok_or(VcxError::from(VcxErrorKind::InvalidPaymentAddress))?;
-
-            let address = payments::get_address_info(&invoice_address)?;
-
-            if address.balance < self.price { return Err(VcxError::from(VcxErrorKind::InsufficientTokenAmount)); }
+            return Err(VcxError::from(VcxErrorKind::ActionNotSupported));
         }
         Ok(())
     }
@@ -633,11 +627,11 @@ pub fn issuer_credential_create(cred_def_handle: Handle<CredentialDef>,
            cred_def_handle, source_id, secret!(issuer_did), secret!(credential_name), secret!(&credential_data), price);
     debug!("creating issuer credential {} state object", source_id);
 
-//    // Initiate connection of new format -- redirect to v3 folder
-//    if settings::is_aries_protocol_set() {
-//        let issuer = v3::handlers::issuance::Issuer::create(cred_def_handle, &credential_data, &source_id)?;
-//        return ISSUER_CREDENTIAL_MAP.add(IssuerCredentials::V3(issuer));
-//    }
+    // Initiate connection of new format -- redirect to aries folder
+    if settings::is_strict_aries_protocol_set() {
+        let issuer = aries::handlers::issuance::issuer::Issuer::create(cred_def_handle, &credential_data, &source_id, &credential_name)?;
+        return ISSUER_CREDENTIAL_MAP.add(IssuerCredentials::V3(issuer));
+    }
 
     let issuer_credential = IssuerCredential::create(cred_def_handle, source_id, issuer_did, credential_name, credential_data, price)?;
 
@@ -728,22 +722,31 @@ impl Handle<IssuerCredentials> {
             match obj {
                 IssuerCredentials::Pending(obj) => obj.generate_credential_offer_msg(),
                 IssuerCredentials::V1(obj) => obj.generate_credential_offer_msg(),
-                IssuerCredentials::V3(obj) =>  {
+                IssuerCredentials::V3(obj) => {
                     let cred_offer = obj.get_credential_offer()?;
-                    let cred_offer: CredentialOffer = cred_offer.try_into()?;
-                    let cred_offer = json!(vec![cred_offer]).to_string();
-                    return Ok(cred_offer);
-                },
+
+                    // strict aries protocol is set. Return aries formatted Credential Offers
+                    if settings::is_strict_aries_protocol_set() {
+                        return Ok(json!(cred_offer).to_string());
+                    }
+
+                    let cred_offer: CredentialOffer = cred_offer.clone().try_into()?;
+                    let cred_offer = json!({
+                        "credential_offer": cred_offer
+                    });
+                    return Ok(cred_offer.to_string());
+                }
             }
         }).map_err(handle_err)
     }
+
 
     pub fn send_credential_offer(self, connection_handle: Handle<Connections>) -> VcxResult<u32> {
         ISSUER_CREDENTIAL_MAP.get_mut(self, |credential| {
             let new_credential = match credential {
                 IssuerCredentials::Pending(obj) => {
                     // if Aries connection is established --> Convert Pending object to Aries credential
-                    if connection_handle.is_v3_connection()? {
+                    if connection_handle.is_aries_connection()? {
                         debug!("converting pending issuer credential into aries object");
                         let mut issuer = Issuer::create_from_data(
                             &obj.cred_def_id,
@@ -827,7 +830,7 @@ impl Handle<IssuerCredentials> {
             match obj {
                 IssuerCredentials::Pending(obj) => Ok(obj.get_source_id().to_string()),
                 IssuerCredentials::V1(obj) => Ok(obj.get_source_id().to_string()),
-                IssuerCredentials::V3(obj) => obj.get_source_id()
+                IssuerCredentials::V3(obj) => Ok(obj.get_source_id()?.to_string())
             }
         }).map_err(handle_err)
     }
@@ -870,22 +873,22 @@ pub fn from_string(credential_data: &str) -> VcxResult<Handle<IssuerCredentials>
 pub mod tests {
     use super::*;
     use serde_json::Value;
-    use settings;
-    use connection::tests::build_test_connection;
-    use messages::issuance::credential_request::CredentialRequest;
+    use crate::settings;
+    use crate::connection::tests::build_test_connection;
     #[allow(unused_imports)]
-    use utils::{constants::*,
-                libindy::{LibindyMock,
-                          anoncreds::{libindy_create_and_store_credential_def,
-                                      libindy_issuer_create_credential_offer,
-                                      libindy_prover_create_credential_req},
-                          wallet::get_wallet_handle, wallet},
-                get_temp_dir_path,
+    use crate::utils::{constants::*,
+                       libindy::{
+                           anoncreds::issuer::Issuer as IndyIssuer,
+                           LibindyMock,
+                           wallet::get_wallet_handle,
+                           wallet,
+                       },
+                       get_temp_dir_path,
     };
-    use utils::devsetup::*;
-    use utils::httpclient::AgencyMock;
-    use credential_def::tests::create_cred_def_fake;
-    use messages::issuance::credential_offer::parse_json_offer;
+    use crate::utils::devsetup::*;
+    use crate::utils::httpclient::AgencyMock;
+    use crate::credential_def::tests::create_cred_def_fake;
+    use crate::legacy::messages::issuance::credential_offer::parse_json_offer;
 
     static DEFAULT_CREDENTIAL_NAME: &str = "Credential";
     static DEFAULT_CREDENTIAL_ID: &str = "defaultCredentialId";
@@ -901,9 +904,7 @@ pub mod tests {
     pub fn util_put_credential_def_in_issuer_wallet(_schema_seq_num: u32, _wallet_handle: i32) {
         let issuer_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
         let tag = "test_tag";
-        let config = "{support_revocation: false}";
-
-        libindy_create_and_store_credential_def(&issuer_did, SCHEMAS_JSON, tag, None, config).unwrap();
+        IndyIssuer::create_and_store_credential_def(&issuer_did, SCHEMAS_JSON, tag, None, None).unwrap();
     }
 
     fn default_agent_info(connection_handle: Option<Handle<Connections>>) -> MyAgentInfo {
@@ -938,7 +939,7 @@ pub mod tests {
             credential_offer: Some(credential_offer.to_owned()),
             credential_id: String::from(DEFAULT_CREDENTIAL_ID),
             price: 1,
-            payment_address: Some(payments::build_test_address("9UFgyjuJxi1i1HD")),
+            payment_address: None,
             ref_msg_id: None,
             rev_reg_id: None,
             tails_file: None,
@@ -967,7 +968,7 @@ pub mod tests {
     pub fn create_pending_issuer_credential() -> IssuerCredential {
         let credential_req: CredentialRequest = serde_json::from_str(CREDENTIAL_REQ_STRING).unwrap();
         let (credential_offer, _) = parse_json_offer(CREDENTIAL_OFFER_JSON).unwrap();
-        let connection_handle = Some(::connection::tests::build_test_connection());
+        let connection_handle = Some(crate::connection::tests::build_test_connection());
         let mut credential: IssuerCredential = IssuerCredential {
             source_id: "test_has_pending_credential_request".to_owned(),
             schema_seq_no: 32,
@@ -1002,9 +1003,9 @@ pub mod tests {
         credential
     }
 
-    pub fn create_full_issuer_credential() -> (IssuerCredential, ::credential::Credential) {
+    pub fn create_full_issuer_credential() -> (IssuerCredential, crate::credential::Credential) {
         let issuer_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-        let (_, cred_def_handle) = ::credential_def::tests::create_cred_def_real(true);
+        let (_, cred_def_handle) = crate::credential_def::tests::create_cred_def_real(true);
         let cred_def_id = cred_def_handle.get_cred_def_id().unwrap();
         let rev_reg_id = cred_def_handle.get_rev_reg_id().unwrap();
         let tails_file = cred_def_handle.get_tails_file().unwrap();
@@ -1055,7 +1056,7 @@ pub mod tests {
         let payload = serde_json::to_string(&payload).unwrap();
 
         issuer_credential.credential_offer = Some(issuer_credential.generate_credential_offer().unwrap());
-        let credential = ::credential::tests::create_credential(&payload);
+        let credential = crate::credential::tests::create_credential(&payload);
         issuer_credential.credential_request = Some(credential.build_credential_request(&issuer_credential.issuer_did, &their_did).unwrap());
         (issuer_credential, credential)
     }
@@ -1106,51 +1107,6 @@ pub mod tests {
 
         let _issuer = create_full_issuer_credential().0
             .generate_credential_offer().unwrap();
-    }
-
-    #[test]
-    fn test_retry_send_credential_offer() {
-        let _setup = SetupMocks::init();
-
-        let connection_handle = build_test_connection();
-
-        let handle = _issuer_credential_create();
-        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateInitialized as u32);
-
-        LibindyMock::set_next_result(error::TIMEOUT_LIBINDY_ERROR.code_num);
-
-        let res = handle.send_credential_offer(connection_handle).unwrap_err();
-        assert_eq!(res.kind(), VcxErrorKind::InvalidState);
-        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateInitialized as u32);
-        assert_eq!(handle.get_offer_uid().unwrap(), "");
-
-        // Can retry after initial failure
-        assert_eq!(handle.send_credential_offer(connection_handle).unwrap(), error::SUCCESS.code_num);
-        assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateOfferSent as u32);
-        assert_eq!(handle.get_offer_uid().unwrap(), "ntc2ytb");
-    }
-
-    #[test]
-    fn test_credential_can_be_resent_after_failure() {
-        let _setup = SetupMocks::init();
-
-        settings::set_config_value(settings::CONFIG_INSTITUTION_DID, "QTrbV4raAcND4DWWzBmdsh");
-
-        let mut credential = create_standard_issuer_credential(None);
-        credential.state = VcxStateType::VcxStateRequestReceived;
-
-        let connection_handle = build_test_connection();
-
-        LibindyMock::set_next_result(error::TIMEOUT_LIBINDY_ERROR.code_num);
-
-        assert_eq!(credential.send_credential(connection_handle).unwrap_err().kind(), VcxErrorKind::Common(1038));
-        assert_eq!(credential.msg_uid, "1234");
-        assert_eq!(credential.state, VcxStateType::VcxStateRequestReceived);
-
-        // Retry sending the credential, use the mocked http. Show that you can retry sending the credential
-        credential.send_credential(connection_handle).unwrap();
-        assert_eq!(credential.msg_uid, "ntc2ytb");
-        assert_eq!(credential.state, VcxStateType::VcxStateAccepted);
     }
 
     #[test]
@@ -1225,19 +1181,6 @@ pub mod tests {
     }
 
     #[test]
-    fn test_that_test_mode_enabled_bypasses_libindy_create_credential() {
-        let _setup = SetupMocks::init();
-
-        let mut credential = create_standard_issuer_credential(None);
-        credential.state = VcxStateType::VcxStateRequestReceived;
-
-        let connection_handle = build_test_connection();
-
-        credential.send_credential(connection_handle).unwrap();
-        assert_eq!(credential.state, VcxStateType::VcxStateAccepted);
-    }
-
-    #[test]
     fn test_release_all() {
         let _setup = SetupMocks::init();
 
@@ -1266,7 +1209,7 @@ pub mod tests {
     fn test_encoding() {
         let _setup = SetupMocks::init();
 
-        let issuer_credential_handle = issuer_credential_create(::credential_def::tests::create_cred_def_fake(),
+        let issuer_credential_handle = issuer_credential_create(crate::credential_def::tests::create_cred_def_fake(),
                                                                 "IssuerCredentialName".to_string(),
                                                                 "000000000000000000000000Issuer02".to_string(),
                                                                 "CredentialNameHere".to_string(),
@@ -1274,7 +1217,7 @@ pub mod tests {
                                                                 1).unwrap();
         issuer_credential_handle.get_encoded_attributes().unwrap_err();
 
-        let issuer_credential_handle = issuer_credential_create(::credential_def::tests::create_cred_def_fake(),
+        let issuer_credential_handle = issuer_credential_create(crate::credential_def::tests::create_cred_def_fake(),
                                                                 "IssuerCredentialName".to_string(),
                                                                 "000000000000000000000000Issuer02".to_string(),
                                                                 "CredentialNameHere".to_string(),
@@ -1282,50 +1225,6 @@ pub mod tests {
                                                                 1).unwrap();
 
         let _encoded_attributes = issuer_credential_handle.get_encoded_attributes().unwrap();
-    }
-
-    #[test]
-    fn test_verify_payment() {
-        let _setup = SetupMocks::init();
-
-        let mut credential = create_standard_issuer_credential(None);
-
-        // Success
-        credential.price = 3;
-        credential.payment_address = Some(payments::build_test_address("9UFgyjuJxi1i1HD"));
-        assert!(credential.verify_payment().is_ok());
-
-        // Err - Wrong payment amount
-        credential.price = 200;
-        assert_eq!(credential.verify_payment().unwrap_err().kind(), VcxErrorKind::InsufficientTokenAmount);
-
-        // Err - address not set
-        credential.payment_address = None;
-        assert_eq!(credential.verify_payment().unwrap_err().kind(), VcxErrorKind::InvalidPaymentAddress);
-    }
-
-    #[test]
-    fn test_send_credential_with_payments() {
-        let _setup = SetupMocks::init();
-
-        let mut credential = create_standard_issuer_credential(None);
-        credential.state = VcxStateType::VcxStateRequestReceived;
-        credential.price = 3;
-        credential.payment_address = Some(payments::build_test_address("9UFgyjuJxi1i1HD"));
-
-        let connection_handle = build_test_connection();
-
-        // Success
-        credential.send_credential(connection_handle).unwrap();
-        assert_eq!(credential.msg_uid, "ntc2ytb");
-        assert_eq!(credential.state, VcxStateType::VcxStateAccepted);
-
-        // Amount wrong
-        credential.state = VcxStateType::VcxStateRequestReceived;
-        credential.price = 200;
-        assert!(credential.send_credential(connection_handle).is_err());
-        let payment = serde_json::to_string(&credential.get_payment_txn().unwrap()).unwrap();
-        assert!(payment.len() > 20);
     }
 
     #[test]
@@ -1350,10 +1249,8 @@ pub mod tests {
         credential.tails_file = Some(get_temp_dir_path(TEST_TAILS_FILE).to_str().unwrap().to_string());
         credential.cred_rev_id = Some(CRED_REV_ID.to_string());
         credential.rev_reg_id = Some(REV_REG_ID.to_string());
-        credential.rev_cred_payment_txn = None;
 
         credential.revoke_cred().unwrap();
-        assert!(credential.rev_cred_payment_txn.is_some());
     }
 
 

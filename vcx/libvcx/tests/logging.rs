@@ -1,11 +1,8 @@
-extern crate vcx;
 extern crate indyrs as indy;
-extern crate libc;
 #[macro_use]
 extern crate log;
-extern crate futures;
 
-use self::libc::{c_void, c_char};
+use libc::{c_void, c_char};
 use std::ptr::null;
 use vcx::api::logger::*;
 use vcx::utils::logger::{LOGGER_STATE, LoggerState};
@@ -21,7 +18,7 @@ use vcx::api::logger::vcx_set_logger;
 mod log_tests {
     use super::*;
     use vcx::api::vcx::vcx_error_c_message;
-    use indy::future::Future;
+    use crate::indy::future::Future;
 
     static mut COUNT: u32 = 0;
     const DEBUG: *const c_char = "debug\0".as_ptr().cast();

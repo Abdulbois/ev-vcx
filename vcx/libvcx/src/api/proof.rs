@@ -1,12 +1,12 @@
 use libc::c_char;
-use utils::cstring::CStringUtils;
-use utils::error;
-use crate::object_cache::Handle;
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
+use crate::utils::object_cache::Handle;
 use crate::proof::Proofs;
 use crate::proof;
 use std::ptr;
-use utils::threadpool::spawn;
-use error::prelude::*;
+use crate::utils::threadpool::spawn;
+use crate::error::prelude::*;
 use indy_sys::CommandHandle;
 
 use crate::connection::Connections;
@@ -17,7 +17,7 @@ use crate::connection::Connections;
 
     # State
 
-    The set of object states, messages and transitions depends on the communication method is used.
+    The set of object states, agent and transitions depends on the communication method is used.
     There are two communication methods: `proprietary` and `aries`. The default communication method is `proprietary`.
     The communication method can be specified as a config option on one of *_init functions.
 
@@ -26,7 +26,7 @@ use crate::connection::Connections;
 
         VcxStateType::VcxStateOfferSent - once `vcx_credential_send_request` (send `PROOF_REQ` message) is called.
 
-        VcxStateType::VcxStateAccepted - once `PROOF` messages is received.
+        VcxStateType::VcxStateAccepted - once `PROOF` agent is received.
                                          use `vcx_proof_update_state` or `vcx_proof_update_state_with_message` functions for state updates.
 
     aries:
@@ -34,9 +34,9 @@ use crate::connection::Connections;
 
         VcxStateType::VcxStateOfferSent - once `vcx_credential_send_request` (send `PresentationRequest` message) is called.
 
-        VcxStateType::VcxStateAccepted - once `Presentation` messages is received.
-        VcxStateType::VcxStateRejected - once `ProblemReport` messages is received.
-        VcxStateType::None - once `PresentationProposal` messages is received.
+        VcxStateType::VcxStateAccepted - once `Presentation` agent is received.
+        VcxStateType::VcxStateRejected - once `ProblemReport` agent is received.
+        VcxStateType::None - once `PresentationProposal` agent is received.
         VcxStateType::None - on `Presentation` validation failed.
                                                 use `vcx_proof_update_state` or `vcx_proof_update_state_with_message` functions for state updates.
 
@@ -251,8 +251,8 @@ pub extern fn vcx_proof_create_with_proposal(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Query the agency for the received messages.
-/// Checks for any messages changing state in the object and updates the state attribute.
+/// Query the agency for the received agent.
+/// Checks for any agent changing state in the object and updates the state attribute.
 ///
 /// #Params
 /// command_handle: command handle to map callback to user context.
@@ -499,9 +499,10 @@ pub extern fn vcx_proof_release(proof_handle: Handle<Proofs>) -> u32 {
                 trace!("vcx_proof_release(proof_handle: {}, rc: {})",
                        proof_handle, error::SUCCESS.as_str());
             }
-            Err(e) => {
-                warn!("vcx_proof_release(proof_handle: {}), rc: {})",
-                      proof_handle, e);
+            Err(_e) => {
+                // FIXME logging here results in panic while python tests
+                // warn!("vcx_proof_release(proof_handle: {}), rc: {})",
+                //       proof_handle, e);
             }
         };
         Ok(())
@@ -982,11 +983,11 @@ mod tests {
     use super::*;
     use std::ffi::CString;
     use std::ptr;
-    use proof;
-    use api::{ProofStateType, return_types, VcxStateType};
-    use utils::constants::*;
-    use utils::devsetup::*;
-    use connection::tests::build_test_connection;
+    use crate::proof;
+    use crate::api::{ProofStateType, return_types, VcxStateType};
+    use crate::utils::constants::*;
+    use crate::utils::devsetup::*;
+    use crate::connection::tests::build_test_connection;
     use crate::disclosed_proof;
 
     const REV_INT: *const c_char = concat!(r#"{"support_revocation":false}"#, "\0").as_ptr().cast();

@@ -26,52 +26,6 @@ SEARCHED_RECORD = {
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('vcx_init_test_mode')
-async def test_get_token_info():
-    info = await Wallet.get_token_info(0)
-    assert info
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures('vcx_init_test_mode')
-async def test_send_tokens():
-    receipt = await Wallet.send_tokens(0,1,"address")
-    assert receipt
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures('vcx_init_test_mode')
-async def test_create_payment_address():
-    address = await Wallet.create_payment_address()
-    assert address
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures('vcx_init_test_mode')
-async def test_create_payment_address_with_seed():
-    address = await Wallet.create_payment_address("0000000000000000000000WHATEVER00")
-    assert address
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures('vcx_init_test_mode')
-async def test_sign_with_address():
-    sig = await Wallet.sign_with_address("pay:null:test", "test_data")
-    assert sig
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures('vcx_init_test_mode')
-async def test_verify_with_address():
-    valid = await Wallet.verify_with_address("pay:null:test", "test_data", "test_sig")
-    assert valid
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures('vcx_init_test_mode')
-async def test_validate_payment_address():
-    await Wallet.validate_payment_address('sov:1:1234')
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures('vcx_init_test_mode')
 async def test_wallet_storage():
     await Wallet.add_record(TYPE, ID, VALUE, TAGS)
 
@@ -91,7 +45,7 @@ async def test_wallet_storage():
 
 @pytest.mark.asyncio
 async def test_wallet_search():
-    search_handle = await Wallet.open_search(TYPE, QUERY_JSON, None)
+    search_handle = await Wallet.open_search(TYPE, QUERY_JSON, "{}")
     assert (search_handle == 1)
     searched_record = await Wallet.search_next_records(search_handle, 1)
     assert (json.loads(searched_record) == SEARCHED_RECORD)

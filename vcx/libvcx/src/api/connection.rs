@@ -1,14 +1,14 @@
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 use crate::connection::Connections;
 use libc::c_char;
-use utils::cstring::CStringUtils;
-use utils::error;
-use utils::threadpool::spawn;
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
+use crate::utils::threadpool::spawn;
 use std::ptr;
-use connection::*;
-use error::prelude::*;
+use crate::connection::*;
+use crate::error::prelude::*;
 use indy_sys::CommandHandle;
-use v3::messages::invite_action::invite::InviteActionData;
+use crate::aries::messages::invite_action::invite::InviteActionData;
 
 /*
     Tha API represents a pairwise connection with another identity owner.
@@ -17,7 +17,7 @@ use v3::messages::invite_action::invite::InviteActionData;
 
     # States
 
-    The set of object states, messages and transitions depends on the communication method is used.
+    The set of object states, agent and transitions depends on the communication method is used.
     There are two communication methods: `proprietary` and `aries`. The default communication method is `proprietary`.
     The communication method can be specified as a config option on one of *_init functions.
 
@@ -27,7 +27,7 @@ use v3::messages::invite_action::invite::InviteActionData;
 
             VcxStateType::VcxStateOfferSent - once `vcx_connection_connect` (send Connection invite) is called.
 
-            VcxStateType::VcxStateAccepted - once `connReqAnswer` messages is received.
+            VcxStateType::VcxStateAccepted - once `connReqAnswer` agent is received.
                                              use `vcx_connection_update_state` or `vcx_connection_update_state_with_message` functions for state updates.
             VcxStateType::VcxStateNone - once `vcx_connection_delete_connection` (delete Connection object) is called.
 
@@ -45,17 +45,17 @@ use v3::messages::invite_action::invite::InviteActionData;
 
             VcxStateType::VcxStateOfferSent - once `vcx_connection_connect` (prepared Connection invite) is called.
 
-            VcxStateType::VcxStateRequestReceived - once `ConnectionRequest` messages is received.
+            VcxStateType::VcxStateRequestReceived - once `ConnectionRequest` agent is received.
                                                     accept `ConnectionRequest` and send `ConnectionResponse` message.
                                                     use `vcx_connection_update_state` or `vcx_connection_update_state_with_message` functions for state updates.
 
-            VcxStateType::VcxStateAccepted - 1) once `Ack` messages is received.
+            VcxStateType::VcxStateAccepted - 1) once `Ack` agent is received.
                                                 use `vcx_connection_update_state` or `vcx_connection_update_state_with_message` functions for state updates.
                                              2) once `vcx_connection_connect` is called for Outoband Connection created with `handshake:false`.
 
             VcxStateType::VcxStateNone - once `vcx_connection_delete_connection` (delete Connection object) is called
                                             OR
-                                        `ConnectionProblemReport` messages is received on state updates.
+                                        `ConnectionProblemReport` agent is received on state updates.
 
         Invitee:
             VcxStateType::VcxStateOfferSent - 1) once `vcx_connection_create_with_invite` (create Connection object with invite) is called.
@@ -64,7 +64,7 @@ use v3::messages::invite_action::invite::InviteActionData;
 
             VcxStateType::VcxStateRequestReceived - once `vcx_connection_connect` (accept `ConnectionInvite` and send `ConnectionRequest` message) is called.
 
-            VcxStateType::VcxStateAccepted - 1) once `ConnectionResponse` messages is received.
+            VcxStateType::VcxStateAccepted - 1) once `ConnectionResponse` agent is received.
                                                 send `Ack` message if requested.
                                                 use `vcx_connection_update_state` or `vcx_connection_update_state_with_message` functions for state updates.
                                              2) once `vcx_connection_create_with_outofband_invitation`
@@ -72,7 +72,7 @@ use v3::messages::invite_action::invite::InviteActionData;
 
             VcxStateType::VcxStateNone - once `vcx_connection_delete_connection` (delete Connection object) is called
                                             OR
-                                        `ConnectionProblemReport` messages is received on state updates.
+                                        `ConnectionProblemReport` agent is received on state updates.
 
     # Transitions
 
@@ -295,7 +295,7 @@ pub extern fn vcx_connection_create_with_invite(command_handle: CommandHandle,
 /// NOTE: this method is EXPERIMENTAL
 ///
 /// WARN: `request_attach` field is not fully supported in the current library state.
-///        You can use simple messages like Question but it cannot be used
+///        You can use simple agent like Question but it cannot be used
 ///         for Credential Issuance and Credential Presentation.
 ///
 /// # Params
@@ -405,7 +405,7 @@ pub extern fn vcx_connection_create_outofband(command_handle: CommandHandle,
 ///                     "json": "<json of protocol message>"
 ///                 }
 ///             }
-///         ]>, - an attachment decorator containing an array of request messages in order of preference that the receiver can using in responding to the message.
+///         ]>, - an attachment decorator containing an array of request agent in order of preference that the receiver can using in responding to the message.
 ///               One or both of handshake_protocols and request~attach MUST be included in the message.
 ///         "service": [
 ///             {
@@ -818,8 +818,8 @@ pub extern fn vcx_connection_deserialize(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
-/// Query the agency for the received messages.
-/// Checks for any messages changing state in the connection and updates the state attribute.
+/// Query the agency for the received agent.
+/// Checks for any agent changing state in the connection and updates the state attribute.
 ///
 /// #Params
 /// command_handle: command handle to map callback to user context.
@@ -1194,12 +1194,12 @@ pub extern fn vcx_connection_sign_data(command_handle: CommandHandle,
     };
 
     spawn(move || {
-        match ::utils::libindy::crypto::sign(&vk, &data_raw) {
+        match crate::utils::libindy::crypto::sign(&vk, &data_raw) {
             Ok(x) => {
                 trace!("vcx_connection_sign_data_cb(command_handle: {}, connection_handle: {}, rc: {}, signature: {:?})",
                        command_handle, connection_handle, error::SUCCESS.as_str(), x);
 
-                let (signature_raw, signature_len) = ::utils::cstring::vec_to_pointer(&x);
+                let (signature_raw, signature_len) = crate::utils::cstring::vec_to_pointer(&x);
                 cb(command_handle, error::SUCCESS.code_num, signature_raw, signature_len);
             }
             Err(e) => {
@@ -1268,7 +1268,7 @@ pub extern fn vcx_connection_verify_signature(command_handle: CommandHandle,
     };
 
     spawn(move || {
-        match ::utils::libindy::crypto::verify(&vk, &data_raw, &signature_raw) {
+        match crate::utils::libindy::crypto::verify(&vk, &data_raw, &signature_raw) {
             Ok(x) => {
                 trace!("vcx_connection_verify_signature_cb(command_handle: {}, rc: {}, valid: {})",
                        command_handle, error::SUCCESS.as_str(), x);
@@ -1306,9 +1306,10 @@ pub extern fn vcx_connection_release(connection_handle: Handle<Connections>) -> 
                 trace!("vcx_connection_release(connection_handle: {}, rc: {})",
                        connection_handle, error::SUCCESS.as_str());
             }
-            Err(e) => {
-                warn!("vcx_connection_release(connection_handle: {}), rc: {})",
-                      connection_handle, e);
+            Err(_e) => {
+                // FIXME logging here results in panic while python tests
+                // warn!("vcx_connection_release(connection_handle: {}), rc: {})",
+                //       connection_handle, e);
             }
         };
         Ok(())
@@ -1416,7 +1417,7 @@ pub extern fn vcx_connection_send_discovery_features(command_handle: u32,
 ///                     "json": "<json of protocol message>"
 ///                 }
 ///             }
-///         ]>, - an attachment decorator containing an array of request messages in order of preference that the receiver can using in responding to the message.
+///         ]>, - an attachment decorator containing an array of request agent in order of preference that the receiver can using in responding to the message.
 ///               One or both of handshake_protocols and request~attach MUST be included in the message.
 ///         "service": [
 ///             {
@@ -1827,20 +1828,133 @@ pub extern fn vcx_connection_get_problem_report(command_handle: CommandHandle,
     error::SUCCESS.code_num
 }
 
+/// Check if connection is outdated and require upgrade
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// serialized: serialized representation of connection state object
+///
+///
+/// cb: Callback that returns bool flag indicating upgrade requirement
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_connection_need_upgrade(command_handle: CommandHandle,
+                                          serialized: *const c_char,
+                                          cb: Option<extern fn(command_handle_: CommandHandle,
+                                                               err: u32,
+                                                               valid: bool)>) -> u32 {
+    info!("vcx_connection_need_upgrade >>>");
+
+    check_useful_c_str!(serialized, VcxErrorKind::InvalidOption);
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_connection_need_upgrade(command_handle: {}, serialized: {})",
+           command_handle, secret!(serialized));
+
+    spawn(move || {
+        match Connection::need_upgrade(&serialized) {
+            Ok(need_upgrade) => {
+                trace!("vcx_connection_need_upgrade_cb(command_handle: {}, rc: {}, need_upgrade: {})",
+                       command_handle, error::SUCCESS.as_str(), need_upgrade);
+
+                cb(command_handle, error::SUCCESS.code_num, need_upgrade);
+            }
+            Err(e) => {
+                warn!("vcx_connection_need_upgrade_cb(command_handle: {}, rc: {}, need_upgrade: {})",
+                      command_handle, e, false);
+
+                cb(command_handle, e.into(), false);
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
+/// Try to upgrade legacy Connection
+///   1. Query Cloud Agent for upgrade information (if not provided)
+///   2. Apply upgrade information if received
+///
+/// If connection cannot be upgraded (Enterprise side has not upgraded connection yet) one of the errors may be returned:
+///     - ConnectionNotReadyToUpgrade 1065
+///     - NotReady 1005
+///     - ActionNotSupported 1103
+///     - InvalidAgencyResponse 1020
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// connection_handle: handle pointing to Connection state object.
+///
+/// data: (Optional) connection upgrade information to use instead of querying of Cloud Agent
+///                 {
+///                     theirAgencyEndpoint: string,
+///                     theirAgencyVerkey: string,
+///                     theirAgencyDid: string,
+///                     direction: string, // one of `v1tov2` or `v2tov1`
+///                 }
+///
+/// cb: Callback that returns serialized representation of upgraded connection state object (handle kept the same)
+///
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_connection_upgrade(command_handle: CommandHandle,
+                                     connection_handle: Handle<Connections>,
+                                     data: *const c_char,
+                                     cb: Option<extern fn(xcommand_handle: CommandHandle,
+                                                          err: u32,
+                                                          serialized: *const c_char)>) -> u32 {
+    info!("vcx_connection_upgrade >>>");
+
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+    check_useful_opt_c_str!(data, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_connection_upgrade(command_handle: {}, connection_handle: {}, data: {:?})",
+           command_handle, connection_handle, data);
+
+    spawn(move || {
+        match connection_handle.upgrade(data) {
+            Ok(serialized) => {
+                trace!("vcx_connection_upgrade_cb(command_handle: {}, rc: {}, serialized: {})",
+                       command_handle, error::SUCCESS.as_str(), secret!(serialized));
+                let serialized = CStringUtils::string_to_cstring(serialized);
+                cb(command_handle, error::SUCCESS.code_num, serialized.as_ptr());
+            }
+            Err(x) => {
+                error!("vcx_connection_upgrade_cb(command_handle: {}, rc: {})",
+                       command_handle, x);
+                cb(command_handle, x.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::ffi::CString;
     use std::ptr;
-    use connection::tests::build_test_connection;
-    use utils::error;
-    use api::{return_types, VcxStateType};
-    use utils::constants::{GET_MESSAGES_RESPONSE, INVITE_ACCEPTED_RESPONSE};
-    use utils::error::SUCCESS;
-    use utils::devsetup::*;
-    use utils::httpclient::AgencyMock;
+    use crate::connection::tests::build_test_connection;
+    use crate::utils::error;
+    use crate::api::{return_types, VcxStateType};
+    use crate::utils::constants::{GET_MESSAGES_RESPONSE, INVITE_ACCEPTED_RESPONSE};
+    use crate::utils::error::SUCCESS;
+    use crate::utils::devsetup::*;
+    use crate::utils::httpclient::AgencyMock;
 
     const EMPTY_JSON: *const c_char = "{}\0".as_ptr().cast();
+
     #[test]
     fn test_vcx_connection_create() {
         let _setup = SetupMocks::init();
@@ -1961,20 +2075,10 @@ mod tests {
     }
 
     #[test]
-    fn test_vcx_connection_release() {
-        let _setup = SetupMocks::init();
-
-        let handle = build_test_connection();
-
-        let rc = vcx_connection_release(handle);
-        assert_eq!(rc, error::SUCCESS.code_num);
-    }
-
-    #[test]
     fn test_vcx_connection_deserialize_succeeds() {
         let _setup = SetupMocks::init();
 
-        let string = ::utils::constants::DEFAULT_CONNECTION;
+        let string = crate::utils::constants::DEFAULT_CONNECTION;
         let data = CString::new(string).unwrap();
         let (h, cb, r) = return_types::return_u32_cxnh();
         let err = vcx_connection_deserialize(h,
@@ -2034,7 +2138,7 @@ mod tests {
     fn test_sign() {
         let _setup = SetupMocks::init();
 
-        let connection_handle = ::connection::tests::build_test_connection();
+        let connection_handle = crate::connection::tests::build_test_connection();
 
         let msg = "My message\0";
         let msg_len = msg.len() - 1;
@@ -2052,7 +2156,7 @@ mod tests {
     fn test_verify_signature() {
         let _setup = SetupMocks::init();
 
-        let connection_handle = ::connection::tests::build_test_connection();
+        let connection_handle = crate::connection::tests::build_test_connection();
 
         let msg = "My message\0";
         let msg_len = msg.len() - 1;

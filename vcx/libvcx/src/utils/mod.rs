@@ -23,7 +23,6 @@ macro_rules! secret {
     ($val:expr) => {{ "_" }};
 }
 
-#[cfg(test)]
 macro_rules! map (
     { $($key:expr => $value:expr),+ } => {
         {
@@ -48,8 +47,11 @@ pub mod author_agreement;
 pub mod qualifier;
 pub mod file;
 pub mod option_util;
-pub mod agent_info;
 pub mod health_check;
+pub mod random;
+pub mod object_cache;
+pub mod validation;
+pub mod casts;
 
 #[cfg(test)]
 pub mod plugins;

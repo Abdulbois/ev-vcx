@@ -1,9 +1,8 @@
 import '../module-resolver-helper'
 
 import { assert } from 'chai'
-import { validateUTXO } from 'helpers/asserts'
 import { initVcxTestMode, shouldThrow } from 'helpers/utils'
-import { initMinimal, setPoolHandle, shutdownVcx, VCXCode, Wallet } from 'src'
+import { shutdownVcx, VCXCode, Wallet } from 'src'
 
 const WALLET_RECORD = {
   id: 'RecordId',
@@ -31,10 +30,6 @@ const UPDATE_WALLET_TAGS = {
   value: ''
 }
 
-const PAYMENT_ADDRESS_SEED = {
-  seed: '0000000000000000000WHATEVER00000'
-}
-
 const TAGS = '{"tagName1":"str1","tagName2":"5","tagName3":"12"}'
 
 const SEARCHED_RECORD = {
@@ -46,72 +41,6 @@ const SEARCHED_RECORD = {
 
 describe('Wallet:', () => {
   before(() => initVcxTestMode())
-
-  describe('getTokenInfo:', () => {
-    it('success', async () => {
-      const info = await Wallet.getTokenInfo()
-      assert.equal(typeof info, 'object')
-      assert.property(info, 'balance')
-      assert.equal(typeof info.balance, 'number')
-      assert.property(info, 'addresses')
-      const addresses = info.addresses
-      assert.ok(Array.isArray(addresses))
-      assert.ok(addresses.length)
-      for (const address of addresses) {
-        assert.equal(typeof address, 'object')
-        assert.property(address, 'address')
-        assert.equal(typeof address.address, 'string')
-        assert.property(address, 'balance')
-        assert.equal(typeof address.balance, 'number')
-        assert.property(address, 'utxo')
-        assert.ok(Array.isArray(address.utxo))
-        for (const utxo of address.utxo) {
-          validateUTXO(utxo)
-        }
-      }
-    })
-  })
-
-  describe('sendTokens:', () => {
-    it('success', async () => {
-      const receipt = await Wallet.sendTokens({
-        payment: 0,
-        recipient: 'address',
-        tokens: 1
-      })
-      assert.ok(receipt)
-    })
-  })
-
-  describe('createPaymentAddress:', () => {
-    it('success', async () => {
-      const address = await Wallet.createPaymentAddress(PAYMENT_ADDRESS_SEED)
-      assert.ok(address)
-    })
-  })
-
-  describe('validatePaymentAddress:', () => {
-    it('success', async () => {
-      await Wallet.validatePaymentAddress('sov:1:1234')
-    })
-  })
-
-  describe('signWithAddress:', () => {
-    it('success', async () => {
-      const msg = Buffer.from('random string')
-      const sig = await Wallet.signWithAddress('pay:sov:1234', msg)
-      assert.ok(sig)
-    })
-  })
-
-  describe('verifyWithAddress:', () => {
-    it('success', async () => {
-      const msg = Buffer.from('random string')
-      const sig = Buffer.from('random string')
-      const valid = await Wallet.verifyWithAddress('pay:sov:1234', msg, sig)
-      assert.ok(valid)
-    })
-  })
 
   describe('records:', () => {
     it('success', async () => {
@@ -166,15 +95,6 @@ describe('Wallet:', () => {
     it('throws: libindy error', async () => {
       const error = await shouldThrow(async () => Wallet.export('/tmp/foobar.wallet', 'key_for_wallet'))
       assert.equal(error.vcxCode, VCXCode.INVALID_WALLET_HANDLE)
-    })
-  })
-
-  describe('setting:', () => {
-    it('can be initialized when wallet is set', async () => {
-      Wallet.setHandle(1)
-      setPoolHandle(1)
-      assert.equal(initMinimal('{"institution_name":"faber","institution_did":"44x8p4HubxzUK1dwxcc5FU",\
-      "institution_verkey":"444MFrZjXDoi2Vc8Mm14Ys112tEZdDegBZZoembFEATE"}'), 0)
     })
   })
 })

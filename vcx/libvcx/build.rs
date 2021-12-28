@@ -2,8 +2,6 @@ use std::fs;
 use std::path::Path;
 use std::{env, path::PathBuf};
 
-extern crate toml;
-
 fn main() {
     let target = env::var("TARGET").unwrap();
     println!("target={}", target);

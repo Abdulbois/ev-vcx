@@ -1,5 +1,5 @@
 # Development
-FROM libindy-ubuntu16
+FROM vcx-libindy-ubuntu16
 ARG uid=1000
 RUN useradd -ms /bin/bash -u $uid android
 RUN usermod -aG sudo android

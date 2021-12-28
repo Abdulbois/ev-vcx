@@ -1,37 +1,33 @@
 use std::collections::HashMap;
 
-use rmp_serde;
-use serde_json;
 use serde_json::Value;
 
-use crate::object_cache::Handle;
-use api::VcxStateType;
-use error::prelude::*;
-use messages;
-use messages::{GeneralMessage, MessageStatusCode, RemoteMessageType, SerializableObjectWithState};
-use messages::invite::{InviteDetail, SenderDetail, Payload as ConnectionPayload, AcceptanceDetails, RedirectDetail, RedirectionDetails};
-use messages::payload::{Payloads, PayloadKinds};
-use messages::thread::Thread;
-use messages::send_message::SendMessageOptions;
-use messages::get_message::{Message, MessagePayload};
-use object_cache::ObjectCache;
-use settings;
-use utils::error;
-use utils::libindy::signus::create_and_store_my_did;
-use utils::libindy::crypto;
-use utils::json::mapped_key_rewrite;
-
-use v3::handlers::connection::connection::Connection as ConnectionV3;
-use v3::handlers::connection::states::ActorDidExchangeState;
-use v3::handlers::connection::agent::AgentInfo;
-use v3::messages::connection::invite::Invitation as InvitationV3;
-use v3::messages::a2a::A2AMessage;
-use v3::handlers::connection::types::CompletedConnection;
-use v3::messages::invite_action::invite::{Invite as InviteForAction, InviteActionData};
-
-use settings::ProtocolTypes;
-use v3::messages::committedanswer::question::{QuestionResponse, Question};
-use v3::messages::committedanswer::answer::Answer;
+use crate::utils::object_cache::Handle;
+use crate::api::VcxStateType;
+use crate::error::prelude::*;
+use crate::agent;
+use crate::agent::messages::{GeneralMessage, MessageStatusCode, RemoteMessageType, SerializableObjectWithState, update_agent};
+use crate::agent::messages::connection::{InviteDetail, SenderDetail, Payload as ConnectionPayload, AcceptanceDetails, RedirectDetail, RedirectionDetails};
+use crate::agent::messages::payload::{Payloads, PayloadKinds};
+use crate::aries::messages::thread::Thread;
+use crate::agent::messages::send_message::SendMessageOptions;
+use crate::agent::messages::get_message::{Message, MessagePayload};
+use crate::utils::object_cache::ObjectCache;
+use crate::settings;
+use crate::utils::error;
+use crate::utils::libindy::crypto::create_and_store_my_did;
+use crate::utils::libindy::crypto;
+use crate::utils::json::mapped_key_rewrite;
+use crate::settings::protocol::ProtocolTypes;
+use crate::aries::handlers::connection::Connection as ConnectionV3;
+use crate::aries::handlers::connection::agent::AgentInfo;
+use crate::aries::messages::connection::invite::Invitation as InvitationV3;
+use crate::aries::messages::a2a::A2AMessage;
+use crate::aries::handlers::connection::types::CompletedConnection;
+use crate::aries::messages::invite_action::invite::{Invite as InviteForAction, InviteActionData};
+use crate::aries::messages::committedanswer::question::{QuestionResponse, Question};
+use crate::aries::messages::committedanswer::answer::Answer;
+use crate::agent::messages::connection_upgrade::{UpgradeInfo, ConnectionUpgradeInfo, ConnectionUpgradeDirections};
 
 lazy_static! {
     static ref CONNECTION_MAP: ObjectCache<Connections> = Default::default();
@@ -64,7 +60,7 @@ impl Default for ConnectionOptions {
             phone: None,
             use_public_did: None,
             update_agent_info: Some(true),
-            pairwise_agent_info: None
+            pairwise_agent_info: None,
         }
     }
 }
@@ -86,25 +82,25 @@ impl ConnectionOptions {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Connection {
-    source_id: String,
-    pw_did: String,
-    pw_verkey: String,
-    state: VcxStateType,
-    uuid: String,
-    endpoint: String,
+    pub source_id: String,
+    pub pw_did: String,
+    pub pw_verkey: String,
+    pub state: VcxStateType,
+    pub uuid: String,
+    pub endpoint: String,
     // For QR code invitation
-    invite_detail: Option<InviteDetail>,
-    redirect_detail: Option<RedirectDetail>,
-    invite_url: Option<String>,
-    agent_did: String,
-    agent_vk: String,
-    their_pw_did: String,
-    their_pw_verkey: String,
-    // used by proofs/credentials when sending to edge device
-    public_did: Option<String>,
-    their_public_did: Option<String>,
+    pub invite_detail: Option<InviteDetail>,
+    pub redirect_detail: Option<RedirectDetail>,
+    pub invite_url: Option<String>,
+    pub agent_did: String,
+    pub agent_vk: String,
+    pub their_pw_did: String,
+    pub their_pw_verkey: String,
+    // used by proof_presentation/credentials when sending to edge device
+    pub public_did: Option<String>,
+    pub their_public_did: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    version: Option<settings::ProtocolTypes>,
+    pub version: Option<ProtocolTypes>,
 }
 
 impl Connection {
@@ -113,7 +109,7 @@ impl Connection {
         debug!("Connection {}: Sending invite", self.source_id);
 
         let (invite, url) =
-            messages::send_invite()
+            agent::messages::send_invite()
                 .to(&self.pw_did)?
                 .to_vk(&self.pw_verkey)?
                 .phone_number(options.phone.as_ref().map(String::as_str))?
@@ -138,7 +134,7 @@ impl Connection {
         trace!("Connection::delete_connection >>>");
         debug!("Connection {}: deleting connection", self.source_id);
 
-        messages::delete_connection()
+        agent::messages::delete_connection()
             .to(&self.pw_did)?
             .to_vk(&self.pw_verkey)?
             .agent_did(&self.agent_did)?
@@ -163,7 +159,7 @@ impl Connection {
 
         trace!("Connection::_connect_accept_invite: invite: {:?}", secret!(details));
 
-        messages::accept_invite()
+        agent::messages::accept_invite()
             .to(&self.pw_did)?
             .to_vk(&self.pw_verkey)?
             .agent_did(&self.agent_did)?
@@ -215,7 +211,7 @@ impl Connection {
 
         match self.state {
             VcxStateType::VcxStateRequestReceived => {
-                messages::redirect_connection()
+                agent::messages::redirect_connection()
                     .to(&self.pw_did)?
                     .to_vk(&self.pw_verkey)?
                     .agent_did(&self.agent_did)?
@@ -255,7 +251,7 @@ impl Connection {
         debug!("Connection {}: Generating redirection details", self.source_id);
 
         let signature = format!("{}{}", self.pw_did, self.pw_verkey);
-        let signature = ::utils::libindy::crypto::sign(&self.pw_verkey, signature.as_bytes())?;
+        let signature = crate::utils::libindy::crypto::sign(&self.pw_verkey, signature.as_bytes())?;
         let signature = base64::encode(&signature);
 
         let details = RedirectDetail {
@@ -312,7 +308,7 @@ impl Connection {
     fn get_invite_detail(&self) -> &Option<InviteDetail> { &self.invite_detail }
     fn set_invite_detail(&mut self, id: InviteDetail) {
         self.version = match id.version.is_some() {
-            true => Some(settings::ProtocolTypes::from(id.version.clone().unwrap())),
+            true => Some(ProtocolTypes::from(id.version.clone().unwrap())),
             false => Some(settings::get_connecting_protocol_version()),
         };
         self.invite_detail = Some(id);
@@ -322,7 +318,7 @@ impl Connection {
     fn get_redirect_detail(&self) -> &Option<RedirectDetail> { &self.redirect_detail }
     fn set_redirect_detail(&mut self, rd: RedirectDetail) { self.redirect_detail = Some(rd); }
 
-    fn get_version(&self) -> Option<settings::ProtocolTypes> {
+    fn get_version(&self) -> Option<ProtocolTypes> {
         self.version.clone()
     }
 
@@ -339,9 +335,9 @@ impl Connection {
                 self.set_pw_verkey(&agent_info.pw_vk);
                 self.set_agent_did(&agent_info.agent_did);
                 self.set_agent_verkey(&agent_info.agent_vk);
-            },
+            }
             None => {
-                let (for_did, for_verkey) = messages::create_keys()
+                let (for_did, for_verkey) = agent::messages::create_keys()
                     .for_did(&self.pw_did)?
                     .for_verkey(&self.pw_verkey)?
                     .version(&self.version)?
@@ -367,9 +363,9 @@ impl Connection {
             self.public_did = Some(settings::get_config_value(settings::CONFIG_INSTITUTION_DID)?);
         };
 
-        ::messages::agent_utils::update_agent_profile(&self.pw_did,
-                                                      &self.public_did,
-                                                      ProtocolTypes::V1)
+        update_agent::update_agent_profile(&self.pw_did,
+                                           &self.public_did,
+                                           ProtocolTypes::V1)
     }
 
     pub fn update_state(&mut self, message: Option<String>) -> VcxResult<u32> {
@@ -383,35 +379,28 @@ impl Connection {
         }
 
         let response =
-            messages::get_messages()
+            agent::messages::get_messages()
                 .to(&self.pw_did)?
                 .to_vk(&self.pw_verkey)?
                 .agent_did(&self.agent_did)?
                 .agent_vk(&self.agent_vk)?
                 .version(&self.version)?
                 .send_secure()
-                .map_err(|err| err.extend("Cannot get connection messages"))?;
+                .map_err(|err| err.extend("Cannot get connection agent"))?;
 
-        debug!("Connection {}: Received messages: {:?}", self.source_id, secret!(response));
+        debug!("Connection {}: Received agent: {:?}", self.source_id, secret!(response));
 
         if self.state == VcxStateType::VcxStateOfferSent || self.state == VcxStateType::VcxStateInitialized {
             for message in response {
                 if message.status_code == MessageStatusCode::Accepted && message.msg_type == RemoteMessageType::ConnReqAnswer {
                     debug!("Connection {}: Received connection request answer", self.source_id);
-
-                    let rc = self.process_acceptance_message(&message);
-                    if rc.is_err() {
-                        self.force_v2_parse_acceptance_details(&message)?;
-                    }
+                    self.process_acceptance_message(&message)?;
                 } else if message.status_code == MessageStatusCode::Redirected && message.msg_type == RemoteMessageType::ConnReqRedirect {
                     debug!("Connection {}: Received connection redirect message", self.source_id);
 
-                    let rc = self.process_redirect_message(&message);
-                    if rc.is_err() {
-                        self.force_v2_parse_redirection_details(&message)?;
-                    }
+                    self.process_redirect_message(&message)?;
                 } else {
-                    warn!("Connection {}: Received unexpected message: {:?}", self.source_id, message);
+                    debug!("Connection {}: No message received", self.source_id);
                 }
             }
         };
@@ -449,10 +438,10 @@ impl Connection {
 
         let msg_options: SendMessageOptions = serde_json::from_str(msg_options)
             .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
-                                          format!("Cannot parse SendMessageOptions from `msg_options` JSON string. Err: {:?}", err)))?;
+                                              format!("Cannot parse SendMessageOptions from `msg_options` JSON string. Err: {:?}", err)))?;
 
         let response =
-            ::messages::send_message()
+            crate::agent::messages::send_message()
                 .to(&self.get_pw_did())?
                 .to_vk(&self.get_pw_verkey())?
                 .msg_type(&RemoteMessageType::Other(msg_options.msg_type.clone()))?
@@ -502,7 +491,7 @@ impl Connection {
             .set_thread(thread)
             .sign(&question, &response, &self.pw_verkey)?;
 
-        ::messages::send_message()
+        agent::messages::send_message()
             .to(&self.get_pw_did())?
             .to_vk(&self.get_pw_verkey())?
             .msg_type(&RemoteMessageType::Other(String::from("Answer")))?
@@ -510,7 +499,7 @@ impl Connection {
             .edge_agent_payload(
                 &self.get_pw_verkey(),
                 &self.get_their_pw_verkey(),
-                &json!(&answer.to_a2a_message()).to_string(),
+                &json!(&answer).to_string(),
                 PayloadKinds::Other(String::from("Answer")),
                 None)?
             .agent_did(&self.get_agent_did())?
@@ -537,13 +526,12 @@ impl Connection {
         }
 
         let invite = json!(
-                InviteForAction::create()
-                .set_goal_code(data.goal_code)
-                .set_ack_on(data.ack_on)
-                .to_a2a_message()
-            ).to_string();
+            InviteForAction::create()
+            .set_goal_code(data.goal_code)
+            .set_ack_on(data.ack_on)
+        ).to_string();
 
-        ::messages::send_message()
+        crate::agent::messages::send_message()
             .to(&self.get_pw_did())?
             .to_vk(&self.get_pw_verkey())?
             .msg_type(&RemoteMessageType::InviteAction)?
@@ -566,6 +554,54 @@ impl Connection {
         trace!("Connection::send_invite_action <<<");
         return Ok(invite);
     }
+
+    pub fn need_upgrade(serialized: &str) -> VcxResult<bool> {
+        let connection = from_string(serialized)?;
+        let is_aries_connection = connection.is_aries_connection()?;
+        Ok(!is_aries_connection)
+    }
+
+    pub fn upgrade(&self, data: Option<String>) -> VcxResult<Connections> {
+        trace!("Connection::upgrade >>>");
+
+        if self.state != VcxStateType::VcxStateAccepted {
+            return Err(VcxError::from_msg(VcxErrorKind::NotReady, "Uncompleted Connection cannot be upgraded!"));
+        }
+
+        let invitation: &InviteDetail = self.invite_detail.as_ref()
+            .ok_or(VcxError::from_msg(VcxErrorKind::NotReady, "Uncompleted Connection cannot be upgraded!"))?;
+
+        let upgrade_data: ConnectionUpgradeInfo =
+            match data {
+                Some(data) => {
+                    ::serde_json::from_str(&data)
+                        .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
+                                                          format!("Could not parse ConnectionUpgrade information. Err: {:?}", err)))?
+                }
+                None => {
+                    let mut upgrade_info: UpgradeInfo =
+                        crate::agent::messages::get_upgrade_info()
+                            .for_did(&self.pw_did)?
+                            .send_secure()
+                            .map_err(|_| VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade,
+                                                            "Connection upgrade is not needed because the enterprise side has not migrated the connection yet."))?;
+
+                    upgrade_info.remove(&self.pw_did)
+                        .ok_or(VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade,
+                                                  "Connection upgrade is not needed because the enterprise side has not migrated the connection yet."))?
+                }
+            };
+
+        match upgrade_data.direction {
+            ConnectionUpgradeDirections::V1ToV2 => {
+                Ok(Connections::V3(ConnectionV3::from((self, invitation, upgrade_data))))
+            }
+            ConnectionUpgradeDirections::V2ToV1 => {
+                return Err(VcxError::from_msg(VcxErrorKind::ConnectionNotReadyToUpgrade,
+                                              "Connection upgrade is not needed because connection is already in the required state."));
+            }
+        }
+    }
 }
 
 fn handle_err(err: VcxError) -> VcxError {
@@ -584,7 +620,7 @@ pub fn create_agent_keys(source_id: &str, pw_did: &str, pw_verkey: &str) -> VcxR
     trace!("Connection::create_agent_keys >>> pw_did: {:?}, pw_verkey: {:?}", secret!(pw_did), secret!(pw_verkey));
     debug!("creating pairwise keys on agent for connection {}", source_id);
 
-    let (agent_did, agent_verkey) = messages::create_keys()
+    let (agent_did, agent_verkey) = agent::messages::create_keys()
         .for_did(pw_did)?
         .for_verkey(pw_verkey)?
         .version(&Some(settings::get_protocol_type()))?
@@ -804,7 +840,7 @@ impl Handle<Connections> {
                 Connections::V1(connection) => {
                     let message: Message = ::serde_json::from_str(&message)
                         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
-                                                          format!("Cannot updated Connection state with messages: Message deserialization failed with: {:?}", err)))?;
+                                                          format!("Cannot updated Connection state with agent: Message deserialization failed with: {:?}", err)))?;
 
                     if message.status_code == MessageStatusCode::Redirected && message.msg_type == RemoteMessageType::ConnReqRedirect {
                         connection.process_redirect_message(&message)?;
@@ -840,7 +876,6 @@ impl Handle<Connections> {
     }
 
     pub fn connect(self, options: Option<String>) -> VcxResult<u32> {
-
         CONNECTION_MAP.get_mut(self, |connection| {
             match connection {
                 Connections::V1(connection) => {
@@ -972,7 +1007,7 @@ impl Handle<Connections> {
         }).map_err(handle_err)
     }
 
-    pub fn is_v3_connection(self) -> VcxResult<bool> {
+    pub fn is_aries_connection(self) -> VcxResult<bool> {
         CONNECTION_MAP.get(self, |connection| {
             match connection {
                 Connections::V1(_) => Ok(false),
@@ -1020,7 +1055,7 @@ impl Handle<Connections> {
             match connection {
                 Connections::V1(connection) => {
                     connection.send_answer(question.clone(), answer.clone())
-                },
+                }
                 Connections::V3(connection) => {
                     connection.send_answer(question.clone(), answer.clone())
                 }
@@ -1033,7 +1068,7 @@ impl Handle<Connections> {
             match connection {
                 Connections::V1(connection) => {
                     connection.send_invite_action(data.clone())
-                },
+                }
                 Connections::V3(connection) => {
                     connection.send_invite_action(data.clone())
                 }
@@ -1071,10 +1106,27 @@ impl Handle<Connections> {
             }
         }).map_err(handle_err)
     }
+
+    pub fn upgrade(self, data: Option<String>) -> VcxResult<String> {
+        CONNECTION_MAP.get_mut(self, |connection| {
+            let new_connection = match connection {
+                Connections::V1(connection) => {
+                    connection.upgrade(data)?
+                }
+                Connections::V3(connection) => {
+                    connection.upgrade(data)?
+                }
+            };
+            *connection = new_connection;
+            Ok(())
+        }).map_err(handle_err)?;
+
+        self.to_string()
+    }
 }
 
 pub fn from_string(connection_data: &str) -> VcxResult<Handle<Connections>> {
-    let object: SerializableObjectWithState<Connection, ::v3::handlers::connection::states::ActorDidExchangeState> = ::serde_json::from_str(connection_data)
+    let object: SerializableObjectWithState<Connection, crate::aries::handlers::connection::states::ActorDidExchangeState> = ::serde_json::from_str(connection_data)
         .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidJson,
                                           format!("Cannot parse Connection state object from JSON string. Err: {:?}", err)))?;
 
@@ -1127,7 +1179,7 @@ fn create_connection_v1(source_id: &str) -> VcxResult<Connection> {
 pub fn create_connection(source_id: &str) -> VcxResult<Handle<Connections>> {
     debug!("create_connection with source_id: {}", source_id);
 
-    // Initiate connection of new format -- redirect to v3 folder
+    // Initiate connection of new format -- redirect to aries folder
     if settings::is_aries_protocol_set() {
         let connection = Connections::V3(ConnectionV3::create(source_id));
         let handle = store_connection(connection);
@@ -1163,11 +1215,11 @@ pub fn create_outofband_connection(source_id: &str, goal_code: Option<String>, g
 pub fn create_connection_with_invite(source_id: &str, details: &str) -> VcxResult<Handle<Connections>> {
     debug!("create connection {} with invite {}", source_id, secret!(details));
 
-    // Invitation of new format -- redirect to v3 folder
+    // Invitation of new format -- redirect to aries folder
     if let Ok(invitation) = serde_json::from_str::<InvitationV3>(details) {
         let connection = ConnectionV3::create_with_invite(source_id, invitation)?;
         let handle = store_connection(Connections::V3(connection));
-        debug!("create_connection_with_invite: created connection v3, handle: {:?}", handle);
+        debug!("create_connection_with_invite: created connection aries, handle: {:?}", handle);
         return handle;
     }
 
@@ -1213,7 +1265,7 @@ pub fn create_connection_with_outofband_invite(source_id: &str, invitation: &str
 
     let connection = Connections::V3(ConnectionV3::create_with_outofband_invite(source_id, invitation)?);
     let handle = store_connection(connection);
-    debug!("create_connection_with_outofband_invite: created connection v3, handle: {:?}", handle);
+    debug!("create_connection_with_outofband_invite: created connection aries, handle: {:?}", handle);
     return handle;
 }
 
@@ -1226,7 +1278,7 @@ pub fn accept_connection_invite(source_id: &str,
     connection_handle.connect(options)?;
     let connection_serialized = connection_handle.to_string()?;
 
-    debug!("accept_connection_invite: created connection v3, handle: {:?}", connection_handle);
+    debug!("accept_connection_invite: created connection aries, handle: {:?}", connection_handle);
 
     Ok((connection_handle, connection_serialized))
 }
@@ -1246,13 +1298,13 @@ pub fn parse_acceptance_details(message: &Message) -> VcxResult<SenderDetail> {
             trace!("Connection::parse_acceptance_details >>> MessagePayload::V1 payload");
 
             // TODO: check returned verkey
-            let (_, payload) = crypto::parse_msg(&my_vk, messages::i8_as_u8_slice(payload))
+            let (_, payload) = crypto::parse_msg(&my_vk, agent::messages::i8_as_u8_slice(payload))
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt Message payload. Err: {}", err)))?;
 
             let response: ConnectionPayload = rmp_serde::from_slice(&payload)
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt Message payload. Err: {}", err)))?;
 
-            let payload = messages::i8_as_u8_slice(&response.msg);
+            let payload = agent::messages::i8_as_u8_slice(&response.msg);
 
             let response: AcceptanceDetails = rmp_serde::from_slice(payload)
                 .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
@@ -1290,13 +1342,13 @@ impl Connection {
                 trace!("Connection::parse_redirection_details >>> MessagePayload::V1 payload");
 
                 // TODO: check returned verkey
-                let (_, payload) = crypto::parse_msg(&my_vk, messages::i8_as_u8_slice(&payload))
+                let (_, payload) = crypto::parse_msg(&my_vk, agent::messages::i8_as_u8_slice(&payload))
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt Message payload. Err: {}", err)))?;
 
                 let response: ConnectionPayload = rmp_serde::from_slice(&payload)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot decrypt Message payload. Err: {}", err)))?;
 
-                let payload = messages::i8_as_u8_slice(&response.msg);
+                let payload = agent::messages::i8_as_u8_slice(&response.msg);
 
                 let response: RedirectionDetails = rmp_serde::from_slice(&payload)
                     .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot parse RedirectionDetails from Message payload. Err: {}", err)))?;
@@ -1317,95 +1369,7 @@ impl Connection {
         trace!("Connection::parse_redirection_details <<< redirection_details: {:?}", secret!(redirection_details));
         Ok(redirection_details)
     }
-
-    pub fn force_v2_parse_acceptance_details(&mut self, message: &Message) -> VcxResult<SenderDetail> {
-        trace!("Connection::force_v2_parse_acceptance_details >>> message: {:?}", secret!(message));
-        debug!("Connection {}: Forcing parsing acceptance details", self.source_id);
-
-        let my_vk = settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_VERKEY)?;
-
-        let payload = message.payload
-            .as_ref()
-            .ok_or(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Received Message does not contain `payload`"))?;
-
-        let acceptance_details = match payload {
-            MessagePayload::V1(payload) => {
-                trace!("Connection::force_v2_parse_acceptance_details >>> MessagePayload::V1 payload");
-
-                let json: Value = serde_json::from_slice(messages::i8_as_u8_slice(payload))
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
-
-                let payload = Payloads::decrypt_payload_v12(&my_vk, &json)?;
-                let response: AcceptanceDetails = serde_json::from_value(payload.msg)
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
-
-                self.set_their_pw_did(&response.sender_detail.did);
-                self.set_their_pw_verkey(&response.sender_detail.verkey);
-                self.set_state(VcxStateType::VcxStateAccepted);
-
-                response.sender_detail
-            }
-            MessagePayload::V2(payload) => {
-                trace!("Connection::force_v2_parse_acceptance_details >>> MessagePayload::V2 payload");
-
-                let payload = Payloads::decrypt_payload_v2(&my_vk, payload)?;
-                let response: AcceptanceDetails = serde_json::from_str(&payload.msg)
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
-
-                response.sender_detail
-            }
-        };
-
-        trace!("Connection::parse_redirection_details <<< force_v2_parse_acceptance_details: {:?}", secret!(acceptance_details));
-        Ok(acceptance_details)
-    }
 }
-
-
-impl Connection {
-    pub fn force_v2_parse_redirection_details(&mut self, message: &Message) -> VcxResult<RedirectDetail> {
-        trace!("Connection::force_v2_parse_redirection_details >>> message: {:?}", secret!(message));
-        debug!("Connection {}: Forcing parsing redirection details", self.source_id);
-
-        let my_vk = settings::get_config_value(settings::CONFIG_SDK_TO_REMOTE_VERKEY)?;
-
-        let payload = message.payload
-            .as_ref()
-            .ok_or(VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, "Received Message does not contain `payload`"))?;
-
-        let redirection_details = match payload {
-            MessagePayload::V1(payload) => {
-                trace!("Connection::force_v2_parse_redirection_details >>> MessagePayload::V1 payload");
-
-                let json: Value = serde_json::from_slice(messages::i8_as_u8_slice(payload))
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidMessagePack, format!("Cannot parse RedirectionDetails from Message payload. Err: {}", err)))?;
-
-                let payload = Payloads::decrypt_payload_v12(&my_vk, &json)?;
-                let response: RedirectionDetails = serde_json::from_value(payload.msg)
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
-
-                self.set_redirect_detail(response.redirect_detail.clone());
-                self.set_state(VcxStateType::VcxStateRedirected);
-
-                response.redirect_detail
-            }
-            MessagePayload::V2(payload) => {
-                trace!("Connection::force_v2_parse_redirection_details >>> MessagePayload::V2 payload");
-
-                let payload = Payloads::decrypt_payload_v2(&my_vk, &payload)?;
-                let response: RedirectionDetails = serde_json::from_str(&payload.msg)
-                    .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidAgencyResponse, format!("Cannot parse AcceptanceDetails from Message payload. Err: {}", err)))?;
-
-                response.redirect_detail
-            }
-        };
-
-        trace!("Connection::force_v2_parse_redirection_details <<< redirection_details: {:?}", secret!(redirection_details));
-        Ok(redirection_details)
-    }
-
-}
-
 
 impl Connection {
     pub fn process_redirect_message(&mut self, message: &Message) -> VcxResult<()> {
@@ -1479,68 +1443,20 @@ fn unabbrv_event_detail(val: Value) -> Value {
     })
 }
 
-impl Into<(Connection, ActorDidExchangeState)> for ConnectionV3 {
-    fn into(self) -> (Connection, ActorDidExchangeState) {
-        let invitation = self.get_invitation();
-        let data = Connection {
-            source_id: self.source_id().clone(),
-            pw_did: self.agent_info().pw_did.clone(),
-            pw_verkey: self.agent_info().pw_vk.clone(),
-            state: VcxStateType::from_u32(self.state()),
-            uuid: String::new(),
-            endpoint: invitation.as_ref().map(|invitation_| invitation_.service_endpoint()).unwrap_or_default(),
-            invite_detail: Some(InviteDetail{
-                sender_detail: SenderDetail {
-                    name: invitation.as_ref().and_then(|invitation_| invitation_.name()),
-                    verkey: invitation.as_ref().and_then(|invitation_| invitation_.recipient_key()).unwrap_or_default(),
-                    logo_url: invitation.as_ref().and_then(|invitation_| invitation_.logo_url()),
-                    public_did: invitation.as_ref().and_then(|invitation_| invitation_.public_did()),
-                    ..SenderDetail::default()
-                },
-                ..InviteDetail::default()
-            }),
-            redirect_detail: None,
-            invite_url: None,
-            agent_did: self.agent_info().agent_did.clone(),
-            agent_vk: self.agent_info().agent_vk.clone(),
-            their_pw_did: self.remote_did().unwrap_or_default(),
-            their_pw_verkey: self.remote_vk().unwrap_or_default(),
-            public_did: settings::get_config_value(settings::CONFIG_INSTITUTION_DID).ok(),
-            their_public_did: invitation.as_ref().and_then(|invitation_| invitation_.public_did()),
-            version: Some(ProtocolTypes::V2), // TODO check correctness
-        };
-
-        (data, self.state_object().to_owned())
-    }
-}
-
-impl From<(Connection, ActorDidExchangeState)> for ConnectionV3 {
-    fn from((connection, state): (Connection, ActorDidExchangeState)) -> ConnectionV3 {
-        let agent_info = AgentInfo {
-            pw_did: connection.get_pw_did().to_string(),
-            pw_vk: connection.get_pw_verkey().to_string(),
-            agent_did: connection.get_agent_did().to_string(),
-            agent_vk: connection.get_agent_verkey().to_string(),
-        };
-
-        ConnectionV3::from_parts(connection.get_source_id().to_string(), agent_info, state)
-    }
-}
-
-
 #[cfg(test)]
 pub mod tests {
     use std::thread;
     use std::time::Duration;
 
-    use messages::get_message::*;
-    use utils::constants::*;
-    use utils::constants::INVITE_DETAIL_STRING;
+    use crate::agent::messages::get_message::*;
+    use crate::utils::constants::*;
+    use crate::utils::constants::INVITE_DETAIL_STRING;
 
     use super::*;
-    use utils::devsetup::*;
-    use utils::httpclient::AgencyMock;
-    use utils::constants;
+    use crate::utils::devsetup::*;
+    use crate::utils::httpclient::AgencyMock;
+    use crate::utils::constants;
+    use crate::settings;
 
     pub fn build_test_connection() -> Handle<Connections> {
         let handle = create_connection("alice").unwrap();
@@ -1549,7 +1465,7 @@ pub mod tests {
     }
 
     pub fn create_connected_connections() -> (Handle<Connections>, Handle<Connections>) {
-        ::utils::devsetup::set_institution();
+        crate::utils::devsetup::set_institution();
 
         let alice = create_connection("alice").unwrap();
         let my_public_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
@@ -1559,7 +1475,7 @@ pub mod tests {
         let details = alice.get_invite_details(false).unwrap();
 
         //BE CONSUMER AND ACCEPT INVITE FROM INSTITUTION
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
 
         let faber = create_connection_with_invite("faber", &details).unwrap();
 
@@ -1570,7 +1486,7 @@ pub mod tests {
         assert_eq!(my_public_did, public_did);
 
         //BE INSTITUTION AND CHECK THAT INVITE WAS ACCEPTED
-        ::utils::devsetup::set_institution();
+        crate::utils::devsetup::set_institution();
 
         thread::sleep(Duration::from_secs(5));
 
@@ -1713,7 +1629,7 @@ pub mod tests {
         assert!(handle.release().is_ok());
 
         // Aries connection
-        ::settings::set_config_value(::settings::COMMUNICATION_METHOD, "aries");
+        settings::set_config_value(settings::CONFIG_PROTOCOL_TYPE, "3.0");
 
         let handle = create_connection("test_serialize_deserialize").unwrap();
 
@@ -2024,10 +1940,10 @@ pub mod tests {
         let _setup = SetupLibraryAgencyV2NewProvisioning::init();
 
         //0. Create initial connection
-        let (faber, alice) = ::connection::tests::create_connected_connections();
+        let (faber, alice) = crate::connection::tests::create_connected_connections();
 
         //1. Faber sends another invite
-        ::utils::devsetup::set_institution(); //Faber to Alice
+        crate::utils::devsetup::set_institution(); //Faber to Alice
         let alice2 = create_connection("alice2").unwrap();
         let my_public_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
         let options = json!({"use_public_did": true}).to_string();
@@ -2037,7 +1953,7 @@ pub mod tests {
 
         //2. Alice receives (recognizes that there is already a connection), calls different api (redirect rather than regular connect)
         //BE CONSUMER AND REDIRECT INVITE FROM INSTITUTION
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
         let faber_duplicate = create_connection_with_invite("faber_duplicate", &details_for_alice2).unwrap();
         assert_eq!(VcxStateType::VcxStateRequestReceived as u32, faber_duplicate.get_state());
         faber_duplicate.redirect(faber).unwrap();
@@ -2046,7 +1962,7 @@ pub mod tests {
 
         //3. Faber waits for redirect state change
         //BE INSTITUTION AND CHECK THAT INVITE WAS ACCEPTED
-        ::utils::devsetup::set_institution();
+        crate::utils::devsetup::set_institution();
         thread::sleep(Duration::from_millis(2000));
         alice2.update_state(None).unwrap();
         assert_eq!(VcxStateType::VcxStateRedirected as u32, alice2.get_state());
@@ -2058,8 +1974,8 @@ pub mod tests {
         let rd: RedirectDetail = serde_json::from_str(&redirect_data).unwrap();
         let alice_serialized = alice.to_string().unwrap();
 
-        let to_alice_old: Connection = ::messages::ObjectWithVersion::deserialize(&alice_serialized)
-            .map(|obj: ::messages::ObjectWithVersion<Connection>| obj.data).unwrap();
+        let to_alice_old: Connection = crate::agent::messages::ObjectWithVersion::deserialize(&alice_serialized)
+            .map(|obj: crate::agent::messages::ObjectWithVersion<Connection>| obj.data).unwrap();
 
 
         // Assert redirected data match old connection to alice
@@ -2081,5 +1997,60 @@ pub mod tests {
         assert!(connection_handle > 0);
         assert_eq!(VcxStateType::VcxStateAccepted as u32, connection_handle.get_state());
         assert_eq!(connection_serialized, connection_handle.to_string().unwrap());
+    }
+
+    #[test]
+    fn upgrade_connection_test() {
+        let _setup = SetupEmpty::init();
+
+        let serialized_connection_v1 = r#"{"data": {"agent_did": "5NR8Wmmpmu6QChiLCLgDU1", "agent_vk": "3P7yrKuon8BSuUqxPUfjxuwJaDMYKpM1MsdsN66aqtU4", "endpoint": "", "invite_detail": {"connReqId": "151a8b3c-4e1e-4031-9ab9-9f96dba6fd57", "senderAgencyDetail": {"DID": "UNM2cmvMVoWpk6r3pG5FAq", "endpoint": "https://eas.pps.evernym.com/agency/msg", "verKey": "FvA7e4DuD2f9kYHq6B3n7hE7NQvmpgeFRrox3ELKv9vX"}, "senderDetail": {"DID": "5kGK21ByLeD5mECcLbM55B", "agentKeyDlgProof": {"agentDID": "3FVxaayeybv78Wm65g4T1L", "agentDelegatedKey": "2E8Lh8fY92LBxkSNugGpwdr5SfUDiUGjywQd6hsficbZ", "signature": "Sqj+/KtxBFHVhexJbHzLSlD2y+B2shmW0OUobPmHWNNP//B34t0WYJIhygSlj5BpKXhlD06PukoyvikXBI12CQ=="}, "logoUrl": "https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png", "name": "Faber", "verKey": "3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU"}, "statusCode": "MS-101", "statusMsg": "message created", "targetName": "there", "threadId": null, "version": "1.0"}, "invite_url": null, "public_did": null, "pw_did": "M1MRZJ6yD9u9W3qX2qP1qr", "pw_verkey": "BuS24QAxPU3xuqssvNYDZAiDVMx1GRhEyrkd1fev96Hm", "redirect_detail": null, "source_id": "faber", "state": 4, "their_public_did": null, "their_pw_did": "5kGK21ByLeD5mECcLbM55B", "their_pw_verkey": "3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU", "uuid": "", "version": "1.0"}, "version": "1.0"}"#;
+        let connection_ = from_string(serialized_connection_v1).unwrap();
+
+        CONNECTION_MAP.get_mut(connection_, |connection| {
+            match connection {
+                Connections::V1(_) => Ok(()),
+                Connections::V3(_) => Err(VcxError::from_msg(VcxErrorKind::InvalidState, "It is suppose to be V1")),
+            }
+        }).unwrap();
+
+        let upgrade_connection_data = ConnectionUpgradeInfo {
+            their_agency_endpoint: "https://vas.com".to_string(),
+            their_agency_verkey: "VB7GyEnU2uxPDw2EDByCHQ".to_string(),
+            their_agency_did: "GMeP8Ro8kUQqPTSMonhRYfxGicDPT976n9BgpwZwGiPD".to_string(),
+            direction: ConnectionUpgradeDirections::V1ToV2,
+        };
+
+        connection_.upgrade(Some(json!(upgrade_connection_data).to_string())).unwrap();
+
+        CONNECTION_MAP.get_mut(connection_, |connection| {
+            match connection {
+                Connections::V1(_) => Err(VcxError::from_msg(VcxErrorKind::InvalidState, "It is suppose to be V3")),
+                Connections::V3(_) => Ok(()),
+            }
+        }).unwrap();
+
+        let serialized = connection_.to_string().unwrap();
+        let expted_serialized = r#"{"data":{"agent_did":"5NR8Wmmpmu6QChiLCLgDU1","agent_vk":"3P7yrKuon8BSuUqxPUfjxuwJaDMYKpM1MsdsN66aqtU4","endpoint":"https://vas.com","invite_detail":{"connReqId":"","senderAgencyDetail":{"DID":"","endpoint":"","verKey":""},"senderDetail":{"DID":"","agentKeyDlgProof":{"agentDID":"","agentDelegatedKey":"","signature":""},"logoUrl":"https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png","name":"Faber","verKey":"3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU"},"statusCode":"","statusMsg":"","targetName":"","threadId":null},"invite_url":null,"public_did":null,"pw_did":"M1MRZJ6yD9u9W3qX2qP1qr","pw_verkey":"BuS24QAxPU3xuqssvNYDZAiDVMx1GRhEyrkd1fev96Hm","redirect_detail":null,"source_id":"faber","state":4,"their_public_did":null,"their_pw_did":"5kGK21ByLeD5mECcLbM55B","their_pw_verkey":"3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU","uuid":"","version":"2.0"},"state":{"Invitee":{"Completed":{"did_doc":{"@context":"https://w3id.org/did/v1","authentication":[{"publicKey":"5kGK21ByLeD5mECcLbM55B#1","type":"Ed25519SignatureAuthentication2018"}],"id":"5kGK21ByLeD5mECcLbM55B","publicKey":[{"controller":"5kGK21ByLeD5mECcLbM55B","id":"5kGK21ByLeD5mECcLbM55B#1","publicKeyBase58":"3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU","type":"Ed25519VerificationKey2018"}],"service":[{"id":"did:example:123456789abcdefghi;indy","priority":0,"recipientKeys":["3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU"],"routingKeys":["3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU","VB7GyEnU2uxPDw2EDByCHQ"],"serviceEndpoint":"https://vas.com","type":"IndyAgent"}]},"invitation":{"ConnectionInvitation":{"@id":"UNM2cmvMVoWpk6r3pG5FAq","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/invitation","label":"Faber","profileUrl":"https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png","recipientKeys":["3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU"],"routingKeys":["3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU","VB7GyEnU2uxPDw2EDByCHQ"],"serviceEndpoint":"https://vas.com"}},"protocols":null,"thread":{"received_orders":{},"sender_order":0}}}},"version":"2.0"}"#;
+        assert_eq!(serialized, expted_serialized);
+
+        let upgrade_connection_data = ConnectionUpgradeInfo {
+            their_agency_endpoint: "https://eas.com".to_string(),
+            their_agency_verkey: "6F5i6Gc1X3tm6y7WHJAL2q".to_string(),
+            their_agency_did: "3rjc89idWZQzbHcUrHG2UomJn2h6nJ8exWmNuidyVv12".to_string(),
+            direction: ConnectionUpgradeDirections::V2ToV1,
+        };
+
+        connection_.upgrade(Some(json!(upgrade_connection_data).to_string())).unwrap();
+
+        CONNECTION_MAP.get_mut(connection_, |connection| {
+            match connection {
+                Connections::V1(_) => Ok(()),
+                Connections::V3(_) => Err(VcxError::from_msg(VcxErrorKind::InvalidState, "It is suppose to be V1")),
+            }
+        }).unwrap();
+
+        let serialized = connection_.to_string().unwrap();
+        let expted_serialized = r#"{"data":{"agent_did":"5NR8Wmmpmu6QChiLCLgDU1","agent_vk":"3P7yrKuon8BSuUqxPUfjxuwJaDMYKpM1MsdsN66aqtU4","endpoint":"https://eas.com","invite_detail":{"connReqId":"","senderAgencyDetail":{"DID":"3rjc89idWZQzbHcUrHG2UomJn2h6nJ8exWmNuidyVv12","endpoint":"https://eas.com","verKey":"6F5i6Gc1X3tm6y7WHJAL2q"},"senderDetail":{"DID":"5kGK21ByLeD5mECcLbM55B","agentKeyDlgProof":{"agentDID":"","agentDelegatedKey":"","signature":""},"logoUrl":"https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png","name":"Faber","verKey":"3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU"},"statusCode":"MS-101","statusMsg":"message created","targetName":"there","threadId":null,"version":"1.0"},"invite_url":null,"public_did":null,"pw_did":"M1MRZJ6yD9u9W3qX2qP1qr","pw_verkey":"BuS24QAxPU3xuqssvNYDZAiDVMx1GRhEyrkd1fev96Hm","redirect_detail":null,"source_id":"faber","state":4,"their_public_did":null,"their_pw_did":"5kGK21ByLeD5mECcLbM55B","their_pw_verkey":"3b2dwi1ns6KrZnikuXGvZ1Q137kWcgqwxsNFBQL2DXBU","uuid":"","version":"1.0"},"version":"1.0"}"#;
+        assert_eq!(serialized, expted_serialized);
     }
 }

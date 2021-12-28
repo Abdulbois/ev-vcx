@@ -130,11 +130,6 @@ export const credentialOffer = [
     schema_seq_no: 1487,
     to_did: '8XFh8yBzrpJQmNyZzgoTqB',
     version: '0.1'
-  },
-  {
-    payment_addr: 'pov:null:OsdjtGKavZDBuG2xFw2QunVwwGs5IB3j',
-    payment_required: 'one-time',
-    price: 5
   }
 ]
 
@@ -255,7 +250,7 @@ export const dataIssuerCredentialCreate = async (): Promise<IIssuerCredentialCre
     },
     credDefHandle: Number(credDef.handle),
     credentialName: 'Credential Name',
-    price: '1',
+    price: '0',
     sourceId: 'testCredentialSourceId'
   }
 }

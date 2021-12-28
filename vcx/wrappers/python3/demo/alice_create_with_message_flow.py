@@ -41,7 +41,6 @@ async def main():
             print("Check agency for a proof request")
             pw_did = await connection_to_faber.get_my_pw_did()
             uid, request, _ = await download_message(pw_did, 'presentation-request')
-            print("#23 Create a Disclosed proof object from proof request")
             proof = await DisclosedProof.create('proof', json.loads(request))
             await create_proof(connection_to_faber, proof)
             await update_message_as_read(pw_did, uid)

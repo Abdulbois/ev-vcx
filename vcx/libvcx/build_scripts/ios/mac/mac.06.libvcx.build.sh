@@ -72,7 +72,7 @@ do
         mv ${libindy_dir}/${target_arch}/libindy_libtool.a ${libindy_dir}/${target_arch}/libindy.a
     fi
 
-    
+
     export IOS_SODIUM_LIB=$WORK_DIR/libzmq-ios/libsodium-ios/dist/ios/lib/${target_arch}
     export IOS_ZMQ_LIB=$WORK_DIR/libzmq-ios/dist/ios/lib/${target_arch}
     export LIBINDY_DIR=${libindy_dir}/${target_arch}
@@ -83,7 +83,6 @@ do
 
     cargo build --target "${target}" --release --no-default-features --features "ci"
     to_combine="${to_combine} ./target/${target}/release/libvcx.a"
-
 done
 mkdir -p ./target/universal/release
 lipo -create $to_combine -o ./target/universal/release/libvcx.a

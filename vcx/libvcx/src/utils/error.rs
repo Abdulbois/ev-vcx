@@ -49,7 +49,7 @@ impl_error! {
     INVALID_PROOF_HANDLE: 1017 => "Invalid Proof Handle",
     INVALID_CREDENTIAL_REQUEST: 1018 => "Invalid Credential Request",
     INVALID_MSGPACK: 1019 => "Invalid MessagePack",
-    INVALID_AGENCY_RESPONSE: 1020 => "Error Retrieving messages from API",
+    INVALID_AGENCY_RESPONSE: 1020 => "Error Retrieving agent from API",
     INVALID_ATTRIBUTES_STRUCTURE: 1021 => "Attributes provided to Credential Offer / Proof Request are not correct, possibly malformed",
     BIG_NUMBER_ERROR: 1022 => "Could not encode string to a big integer.",
     INVALID_PROOF: 1023 => "Proof had invalid format",
@@ -70,7 +70,7 @@ impl_error! {
     INVALID_SCHEMA_SEQ_NO: 1040 => "No Schema for that schema sequence number",
     INVALID_SCHEMA_CREATION: 1041 => "Could not create schema",
     INVALID_SCHEMA_HANDLE: 1042 => "Invalid Schema Handle",
-    INVALID_CREDENTIAL_OFFER: 1043 => "Invalid Credential Offerz",
+    INVALID_CREDENTIAL_OFFER: 1043 => "Invalid Credential Offer",
     ALREADY_INITIALIZED: 1044 => "Library already initialized",
     INVALID_INVITE_DETAILS: 1045 => "Invalid invite details structure",
     INVALID_OBJ_HANDLE: 1048 => "Obj was not found with handle",
@@ -88,6 +88,7 @@ impl_error! {
     CONNECTION_ALREADY_EXISTS: 1062 => "Connection invitation has been already accepted. You have to use another invitation to set up a new connection.",
     CONNECTION_DOES_NOT_EXIST: 1063 => "Connection does not exist.",
     INSUFFICIENT_TOKEN_AMOUNT: 1064 => "Insufficient amount of tokens to process request",
+    CONNECTION_NOT_READY_TO_UPGRADE: 1065 => "Connection upgrade is not need. Enterprise side has not upgraded connection yet",
     INVALID_PAYMENT_ADDRESS: 1066 => "Invalid payment address",
     INVALID_LIBINDY_PARAM: 1067 => "Parameter passed to libindy was invalid",
     MISSING_WALLET_KEY: 1069 => "Configuration is missing wallet key",
@@ -128,6 +129,7 @@ impl_error! {
     INVALID_DID_DOC: 1108 => "The format of DIDDoc is invalid",
     MESSAGE_IS_OUT_OF_THREAD: 1109 => "The format of DIDDoc is invalid",
     INCOMPATIBLE_PARAMETERS: 1111 => "Passed a combination of incompatible parameters",
+    CONNECTION_NOT_COMPLETED: 1112 => "Connection used for sending a message is not in the completed state",
 }
 
 /// Returns the corresponding message for the provided error code _without_ a null terminator

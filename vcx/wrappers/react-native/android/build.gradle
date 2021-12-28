@@ -46,7 +46,7 @@ repositories {
         url "$rootDir/../node_modules/react-native/android"
     }
     google()
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
@@ -55,7 +55,7 @@ dependencies {
     implementation 'net.java.dev.jna:jna:4.5.0@aar'
     implementation 'net.sourceforge.streamsupport:android-retrofuture:1.6.2'
     // the VCX version is replaced during CD pipeline
-    implementation 'com.evernym:vcx:0.11.2-ea702db@aar' // FIXME: Find a way NOT TO FIX VCX version here. `+` or `0.11.2+@aar` returns not a desired one.
+    implementation 'com.evernym:vcx:0.12.0-c51d63a@aar' // FIXME: Find a way NOT TO FIX VCX version here. `+` returns not a desired one.
     implementation('com.github.bright:slf4android:0.1.6') {
         transitive = true
     }

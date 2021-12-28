@@ -1,7 +1,8 @@
 [package]
 
 name = "libvcx"
-version = "0.12.0"
+edition = "2018"
+version = "0.13.0"
 authors = ["Hyperledger Indy Contributors <hyperledger-indy@lists.hyperledger.org>"]
 publish = false
 description = "This is the official SDK for Evernym's VCX"
@@ -13,10 +14,10 @@ path = "src/lib.rs"
 crate-type = ["staticlib","rlib", "cdylib"]
 
 [features]
-#default = []
-default = [] #FIXME: return "pool_tests", "agency", "wallet_backup" features
+default = []
+#default = [] #FIXME: return "pool_tests", "agency", "wallet_backup" features
 too_long_request = [] # These tests are waiting for the agency fixes regarding the length of request
-#default = ["pool_tests","agency"]
+#default = ["pool_tests","agency", "aries"]
 #default = ["pool_tests","agency_v2"]
 mysql = []
 pool_tests = []
@@ -31,17 +32,17 @@ fatal_warnings = []
 ci = []
 
 [dependencies]
-env_logger = "0.5.10"
+env_logger = "0.7"
 log = "0.4"
 chrono = "0.4"
-time = "0.1.36"
+time = "0.1.42"
 lazy_static = "1.3"
-libc = "=0.2.66"
+libc = "0.2.95"
 rand = "0.3"
 serde = "1.0.97"
 serde_json = "1.0.40"
 serde_derive = "1.0.97"
-reqwest = "0.9.5"
+reqwest = "0.9.24"
 regex = "1.1.0"
 rust-base58 = "0.0.4"
 rmp-serde = "0.13.7"
@@ -49,9 +50,9 @@ base64 = "0.8.0"
 openssl = "0.10.34"
 openssl-sys = "0.9.63"
 hex = "0.3.2"
-indy = { version = "1.15.0", path = "../../wrappers/rust/" }
-indy-sys = { version = "1.15.0", path = "../../wrappers/rust/indy-sys/" }
-tokio-threadpool = "0.1.6"
+indy = { git = "https://gitlab.com/evernym/verity/vdr-tools", branch = "main" }
+indy-sys = { git = "https://gitlab.com/evernym/verity/vdr-tools", branch = "main" }
+tokio-threadpool = "0.1.18"
 futures = "0.1.23"
 libloading = "0.5.0"
 uuid = {version = "0.7.1", default-features = false, features = ["v4"]}
@@ -60,7 +61,8 @@ strum = "0.16.0"
 strum_macros = "0.16.0"
 sha2 = "0.9.1"
 dashmap = "3.11.10"
-
+dirs = "3.0.2"
+crossbeam-deque = "0.7.4"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.5"
@@ -71,7 +73,6 @@ toml = "0.4"
 [package.metadata.deb]
 maintainer = "Evernym, Inc."
 copyright = "2018, Evernym Inc."
-depends = "$auto, libindy (=1.16.0~170)"
 extended-description = """\
 This is the official SDK for Hyperledger Indy, which provides a\
   distributed-ledger-based foundation for self-sovereign identity.\
@@ -93,12 +94,14 @@ assets = [
 maintainer-scripts = "./scripts"
 
 [package.metadata.deb.variants.libvcx-xenial]
+depends = "$auto, libvdrtools (=0.8.2-xenial)"
 name = "libvcx"
-provides = "libvcx (= 0.12.0)"
+provides = "libvcx (= 0.13.0)"
 
 [package.metadata.deb.variants.libvcx-bionic]
+depends = "$auto, libvdrtools (=0.8.2-bionic)"
 name = "libvcx"
-provides = "libvcx (= 0.12.0)"
+provides = "libvcx (= 0.13.0)"
 
 [profile.release]
 debug = true

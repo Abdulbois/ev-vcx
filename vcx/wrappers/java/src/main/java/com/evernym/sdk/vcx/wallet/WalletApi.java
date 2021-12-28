@@ -231,6 +231,25 @@ public class WalletApi extends VcxJava.API {
         return future;
     }
 
+    /**
+     * Adds a record to the wallet
+     *
+     * @param recordType        type of record. (e.g. 'data', 'string', 'foobar', 'image')
+     * @param recordId          the id ("key") of the record.
+     * @param recordValue       value of the record with the associated id.
+     *
+     * @return                  void
+     *
+     * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
+     */
+    public static CompletableFuture<Void> addRecord(
+            String recordType,
+            String recordId,
+            String recordValue
+    ) throws VcxException {
+        return addRecordWallet(recordType, recordId, recordValue);
+    }
+
     private static Callback vcxDeleteRecordWalletCB = new Callback() {
         @SuppressWarnings({"unused", "unchecked"})
         public void callback(int commandHandle, int err) {
@@ -265,6 +284,23 @@ public class WalletApi extends VcxJava.API {
         checkResult(result);
 
         return future;
+    }
+
+    /**
+     * Deletes an existing record.
+     *
+     * @param recordType        type of record. (e.g. 'data', 'string', 'foobar', 'image')
+     * @param recordId          the id ("key") of the record.
+     *
+     * @return                  void
+     *
+     * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
+     */
+    public static CompletableFuture<Void> deleteRecord(
+            String recordType,
+            String recordId
+    ) throws VcxException {
+        return deleteRecordWallet(recordType, recordId);
     }
 
     private static Callback vcxGetRecordWalletCB = new Callback() {
@@ -309,7 +345,25 @@ public class WalletApi extends VcxJava.API {
         return future;
     }
 
-    private static Callback vcxUpdateRecordWalletCB = new Callback() {
+    /**
+     * Gets a record from Wallet.
+     *
+     * @param recordType        type of record. (e.g. 'data', 'string', 'foobar', 'image')
+     * @param recordId          the id ("key") of the record.
+     *
+     * @return                  received record as JSON
+     *
+     * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
+     */
+    public static CompletableFuture<String> getRecord(
+            String recordType,
+            String recordId,
+            String optionsJson
+    ) throws VcxException {
+        return getRecordWallet(recordType, recordId, optionsJson);
+    }
+
+    private static Callback voidCb = new Callback() {
         @SuppressWarnings({"unused", "unchecked"})
         public void callback(int commandHandle, int err) {
             CompletableFuture<Void> future = (CompletableFuture<Void>) removeFuture(commandHandle);
@@ -341,21 +395,248 @@ public class WalletApi extends VcxJava.API {
         CompletableFuture<Void> future = new CompletableFuture<Void>();
         int commandHandle = addFuture(future);
 
-        int result = LibVcx.api.vcx_wallet_update_record_value(commandHandle, recordType, recordId, recordValue, vcxUpdateRecordWalletCB);
+        int result = LibVcx.api.vcx_wallet_update_record_value(commandHandle, recordType, recordId, recordValue, voidCb);
         checkResult(result);
 
         return future;
     }
 
     /**
-     * Set the wallet handle before calling vcx_init_minimal
+     * Updates the value of a record already in the wallet.
      *
-     * @param handle        wallet handle that libvcx should use
+     * @param recordType        type of record. (e.g. 'data', 'string', 'foobar', 'image')
+     * @param recordId          the id ("key") of the record.
+     * @param recordValue       new value of the record with the associated id.
+     *
+     * @return                  void
      *
      * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
      */
-    public static void setWalletHandle(int handle) {
-        LibVcx.api.vcx_wallet_set_handle(handle);
+    public static CompletableFuture<Void> updateRecord(
+            String recordType,
+            String recordId,
+            String recordValue
+    ) throws VcxException {
+        return updateRecordWallet(recordType, recordId, recordValue);
+    }
+
+    /**
+     * Add tags to a record in the wallet.
+     * Assumes there is an open wallet and that a record with specified type and id pair already exists.
+     *
+     * @param recordType        type of record. (e.g. 'data', 'string', 'foobar', 'image')
+     * @param recordId          the id ("key") of the record.
+     * @param recordTags        tags for the record with the associated id and type.
+     *
+     * @return                  void
+     *
+     * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
+     */
+    public static CompletableFuture<Void> addRecordTags(
+            String recordType,
+            String recordId,
+            String recordTags
+    ) throws VcxException {
+        logger.debug("addRecordTags() called with: recordType = [****], recordId = [****], recordTags = [****]");
+        ParamGuard.notNull(recordType, "recordType");
+        ParamGuard.notNull(recordId, "recordId");
+        ParamGuard.notNull(recordTags, "recordTags");
+
+        CompletableFuture<Void> future = new CompletableFuture<Void>();
+        int commandHandle = addFuture(future);
+        int result = LibVcx.api.vcx_wallet_add_record_tags(commandHandle, recordType, recordId, recordTags, voidCb);
+        checkResult(result);
+
+        return future;
+    }
+
+    /**
+     * Updates tags of a record in the wallet.
+     * Assumes there is an open wallet and that a record with specified type and id pair already exists.
+     *
+     * @param recordType        type of record. (e.g. 'data', 'string', 'foobar', 'image')
+     * @param recordId          the id ("key") of the record.
+     * @param recordTags        tags for the record with the associated id and type.
+     *
+     * @return                  void
+     *
+     * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
+     */
+    public static CompletableFuture<Void> updateRecordTags(
+            String recordType,
+            String recordId,
+            String recordTags
+    ) throws VcxException {
+        logger.debug("updateRecordTags() called with: recordType = [****], recordId = [****], recordTags = [****]");
+
+        ParamGuard.notNull(recordType, "recordType");
+        ParamGuard.notNull(recordId, "recordId");
+        ParamGuard.notNull(recordTags, "recordTags");
+
+        CompletableFuture<Void> future = new CompletableFuture<Void>();
+        int commandHandle = addFuture(future);
+        int result = LibVcx.api.vcx_wallet_update_record_tags(commandHandle, recordType, recordId, recordTags, voidCb);
+        checkResult(result);
+
+        return future;
+    }
+
+    /**
+     * Deletes tags from a record in the wallet.
+     * Assumes there is an open wallet and that a record with specified type and id pair already exists.
+     *
+     * @param recordType        type of record. (e.g. 'data', 'string', 'foobar', 'image')
+     * @param recordId          the id ("key") of the record.
+     * @param recordTags        tags to delete for the record with the associated id and type.
+     *
+     * @return                  void
+     *
+     * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
+     */
+    public static CompletableFuture<Void> deleteRecordTags(
+            String recordType,
+            String recordId,
+            String recordTags
+    ) throws VcxException {
+        logger.debug("deleteRecordTags() called with: recordType = [****], recordId = [****], recordTags = [****]");
+
+        ParamGuard.notNull(recordType, "recordType");
+        ParamGuard.notNull(recordId, "recordId");
+        ParamGuard.notNull(recordTags, "recordTags");
+
+        CompletableFuture<Void> future = new CompletableFuture<Void>();
+        int commandHandle = addFuture(future);
+        int result = LibVcx.api.vcx_wallet_delete_record_tags(commandHandle, recordType, recordId, recordTags, voidCb);
+        checkResult(result);
+
+        return future;
+    }
+
+    private static Callback intCB = new Callback() {
+        @SuppressWarnings({"unused", "unchecked"})
+        public void callback(int commandHandle, int err, int handle) {
+            logger.debug("callback() called with: commandHandle = [" + commandHandle + "], err = [" + err + "], handle = [" + handle + "]");
+            CompletableFuture<Integer> future = (CompletableFuture<Integer>) removeFuture(commandHandle);
+            if (! checkCallback(future, err)) return;
+            Integer result = handle;
+            future.complete(result);
+        }
+    };
+
+    /**
+     * Search for records in the wallet.
+     *
+     * @param  recordType     type of record. (e.g. 'data', 'string', 'foobar', 'image')
+     * @param  query          MongoDB style query to wallet record tags:
+     *            {
+     *              "tagName": "tagValue",
+     *              $or: {
+     *                "tagName2": { $regex: 'pattern' },
+     *                "tagName3": { $gte: 123 },
+     *              },
+     *            }
+     * @param  options
+     *            {
+     *               retrieveRecords: (optional, true by default) If false only "counts" will be calculated,
+     *               retrieveTotalCount: (optional, false by default) Calculate total count,
+     *               retrieveType: (optional, false by default) Retrieve record type,
+     *               retrieveValue: (optional, true by default) Retrieve record value,
+     *               retrieveTags: (optional, true by default) Retrieve record tags,
+     *            }
+     *
+     * @return    handle pointing to the opened search
+     *
+     * @throws VcxException If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<Integer> openSearch(
+            String recordType,
+            String query,
+            String options
+    ) throws VcxException {
+        logger.debug("openSearch() called with: recordType = [****], query = [****], options = [****]");
+
+        ParamGuard.notNull(recordType, "recordType");
+        ParamGuard.notNull(query, "query");
+        ParamGuard.notNull(options, "options");
+
+        CompletableFuture<Integer> future = new CompletableFuture<>();
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_wallet_open_search(
+                commandHandle,
+                recordType,
+                query,
+                options,
+                intCB
+        );
+        checkResult(result);
+        return future;
+    }
+
+    private static Callback stringCb = new Callback() {
+        @SuppressWarnings({"unused", "unchecked"})
+        public void callback(int commandHandle, int err, String message) {
+            logger.debug("callback() called with: commandHandle = [" + commandHandle + "], err = [" + err + "], message = [" + message + "]");
+            CompletableFuture<String> future = (CompletableFuture<String>) removeFuture(commandHandle);
+            if (!checkCallback(future, err)) return;
+            future.complete(message);
+        }
+    };
+
+    /**
+     * Fetch next records for wallet search.
+     *
+     * Not if there are no records this call returns WalletNoRecords Indy error.
+     *
+     * @param  searchHandle     handle pointing to search (returned by openSearch).
+     *
+     * @return wallet records json:
+     *               {
+     *                 totalCount: <int>, // present only if retrieveTotalCount set to true
+     *                 records: [{ // present only if retrieveRecords set to true
+     *                     id: "Some id",
+     *                     type: "Some type", // present only if retrieveType set to true
+     *                     value: "Some value", // present only if retrieveValue set to true
+     *                     tags: <tags json>, // present only if retrieveTags set to true
+     *                 }],
+     *               }
+     *
+     * @throws VcxException     If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> searchNextRecords(
+            int searchHandle,
+            int count
+    ) throws VcxException {
+        logger.debug("searchNextRecords() called with: searchHandle = [****], count = [****]");
+
+        CompletableFuture<String> future = new CompletableFuture<String>();
+        int commandHandle = addFuture(future);
+        int result = LibVcx.api.vcx_wallet_search_next_records(commandHandle, searchHandle, count, stringCb);
+        checkResult(result);
+
+        return future;
+    }
+
+    /**
+     * Close a search
+     *
+     * @param searchHandle     handle pointing to search (returned by openSearch).
+     *
+     * @return                 void
+     *
+     * @throws VcxException Thrown if an error occurs when calling the underlying SDK.
+     */
+    public static CompletableFuture<Void> closeSearch(
+            int searchHandle
+    ) throws VcxException {
+        logger.debug("closeSearch() called with: searchHandle = [****]");
+
+        CompletableFuture<Void> future = new CompletableFuture<Void>();
+        int commandHandle = addFuture(future);
+        int result = LibVcx.api.vcx_wallet_close_search(commandHandle, searchHandle, voidCb);
+        checkResult(result);
+
+        return future;
     }
 
     private static Callback vcxCreateWalletBackupCB = new Callback() {

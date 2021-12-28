@@ -90,11 +90,6 @@ def shutdown(delete_wallet: bool):
         raise VcxError(ErrorCode(err), error_details)
 
 
-def mint_tokens():
-    name = 'vcx_mint_tokens'
-    do_call_sync(name, None, None)
-
-
 def create_cb(cb_type: CFUNCTYPE, transform_fn=None):
 
     def _cb(command_handle: int, err: int, *args):

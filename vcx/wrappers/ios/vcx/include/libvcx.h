@@ -29,6 +29,7 @@ typedef unsigned int vcx_connection_handle_t;
 typedef unsigned int vcx_credential_handle_t;
 typedef unsigned int vcx_proof_handle_t;
 typedef unsigned int vcx_command_handle_t;
+typedef unsigned int vcx_search_handle_t;
 typedef unsigned int vcx_bool_t;
 typedef unsigned int vcx_payment_handle_t;
 typedef unsigned int vcx_u32_t;
@@ -192,6 +193,12 @@ vcx_error_t vcx_connection_delete_connection(vcx_command_handle_t command_handle
 
 /** Get Problem Report message for Connection object in Failed or Rejected state. */
 vcx_error_t vcx_connection_get_problem_report(vcx_command_handle_t command_handle, vcx_connection_handle_t connection_handle, void (*cb)(vcx_command_handle_t, vcx_error_t err));
+
+/** Check if connection is outdated and require upgrade. */
+vcx_error_t vcx_connection_need_upgrade(vcx_command_handle_t command_handle, const char* serialized, void (*cb)(vcx_command_handle_t, vcx_error_t err, vcx_bool_t needed));
+
+/** Try to upgrade legacy Connection. */
+vcx_error_t vcx_connection_upgrade(vcx_command_handle_t command_handle, vcx_connection_handle_t connection_handle, const char* data, void (*cb)(vcx_command_handle_t, vcx_error_t err, const char *serialized));
 
 /** Send a message to the specified connection
 ///
@@ -475,6 +482,9 @@ vcx_error_t vcx_credential_get_presentation_proposal_msg(vcx_command_handle_t ha
 /** Get Problem Report message for Credential object in Failed or Rejected state. */
 vcx_error_t vcx_credential_get_problem_report(vcx_command_handle_t command_handle, vcx_credential_handle_t credential_handle, void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
+/** Retrieve information about a stored credential. */
+vcx_error_t vcx_credential_get_info(vcx_command_handle_t command_handle, vcx_credential_handle_t credential_handle, void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
 /**
  * wallet object
  *
@@ -498,6 +508,24 @@ vcx_error_t vcx_wallet_delete_record(vcx_command_handle_t chandle, const char * 
 
 /** Update a record in wallet if it is already added */
 vcx_error_t vcx_wallet_update_record_value(vcx_command_handle_t chandle, const char *type_, const char *record_id, const char *record_value, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err));
+
+/** Adds tags to a record in the wallet */
+vcx_error_t vcx_wallet_add_record_tags(vcx_command_handle_t chandle, const char *type_, const char *record_id, const char *tags, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err));
+
+/** Updates tags of a record in the wallet */
+vcx_error_t vcx_wallet_update_record_tags(vcx_command_handle_t chandle, const char *type_, const char *record_id, const char *tags, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err));
+
+/** Deletes tags from a record in the wallet */
+vcx_error_t vcx_wallet_delete_record_tags(vcx_command_handle_t chandle, const char *type_, const char *record_id, const char *tags, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err));
+
+/** Search for records in the wallet */
+vcx_error_t vcx_wallet_open_search(vcx_command_handle_t chandle, const char *type_, const char *query_json, const char *options_json, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err, vcx_search_handle_t search_handle));
+
+/** Search for records in the wallet */
+vcx_error_t vcx_wallet_search_next_records(vcx_command_handle_t chandle, vcx_search_handle_t search_handle, vcx_u32_t count, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err, const char *records_json));
+
+/** Close a search */
+vcx_error_t vcx_wallet_close_search(vcx_command_handle_t chandle, vcx_search_handle_t search_handle, void (*cb)(vcx_command_handle_t xhandle, vcx_error_t err));
 
 /**
  * token object
@@ -555,35 +583,6 @@ vcx_error_t vcx_set_logger( const void* context,
                                           const char* file,
                                           vcx_u32_t line),
                             void (*flushFn)(const void*  context));
-
-/// Retrieve author agreement set on the Ledger
-///
-/// #params
-///
-/// command_handle: command handle to map callback to user context.
-///
-/// cb: Callback that provides array of matching messages retrieved
-///
-/// #Returns
-/// Error code as a u32
-vcx_error_t vcx_get_ledger_author_agreement(vcx_u32_t command_handle,
-                                            void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
-
-/// Set some accepted agreement as active.
-///
-/// As result of succesfull call of this funciton appropriate metadata will be appended to each write request by `indy_append_txn_author_agreement_meta_to_request` libindy call.
-///
-/// #Params
-/// text and version - (optional) raw data about TAA from ledger.
-///     These parameters should be passed together.
-///     These parameters are required if hash parameter is ommited.
-/// hash - (optional) hash on text and version. This parameter is required if text and version parameters are ommited.
-/// acc_mech_type - mechanism how user has accepted the TAA
-/// time_of_acceptance - UTC timestamp when user has accepted the TAA
-///
-/// #Returns
-/// Error code as a u32
-vcx_error_t vcx_set_active_txn_author_agreement_meta(const char *text, const char *version, const char *hash, const char *acc_mech_type, vcx_u64_t type_);
 
 vcx_error_t vcx_wallet_backup_create(vcx_command_handle_t command_handle, const char *source_id, const char *backup_key,
               void (*cb)(vcx_command_handle_t, vcx_error_t, vcx_wallet_backup_handle_t));
@@ -722,13 +721,6 @@ vcx_error_t vcx_connection_send_discovery_features(vcx_u32_t command_handle,
                                                    void (*cb)(vcx_command_handle_t, vcx_error_t)
                                                    );
 
-vcx_error_t indy_build_txn_author_agreement_request(vcx_u32_t handle,
-                                                    const char* submitter_did,
-                                                    const char* text_ctype,
-                                                    const char* version_ctype,
-                                                    void (*cb)(vcx_command_handle_t, vcx_error_t)
-                                                   );
-
 vcx_error_t vcx_set_log_max_lvl(vcx_u32_t handle, vcx_u32_t max_lvl, void (*cb)(vcx_command_handle_t, vcx_error_t));
 
 vcx_error_t vcx_get_request_price(vcx_u32_t handle, const char* config_char, const char* requester_info_json_char);
@@ -805,6 +797,58 @@ vcx_error_t vcx_wallet_verify_with_address(vcx_command_handle_t command_handle,
                                           );
 /** For testing purposes only */
 void vcx_set_next_agency_response(int);
+
+/// Extract content of Aries message containing attachment decorator.
+/// RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+///
+/// #params
+///
+/// message: aries message containing attachment decorator
+/// command_handle: command handle to map callback to user context.
+///
+///
+/// cb: Callback that provides attached message
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_extract_attached_message(vcx_command_handle_t command_handle,
+                               const char *message,
+                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Extract thread id for message
+///
+/// #params
+///
+/// command_handle: command handle to map callback to user context.
+/// message: message to get thread id from
+///
+/// cb: Callback that provides thread id
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_extract_thread_id(vcx_command_handle_t command_handle,
+                               const char *message,
+                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Resolve message by the given URL.
+/// Supported cases:
+///   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+///   2. Message inside response `location` header for GET request
+///   3. Message inside response for GET request
+///
+/// #params
+///
+/// url: url to fetch message
+/// command_handle: command handle to map callback to user context.
+///
+/// cb: Callback that provides resolved message
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_resolve_message_by_url(vcx_command_handle_t command_handle,
+                               const char *url,
+                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
 #ifdef __cplusplus
 }
 #endif

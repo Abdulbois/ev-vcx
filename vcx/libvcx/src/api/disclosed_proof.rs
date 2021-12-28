@@ -1,12 +1,12 @@
 use libc::c_char;
-use utils::cstring::CStringUtils;
-use utils::error;
+use crate::utils::cstring::CStringUtils;
+use crate::utils::error;
 use std::ptr;
-use utils::threadpool::spawn;
-use error::prelude::*;
+use crate::utils::threadpool::spawn;
+use crate::error::prelude::*;
 use indy_sys::CommandHandle;
 use crate::disclosed_proof::{self, DisclosedProofs};
-use crate::object_cache::Handle;
+use crate::utils::object_cache::Handle;
 
 use crate::connection::Connections;
 
@@ -16,7 +16,7 @@ use crate::connection::Connections;
 
     # State
 
-    The set of object states, messages and transitions depends on the communication method is used.
+    The set of object states, agent and transitions depends on the communication method is used.
     There are two communication methods: `proprietary` and `aries`. The default communication method is `proprietary`.
     The communication method can be specified as a config option on one of *_init functions.
 
@@ -35,8 +35,8 @@ use crate::connection::Connections;
         VcxStateType::VcxStateOfferSent - once `vcx_disclosed_proof_send_proof` (send `Presentation` message) is called.
         VcxStateType::None - once `vcx_disclosed_proof_decline_presentation_request` (send `PresentationReject` or `PresentationProposal` message) is called.
 
-        VcxStateType::VcxStateAccepted - once `Ack` messages is received.
-        VcxStateType::None - once `ProblemReport` messages is received.
+        VcxStateType::VcxStateAccepted - once `Ack` agent is received.
+        VcxStateType::None - once `ProblemReport` agent is received.
 
     # Transitions
 
@@ -1037,9 +1037,10 @@ pub extern fn vcx_disclosed_proof_release(handle: Handle<DisclosedProofs>) -> u3
                 trace!("vcx_disclosed_proof_release(handle: {}, rc: {})",
                        handle, error::SUCCESS.as_str());
             }
-            Err(e) => {
-                warn!("vcx_disclosed_proof_release(handle: {}), rc: {})",
-                      handle, e);
+            Err(_e) => {
+                // FIXME logging here results in panic while python tests
+                // warn!("vcx_disclosed_proof_release(handle: {}), rc: {})",
+                //       handle, e);
             }
         };
         Ok(())
@@ -1050,17 +1051,15 @@ pub extern fn vcx_disclosed_proof_release(handle: Handle<DisclosedProofs>) -> u3
 
 #[cfg(test)]
 mod tests {
-    extern crate serde_json;
-
     use super::*;
     use std::ffi::CString;
-    use connection;
-    use api::VcxStateType;
-    use utils::constants::PENDING_OBJECT_SERIALIZE_VERSION;
-    use api::return_types;
+    use crate::connection;
+    use crate::api::VcxStateType;
+    use crate::utils::constants::PENDING_OBJECT_SERIALIZE_VERSION;
+    use crate::api::return_types;
     use serde_json::Value;
-    use utils::devsetup::*;
-    use utils::httpclient::AgencyMock;
+    use crate::utils::devsetup::*;
+    use crate::utils::httpclient::AgencyMock;
 
     pub const BAD_PROOF_REQUEST: &str = r#"{"version": "0.1","to_did": "LtMgSjtFcyPwenK9SHCyb8","from_did": "LtMgSjtFcyPwenK9SHCyb8","claim": {"account_num": ["8BEaoLf8TBmK4BUyX8WWnA"],"name_on_account": ["Alice"]},"schema_seq_no": 48,"issuer_did": "Pd4fnFtRBcMKRVC2go5w3j","claim_name": "Account Certificate","claim_id": "3675417066","msg_ref_id": "ymy5nth"}"#;
 
@@ -1082,7 +1081,7 @@ mod tests {
     fn test_vcx_proof_create_with_request_success() {
         let _setup = SetupMocks::init();
 
-        let handle = _vcx_disclosed_proof_create_with_request_c_closure(::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = _vcx_disclosed_proof_create_with_request_c_closure(crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
         assert!(handle > 0);
     }
 
@@ -1098,9 +1097,9 @@ mod tests {
     fn test_create_with_msgid() {
         let _setup = SetupMocks::init();
 
-        let cxn = ::connection::tests::build_test_connection();
+        let cxn = crate::connection::tests::build_test_connection();
 
-        AgencyMock::set_next_response(::utils::constants::NEW_PROOF_REQUEST_RESPONSE);
+        AgencyMock::set_next_response(crate::utils::constants::NEW_PROOF_REQUEST_RESPONSE);
 
         let (h, cb, r) = return_types::return_u32_dph_str();
         assert_eq!(vcx_disclosed_proof_create_with_msgid(h,
@@ -1116,7 +1115,7 @@ mod tests {
     fn test_vcx_disclosed_proof_release() {
         let _setup = SetupMocks::init();
 
-        let handle = _vcx_disclosed_proof_create_with_request_c_closure(::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = _vcx_disclosed_proof_create_with_request_c_closure(crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
         assert_eq!(vcx_disclosed_proof_release(handle), error::SUCCESS.code_num);
     }
 
@@ -1124,7 +1123,7 @@ mod tests {
     fn test_vcx_disclosed_proof_serialize_and_deserialize() {
         let _setup = SetupMocks::init();
 
-        let handle = _vcx_disclosed_proof_create_with_request_c_closure(::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = _vcx_disclosed_proof_create_with_request_c_closure(crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
 
         let (h, cb, r) = return_types::return_u32_str();
         assert_eq!(vcx_disclosed_proof_serialize(h,
@@ -1150,7 +1149,7 @@ mod tests {
     fn test_generate_msg() {
         let _setup = SetupMocks::init();
 
-        let handle = _vcx_disclosed_proof_create_with_request_c_closure(::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = _vcx_disclosed_proof_create_with_request_c_closure(crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
 
         let (h, cb, r) = return_types::return_u32_str();
         assert_eq!(vcx_disclosed_proof_get_proof_msg(h,
@@ -1163,7 +1162,7 @@ mod tests {
     fn test_vcx_send_proof() {
         let _setup = SetupMocks::init();
 
-        let handle = _vcx_disclosed_proof_create_with_request_c_closure(::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = _vcx_disclosed_proof_create_with_request_c_closure(crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
         assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateRequestReceived as u32);
 
         let connection_handle = connection::tests::build_test_connection();
@@ -1177,7 +1176,7 @@ mod tests {
     fn test_vcx_reject_proof_request() {
         let _setup = SetupMocks::init();
 
-        let handle = _vcx_disclosed_proof_create_with_request_c_closure(::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = _vcx_disclosed_proof_create_with_request_c_closure(crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
         assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateRequestReceived as u32);
 
         let connection_handle = connection::tests::build_test_connection();
@@ -1191,7 +1190,7 @@ mod tests {
     fn test_vcx_get_reject_msg() {
         let _setup = SetupMocks::init();
 
-        let handle = _vcx_disclosed_proof_create_with_request_c_closure(::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = _vcx_disclosed_proof_create_with_request_c_closure(crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
         assert_eq!(handle.get_state().unwrap(), VcxStateType::VcxStateRequestReceived as u32);
 
         let _connection_handle = connection::tests::build_test_connection();
@@ -1205,9 +1204,9 @@ mod tests {
     fn test_vcx_proof_get_requests() {
         let _setup = SetupMocks::init();
 
-        let cxn = ::connection::tests::build_test_connection();
+        let cxn = crate::connection::tests::build_test_connection();
 
-        AgencyMock::set_next_response(::utils::constants::NEW_PROOF_REQUEST_RESPONSE);
+        AgencyMock::set_next_response(crate::utils::constants::NEW_PROOF_REQUEST_RESPONSE);
 
         let (h, cb, r) = return_types::return_u32_str();
         assert_eq!(vcx_disclosed_proof_get_requests(h, cxn, Some(cb)), error::SUCCESS.code_num as u32);
@@ -1218,7 +1217,7 @@ mod tests {
     fn test_vcx_proof_get_state() {
         let _setup = SetupMocks::init();
 
-        let handle = _vcx_disclosed_proof_create_with_request_c_closure(::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = _vcx_disclosed_proof_create_with_request_c_closure(crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
 
         let (h, cb, r) = return_types::return_u32_u32();
         assert_eq!(vcx_disclosed_proof_get_state(h, handle, Some(cb)), error::SUCCESS.code_num);
@@ -1230,7 +1229,7 @@ mod tests {
     fn test_vcx_disclosed_proof_retrieve_credentials() {
         let _setup = SetupMocks::init();
 
-        let handle = _vcx_disclosed_proof_create_with_request_c_closure(::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = _vcx_disclosed_proof_create_with_request_c_closure(crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
 
         let (h, cb, r) = return_types::return_u32_str();
         assert_eq!(vcx_disclosed_proof_retrieve_credentials(h,
@@ -1244,7 +1243,7 @@ mod tests {
     fn test_vcx_disclosed_proof_generate_proof() {
         let _setup = SetupMocks::init();
 
-        let handle = _vcx_disclosed_proof_create_with_request_c_closure(::utils::constants::PROOF_REQUEST_JSON).unwrap();
+        let handle = _vcx_disclosed_proof_create_with_request_c_closure(crate::utils::constants::PROOF_REQUEST_JSON).unwrap();
 
         let (h, cb, r) = return_types::return_u32();
         assert_eq!(vcx_disclosed_proof_generate_proof(h,

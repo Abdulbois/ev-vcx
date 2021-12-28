@@ -739,6 +739,47 @@ vcx_error_t vcx_connection_get_problem_report(vcx_command_handle_t command_handl
                                               vcx_connection_handle_t connection_handle,
                                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
+/// Try to upgrade legacy Connection
+///   1. Query Cloud Agent for upgrade information
+///   2. Apply upgrade information if received
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// connection_handle: handle pointing to Connection state object.
+///
+/// data: (Optional) connection upgrade information
+///                 {
+///                     theirAgencyEndpoint: string,
+///                     theirAgencyVerkey: string,
+///                     theirAgencyDid: string,
+///                     direction: string, // one of `v1tov2` or `v2tov1`
+///                 }
+///
+/// cb: Callback that returns serialized representation of upgraded connection state object
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_connection_upgrade(vcx_command_handle_t command_handle,
+                                   vcx_connection_handle_t connection_handle,
+                                   const char* data,
+                                   void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Check if connection is outdated and require upgrade
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// serialized: serialized representation of connection state object
+///
+/// cb: Callback that returns bool flag indicating upgrade requirement
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_connection_need_upgrade(vcx_command_handle_t command_handle,
+                                        const char* serialized,
+                                        void (*cb)(vcx_command_handle_t, vcx_error_t, vcx_bool_t))
+
 // Create a Credential object that requests and receives a credential for an institution
 //
 // #Params
@@ -1094,6 +1135,29 @@ vcx_error_t vcx_credential_update_state_with_message(vcx_command_handle_t comman
 vcx_error_t vcx_credential_get_problem_report(vcx_command_handle_t command_handle,
                                               vcx_credential_handle_t credential_handle,
                                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Retrieve information about a credential.
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// credential_handle: credential handle that was provided during creation. Used to identify credential object
+///
+/// cb: Callback that provides error status of api call, or returns the credential information in json format.
+/// {
+///     "referent": string, // cred_id in the wallet
+///     "attrs": {"key1":"raw_value1", "key2":"raw_value2"},
+///     "schema_id": string,
+///     "cred_def_id": string,
+///     "rev_reg_id": Optional<string>,
+///     "cred_rev_id": Optional<string>
+/// }
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_credential_get_info(vcx_command_handle_t command_handle,
+                                    vcx_credential_handle_t credential_handle,
+                                    void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
 // Create a new CredentialDef object that can create credential definitions on the ledger
 //
@@ -1816,6 +1880,9 @@ vcx_error_t vcx_init_with_config(vcx_command_handle_t command_handle,
 ///                                         By default Libindy sends a read requests to 2 nodes in the pool.
 ///                             }
 ///                 }
+///                 Note: You can also pass a list of network configs.
+///                       In this case library will connect to multiple ledger networks and will look up public data in each of them.
+///                     [{ "genesis_path": string, "pool_name": string, ... }]}
 ///
 ///
 /// cb: Callback that provides no value
@@ -2707,44 +2774,44 @@ vcx_error_t vcx_wallet_add_record(vcx_command_handle_t command_handle,
                                const char *tags_json,
                                void (*cb)(vcx_command_handle_t, vcx_error_t));
 
-// Adds tags to a record.
-// Assumes there is an open wallet and that a type and id pair already exists.
-// #Params
-//
-// command_handle: command handle to map callback to user context.
-//
-// type_: type of record. (e.g. 'data', 'string', 'foobar', 'image')
-//
-// id: the id ("key") of the record.
-//
-// tags: Tags for the record with the associated id and type.
-//
-// cb: Callback that any errors or a receipt of transfer
-//
-// #Returns
-// Error code as a u32
-//
+/// Adds tags to a record.
+/// Assumes there is an open wallet and that a record with specified type and id pair already exists.
+
+/// #Params
+///
+/// command_handle: command handle to map callback to user context.
+///
+/// type_: type of record. (e.g. 'data', 'string', 'foobar', 'image')
+///
+/// id: the id ("key") of the record.
+///
+/// tags: Tags for the record with the associated id and type.
+///
+/// cb: Callback that provides error status of function execution
+///
+/// #Returns
+/// Error code as a u32
 vcx_error_t vcx_wallet_add_record_tags(vcx_command_handle_t command_handle,
                                     const char *type_,
                                     const char *id,
                                     const char *tags,
                                     void (*cb)(vcx_command_handle_t, vcx_error_t));
 
-// Close a search
-//
-// #Params
-//
-// command_handle: command handle to map callback to user context.
-//
-// search_handle: for future use
-//
-// cb: Callback that provides wallet balance
-//
-// #Returns
-// Error code as a u32
+/// Close a search
+///
+/// #Params
+///
+/// command_handle: command handle to map callback to user context.
+///
+/// search_handle: wallet search handle
+///
+/// cb: Callback that provides error status of function execution
+///
+/// #Returns
+/// Error code as a u32
 vcx_error_t vcx_wallet_close_search(vcx_command_handle_t command_handle,
-                                 vcx_wallet_search_handle_t search_handle,
-                                 void (*cb)(vcx_command_handle_t, vcx_error_t));
+                                    int32_t search_handle,
+                                    void (*cb)(vcx_command_handle_t, vcx_error_t));
 
 // Add a payment address to the wallet
 //
@@ -2915,60 +2982,63 @@ vcx_error_t vcx_wallet_import(vcx_command_handle_t command_handle,
                            const char *config,
                            void (*cb)(vcx_command_handle_t, vcx_error_t));
 
-// Opens a storage search handle
-//
-// #Params
-//
-// command_handle: command handle to map callback to user context.
-//
-// type_: type of record. (e.g. 'data', 'string', 'foobar', 'image')
-//
-// query_json: MongoDB style query to wallet record tags:
-// {
-// "tagName": "tagValue",
-// $or: {
-// "tagName2": { $regex: 'pattern' },
-// "tagName3": { $gte: 123 },
-// },
-// }
-// options_json:
-// {
-// retrieveRecords: (optional, true by default) If false only "counts" will be calculated,
-// retrieveTotalCount: (optional, false by default) Calculate total count,
-// retrieveType: (optional, false by default) Retrieve record type,
-// retrieveValue: (optional, true by default) Retrieve record value,
-// retrieveTags: (optional, true by default) Retrieve record tags,
-// }
-// cb: Callback that any errors or a receipt of transfer
-//
-// #Returns
-// Error code as a u32
+/// Search for records in the wallet.
+///
+/// #Params
+///
+/// command_handle: command handle to map callback to user context.
+///
+/// type_: type of record. (e.g. 'data', 'string', 'foobar', 'image')
+///
+/// query_json: MongoDB style query to wallet record tags:
+///  {
+///    "tagName": "tagValue",
+///    $or: {
+///      "tagName2": { $regex: 'pattern' },
+///      "tagName3": { $gte: 123 },
+///    },
+///  }
+/// options_json:
+///  {
+///    retrieveRecords: (optional, true by default) If false only "counts" will be calculated,
+///    retrieveTotalCount: (optional, false by default) Calculate total count,
+///    retrieveType: (optional, false by default) Retrieve record type,
+///    retrieveValue: (optional, true by default) Retrieve record value,
+///    retrieveTags: (optional, true by default) Retrieve record tags,
+///  }
+/// cb: Callback that provides error status of function execution and search handle
+///
+/// #Returns
+/// Error code as a u32
 vcx_error_t vcx_wallet_open_search(int32_t command_handle,
                                 const char *type_,
                                 const char *query_json,
                                 const char *options_json,
                                 void (*cb)(int32_t, vcx_error_t, int32_t));
 
-// Fetch next records for wallet search.
-//
-// Not if there are no records this call returns WalletNoRecords error.
-//
-// #Params
-// wallet_handle: wallet handle (created by open_wallet)
-// wallet_search_handle: wallet wallet handle (created by indy_open_wallet_search)
-// count: Count of records to fetch
-//
-// #Returns
-// wallet records json:
-// {
-// totalCount: <int>, // present only if retrieveTotalCount set to true
-// records: [{ // present only if retrieveRecords set to true
-// id: "Some id",
-// type: "Some type", // present only if retrieveType set to true
-// value: "Some value", // present only if retrieveValue set to true
-// tags: <tags json>, // present only if retrieveTags set to true
-// }],
-// }
+/// Fetch next records for wallet search.
+///
+/// Not if there are no records this call returns WalletNoRecords Indy error.
+///
+/// #Params
+/// wallet_handle: wallet handle (created by open_wallet)
+/// wallet_search_handle: wallet search handle (returned by vcx_wallet_open_search)
+/// count: Count of records to fetch
+///
+///
+/// cb: Callback that provides error status of function execution and wallet records json:
+/// {
+///   totalCount: <int>, // present only if retrieveTotalCount set to true
+///   records: [{ // present only if retrieveRecords set to true
+///       id: "Some id",
+///       type: "Some type", // present only if retrieveType set to true
+///       value: "Some value", // present only if retrieveValue set to true
+///       tags: <tags json>, // present only if retrieveTags set to true
+///   }],
+/// }
+///
+/// #Returns
+/// Error code as a u32
 vcx_error_t vcx_wallet_search_next_records(int32_t command_handle,
                                         int32_t wallet_search_handle,
                                         count_t count,
@@ -2996,23 +3066,23 @@ vcx_error_t vcx_wallet_send_tokens(vcx_command_handle_t command_handle,
                                 const char *recipient,
                                 void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
-// Updates the value of a record already in the wallet.
-// Assumes there is an open wallet and that a type and id pair already exists.
-// #Params
-//
-// command_handle: command handle to map callback to user context.
-//
-// type_: type of record. (e.g. 'data', 'string', 'foobar', 'image')
-//
-// id: the id ("key") of the record.
-//
-// tags: New tags for the record with the associated id and type.
-//
-// cb: Callback that any errors or a receipt of transfer
-//
-// #Returns
-// Error code as a u32
-//
+/// Updates tags of a record in the wallet.
+/// Assumes there is an open wallet and that a record with specified type and id pair already exists.
+///
+/// #Params
+///
+/// command_handle: command handle to map callback to user context.
+///
+/// type_: type of record. (e.g. 'data', 'string', 'foobar', 'image')
+///
+/// id: the id ("key") of the record.
+///
+/// tags: New tags for the record with the associated id and type.
+///
+/// cb: Callback that provides error status of function execution
+///
+/// #Returns
+/// Error code as a u32
 vcx_error_t vcx_wallet_update_record_tags(vcx_command_handle_t command_handle,
                                        const char *type_,
                                        const char *id,
@@ -3122,36 +3192,6 @@ vcx_error_t vcx_get_logger(const void* vcx_get_logger,
 /// }
 ///
 vcx_error_t vcx_get_current_error(const char ** error_json_p);
-
-/// Retrieve author agreement set on the Ledger
-///
-/// #params
-///
-/// command_handle: command handle to map callback to user context.
-///
-/// cb: Callback that provides array of matching messages retrieved
-///
-/// #Returns
-/// Error code as a u32
-vcx_error_t vcx_get_ledger_author_agreement(vcx_u32_t command_handle,
-                                            void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
-
-/// Set some accepted agreement as active.
-///
-/// As result of succesfull call of this funciton appropriate metadata will be appended to each write request by `indy_append_txn_author_agreement_meta_to_request` libindy call.
-///
-/// #Params
-/// text and version - (optional) raw data about TAA from ledger.
-///     These parameters should be passed together.
-///     These parameters are required if hash parameter is ommited.
-/// hash - (optional) hash on text and version. This parameter is required if text and version parameters are ommited.
-/// acc_mech_type - mechanism how user has accepted the TAA
-/// time_of_acceptance - UTC timestamp when user has accepted the TAA
-///
-/// #Returns
-/// Error code as a u32
-vcx_error_t vcx_set_active_txn_author_agreement_meta(const char *text, const char *version, const char *hash, const char *acc_mech_type, vcx_u64_t type_);
-
 
 /// -> Create a Wallet Backup object that provides a Cloud wallet backup and provision's backup protocol with Agent
 ///
@@ -3335,6 +3375,56 @@ vcx_error_t vcx_fetch_public_entities(vcx_u32_t command_handle,
 /// Error code as a u32
 vcx_error_t vcx_create_pairwise_agent(vcx_command_handle_t command_handle,
                                       void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Extract content of Aries message containing attachment decorator.
+/// RFC: https://github.com/hyperledger/aries-rfcs/tree/main/features/0592-indy-attachments
+///
+/// #params
+///
+/// message: aries message containing attachment decorator
+/// command_handle: command handle to map callback to user context.
+///
+/// cb: Callback that provides attached message
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_extract_attached_message(vcx_command_handle_t command_handle,
+                               const char *message,
+                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Extract thread id for message
+///
+/// #params
+///
+/// command_handle: command handle to map callback to user context.
+/// message: message to get thread id from
+///
+/// cb: Callback that provides thread id
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_extract_thread_id(vcx_command_handle_t command_handle,
+                               const char *message,
+                               void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
+/// Resolve message by the given URL.
+/// Supported cases:
+///   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string
+///   2. Message inside response `location` header for GET request
+///   3. Message inside response for GET request
+///
+/// #params
+///
+/// url: url to fetch message
+/// command_handle: command handle to map callback to user context.
+///
+/// cb: Callback that provides resolved message
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_resolve_message_by_url(vcx_command_handle_t command_handle,
+                                       const char *url,
+                                       void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
 #ifdef __cplusplus
 } // extern "C"

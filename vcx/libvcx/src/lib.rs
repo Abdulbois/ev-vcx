@@ -3,54 +3,25 @@
 //this is needed for some large json macro invocations
 #![recursion_limit = "128"]
 extern crate serde;
-extern crate rand;
-extern crate reqwest;
-extern crate openssl;
-extern crate hex;
 extern crate indyrs as indy;
-extern crate futures;
 
+// keep these as `extern` for global macros
 #[macro_use]
 extern crate log;
-
-extern crate libc;
-
 #[macro_use]
 extern crate serde_derive;
-
 #[macro_use]
 extern crate serde_json;
-
 #[macro_use]
 extern crate lazy_static;
-
-extern crate time;
-
-extern crate regex;
-
-extern crate uuid;
-
-extern crate failure;
-
-extern crate rmp_serde;
-extern crate indy_sys;
-
-extern crate base64;
-
-extern crate strum;
 #[macro_use]
 extern crate strum_macros;
-
-extern crate chrono;
-extern crate sha2;
-extern crate dashmap;
-extern crate rust_base58;
 
 #[macro_use]
 pub mod utils;
 pub mod settings;
 #[macro_use]
-pub mod messages;
+pub mod agent;
 
 pub mod api;
 pub mod connection;
@@ -60,11 +31,10 @@ pub mod schema;
 pub mod credential_def;
 pub mod error;
 pub mod credential;
-pub mod object_cache;
 pub mod disclosed_proof;
 pub mod wallet_backup;
-
-pub mod v3;
+pub mod aries;
+pub mod legacy;
 
 #[allow(unused_imports)]
 #[allow(dead_code)]
@@ -74,30 +44,31 @@ mod tests {
     use crate::credential_def::CredentialDef;
     use crate::disclosed_proof::DisclosedProofs;
     use crate::issuer_credential::IssuerCredentials;
-    use crate::object_cache::Handle;
+    use crate::utils::object_cache::Handle;
     use crate::connection::Connections;
     use crate::credential::Credentials;
     use crate::proof::Proofs;
 
     use super::*;
-    use settings;
-    use connection;
-    use credential;
-    use issuer_credential;
-    use disclosed_proof;
-    use proof;
-    use api::VcxStateType;
-    use api::ProofStateType;
+    use crate::settings;
+    use crate::connection;
+    use crate::credential;
+    use crate::issuer_credential;
+    use crate::disclosed_proof;
+    use crate::proof;
+    use crate::api::VcxStateType;
+    use crate::api::ProofStateType;
     use serde_json::Value;
     use rand::Rng;
     use std::thread;
     use std::time::Duration;
-    use utils::{
+    use crate::utils::{
         devsetup::{set_institution, set_consumer},
         constants::{DEFAULT_SCHEMA_ATTRS, TEST_TAILS_FILE},
         get_temp_dir_path
     };
-    use utils::devsetup::*;
+    use crate::utils::devsetup::*;
+    use crate::utils::libindy::ledger::query::Query;
 
     #[cfg(all(feature = "agency", feature = "pool_tests"))]
     #[test]
@@ -205,7 +176,7 @@ mod tests {
         issuer_handle.send_credential(connection).unwrap();
         thread::sleep(Duration::from_millis(2000));
         // AS CONSUMER STORE CREDENTIAL
-        ::utils::devsetup::set_consumer();
+        crate::utils::devsetup::set_consumer();
         credential_handle.update_state(None).unwrap();
         thread::sleep(Duration::from_millis(2000));
         println!("storing credential");
@@ -235,7 +206,7 @@ mod tests {
             if _req["msg_ref_id"] == json!(msg_uid) { req = Some(_req); }
         }
         let requests = serde_json::to_string(req.unwrap()).unwrap();
-        disclosed_proof::create_proof(::utils::constants::DEFAULT_PROOF_NAME, &requests).unwrap()
+        disclosed_proof::create_proof(crate::utils::constants::DEFAULT_PROOF_NAME, &requests).unwrap()
     }
 
     fn generate_and_send_proof(proof_handle: Handle<DisclosedProofs>, connection_handle: Handle<Connections>, selected_credentials: Value) {
@@ -268,10 +239,10 @@ mod tests {
 
     fn revoke_credential(issuer_handle: Handle<IssuerCredentials>, rev_reg_id: Option<String>) {
         // GET REV REG DELTA BEFORE REVOCATION
-        let (_, delta, timestamp) = ::utils::libindy::anoncreds::get_rev_reg_delta_json(&rev_reg_id.clone().unwrap(), None, None).unwrap();
+        let (_, delta, timestamp) = Query::get_rev_reg_delta(&rev_reg_id.clone().unwrap(), None, None).unwrap();
         println!("revoking credential");
         issuer_handle.revoke_credential().unwrap();
-        let (_, delta_after_revoke, _) = ::utils::libindy::anoncreds::get_rev_reg_delta_json(&rev_reg_id.unwrap(), Some(timestamp + 1), None).unwrap();
+        let (_, delta_after_revoke, _) = Query::get_rev_reg_delta(&rev_reg_id.unwrap(), Some(timestamp + 1), None).unwrap();
         assert_ne!(delta, delta_after_revoke);
     }
 
@@ -279,7 +250,7 @@ mod tests {
         let number_of_attributes = 10;
 
         let institution_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-        let (faber, alice) = ::connection::tests::create_connected_connections();
+        let (faber, alice) = crate::connection::tests::create_connected_connections();
 
         // AS INSTITUTION SEND CREDENTIAL OFFER
         println!("creating schema/credential_def and paying fees");
@@ -288,7 +259,7 @@ mod tests {
             attrs_list.as_array_mut().unwrap().push(json!(format!("key{}",i)));
         }
         let attrs_list = attrs_list.to_string();
-        let (schema_id, _schema_json, cred_def_id, _cred_def_json, cred_def_handle, _) = ::utils::libindy::anoncreds::tests::create_and_store_credential_def(&attrs_list, false);
+        let (schema_id, _schema_json, cred_def_id, _cred_def_json, cred_def_handle, _) = crate::utils::libindy::anoncreds::tests::create_and_store_credential_def(&attrs_list, false);
         let mut credential_data = json!({});
         for i in 1..number_of_attributes {
             credential_data[format!("key{}", i)] = json!([format!("value{}",i)]);
@@ -303,7 +274,7 @@ mod tests {
         send_credential(credential_offer, alice, credential);
 
         // AS INSTITUTION SEND PROOF REQUEST
-        ::utils::devsetup::set_institution();
+        crate::utils::devsetup::set_institution();
 
         let restrictions = json!({ "issuer_did": institution_did, "schema_id": schema_id, "cred_def_id": cred_def_id, });
         let mut attrs: Value = serde_json::Value::Array(vec![]);
@@ -347,13 +318,13 @@ mod tests {
         let _setup = SetupLibraryAgencyV2ZeroFeesNewProvisioning::init();
 
         let institution_did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
-        let (faber, alice) = ::connection::tests::create_connected_connections();
+        let (faber, alice) = crate::connection::tests::create_connected_connections();
 
         // CREATE SCHEMA AND CRED DEF
         println!("creating schema/credential_def and paying fees");
         let attrs_list = json!(["address1", "address2", "city", "state", "zip"]).to_string();
         let (schema_id, _schema_json, cred_def_id, _cred_def_json, cred_def_handle, rev_reg_id) =
-            ::utils::libindy::anoncreds::tests::create_and_store_credential_def(&attrs_list, true);
+            crate::utils::libindy::anoncreds::tests::create_and_store_credential_def(&attrs_list, true);
 
         // AS INSTITUTION SEND CREDENTIAL OFFER
         let (address1, address2, city, state, zip) = attr_names();
@@ -367,7 +338,7 @@ mod tests {
         send_credential(credential_offer, alice, credential);
 
         // AS INSTITUTION SEND PROOF REQUEST
-        ::utils::devsetup::set_institution();
+        crate::utils::devsetup::set_institution();
 
         let time_before_revocation = time::get_time().sec as u64;
         let mut _requested_attrs = requested_attrs(&institution_did, &schema_id, &cred_def_id, None, Some(time_before_revocation));
@@ -383,7 +354,7 @@ mod tests {
         proof_req_handle.update_state(None).unwrap();
         assert_eq!(proof_req_handle.get_proof_state().unwrap(), ProofStateType::ProofValidated as u32);
         println!("proof validated!");
-        let _wallet = ::utils::libindy::payments::get_wallet_token_info().unwrap();
+        let _wallet = crate::utils::libindy::payments::get_wallet_token_info().unwrap();
 
         // AS INSTITUTION REVOKE CRED
         revoke_credential(credential_offer, rev_reg_id);
