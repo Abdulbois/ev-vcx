@@ -70,7 +70,7 @@ impl_error! {
     INVALID_SCHEMA_SEQ_NO: 1040 => "No Schema for that schema sequence number",
     INVALID_SCHEMA_CREATION: 1041 => "Could not create schema",
     INVALID_SCHEMA_HANDLE: 1042 => "Invalid Schema Handle",
-    INVALID_CREDENTIAL_OFFER: 1043 => "Invalid Credential Offerz",
+    INVALID_CREDENTIAL_OFFER: 1043 => "Invalid Credential Offer",
     ALREADY_INITIALIZED: 1044 => "Library already initialized",
     INVALID_INVITE_DETAILS: 1045 => "Invalid invite details structure",
     INVALID_OBJ_HANDLE: 1048 => "Obj was not found with handle",
