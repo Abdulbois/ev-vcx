@@ -1,6 +1,6 @@
 # Changelog
 
-## Release notes - EvLibVcx 0.13.0 Dec 10 2021
+## Release notes - EvLibVcx 0.13.0 Dec 30 2021
 
 [Migration guide](./docs/migration-guide-0.12.x-0.13.0.md)
 
