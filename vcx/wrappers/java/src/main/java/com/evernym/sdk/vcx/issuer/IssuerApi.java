@@ -31,7 +31,7 @@ public class IssuerApi extends VcxJava.API {
      * Create a IssuerCredential object that provides a credential for an enterprise's user
      *
      * @param  sourceId             Enterprise's personal identification for the credential, should be unique.
-     * @param  credentialDefHandle  handle pointing to CredentialDefinition to use for issuance. 
+     * @param  credentialDefHandle  handle pointing to CredentialDefinition to use for issuance.
      *                              It must be already stored in the wallet and written to the ledger.
      * @param  issuerId             DID corresponding to entity issuing a credential. Needs to have Trust Anchor permissions on ledger
      * @param  credentialData       List of attributes offered credential will contain.
@@ -85,8 +85,8 @@ public class IssuerApi extends VcxJava.API {
      * Send a Credential Offer to user showing what will be included in the actual credential.
      *
      * @param  credentialHandle  handle pointing to IssuerCredential object.
-     * @param  connectionHandle  handle pointing to Connection object to use for message sending. 
-     *                           
+     * @param  connectionHandle  handle pointing to Connection object to use for message sending.
+     *
      * @return                   void
      *
      * @throws VcxException      If an exception occurred in Libvcx library.
@@ -158,7 +158,7 @@ public class IssuerApi extends VcxJava.API {
         logger.debug("issuerCredentialUpdateState() called with: credentialHandle = [" + credentialHandle + "]");
         CompletableFuture<Integer> future = new CompletableFuture<>();
         int issue = addFuture(future);
-        int result = LibVcx.api.vcx_credential_update_state(issue, credentialHandle, issuerCredentialUpdateStateCB);
+        int result = LibVcx.api.vcx_issuer_credential_update_state(issue, credentialHandle, issuerCredentialUpdateStateCB);
         checkResult(result);
         return future;
     }
