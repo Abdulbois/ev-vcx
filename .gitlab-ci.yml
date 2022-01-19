@@ -251,7 +251,7 @@ build-ios:
     - source ~/.bash_profile
     - mkdir -p ~/IOSBuilds/libvcxx86_64/ ~/IOSBuilds/libvcxarm64/
     - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
-    - export vcxRevision=$(git rev-parse --short HEAD)
+    - export vcxRevision=$(git rev-parse HEAD | cut -c 1-7)
     - cd -
     - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
     - export full_vcx_version="${vcxVersion}-${vcxRevision}"
@@ -750,7 +750,7 @@ publish-android:
       - vcx-aries-support
   script:
     - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
-    - export vcxRevision=$(git rev-parse --short HEAD)
+    - export vcxRevision=$(git rev-parse HEAD | cut -c 1-7)
     - cd -
     - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
     - cp ${CLOUDREPO_SETTINGS_XML} ./settings.xml

@@ -3,7 +3,7 @@ set -e
 export PATH=${PATH}:$(pwd)/vcx/ci/scripts
 
 VCX_VERSION=$(toml_utils.py vcx/libvcx/Cargo.toml)
-VCX_REVISION=$(git rev-parse --short HEAD)
+VCX_REVISION=$(git rev-parse HEAD | cut -c 1-7)
 
 OUTPUTDIR=output
 DIR=vcx/wrappers/react-native
