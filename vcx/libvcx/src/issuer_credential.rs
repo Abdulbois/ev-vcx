@@ -344,7 +344,7 @@ impl IssuerCredential {
                 format!("Cannot parse CredentialRequest from JSON string. Err: {}", err),
             ))?;
 
-        cred_req.msg_ref_id = offer_uid;
+        cred_req.msg_ref_id = cred_req.msg_ref_id.clone().or(offer_uid);
 
         self.credential_request = Some(cred_req);
         debug!("IssuerCredential {}: Received credential request for credential offer", self.source_id);

@@ -16,6 +16,7 @@ pub struct Invitation {
     #[serde(rename = "@id")]
     pub id: MessageId,
     #[serde(rename = "@type")]
+    #[serde(default = "default_type")]
     pub type_: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
@@ -138,12 +139,7 @@ impl Default for Invitation {
     fn default() -> Invitation {
         Invitation {
             id: MessageId::default(),
-            type_: MessageType {
-                prefix: MessageTypePrefix::DID,
-                family: MessageTypeFamilies::Outofband,
-                version: MessageTypeVersion::V10,
-                type_: A2AMessage::OUTOFBAND_INVITATION.to_string(),
-            },
+            type_: default_type(),
             label: Default::default(),
             goal_code: Default::default(),
             goal: Default::default(),
@@ -153,6 +149,15 @@ impl Default for Invitation {
             profile_url: Default::default(),
             public_did: Default::default(),
         }
+    }
+}
+
+fn default_type() -> MessageType {
+    MessageType {
+        prefix: MessageTypePrefix::DID,
+        family: MessageTypeFamilies::Outofband,
+        version: MessageTypeVersion::V10,
+        type_: A2AMessage::OUTOFBAND_INVITATION.to_string(),
     }
 }
 

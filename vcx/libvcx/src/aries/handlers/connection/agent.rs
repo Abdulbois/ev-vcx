@@ -109,9 +109,18 @@ impl AgentInfo {
 
 
         let mut a2a_messages: HashMap<String, A2AMessage> = HashMap::new();
-
         for message in messages {
-            a2a_messages.insert(message.uid.clone(), Self::decode_message(&message)?);
+            match Self::decode_message(&message) {
+                Ok(decoded_message) => {
+                    a2a_messages.insert(message.uid.clone(), decoded_message);
+                },
+                Err(err) => {
+                    warn!("Unable to decode received message! Err: {:?}", err);
+                    warn!("Ignore and updating message status as read");
+                    self.update_message_status(message.uid.clone(), None)?;
+
+                }
+            }
         }
 
         trace!("Agent::get_messages <<< a2a_messages: {:?}", secret!(a2a_messages));
