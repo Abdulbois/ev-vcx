@@ -2,12 +2,14 @@
 
 ## Release notes - EvLibVcx 0.13.1 Jan 21 2022
 
+EvLibVcx 0.12.0 to EvLibVcx 0.13.1 [Migration guide](./docs/migration-guide-0.12.x-0.13.0.md).
+
 ### Bugfixes
 * Deserialization does not work for Connection state objects created with usage of previous EvVCX versions.
 
 ## Release notes - EvLibVcx 0.13.0 Dec 30 2021
 
-[Migration guide](./docs/migration-guide-0.12.x-0.13.0.md)
+EvLibVcx 0.12.0 to EvLibVcx 0.13.0 [Migration guide](./docs/migration-guide-0.12.x-0.13.0.md).
 
 ### Breaking Change
 * Removed `vcx_get_ledger_author_agreement` and `vcx_set_active_txn_author_agreement_meta` functions to get and set transaction author agreement data in the runtime. \
