@@ -1,5 +1,10 @@
 # Changelog
 
+## Release notes - EvLibVcx 0.13.1 Jan 21 2022
+
+### Bugfixes
+* Deserialization does not work for Connection state objects created with usage of previous EvVCX versions.
+
 ## Release notes - EvLibVcx 0.13.0 Dec 30 2021
 
 [Migration guide](./docs/migration-guide-0.12.x-0.13.0.md)
