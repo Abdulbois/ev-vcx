@@ -18,7 +18,7 @@ from vcx.state import State, ProofState
 
 TAA_ACCEPT = bool(os.getenv("TAA_ACCEPT", "0") == "1")
 
-# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 # 'agency_url': URL of the agency
 # 'agency_did':  public DID of the agency
