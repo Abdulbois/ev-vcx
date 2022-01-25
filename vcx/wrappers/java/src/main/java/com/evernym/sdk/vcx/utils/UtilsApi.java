@@ -613,6 +613,30 @@ public class UtilsApi extends VcxJava.API {
     }
 
     /**
+     * Extract thread id for message.
+     *
+     * @param  message        Message to get thread id from
+     *
+     * @return                Thread id
+     *
+     * @throws VcxException   If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> vcxExtractThreadId(String message) throws VcxException {
+        ParamGuard.notNull(message, "message");
+        logger.debug("extractThreadId() called with: message = [****]");
+        CompletableFuture<String> future = new CompletableFuture<String>();
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_extract_thread_id(
+                commandHandle,
+                message,
+                stringCB
+        );
+        checkResult(result);
+        return future;
+    }
+
+    /**
      * Resolve message by the given URL.
      * Supported cases:
      *   1. Message inside of query parameters (c_i, oob, d_m, m) as base64 encoded string

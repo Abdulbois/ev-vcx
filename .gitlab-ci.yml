@@ -22,9 +22,9 @@ variables:
   vdrtoolsBranch: 'rc' # RPM stream
 #  indySimpleVersion: '1.16.0' # RPM package name
 #  indyFullRpmVersion: '1.16.0-170' # RPM directory
-  vdrtoolsFullDebVersion: '0.8.1' # DEB package name
-  msdkVersion: '2.0.0' # CHANGE_ME for every VCX stable release (0.11.2 VCX)
-  vcxVersion: '0.12.0'
+  vdrtoolsFullDebVersion: '0.8.2' # DEB package name
+  msdkVersion: '2.1.1' # CHANGE_ME for every VCX stable release (0.13.1 VCX)
+  vcxVersion: '0.13.1'
 
 ## - Anchors - ##
 .tags_micro:
@@ -243,7 +243,7 @@ build-ios:
       - IOSBuilds/libvcxarm64/*.zip
       - IOSBuilds/libvcxarm64/*.gz
   variables:
-    vdrtoolsFullVersion: '0.8.1' # FIXME: drop IT!!!!
+    vdrtoolsFullVersion: '0.8.2' # FIXME: drop IT!!!!
   script:
     - curl -s https://repo.corp.evernym.com/filely/ios/vcx-build-static-libs_${staticLibVersion}.tar.gz | tar -C ~/ -xvzf -
     - which rustup-init || brew install rustup-init
@@ -251,7 +251,7 @@ build-ios:
     - source ~/.bash_profile
     - mkdir -p ~/IOSBuilds/libvcxx86_64/ ~/IOSBuilds/libvcxarm64/
     - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
-    - export vcxRevision=$(git rev-parse --short HEAD)
+    - export vcxRevision=$(git rev-parse HEAD | cut -c 1-7)
     - cd -
     - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
     - export full_vcx_version="${vcxVersion}-${vcxRevision}"
@@ -750,7 +750,7 @@ publish-android:
       - vcx-aries-support
   script:
     - cd vcx/libvcx && ./../ci/scripts/cargo-update-version
-    - export vcxRevision=$(git rev-parse --short HEAD)
+    - export vcxRevision=$(git rev-parse HEAD | cut -c 1-7)
     - cd -
     - export vcxVersion=$(./vcx/ci/scripts/toml_utils.py ${PWD}/vcx/libvcx/Cargo.toml)
     - cp ${CLOUDREPO_SETTINGS_XML} ./settings.xml

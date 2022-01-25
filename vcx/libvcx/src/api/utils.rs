@@ -17,6 +17,7 @@ use crate::agent::provisioning;
 use crate::agent::messages::update_agent;
 use crate::agent::messages::update_agent::ComMethod;
 use crate::aries::messages::message_with_attachment::extract_attached_message;
+use crate::aries::messages::message_with_thread::extract_thread_id;
 use crate::aries::utils::resolve_message_by_url;
 use crate::utils::libindy::anoncreds::holder::Holder;
 
@@ -1023,6 +1024,53 @@ pub extern fn vcx_extract_attached_message(command_handle: CommandHandle,
             }
             Err(e) => {
                 warn!("vcx_extract_attached_message_cb(command_handle: {}, rc: {})",
+                      command_handle, e);
+                cb(command_handle, e.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
+/// Extract thread id for message
+///
+/// #params
+///
+/// command_handle: command handle to map callback to user context.
+/// message: message to get thread id from
+///
+/// cb: Callback that provides thread id
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+pub extern fn vcx_extract_thread_id(command_handle: CommandHandle,
+                                    message: *const c_char,
+                                    cb: Option<extern fn(xcommand_handle: CommandHandle,
+                                                         err: u32,
+                                                         thid: *const c_char)>) -> u32 {
+    info!("vcx_extract_thread_id >>>");
+
+    check_useful_c_str!(message, VcxErrorKind::InvalidOption);
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_extract_thread_id(command_handle: {}, message: {:?})",
+           command_handle, message);
+
+    spawn(move || {
+        match extract_thread_id(&message) {
+            Ok(thread_id) => {
+                trace!("vcx_extract_thread_id_cb(command_handle: {}, rc: {}, thread_id: {:?})",
+                       command_handle, error::SUCCESS.as_str(), secret!(thread_id));
+
+                let thread_id = CStringUtils::string_to_cstring(thread_id);
+                cb(command_handle, error::SUCCESS.code_num, thread_id.as_ptr());
+            }
+            Err(e) => {
+                warn!("vcx_extract_thread_id_cb(command_handle: {}, rc: {})",
                       command_handle, e);
                 cb(command_handle, e.into(), ptr::null_mut());
             }

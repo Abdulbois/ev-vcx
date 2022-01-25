@@ -486,7 +486,30 @@ async def vcx_extract_attached_message(message: str) -> str:
     return result
 
 
-async def resolve_message_by_url(url: str) -> str:
+async def vcx_extract_thread_id(message: str) -> str:
+    """
+    Extract thread id for message
+
+    :param message: aries message containing attachment decorator
+    :return: thread id
+    """
+    logger = logging.getLogger(__name__)
+
+    if not hasattr(vcx_extract_thread_id, "cb"):
+        logger.debug("vcx_extract_thread_id: Creating callback")
+        vcx_extract_thread_id.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
+
+    c_message = c_char_p(message.encode('utf-8'))
+
+    result = await do_call('vcx_extract_thread_id',
+                           c_message,
+                           vcx_extract_thread_id.cb)
+
+    logger.debug("vcx_extract_thread_id completed")
+    return result
+
+
+async def vcx_resolve_message_by_url(url: str) -> str:
     """
     Resolve message by the given URL.
     Supported cases:
@@ -499,15 +522,15 @@ async def resolve_message_by_url(url: str) -> str:
     """
     logger = logging.getLogger(__name__)
 
-    if not hasattr(resolve_message_by_url, "cb"):
-        logger.debug("resolve_message_by_url: Creating callback")
-        resolve_message_by_url.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
+    if not hasattr(vcx_resolve_message_by_url, "cb"):
+        logger.debug("vcx_resolve_message_by_url: Creating callback")
+        vcx_resolve_message_by_url.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
 
     c_url = c_char_p(url.encode('utf-8'))
 
     result = await do_call('vcx_resolve_message_by_url',
                            c_url,
-                           resolve_message_by_url.cb)
+                           vcx_resolve_message_by_url.cb)
 
-    logger.debug("resolve_message_by_url completed")
+    logger.debug("vcx_resolve_message_by_url completed")
     return result

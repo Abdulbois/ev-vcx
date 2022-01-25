@@ -2,7 +2,7 @@
 
 name = "libvcx"
 edition = "2018"
-version = "0.12.0"
+version = "0.13.1"
 authors = ["Hyperledger Indy Contributors <hyperledger-indy@lists.hyperledger.org>"]
 publish = false
 description = "This is the official SDK for Evernym's VCX"
@@ -94,14 +94,14 @@ assets = [
 maintainer-scripts = "./scripts"
 
 [package.metadata.deb.variants.libvcx-xenial]
-depends = "$auto, libvdrtools (=0.8.1-xenial)"
+depends = "$auto, libvdrtools (=0.8.2-xenial)"
 name = "libvcx"
-provides = "libvcx (= 0.12.0)"
+provides = "libvcx (= 0.13.1)"
 
 [package.metadata.deb.variants.libvcx-bionic]
-depends = "$auto, libvdrtools (=0.8.1-bionic)"
+depends = "$auto, libvdrtools (=0.8.2-bionic)"
 name = "libvcx"
-provides = "libvcx (= 0.12.0)"
+provides = "libvcx (= 0.13.1)"
 
 [profile.release]
 debug = true

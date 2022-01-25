@@ -10,6 +10,10 @@ interface IExtractAttachedMessage {
   message: string
 }
 
+interface IExtractThreadId {
+  message: string
+}
+
 interface IResolveMessageByUrl {
   url: string
 }
@@ -72,6 +76,17 @@ export class Utils {
    */
   public static async extractAttachedMessage({ message }: IExtractAttachedMessage): Promise<string> {
     return await RNIndy.extractAttachedMessage(message)
+  }
+
+  /**
+   * Extract thread id for message
+   *
+   * @return               string - thread id
+   *
+   * @throws VcxException   If an exception occurred in Libvcx library.
+   */
+  public static async extractThreadId({ message }: IExtractThreadId): Promise<string> {
+    return await RNIndy.extractThreadId(message)
   }
 
   /**

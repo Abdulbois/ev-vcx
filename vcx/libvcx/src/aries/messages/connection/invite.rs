@@ -11,6 +11,7 @@ pub struct Invitation {
     #[serde(rename = "@id")]
     pub id: MessageId,
     #[serde(rename = "@type")]
+    #[serde(default = "default_type")]
     pub type_: MessageType,
     pub label: String,
     #[serde(rename = "recipientKeys")]
@@ -76,12 +77,7 @@ impl Default for Invitation {
     fn default() -> Invitation {
         Invitation {
             id: MessageId::default(),
-            type_: MessageType {
-                prefix: MessageTypePrefix::DID,
-                family: MessageTypeFamilies::Connections,
-                version: MessageTypeVersion::V10,
-                type_: A2AMessage::CONNECTION_INVITATION.to_string(),
-            },
+            type_: default_type(),
             label: Default::default(),
             recipient_keys: Default::default(),
             routing_keys: Default::default(),
@@ -89,6 +85,15 @@ impl Default for Invitation {
             profile_url: Default::default(),
             public_did: Default::default(),
         }
+    }
+}
+
+fn default_type() -> MessageType {
+    MessageType {
+        prefix: MessageTypePrefix::DID,
+        family: MessageTypeFamilies::Connections,
+        version: MessageTypeVersion::V10,
+        type_: A2AMessage::CONNECTION_INVITATION.to_string(),
     }
 }
 
