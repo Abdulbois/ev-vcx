@@ -135,6 +135,24 @@ class DisclosedProof(VcxStateful):
                                    c_params)
 
     @staticmethod
+    async def parse_request(request: str):
+        """
+        Parse aa Aries Proof Request message
+        :param request: received proof request message
+        :return: proof request info
+        """
+        if not hasattr(Credential.parse_request, "cb"):
+            Credential.parse_request.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
+
+        c_request = c_char_p(request.encode('utf-8'))
+
+        data = await do_call('vcx_credential_parse_offer',
+                             c_offer,
+                             Credential.parse_request.cb)
+
+        return json.loads(data.decode())
+
+    @staticmethod
     async def create_with_msgid(source_id: str, connection: Connection, msg_id: str):
         """
         Create a proof based off of a known message id for a given connection.

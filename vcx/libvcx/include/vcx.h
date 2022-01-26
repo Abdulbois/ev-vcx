@@ -801,6 +801,24 @@ vcx_error_t vcx_credential_create_with_msgid(vcx_command_handle_t command_handle
                                           const char *msg_id,
                                           void (*cb)(vcx_command_handle_t, vcx_error_t, vcx_credential_handle_t, const char*));
 
+/// Parse an Aries Credential Offer message
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// offer: received credential offer message
+///
+/// # Example
+/// offer -> {"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/offer-credential", "@id":"<uuid-of-offer-message>", "comment":"somecomment", "credential_preview":<json-ldobject>, "offers~attach":[{"@id":"libindy-cred-offer-0", "mime-type":"application/json", "data":{"base64":"<bytesforbase64>"}}]}
+///
+/// cb: Callback that provides credential offer info or error status
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_credential_parse_offer(vcx_command_handle_t command_handle,
+                                      const char *offer,
+                                      void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
+
 // Create a Credential object that requests and receives a credential for an institution
 //
 // #Params
@@ -1358,6 +1376,21 @@ vcx_error_t vcx_credentialdef_update_state(vcx_command_handle_t command_handle,
 vcx_error_t vcx_credentialdef_get_state(vcx_command_handle_t command_handle,
                                         credentialdef_handle connection_handle,
                                         void (*cb)(vcx_command_handle_t, vcx_error_t, vcx_state_t));
+
+/// Parse aa Aries Proof Request message
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// proof_request: received proof request message
+///
+/// cb: Callback that provides proof request info or error status
+///
+/// #Returns
+/// Error code as a u32
+vcx_error_t vcx_disclosed_proof_parse_request(vcx_command_handle_t command_handle,
+                                              const char *request,
+                                              void (*cb)(vcx_command_handle_t, vcx_error_t, const char*));
 
 // Create a proof for fulfilling a corresponding proof request
 //

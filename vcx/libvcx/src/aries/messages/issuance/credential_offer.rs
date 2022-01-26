@@ -8,13 +8,15 @@ use crate::aries::messages::issuance::v20::credential_offer::CredentialOffer as 
 use crate::aries::messages::connection::service::Service;
 use crate::aries::messages::mime_type::MimeType;
 use crate::aries::messages::attachment::Attachments;
-use crate::aries::messages::issuance::credential_preview::CredentialPreviewData;
+use crate::aries::messages::issuance::credential_preview::{CredentialPreviewData, CredentialValue};
 use crate::error::{VcxResult, VcxError, VcxErrorKind};
 use crate::legacy::messages::issuance::credential_offer::CredentialOffer as ProprietaryCredentialOffer;
 use crate::aries::messages::thread::Thread;
 use crate::agent::messages::payload::PayloadKinds;
 use crate::utils::libindy::anoncreds::utils::ensure_credential_definition_contains_offered_attributes;
+use crate::utils::libindy::anoncreds::types::CredentialOffer as IndyCredentialOffer;
 use crate::aries::messages::a2a::message_type::{MessageType, MessageTypeVersion};
+use crate::aries::messages::alias::Alias;
 
 #[derive(Debug, Serialize, PartialEq, Clone)]
 #[serde(untagged)]
@@ -60,6 +62,13 @@ impl CredentialOffer {
         match self {
             CredentialOffer::V1(offer) => offer.comment.clone(),
             CredentialOffer::V2(offer) => offer.comment.clone(),
+        }
+    }
+
+    pub fn alias(&self) -> Option<&Alias> {
+        match self {
+            CredentialOffer::V1(offer) => offer.alias.as_ref(),
+            CredentialOffer::V2(offer) => offer.alias.as_ref(),
         }
     }
 
@@ -114,6 +123,46 @@ impl CredentialOffer {
         trace!("Issuer::InitialState::append_credential_preview <<<");
         Ok(self)
     }
+
+    pub fn parse(offer: &str) -> VcxResult<String> {
+        let offer: CredentialOffer = ::serde_json::from_str(offer)
+            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidCredentialOffer,
+                                              format!("Cannot parse CredentialOffer from `offer` JSON string. Err: {:?}", err)))?;
+
+        let thid = offer.thread().as_ref()
+            .and_then(|thread| thread.thid.clone())
+            .unwrap_or_else(|| offer.id());
+
+        let (_, cred_offer) = offer.offer_attach().content()?;
+
+        let indy_offer: IndyCredentialOffer = serde_json::from_str(&cred_offer)
+            .map_err(|err| VcxError::from_msg(VcxErrorKind::InvalidCredentialOffer,
+                                              format!("Cannot parse Indy Credential Offer from JSON string. Err: {:?}", err)))?;
+
+        let name = indy_offer.extract_schema_name()
+            .or(offer.alias().map(|alias| alias.label.clone()))
+            .or(offer.comment())
+            .unwrap_or("Credential".to_string());
+
+        let info = CredentialOfferInfo {
+            name,
+            attributes: offer.credentials_preview().clone().attributes,
+            cred_def_id: indy_offer.cred_def_id,
+            schema_id: indy_offer.schema_id,
+            thid,
+        };
+
+        Ok(json!(info).to_string())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct CredentialOfferInfo {
+    pub name: String,
+    pub attributes: Vec<CredentialValue>,
+    pub cred_def_id: String,
+    pub schema_id: String,
+    pub thid: String,
 }
 
 impl TryInto<CredentialOffer> for ProprietaryCredentialOffer {
@@ -241,5 +290,23 @@ pub mod tests {
         );
 
         credential_offer.ensure_match_credential_definition(CRED_DEF_JSON).unwrap_err();
+    }
+
+    #[test]
+    fn test_parse_credential_offer(){
+        let offer = r#"{"@id":"testid","@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/offer-credential","comment":"comment","credential_preview":{"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/credential-preview","attributes":[{"name":"attribute","value":"value"}]},"offers~attach":[{"@id":"libindy-cred-offer-0","data":{"base64":"eyJjcmVkX2RlZl9pZCI6Ik5jWXhpRFhrcFlpNm92NUZjWURpMWU6MzpDTDpOY1l4aURYa3BZaTZvdjVGY1lEaTFlOjI6Z3Z0OjEuMDpUQUcxIiwic2NoZW1hX2lkIjoiTmNZeGlEWGtwWWk2b3Y1RmNZRGkxZToyOmd2dDoxLjAifQ=="},"mime-type":"application/json"}]}"#;
+        let info = CredentialOffer::parse(offer).unwrap();
+        let expected = CredentialOfferInfo {
+            name: "gvt".to_string(),
+            attributes: vec![CredentialValue {
+                name: "attribute".to_string(),
+                value: serde_json::Value::String("value".to_string()),
+                _type: None
+            }],
+            cred_def_id: "NcYxiDXkpYi6ov5FcYDi1e:3:CL:NcYxiDXkpYi6ov5FcYDi1e:2:gvt:1.0:TAG1".to_string(),
+            schema_id: "NcYxiDXkpYi6ov5FcYDi1e:2:gvt:1.0".to_string(),
+            thid: "testid".to_string()
+        };
+        assert_eq!(json!(expected).to_string(), info);
     }
 }

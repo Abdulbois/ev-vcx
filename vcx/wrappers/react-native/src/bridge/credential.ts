@@ -2,6 +2,10 @@ import { NativeModules } from 'react-native'
 
 const { RNIndy } = NativeModules
 
+interface IParseOfferData {
+  offer: string
+}
+
 interface ICreateWithOfferData {
   sourceID: string
   offer: string
@@ -61,6 +65,20 @@ interface ICredentialGetProblemReport {
 }
 
 export class Credential {
+
+  /**
+   * Parse an Aries Credential Offer message
+   *
+   * @param  offer                received credential offer message
+   *
+   * @return                      credential offer info as JSON string.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
+  public static async parseOffer({ offer }: IParseOfferData): Promise<string> {
+    return await RNIndy.credentialParseOffer(offer)
+  }
+
   /**
    * Create a Credential object that requests and receives a credential for an institution
    *
