@@ -476,6 +476,11 @@ public abstract class LibVcx {
         public int vcx_disclosed_proof_release(int proof_handle);
 
         /**
+         * Parse aa Aries Proof Request message.
+         */
+        public int vcx_disclosed_proof_parse_request(int command_handle, String request, Callback cb);
+
+        /**
          * Create a proof based off of a known message id for a given connection.
          */
         public int vcx_disclosed_proof_create_with_msgid(int command_handle, String source_id, int connection_handle, String msd_id, Callback cb);
@@ -568,6 +573,9 @@ public abstract class LibVcx {
 
         /** Create a Credential object based off of a known message id for a given connection. */
         public int vcx_credential_create_with_msgid(int command_handle, String source_id, int connection, String msg_id,Callback cb);
+
+        /** Parse an Aries Credential Offer message. */
+        public int vcx_credential_parse_offer(int command_handle, String offer, Callback cb);
 
         /** Accept credential for the given offer. */
         public int vcx_credential_accept_credential_offer(int command_handle, String source_id, String offer, int connection_handle, Callback cb);

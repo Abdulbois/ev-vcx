@@ -11,6 +11,7 @@ use crate::aries::messages::a2a::message_type::{
     MessageTypeVersion,
 };
 use crate::aries::messages::a2a::message_family::MessageTypeFamilies;
+use crate::aries::messages::alias::Alias;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct CredentialOffer {
@@ -29,6 +30,9 @@ pub struct CredentialOffer {
     #[serde(rename = "~service")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub service: Option<Service>,
+    #[serde(rename = "~alias")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alias: Option<Alias>,
 }
 
 impl CredentialOffer {
@@ -82,6 +86,7 @@ impl Default for CredentialOffer {
             offers_attach: Default::default(),
             thread: Default::default(),
             service: Default::default(),
+            alias: None
         }
     }
 }

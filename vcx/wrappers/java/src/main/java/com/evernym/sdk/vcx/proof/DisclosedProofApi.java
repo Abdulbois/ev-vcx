@@ -18,6 +18,28 @@ public class DisclosedProofApi extends VcxJava.API {
 
     private static final Logger logger = LoggerFactory.getLogger("DisclosedProofApi");
 
+    /**
+     * Parse aa Aries Proof Request message.
+     *
+     * @param  request                  received proof request message
+     *
+     * @return                          proof request info as JSON string.
+     *
+     * @throws VcxException             If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> proofParseRequest(
+            String request
+    ) throws VcxException {
+        logger.debug("proofParseRequest() called with: request = [" + request + "]");
+        CompletableFuture<String> future = new CompletableFuture<>();
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_disclosed_proof_parse_request(commandHandle, request, stringCB);
+        checkResult(result);
+
+        return future;
+    }
+
     private static Callback vcxProofCreateWithMsgIdCB = new Callback() {
         @SuppressWarnings({"unused", "unchecked"})
         public void callback(int commandHandle, int err, int proofHandle, String proofRequest) {

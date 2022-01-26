@@ -365,6 +365,9 @@ vcx_error_t vcx_proof_get_problem_report(vcx_command_handle_t command_handle, vc
  * Used for sending a disclosed_proof to an identity owner.
  */
 
+/** Parse aa Aries Proof Request message */
+vcx_error_t vcx_disclosed_proof_parse_request(vcx_command_handle_t command_handle, const char *request, void (*cb)(vcx_command_handle_t command_handle, vcx_error_t err, const char *info));
+
 /** Creates a disclosed_proof object from a proof request.  Populates a handle to the new disclosed_proof. */
 vcx_error_t vcx_disclosed_proof_create_with_request(vcx_command_handle_t command_handle, const char *source_id, const char *proof_req, void (*cb)(vcx_command_handle_t command_handle, vcx_error_t err, vcx_proof_handle_t proof_handle));
 
@@ -433,6 +436,9 @@ vcx_error_t vcx_disclosed_proof_get_problem_report(vcx_command_handle_t command_
  *
  * Used for accepting and requesting a credential with an identity owner.
  */
+
+/** Parse an Aries Credential Offer message */
+vcx_error_t vcx_credential_parse_offer(vcx_command_handle_t command_handle, const char *offer, void (*cb)(vcx_command_handle_t command_handle, vcx_error_t err, const char* info));
 
 /** Retrieve information about a stored credential in user's wallet, including credential id and the credential itself. */
 vcx_error_t vcx_get_credential(vcx_command_handle_t handle, vcx_credential_handle_t credential_handle, void (*cb)(vcx_command_handle_t command_handle, vcx_error_t err, const char *credential));

@@ -6,6 +6,7 @@ import { createFFICallbackPromise } from '../utils/ffi-helpers'
 import { ISerializedData } from './common'
 import { Connection } from './connection'
 import { VCXBaseWithState } from './vcx-base-with-state'
+import {ICredentialParseOfferData} from "./credential";
 
 /**
  *    The API represents an Prover side in the credential presentation process.
@@ -66,6 +67,10 @@ import { VCXBaseWithState } from './vcx-base-with-state'
  *        PresentationProposal - https://github.com/hyperledger/aries-rfcs/tree/7b6b93acbaf9611d3c892c4bada142fe2613de6e/features/0037-present-proof#propose-presentation
  *        Ack - https://github.com/hyperledger/aries-rfcs/tree/master/features/0015-acks#explicit-acks
  */
+
+export interface IDisclosedProofParseRequestData {
+  request: string,
+}
 
 export interface IDisclosedProofData {
   source_id: string,
@@ -146,6 +151,35 @@ reason?: string,
 }
 
 export class DisclosedProof extends VCXBaseWithState<IDisclosedProofData> {
+    public async parseRequest ({ request }: IDisclosedProofParseRequestData): Promise<string> {
+        try {
+            return await createFFICallbackPromise<string>(
+                (resolve, reject, cb) => {
+                    const rc = rustAPI().vcx_disclosed_proof_parse_request(0, request, cb)
+                    if (rc) {
+                        reject(rc)
+                    }
+                },
+                (resolve, reject) => Callback(
+                    'void',
+                    ['uint32', 'uint32', 'string'],
+                    (xHandle: number, err: number, info: string) => {
+                        if (err) {
+                            reject(err)
+                            return
+                        }
+                        if (!info) {
+                            reject(`Proof ${this.sourceId} returned empty string`)
+                            return
+                        }
+                        resolve(info)
+                    })
+            )
+        } catch (err) {
+            throw new VCXInternalError(err)
+        }
+    }
+
   /**
    * Create a proof for fulfilling a corresponding proof request
    *

@@ -5,6 +5,7 @@ use std::ptr;
 use crate::utils::threadpool::spawn;
 use crate::error::prelude::*;
 use indy_sys::CommandHandle;
+use crate::aries::messages::proof_presentation::presentation_request::PresentationRequest;
 use crate::disclosed_proof::{self, DisclosedProofs};
 use crate::utils::object_cache::Handle;
 
@@ -70,6 +71,53 @@ use crate::connection::Connections;
         PresentationProposal - https://github.com/hyperledger/aries-rfcs/tree/7b6b93acbaf9611d3c892c4bada142fe2613de6e/features/0037-present-proof#propose-presentation
         Ack - https://github.com/hyperledger/aries-rfcs/tree/master/features/0015-acks#explicit-acks
 */
+
+/// Parse aa Aries Proof Request message
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// proof_request: received proof request message
+///
+/// cb: Callback that provides proof request info or error status
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+#[allow(unused_variables, unused_mut)]
+pub extern fn vcx_disclosed_proof_parse_request(command_handle: CommandHandle,
+                                                request: *const c_char,
+                                                cb: Option<extern fn(xcommand_handle: CommandHandle,
+                                                                     err: u32,
+                                                                     request_info: *const c_char)>) -> u32 {
+    info!("vcx_disclosed_proof_parse_request >>>");
+
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+    check_useful_c_str!(request, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_disclosed_proof_parse_request(command_handle: {}, offer: {})",
+           command_handle, secret!(&request));
+
+    spawn(move || {
+        match PresentationRequest::parse(&request) {
+            Ok(info) => {
+                trace!("vcx_disclosed_proof_parse_request_cb(command_handle: {}, rc: {}, handle: {})",
+                       command_handle, error::SUCCESS.as_str(), info);
+                let info = CStringUtils::string_to_cstring(info);
+                cb(command_handle, error::SUCCESS.code_num, info.as_ptr())
+            }
+            Err(x) => {
+                warn!("vcx_disclosed_proof_parse_request_cb(command_handle: {}, rc: {}, handle: {})",
+                      command_handle, x, 0);
+                cb(command_handle, x.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
 
 /// Create a Proof object for fulfilling a corresponding proof request
 ///
@@ -162,7 +210,7 @@ pub extern fn vcx_disclosed_proof_create_with_msgid(command_handle: CommandHandl
                 cb(command_handle, error::SUCCESS.code_num, handle, msg.as_ptr())
             }
             Err(e) => {
-                cb(command_handle, e.into(), Handle::dummy(),  ptr::null());
+                cb(command_handle, e.into(), Handle::dummy(), ptr::null());
             }
         };
 
@@ -236,7 +284,6 @@ pub extern fn vcx_disclosed_proof_create_proposal(command_handle: CommandHandle,
                                                   proposal: *const c_char,
                                                   comment: *const c_char,
                                                   cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, proof_handle: Handle<DisclosedProofs>)>) -> u32 {
-
     info!("vcx_disclosed_proof_create_proposal >>>");
 
     check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
@@ -1075,6 +1122,7 @@ mod tests {
         }
         r.recv_medium()
     }
+
     const EMPTY_JSON: *const c_char = "{}\0".as_ptr().cast();
 
     #[test]

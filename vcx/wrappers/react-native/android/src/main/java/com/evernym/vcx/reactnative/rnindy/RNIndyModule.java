@@ -901,6 +901,25 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
     /*
      * Credential API
      */
+     @ReactMethod
+     public void credentialParseOffer(String offer, Promise promise) {
+         try {
+             CredentialApi.credentialParseOffer(offer).exceptionally((t) -> {
+                 VcxException ex = (VcxException) t;
+                 ex.printStackTrace();
+                 Log.e(TAG, "credentialParseOffer - Error: ", ex);
+                 promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                 return null;
+             }).thenAccept(result -> {
+                 BridgeUtils.resolveIfValid(promise, result);
+             });
+         } catch (VcxException e) {
+             e.printStackTrace();
+             Log.e(TAG, "credentialParseOffer - Error: ", e);
+             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+         }
+     }
+
     @ReactMethod
     public void credentialCreateWithOffer(String sourceId, String credOffer, Promise promise) {
         try {
@@ -920,6 +939,7 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
+
     @ReactMethod
     public void serializeClaimOffer(int credentialHandle, Promise promise) {
         // it would return error code, json string of credential inside callback
@@ -1518,6 +1538,27 @@ public class RNIndyModule extends ReactContextBaseJavaModule {
         } catch(VcxException e) {
             e.printStackTrace();
             Log.e(TAG, "proofDeclineRequest - Error: ", e);
+            promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
+        }
+    }
+
+    @ReactMethod
+    public void proofParseRequest(String request, Promise promise) {
+        Log.d(TAG, "proofParseRequest()");
+
+        try {
+            DisclosedProofApi.proofParseRequest(request).exceptionally((t)-> {
+                VcxException ex = (VcxException) t;
+                ex.printStackTrace();
+                Log.e(TAG, "proofParseRequest - Error: ", ex);
+                promise.reject(String.valueOf(ex.getSdkErrorCode()), ex.getSdkMessage());
+                return null;
+            }).thenAccept(result -> {
+                BridgeUtils.resolveIfValid(promise, result);
+            });
+        } catch(VcxException e) {
+            e.printStackTrace();
+            Log.e(TAG, "proofParseRequest - Error: ", e);
             promise.reject(String.valueOf(e.getSdkErrorCode()), e.getSdkMessage());
         }
     }
