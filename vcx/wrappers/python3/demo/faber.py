@@ -18,7 +18,7 @@ from vcx.state import State, ProofState
 
 TAA_ACCEPT = bool(os.getenv("TAA_ACCEPT", "0") == "1")
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 # 'agency_url': URL of the agency
 # 'agency_did':  public DID of the agency
@@ -33,7 +33,7 @@ provisionConfig = {
     'wallet_name': 'faber_wallet',
     'wallet_key': '123',
     'enterprise_seed': '000000000000000000000000Trustee2',
-    'protocol_type': '1.0',
+    'protocol_type': '3.0',
     'name': 'Faber',
     'logo': 'https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png',
     'pool_networks': [
