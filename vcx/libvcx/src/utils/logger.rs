@@ -115,7 +115,6 @@ unsafe impl Send for LibvcxLogger {}
 
 impl log::Log for LibvcxLogger {
     fn enabled(&self, metadata: &Metadata) -> bool {
-        println!("record.target {:?}", metadata.target());
         if !EXCLUDE_TARGETS.contains(&metadata.target()) {
             if let Some(enabled_cb) = self.enabled {
                 let level = metadata.level() as u32;

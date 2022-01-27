@@ -8,6 +8,38 @@ pub struct CredentialOffer {
     pub cred_def_id: String,
 }
 
+impl CredentialOffer {
+    pub fn extract_schema_name(&self) -> Option<String> {
+        let parts = self.schema_id.split_terminator(":").collect::<Vec<&str>>();
+
+        if parts.len() == 1 {
+            // 1
+            return None;
+        }
+
+        if parts.len() == 4 {
+            // NcYxiDXkpYi6ov5FcYDi1e:2:gvt:1.0
+            let name = parts[2].to_string();
+            return Some(name);
+        }
+
+        if parts.len() == 6 {
+            // schema:sov:NcYxiDXkpYi6ov5FcYDi1e:2:gvt:1.0
+            let name = parts[4].to_string();
+            return Some(name);
+        }
+
+        if parts.len() == 8 {
+            // schema:sov:did:sov:NcYxiDXkpYi6ov5FcYDi1e:2:gvt:1.0
+            let name = parts[6].to_string();
+            return Some(name);
+        }
+
+        None
+    }
+
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CredentialInfo {
     pub referent: String,

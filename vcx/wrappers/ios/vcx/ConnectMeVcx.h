@@ -1190,8 +1190,6 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 /// Delete a Credential associated with the state object from the Wallet and release handle of the state object.
 ///
 /// # Params
-/// command_handle: command handle to map callback to user context.
-///
 /// credential_handle: handle pointing to credential state object to delete.
 ///
 /// cb: Callback that provides error status of delete credential request
@@ -1201,11 +1199,19 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 - (void)deleteCredential:(NSInteger )credentialHandle
               completion:(void (^)(NSError *error))completion;
 
+/// Parse an Aries Credential Offer message
+///
+/// #Params
+/// offer: received credential offer message
+///
+/// #Returns
+/// Credential offer info or error status
+- (void)credentialParseOffer:(NSString *)offer
+                  completion:(void (^)(NSError *error, NSString *info))completion;
+
 /// Create a Credential object that requests and receives a credential for an institution
 ///
 /// #Params
-/// command_handle: command handle to map callback to user context.
-///
 /// source_id: Institution's personal identification for the credential, should be unique.
 ///
 /// offer: credential offer received via "vcx_credential_get_offers"
@@ -1722,6 +1728,16 @@ extern void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_h
 withSelectedCredentials:(NSString *)selectedCredentials
  withSelfAttestedAttrs:(NSString *)selfAttestedAttributes
         withCompletion:(void (^)(NSError *error))completion;
+
+/// Parse aa Aries Proof Request message
+///
+/// #Params
+/// proof_request: received proof request message
+///
+/// #Returns
+/// Proof request info or error status
+- (void) proofParseRequest:(NSString *)request
+            withCompletion:(void (^)(NSError *error, NSString *info))completion;
 
 /// Create a proof based off of a known message id for a given connection.
 ///

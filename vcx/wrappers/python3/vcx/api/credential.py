@@ -155,6 +155,24 @@ class Credential(VcxStateful):
                                         c_params)
 
     @staticmethod
+    async def parse_offer(offer: str):
+        """
+        Parse an Aries Credential Offer message
+        :param offer: received credential offer message
+        :return: credential offer info
+        """
+        if not hasattr(Credential.parse_offer, "cb"):
+            Credential.parse_offer.cb = create_cb(CFUNCTYPE(None, c_uint32, c_uint32, c_char_p))
+
+        c_offer = c_char_p(offer.encode('utf-8'))
+
+        data = await do_call('vcx_credential_parse_offer',
+                             c_offer,
+                             Credential.parse_offer.cb)
+
+        return json.loads(data.decode())
+
+    @staticmethod
     async def create_with_msgid(source_id: str, connection: Connection, msg_id: str):
         """
         Create a credential based off of a known message id for a given connection.

@@ -2,6 +2,10 @@ import { NativeModules } from 'react-native'
 
 const { RNIndy } = NativeModules
 
+interface IParseRequestData {
+  request: string
+}
+
 interface IProofCreateWithRequestData {
   sourceID: string
   proofRequest: string
@@ -64,6 +68,20 @@ interface IProofDeserializeData {
 }
 
 export class DisclosedProof {
+
+  /**
+   * Parse an Aries Proof Request Offer message
+   *
+   * @param  request              received proof request message
+   *
+   * @return                      proof request info as JSON string.
+   *
+   * @throws VcxException         If an exception occurred in Libvcx library.
+   */
+  public static async parseRequest({ request }: IParseRequestData): Promise<string> {
+    return await RNIndy.proofParseRequest(request)
+  }
+
   /**
    * Create a DisclosedProof object for fulfilling a corresponding proof request.
    *

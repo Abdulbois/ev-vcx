@@ -1052,6 +1052,24 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
     }
 }
 
+- (void)credentialParseOffer:(NSString *)offer
+                  completion:(void (^)(NSError *error, NSString *info))completion {
+   vcx_error_t ret;
+   vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+   const char * cOffer=[offer cStringUsingEncoding:NSUTF8StringEncoding];
+   ret = vcx_credential_parse_offer(handle, cOffer, VcxWrapperCommonStringCallback);
+
+   if( ret != 0 )
+   {
+       [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+       NSError *error = [NSError errorFromVcxError:ret];
+       dispatch_async(dispatch_get_main_queue(), ^{
+           completion(error,  nil);
+       });
+   }
+}
+
 - (void)credentialCreateWithOffer:(NSString *)sourceId
             offer:(NSString *)credentialOffer
            completion:(void (^)(NSError *error, NSInteger credentialHandle))completion{
@@ -1536,6 +1554,25 @@ void VcxWrapperCommonNumberStringCallback(vcx_command_handle_t xcommand_handle,
            completion(error, nil);
        });
    }
+}
+
+- (void) proofParseRequest:(NSString *)request
+            withCompletion:(void (^)(NSError *error, NSString *info))completion {
+    vcx_error_t ret;
+    vcx_command_handle_t handle = [[VcxCallbacks sharedInstance] createCommandHandleFor:completion];
+    const char *cRequest = [request cStringUsingEncoding:NSUTF8StringEncoding];
+
+    ret = vcx_disclosed_proof_parse_request(handle, cRequest, VcxWrapperCommonStringCallback);
+
+    if ( ret != 0 )
+    {
+        [[VcxCallbacks sharedInstance] deleteCommandHandleFor: handle];
+
+        NSError *error = [NSError errorFromVcxError:ret];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(error, nil);
+        });
+    }
 }
 
 - (void) proofCreateWithMsgId:(NSString *)sourceId

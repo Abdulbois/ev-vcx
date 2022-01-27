@@ -29,6 +29,30 @@ public class CredentialApi extends VcxJava.API {
     };
 
     /**
+     * Parse an Aries Credential Offer message
+     *
+     * @param  offer                received credential offer message
+     *
+     * @return                      credential offer info as JSON string.
+     *
+     * @throws VcxException         If an exception occurred in Libvcx library.
+     */
+    public static CompletableFuture<String> credentialParseOffer(
+            String offer
+    ) throws VcxException {
+        logger.debug("credentialParseOffer() called with: offer = [" + offer + "]");
+        CompletableFuture<String> future = new CompletableFuture<String>();
+        int commandHandle = addFuture(future);
+
+        int result = LibVcx.api.vcx_credential_parse_offer(commandHandle,
+                offer,
+                vcxCredentialStringCB);
+        checkResult(result);
+
+        return future;
+    }
+
+    /**
      * Create a Credential object based off of a known message id (containing Credential Offer) for a given connection.
      *
      * @param  sourceId             Institution's personal identification for the credential, should be unique.
