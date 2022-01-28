@@ -26,6 +26,15 @@ static mut ENABLED_CB: Option<EnabledCB> = None;
 static mut LOG_CB: Option<LogCB> = None;
 static mut FLUSH_CB: Option<FlushCB> = None;
 
+static EXCLUDE_TARGETS: &'static [&'static str] = &[
+    "sqlx::query",
+    "native_tls",
+    "tokio_reactor",
+    "tokio_reactor::registration",
+    "tokio_threadpool",
+    "want",
+];
+
 #[derive(Debug, PartialEq)]
 pub enum LoggerState {
     Default,
@@ -58,16 +67,14 @@ impl LibvcxLogger {
         let logger = LibvcxLogger::new(context, enabled, log, flush);
         log::set_boxed_logger(Box::new(logger))
             .map_err(|err| VcxError::from_msg(VcxErrorKind::LoggingError, format!("Setting logger failed with: {}", err)))?;
-        log::set_max_level(LevelFilter::Trace);
-
-        libindy::logger::set_logger(log::logger())
-            .map_err(|err|  VcxError::from_msg(VcxErrorKind::LoggingError, format!("Setting logger failed with: {}", err)))?;
-
         let max_lvl = match max_lvl {
             Some(max_lvl) => LibvcxLogger::map_u32_lvl_to_filter(max_lvl)?,
             None => DEFAULT_MAX_LEVEL,
         };
         log::set_max_level(max_lvl);
+
+        libindy::logger::set_logger(log::logger())
+            .map_err(|err|  VcxError::from_msg(VcxErrorKind::LoggingError, format!("Setting logger failed with: {}", err)))?;
 
         unsafe {
             LOGGER_STATE = LoggerState::Custom;
@@ -108,18 +115,27 @@ unsafe impl Send for LibvcxLogger {}
 
 impl log::Log for LibvcxLogger {
     fn enabled(&self, metadata: &Metadata) -> bool {
-        if let Some(enabled_cb) = self.enabled {
-            let level = metadata.level() as u32;
-            let target = CString::new(metadata.target()).unwrap();
+        if !EXCLUDE_TARGETS.contains(&metadata.target()) {
+            if let Some(enabled_cb) = self.enabled {
+                let level = metadata.level() as u32;
+                let target = CString::new(metadata.target()).unwrap();
 
-            enabled_cb(self.context,
-                       level,
-                       target.as_ptr(),
-            )
-        } else { true }
+                enabled_cb(self.context,
+                           level,
+                           target.as_ptr(),
+                )
+            } else { true }
+        } else {
+            metadata.level() == Level::Warn ||
+            metadata.level() == Level::Error
+        }
     }
 
     fn log(&self, record: &Record) {
+        if !self.enabled(record.metadata()) {
+            return;
+        }
+
         let log_cb = self.log;
 
         let level = record.level() as u32;
