@@ -1186,7 +1186,7 @@ RCT_EXPORT_METHOD(proofParseRequest: (NSString *)request
                   resolver: (RCTPromiseResolveBlock) resolve
                   rejecter: (RCTPromiseRejectBlock) reject)
 {
-  [[[ConnectMeVcx alloc] init] proofParseRequest:request completion:^(NSError *error, NSString *info) {
+  [[[ConnectMeVcx alloc] init] proofParseRequest:request withCompletion:^(NSError *error, NSString *info) {
     if (error != nil && error.code != 0)
     {
       NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
