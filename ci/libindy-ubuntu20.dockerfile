@@ -1,6 +1,8 @@
 # Development
 FROM ubuntu:20.04
 
+ENV DEBIAN_FRONTEND noninteractive
+
 # JRE installation and gcc
 RUN apt-get update -y && apt-get install -y \
     gcc \
@@ -31,7 +33,7 @@ RUN apt-get update -y && apt-get install -y \
     zip \
     unzip \
     rename \
-    mysql-client-core-5.7 \
+    mariadb-client-core-10.3 \
     sudo
 
 # Install Nodejs
@@ -63,5 +65,5 @@ RUN add-apt-repository "deb https://repo.corp.evernym.com/deb evernym-agency-dev
 ARG LIBVDRTOOLS_VER
 RUN echo "Libvdrtools Version: ${LIBVDRTOOLS_VER}"
 
-RUN apt-get update && apt install -y libvdrtools=${LIBVDRTOOLS_VER}-bionic
+RUN apt-get update && apt install -y libvdrtools=${LIBVDRTOOLS_VER}-focal
 
