@@ -24,7 +24,7 @@ Evernym LibVCX was originally built as a high level API for LibIndy and deployed
 2) Install VDR-Tools:
    ```
    add-apt-repository "deb https://repo.corp.evernym.com/deb evernym-agency-dev-ubuntu main"
-   apt-get update && apt-get install -y libvdrtools=${VDRTOOLS_VER}-{bionic|xenial}
+   apt-get update && apt-get install -y libvdrtools=${VDRTOOLS_VER}-{bionic|focal}
    ```
 3) Clone this repo to your local machine. 
 4) From the vcx/libvcx folder inside this local repository run the following commands to verify everything works: 
