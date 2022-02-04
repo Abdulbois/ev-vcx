@@ -94,12 +94,12 @@ assets = [
 maintainer-scripts = "./scripts"
 
 [package.metadata.deb.variants.libvcx-xenial]
-depends = "$auto, libvdrtools (=0.8.2-xenial)"
+depends = "$auto, libvdrtools (=0.8.4-xenial)"
 name = "libvcx"
 provides = "libvcx (= 0.13.1)"
 
 [package.metadata.deb.variants.libvcx-bionic]
-depends = "$auto, libvdrtools (=0.8.2-bionic)"
+depends = "$auto, libvdrtools (=0.8.4-bionic)"
 name = "libvcx"
 provides = "libvcx (= 0.13.1)"
 
