@@ -9,7 +9,7 @@ fn main() {
     if env::var("LIBINDY_STATIC").is_ok() {
         let libindy_lib_path = env::var("LIBINDY_DIR").unwrap();
         println!("cargo:rustc-link-search=native={}", libindy_lib_path);
-        println!("cargo:rustc-link-lib=static=indy");
+        println!("cargo:rustc-link-lib=static=vdrtools");
     } else if target.contains("aarch64-linux-android")
         || target.contains("armv7-linux-androideabi")
         || target.contains("arm-linux-androideabi")
@@ -29,7 +29,7 @@ fn main() {
                     .join("lib")
             });
         println!("cargo:rustc-link-search=native={}", libindy_lib_path);
-        println!("cargo:rustc-link-lib=static=indy");
+        println!("cargo:rustc-link-lib=static=vdrtools");
         println!("cargo:rustc-link-search=native={}", openssl.display());
         println!("cargo:rustc-link-lib=static=crypto");
         println!("cargo:rustc-link-lib=static=ssl");

@@ -4,7 +4,7 @@ Release: %{getenv:CI_PIPELINE_IID}
 Summary: This is the official SDK for Evernym's VCX
 License: Apache License 2.0
 Group: System Environment/Libraries
-Requires: python3, zeromq, libindy
+Requires: python3, zeromq, libvdrtools
 AutoReq: no
 
 %define _rpmdir target/
