@@ -157,7 +157,7 @@ dockerbuild-vcx-android:
   stage: dockerbuild
   extends: .kaniko_large
   dependencies:
-    - dockerbuild-vcx-libindy-ubuntu20
+    - dockerbuild-vcx-libindy-ubuntu18
   variables:
     DOCKERFILE_PATH: vcx/wrappers/java/ci/android.dockerfile
     DOCKER_IMAGE_NAME: vcx-android
