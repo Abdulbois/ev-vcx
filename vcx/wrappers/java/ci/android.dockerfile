@@ -6,6 +6,7 @@ RUN usermod -aG sudo android
 
 RUN apt-get update -y && apt-get install -y \
     openjdk-8-jdk \
+    python3-distutils \
     maven
 
 # Install Android SDK and NDK

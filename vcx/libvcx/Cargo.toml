@@ -50,7 +50,7 @@ base64 = "0.8.0"
 openssl = "0.10.34"
 openssl-sys = "0.9.63"
 hex = "0.3.2"
-indy = { git = "https://gitlab.com/evernym/verity/vdr-tools", branch = "main" }
+vdrtools = { git = "https://gitlab.com/evernym/verity/vdr-tools", branch = "main" }
 indy-sys = { git = "https://gitlab.com/evernym/verity/vdr-tools", branch = "main" }
 tokio-threadpool = "0.1.18"
 futures = "0.1.23"
