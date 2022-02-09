@@ -15,9 +15,9 @@ from vcx.state import State
 # logging.basicConfig(level=logging.DEBUG)
 
 provisionConfig = {
-    'agency_url': 'http://agency.pps.evernym.com',
-    'agency_did': '3mbwr7i85JNSL3LoNQecaW',
-    'agency_verkey': '2WXxo6y1FJvXWgZnoYUP5BJej2mceFrqBDNPE3p6HDPf',
+    'agency_url': 'https://agency.pdev.evernym.com',
+    'agency_did': 'LiLBGgFarh954ZtTByLM1C',
+    'agency_verkey': 'Bk9wFrud3rz8v3nAFKGib6sQs8zHWzZxfst7Wh3Mbc9W',
     'wallet_name': 'alice_wallet',
     'wallet_key': '123',
     'enterprise_seed': '000000000000000000000000Trustee1',
