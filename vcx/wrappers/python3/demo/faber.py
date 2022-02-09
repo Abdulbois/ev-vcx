@@ -32,14 +32,14 @@ provisionConfig = {
     'agency_verkey': 'FvA7e4DuD2f9kYHq6B3n7hE7NQvmpgeFRrox3ELKv9vX',
     'wallet_name': 'faber_wallet',
     'wallet_key': '123',
-    'enterprise_seed': '000000000000000000000000Trustee2',
+    'enterprise_seed': '000000000000000000000000Trustee1',
     'protocol_type': '3.0',
     'name': 'Faber',
     'logo': 'https://s3.us-east-2.amazonaws.com/public-demo-artifacts/demo-icons/cbFaber.png',
     'pool_networks': [
         {
             'genesis_path': 'docker.txn',
-            'namespace_list': ["staging"],
+            'namespace_list': ["builder"],
             'taa_config': {
                 'taa_digest': '8cee5d7a573e4893b08ff53a0761a22a1607df3b3fcd7e75b98696c92879641f',
                 'acc_mech_type': 'at_submission',
