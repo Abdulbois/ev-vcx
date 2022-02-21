@@ -36,6 +36,7 @@ RUN apt-get update -y && apt-get install -y \
     mariadb-client-core-10.3 \
     sudo
 
+RUN echo "test"
 # Install Nodejs
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
     && apt-get install -y nodejs

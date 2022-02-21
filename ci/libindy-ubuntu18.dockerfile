@@ -36,6 +36,7 @@ RUN apt-get update -y && apt-get install -y \
     mysql-client-core-5.7 \
     sudo
 
+RUN echo "test"
 # Adding Evernym ca cert
 RUN mkdir -p /usr/local/share/ca-certificates
 RUN curl -k https://repo.corp.evernym.com/ca.crt | tee /usr/local/share/ca-certificates/Evernym_Root_CA.crt
