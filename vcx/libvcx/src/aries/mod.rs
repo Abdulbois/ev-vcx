@@ -21,7 +21,7 @@ pub mod test {
     use rand::Rng;
     use crate::utils::devsetup::*;
     use crate::utils::libindy::wallet::*;
-    use indy_sys::WalletHandle;
+    use vdrtools_sys::WalletHandle;
     use crate::agent::messages::payload::PayloadV1;
     use crate::api::VcxStateType;
     use crate::aries::handlers::connection::types::OutofbandMeta;
@@ -36,7 +36,7 @@ pub mod test {
 
     pub mod setup {
         use crate::settings::{CONFIG_WALLET_KEY_DERIVATION, DEFAULT_WALLET_KEY};
-        use indy_sys::WalletHandle;
+        use vdrtools_sys::WalletHandle;
 
         pub fn base_config() -> ::serde_json::Value {
             json!({

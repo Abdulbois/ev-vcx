@@ -8,7 +8,7 @@ use crate::utils::threadpool::spawn;
 use crate::utils::libindy::{payments, wallet};
 use std::thread;
 use crate::error::prelude::*;
-use indy_sys::CommandHandle;
+use vdrtools_sys::CommandHandle;
 use crate::utils::httpclient::AgencyMock;
 use crate::utils::constants::*;
 use crate::agent::provisioning::types::ProvisioningConfig;

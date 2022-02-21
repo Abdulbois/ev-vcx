@@ -4,7 +4,7 @@ use log::{Level, LevelFilter, Metadata, Record};
 use libc::c_char;
 use std::env;
 use std::ptr;
-pub use indy_sys::{CVoid, logger::{EnabledCB, LogCB, FlushCB}};
+pub use vdrtools_sys::{CVoid, logger::{EnabledCB, LogCB, FlushCB}};
 use std::ffi::CString;
 
 #[allow(unused_imports)]

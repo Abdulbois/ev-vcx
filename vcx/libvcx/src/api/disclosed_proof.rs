@@ -4,7 +4,7 @@ use crate::utils::error;
 use std::ptr;
 use crate::utils::threadpool::spawn;
 use crate::error::prelude::*;
-use indy_sys::CommandHandle;
+use vdrtools_sys::CommandHandle;
 use crate::aries::messages::proof_presentation::presentation_request::PresentationRequest;
 use crate::disclosed_proof::{self, DisclosedProofs};
 use crate::utils::object_cache::Handle;

@@ -7,7 +7,7 @@ use crate::wallet_backup::{WalletBackup, create_wallet_backup, from_string, rest
 use crate::utils::object_cache::Handle;
 use crate::agent::messages::get_message::Message;
 use std::ptr;
-use indy_sys::CommandHandle;
+use vdrtools_sys::CommandHandle;
 
 /// -> Create a Wallet Backup object that provides a Cloud wallet backup and provision's backup protocol with Agent
 ///
