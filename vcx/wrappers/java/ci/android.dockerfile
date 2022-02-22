@@ -13,6 +13,8 @@ RUN apt-get update -y && apt-get install -y \
 #ENV SDKMANAGER_OPTS="-XX:+IgnoreUnrecognizedVMOptions --add-modules javax.xml.bind"
 #debug
 RUN echo $(update-alternatives --query java | grep Value | sed 's/Value: \(\/.*\)jre\(.*\)/\1/g')
+RUN update-java-alternatives -s $(update-java-alternatives -l | grep 1.8.0 | cut -d" " -f1)
+RUN echo $(update-alternatives --query java | grep Value | sed 's/Value: \(\/.*\)jre\(.*\)/\1/g')
 
 # Install Android SDK and NDK
 RUN mkdir -m 777 -p /home/android/android-sdk-linux
