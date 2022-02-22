@@ -212,7 +212,7 @@ mkdir -p ${LIBVCX_BUILDS}
 echo "$CXX -v -shared -o ${LIBVCX_BUILDS}/libvcx.so -Wl,--whole-archive \
 ${LIBVCX}/target/${CROSS_COMPILE}/release/libvcx.a \
 ${TOOLCHAIN_DIR}/sysroot/usr/${NDK_LIB_DIR}/${CROSS_COMPILE_PREFIX}/libm.a \
-${LIBINDY_DIR}/libindy.a \
+${LIBINDY_DIR}/libvdrtools.a \
 ${OPENSSL_DIR}/lib/libssl.a \
 ${OPENSSL_DIR}/lib/libcrypto.a \
 ${SODIUM_LIB_DIR}/libsodium.a \
@@ -225,7 +225,7 @@ ${LIBZMQ_LIB_DIR}/libzmq.a \
 $CXX -v -shared -o ${LIBVCX_BUILDS}/libvcx.so -Wl,--whole-archive \
 ${LIBVCX}/target/${CROSS_COMPILE}/release/libvcx.a \
 ${TOOLCHAIN_DIR}/sysroot/usr/${NDK_LIB_DIR}/${CROSS_COMPILE_PREFIX}/libm.a \
-${LIBINDY_DIR}/libindy.a \
+${LIBINDY_DIR}/libvdrtools.a \
 ${OPENSSL_DIR}/lib/libssl.a \
 ${OPENSSL_DIR}/lib/libcrypto.a \
 ${SODIUM_LIB_DIR}/libsodium.a \
