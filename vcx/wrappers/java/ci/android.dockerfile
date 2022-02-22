@@ -15,6 +15,7 @@ RUN wget -q https://dl.google.com/android/repository/tools_r25.2.3-linux.zip -P 
 RUN unzip -q /home/android/android-sdk-linux/tools_r25.2.3-linux.zip -d /home/android/android-sdk-linux
 RUN #yes | .//home/android/android-sdk-linux/tools/android update sdk --no-ui
 RUN #yes | .//home/android/android-sdk-linux/tools/bin/sdkmanager "ndk-bundle"
+RUN .//home/android/android-sdk-linux/tools/bin/sdkmanager --update
 
 RUN echo "android ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
