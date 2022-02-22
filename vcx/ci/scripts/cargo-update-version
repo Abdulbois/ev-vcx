@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import sys
 from toml_utils import extract_version_from_file, update_major_minor_build_to_toml, \
