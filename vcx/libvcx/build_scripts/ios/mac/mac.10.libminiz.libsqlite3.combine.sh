@@ -20,7 +20,7 @@ mkdir -p $WORK_DIR/combine-libs
 mkdir -p $WORK_DIR/combine-libs/libsqlite3
 libcnt=0
 liblist=""
-for i in `find $INDY_SDK/libindy -name libsqlite3.a|grep -i release`
+for i in `find $INDY_SDK/libvdrtools -name libsqlite3.a|grep -i release`
 do
     cp $i $WORK_DIR/combine-libs/libsqlite3/$libcnt.a
     liblist="$WORK_DIR/combine-libs/libsqlite3/$libcnt.a $liblist"
