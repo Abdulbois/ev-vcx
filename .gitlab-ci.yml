@@ -24,7 +24,7 @@ variables:
 #  indyFullRpmVersion: '1.16.0-170' # RPM directory
   vdrtoolsFullDebVersion: '0.8.4' # DEB package name
   msdkVersion: '2.1.1' # CHANGE_ME for every VCX stable release (0.13.1 VCX)
-  vcxVersion: '0.13.1'
+  vcxVersion: '0.14.0'
 
 ## - Anchors - ##
 .tags_micro:

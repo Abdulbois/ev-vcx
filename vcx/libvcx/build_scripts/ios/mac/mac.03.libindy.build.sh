@@ -42,7 +42,6 @@ if [ "$#" -gt 0 ]; then
         echo "libvdrtools NOT cleanbuild"
 
         git checkout -- libvdrtools/Cargo.toml
-        #git checkout -- libnullpay/Cargo.toml
     fi
 
     # Fetch submodules

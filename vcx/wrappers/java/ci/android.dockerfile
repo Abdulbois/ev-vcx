@@ -9,10 +9,7 @@ RUN apt-get update -y && apt-get install -y \
     python3-distutils \
     maven
 
-# should fix issue with sdkmanager exceptions
-#ENV SDKMANAGER_OPTS="-XX:+IgnoreUnrecognizedVMOptions --add-modules javax.xml.bind"
-#debug
-RUN echo $(update-alternatives --query java | grep Value | sed 's/Value: \(\/.*\)jre\(.*\)/\1/g')
+# should fix issue with sdkmanager exceptions by switching to java8
 RUN update-java-alternatives -s $(update-java-alternatives -l | grep 1.8.0 | cut -d" " -f1)
 RUN echo $(update-alternatives --query java | grep Value | sed 's/Value: \(\/.*\)jre\(.*\)/\1/g')
 
