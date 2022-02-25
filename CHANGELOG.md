@@ -2,7 +2,9 @@
 
 ## Release notes - EvLibVcx 0.14.0
 
-TODO
+### Tasks
+* Dropped support of Ubuntu 16
+* Added support for Ubuntu 20
 
 ## Release notes - EvLibVcx 0.13.1 Jan 21 2022
 

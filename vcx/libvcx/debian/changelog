@@ -1,7 +1,8 @@
 libvcx (0.14.0) unstable; urgency=medium
 
 ## 0.14.0
- * TODO: add changes
+ * Dropped support of Ubuntu 16
+ * Added support for Ubuntu 20
 
 ## 0.13.1
 * Bugfixes
