@@ -70,6 +70,9 @@ import { PaymentManager } from './vcx-payment-txn'
  *            Ack - https://github.com/hyperledger/aries-rfcs/tree/master/features/0015-acks#explicit-acks
  */
 
+export interface ICredentialParseOfferData {
+    offer: string,
+}
 export interface ICredentialStructData {
   source_id: string,
 }
@@ -142,6 +145,35 @@ export class CredentialPaymentManager extends PaymentManager {
  * A Credential Object, which is issued by the issuing party to the prover and stored in the prover's wallet.
  */
 export class Credential extends VCXBaseWithState<ICredentialStructData> {
+    public async parseOffer ({ offer }: ICredentialParseOfferData): Promise<string> {
+        try {
+            return await createFFICallbackPromise<string>(
+                (resolve, reject, cb) => {
+                    const rc = rustAPI().vcx_credential_parse_offer(0, offer, cb)
+                    if (rc) {
+                        reject(rc)
+                    }
+                },
+                (resolve, reject) => Callback(
+                    'void',
+                    ['uint32', 'uint32', 'string'],
+                    (xHandle: number, err: number, info: string) => {
+                        if (err) {
+                            reject(err)
+                            return
+                        }
+                        if (!info) {
+                            reject(`Credential ${this.sourceId} returned empty string`)
+                            return
+                        }
+                        resolve(info)
+                    })
+                )
+        } catch (err) {
+            throw new VCXInternalError(err)
+        }
+    }
+
   /**
    * Creates a credential with an offer.
    *

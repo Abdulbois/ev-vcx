@@ -1,5 +1,11 @@
 # Changelog
 
+## Release notes - EvLibVcx 0.14.0
+
+### Tasks
+* Dropped support of Ubuntu 16
+* Added support for Ubuntu 20
+
 ## Release notes - EvLibVcx 0.13.1 Jan 21 2022
 
 EvLibVcx 0.12.0 to EvLibVcx 0.13.1 [Migration guide](./docs/migration-guide-0.12.x-0.13.0.md).

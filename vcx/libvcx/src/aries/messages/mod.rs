@@ -51,3 +51,4 @@ pub mod committedanswer;
 pub mod invite_action;
 pub mod message_with_attachment;
 pub mod message_with_thread;
+pub mod alias;

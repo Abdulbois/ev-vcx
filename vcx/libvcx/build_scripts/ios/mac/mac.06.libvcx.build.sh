@@ -61,21 +61,21 @@ do
     fi
 
     libtool="/usr/bin/libtool"
-    libindy_dir="${BUILD_CACHE}/libindy/${LIBINDY_VERSION}"
+    libvdrtools_dir="${BUILD_CACHE}/libvdrtools/${LIBINDY_VERSION}"
 
-    if [ -e ${libindy_dir}/${target_arch}/libindy.a ]; then
-        echo "${target_arch} libindy architecture already extracted"
+    if [ -e ${libvdrtools_dir}/${target_arch}/libvdrtools.a ]; then
+        echo "${target_arch} libvdrtools architecture already extracted"
     else
-        mkdir -p ${libindy_dir}/${target_arch}
-        lipo -extract $target_arch ${libindy_dir}/libindy.a -o ${libindy_dir}/${target_arch}/libindy.a
-        ${libtool} -static ${libindy_dir}/${target_arch}/libindy.a -o ${libindy_dir}/${target_arch}/libindy_libtool.a
-        mv ${libindy_dir}/${target_arch}/libindy_libtool.a ${libindy_dir}/${target_arch}/libindy.a
+        mkdir -p ${libvdrtools_dir}/${target_arch}
+        lipo -extract $target_arch ${libvdrtools_dir}/libvdrtools.a -o ${libvdrtools_dir}/${target_arch}/libvdrtools.a
+        ${libtool} -static ${libvdrtools_dir}/${target_arch}/libvdrtools.a -o ${libvdrtools_dir}/${target_arch}/libvdrtools_libtool.a
+        mv ${libvdrtools_dir}/${target_arch}/libvdrtools_libtool.a ${libvdrtools_dir}/${target_arch}/libvdrtools.a
     fi
 
 
     export IOS_SODIUM_LIB=$WORK_DIR/libzmq-ios/libsodium-ios/dist/ios/lib/${target_arch}
     export IOS_ZMQ_LIB=$WORK_DIR/libzmq-ios/dist/ios/lib/${target_arch}
-    export LIBINDY_DIR=${libindy_dir}/${target_arch}
+    export LIBINDY_DIR=${libvdrtools_dir}/${target_arch}
 
     export OPENSSL_LIB_DIR=${WORK_DIR}/OpenSSL-for-iPhone/lib/
     export OPENSSL_INCLUDE_DIR=${WORK_DIR}/OpenSSL-for-iPhone/include/

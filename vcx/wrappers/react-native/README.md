@@ -39,6 +39,9 @@ Added `@evernym/react-native-sdk` package as dependency into your `package.json`
             maven {
                 url 'https://evernym.mycloudrepo.io/public/repositories/libvcx-android'
             }
+            maven {
+                url 'https://evernym.mycloudrepo.io/public/repositories/evernym'
+            }
         }
     }
 
@@ -91,11 +94,11 @@ Added `@evernym/react-native-sdk` package as dependency into your `package.json`
 1. Add VCX dependency into your Podfile inside target <ProjectName>:
     * release build for devices only (`arm64`):
         ```ruby
-        pod 'vcx', 0.0.207
+        pod 'vcx', 0.0.225
         ```
     * debug build dor devices and simulators (`arm64` and `x86_64`)
         ```ruby
-        pod 'vcx', 0.0.208
+        pod 'vcx', 0.0.226
         ```
 
 1. Run `pod install`
@@ -109,6 +112,7 @@ Added `@evernym/react-native-sdk` package as dependency into your `package.json`
 * Verifier - functions related to credential data verification.
 * Utils - different helper functions.
 * Logger - functions related to library logging.
+* DocumentVerification - functions related to document verification
 
 ### Usage
 

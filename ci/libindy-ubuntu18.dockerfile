@@ -1,6 +1,8 @@
 # Development
 FROM ubuntu:18.04
 
+ENV DEBIAN_FRONTEND noninteractive
+
 # JRE installation and gcc
 RUN apt-get update -y && apt-get install -y \
     gcc \
@@ -33,6 +35,16 @@ RUN apt-get update -y && apt-get install -y \
     rename \
     mysql-client-core-5.7 \
     sudo
+
+# Adding Evernym ca cert
+RUN mkdir -p /usr/local/share/ca-certificates
+RUN curl -k https://repo.corp.evernym.com/ca.crt | tee /usr/local/share/ca-certificates/Evernym_Root_CA.crt
+RUN update-ca-certificates
+
+# Setup apt for evernym repositories
+RUN curl https://repo.corp.evernym.com/repo.corp.evenym.com-sig.key | apt-key add -
+RUN add-apt-repository "deb https://repo.corp.evernym.com/deb evernym-agency-dev-ubuntu main"
+RUN add-apt-repository "deb https://repo.corp.evernym.com/deb evernym-agency-rc-ubuntu main"
 
 # Install Nodejs
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \

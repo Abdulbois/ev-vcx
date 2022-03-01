@@ -507,6 +507,21 @@ RCT_EXPORT_METHOD(connectionVerifySignature: (NSInteger) connectionHandle
   }];
 }
 
+RCT_EXPORT_METHOD(credentialParseOffer: (NSString *)offer
+                  resolver: (RCTPromiseResolveBlock) resolve
+                  rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] credentialParseOffer:offer completion:^(NSError *error, NSString *info) {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while parsing credential offer", error);
+    }else{
+      resolve(info);
+    }
+  }];
+}
+
 RCT_EXPORT_METHOD(credentialCreateWithOffer: (NSString *) sourceId
                   withCredOffer: (NSString *) credOffer
                   resolver: (RCTPromiseResolveBlock) resolve
@@ -1163,6 +1178,21 @@ RCT_EXPORT_METHOD(proofRetrieveCredentials:(NSInteger)proofHandle
     }
     else {
       resolve(matchingCredentials);
+    }
+  }];
+}
+
+RCT_EXPORT_METHOD(proofParseRequest: (NSString *)request
+                  resolver: (RCTPromiseResolveBlock) resolve
+                  rejecter: (RCTPromiseRejectBlock) reject)
+{
+  [[[ConnectMeVcx alloc] init] proofParseRequest:request withCompletion:^(NSError *error, NSString *info) {
+    if (error != nil && error.code != 0)
+    {
+      NSString *indyErrorCode = [NSString stringWithFormat:@"%ld", (long)error.code];
+      reject(indyErrorCode, @"Error occurred while parsing proof request", error);
+    }else{
+      resolve(info);
     }
   }];
 }

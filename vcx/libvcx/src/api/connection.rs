@@ -7,7 +7,7 @@ use crate::utils::threadpool::spawn;
 use std::ptr;
 use crate::connection::*;
 use crate::error::prelude::*;
-use indy_sys::CommandHandle;
+use vdrtools_sys::CommandHandle;
 use crate::aries::messages::invite_action::invite::InviteActionData;
 
 /*

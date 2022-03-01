@@ -1,4 +1,4 @@
-use indy_sys::CommandHandle;
+use vdrtools_sys::CommandHandle;
 use libc::c_char;
 
 use crate::connection::Connections;

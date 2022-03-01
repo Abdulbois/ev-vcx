@@ -1,5 +1,5 @@
 use futures::Future;
-use indy_sys::CommandHandle;
+use vdrtools_sys::CommandHandle;
 
 use crate::indy::blob_storage;
 use crate::error::prelude::*;

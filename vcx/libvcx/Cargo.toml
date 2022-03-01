@@ -2,7 +2,7 @@
 
 name = "libvcx"
 edition = "2018"
-version = "0.13.1"
+version = "0.14.0"
 authors = ["Hyperledger Indy Contributors <hyperledger-indy@lists.hyperledger.org>"]
 publish = false
 description = "This is the official SDK for Evernym's VCX"
@@ -50,8 +50,8 @@ base64 = "0.8.0"
 openssl = "0.10.34"
 openssl-sys = "0.9.63"
 hex = "0.3.2"
-indy = { git = "https://gitlab.com/evernym/verity/vdr-tools", branch = "main" }
-indy-sys = { git = "https://gitlab.com/evernym/verity/vdr-tools", branch = "main" }
+vdrtools = { git = "https://gitlab.com/evernym/verity/vdr-tools", branch = "main" }
+vdrtools-sys = { git = "https://gitlab.com/evernym/verity/vdr-tools", branch = "main" }
 tokio-threadpool = "0.1.18"
 futures = "0.1.23"
 libloading = "0.5.0"
@@ -93,15 +93,15 @@ assets = [
 ]
 maintainer-scripts = "./scripts"
 
-[package.metadata.deb.variants.libvcx-xenial]
-depends = "$auto, libvdrtools (=0.8.2-xenial)"
+[package.metadata.deb.variants.libvcx-focal]
+depends = "$auto, libvdrtools (=0.8.4-focal)"
 name = "libvcx"
-provides = "libvcx (= 0.13.1)"
+provides = "libvcx (= 0.14.0)"
 
 [package.metadata.deb.variants.libvcx-bionic]
-depends = "$auto, libvdrtools (=0.8.2-bionic)"
+depends = "$auto, libvdrtools (=0.8.4-bionic)"
 name = "libvcx"
-provides = "libvcx (= 0.13.1)"
+provides = "libvcx (= 0.14.0)"
 
 [profile.release]
 debug = true

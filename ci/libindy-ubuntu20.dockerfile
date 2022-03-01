@@ -1,5 +1,7 @@
 # Development
-FROM ubuntu:16.04
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND noninteractive
 
 # JRE installation and gcc
 RUN apt-get update -y && apt-get install -y \
@@ -10,7 +12,6 @@ RUN apt-get update -y && apt-get install -y \
     libssl-dev \
     libgmp3-dev \
     libsqlite3-dev \
-    libsqlite0 \
     cmake \
     apt-transport-https \
     ca-certificates \
@@ -23,7 +24,6 @@ RUN apt-get update -y && apt-get install -y \
     ruby \
     ruby-dev \
     rubygems \
-    libzmq5 \
     python3 \
     libtool \
     openjdk-8-jdk \
@@ -32,15 +32,17 @@ RUN apt-get update -y && apt-get install -y \
     libzmq3-dev \
     zip \
     unzip \
+    rename \
+    mariadb-client-core-10.3 \
     sudo
 
 # Install Nodejs
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
     && apt-get install -y nodejs
 
 # Install Rust
 ARG RUST_VER
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VER
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VER}
 ENV PATH /root/.cargo/bin:$PATH
 RUN cargo install cargo-deb --color=never --version=1.21.1 #TEMPORARY - REMOVE WHEN 1.22 COMPILES
 
@@ -57,11 +59,11 @@ RUN apt-get install rpm -y
 COPY ./vcx/ci/scripts/installCert.sh /tmp
 RUN /tmp/installCert.sh
 
-# Add evernym.corp to sources.list
-RUN add-apt-repository 'deb https://repo.corp.evernym.com/deb evernym-agency-dev-ubuntu main' && \
-    curl https://repo.corp.evernym.com/repo.corp.evenym.com-sig.key | apt-key add -
+# Add evernym repo to sources.lis
+RUN add-apt-repository "deb https://repo.corp.evernym.com/deb evernym-agency-dev-ubuntu main"
 
 ARG LIBVDRTOOLS_VER
+RUN echo "Libvdrtools Version: ${LIBVDRTOOLS_VER}"
 
-RUN apt-get update && apt install -y libvdrtools=${LIBVDRTOOLS_VER}-xenial
+RUN apt-get update && apt install -y libvdrtools=${LIBVDRTOOLS_VER}-focal
 

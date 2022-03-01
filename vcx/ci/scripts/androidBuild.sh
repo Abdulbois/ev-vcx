@@ -60,22 +60,22 @@ generate_flags(){
     fi
 }
 
-get_libindy() {
+get_libvdrtools() {
     set -xv
     if [ -z ${LIBINDY_DIR} ]; then
 
-        if [ ! -d "libindy_${ARCH}" ]; then
+        if [ ! -d "libvdrtools_${ARCH}" ]; then
 
             if [ $1 == "arm" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/24292323/download
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/27311880/download
             elif [ $1 == "arm64" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/24292313/download
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/27311897/download
             elif [ $1 == "armv7" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/24292335/download
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/27311875/download
             elif [ $1 == "x86" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/24292304/download
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/27311890/download
             elif [ $1 == "x86_64" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/24292328/download
+                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/27311868/download
             else
                 echo "please provide the arch e.g arm, arm64, armv7, x86, or x86_64"
                 exit 1
@@ -85,7 +85,7 @@ get_libindy() {
 
         fi
 
-        export LIBINDY_DIR="${PWD}/libindy_${ARCH}"
+        export LIBINDY_DIR="${PWD}/libvdrtools_${ARCH}"
     fi
 
 }
@@ -99,7 +99,7 @@ build_vcx() {
     # PREBUILT_BIN=$(realpath ${VCX_BASE}/ci/scripts/runtime_android_build)
 
     if [ ! -d ${LIBINDY_DIR} ]; then
-        echo "missing libindy_${ARCH} directory. Cannot proceed without it."
+        echo "missing libvdrtools_${ARCH} directory. Cannot proceed without it."
         exit 1
     fi
 
@@ -139,5 +139,5 @@ setup() {
 }
 
 setup $@
-get_libindy $1
+get_libvdrtools $1
 build_vcx

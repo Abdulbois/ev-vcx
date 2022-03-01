@@ -9,7 +9,7 @@ use crate::issuer_credential;
 use std::ptr;
 use crate::utils::threadpool::spawn;
 use crate::error::prelude::*;
-use indy_sys::CommandHandle;
+use vdrtools_sys::CommandHandle;
 use crate::utils::object_cache::Handle;
 
 /*

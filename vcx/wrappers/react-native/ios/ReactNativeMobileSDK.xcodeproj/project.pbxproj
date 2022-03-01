@@ -7,9 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		07B5B59325386BD80062AC4E /* RNUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 07B5B58F25386BD80062AC4E /* RNUtils.m */; };
 		07B5B59425386BD80062AC4E /* ReactNativeVCX.m in Sources */ = {isa = PBXBuildFile; fileRef = 07B5B59025386BD80062AC4E /* ReactNativeVCX.m */; };
-		7C29EC5512172124ADDE5A90 /* Pods_ReactNativeMobileSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DD590E93EF00459971B85C0 /* Pods_ReactNativeMobileSDK.framework */; };
+		42BD94FB276B4F35006F6E96 /* ConfirmScannedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42BD94F7276B4F35006F6E96 /* ConfirmScannedView.swift */; };
+		42BD94FC276B4F35006F6E96 /* MIDS.m in Sources */ = {isa = PBXBuildFile; fileRef = 42BD94F8276B4F35006F6E96 /* MIDS.m */; };
+		42BD94FD276B4F35006F6E96 /* MIDS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42BD94F9276B4F35006F6E96 /* MIDS.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,14 +26,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		01D3544BC1B1DE3E56E84280 /* Pods-ReactNativeMobileSDK.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ReactNativeMobileSDK.debug.xcconfig"; path = "Target Support Files/Pods-ReactNativeMobileSDK/Pods-ReactNativeMobileSDK.debug.xcconfig"; sourceTree = "<group>"; };
 		07B5B57925386A750062AC4E /* libReactNativeMobileSDK.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libReactNativeMobileSDK.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		07B5B58F25386BD80062AC4E /* RNUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RNUtils.m; sourceTree = "<group>"; };
 		07B5B59025386BD80062AC4E /* ReactNativeVCX.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ReactNativeVCX.m; sourceTree = "<group>"; };
-		07B5B59125386BD80062AC4E /* RNUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RNUtils.h; sourceTree = "<group>"; };
 		07B5B59225386BD80062AC4E /* ReactNativeVCX.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ReactNativeVCX.h; sourceTree = "<group>"; };
-		45E1C5759FA9B22E25963AEC /* Pods-ReactNativeMobileSDK.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ReactNativeMobileSDK.release.xcconfig"; path = "Target Support Files/Pods-ReactNativeMobileSDK/Pods-ReactNativeMobileSDK.release.xcconfig"; sourceTree = "<group>"; };
-		9DD590E93EF00459971B85C0 /* Pods_ReactNativeMobileSDK.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ReactNativeMobileSDK.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		42BD94F6276B4F34006F6E96 /* ReactNativeMobileSDK-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ReactNativeMobileSDK-Bridging-Header.h"; sourceTree = "<group>"; };
+		42BD94F7276B4F35006F6E96 /* ConfirmScannedView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ConfirmScannedView.swift; sourceTree = "<group>"; };
+		42BD94F8276B4F35006F6E96 /* MIDS.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MIDS.m; sourceTree = "<group>"; };
+		42BD94F9276B4F35006F6E96 /* MIDS.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MIDS.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -40,7 +40,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7C29EC5512172124ADDE5A90 /* Pods_ReactNativeMobileSDK.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,7 +52,6 @@
 				07B5B58E25386BC80062AC4E /* ReactNativeMobileSDK */,
 				07B5B57A25386A750062AC4E /* Products */,
 				F13509C223E14B373B1D58CD /* Pods */,
-				19C6B19F5FD39725888376C7 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -68,27 +66,19 @@
 		07B5B58E25386BC80062AC4E /* ReactNativeMobileSDK */ = {
 			isa = PBXGroup;
 			children = (
+				42BD94F7276B4F35006F6E96 /* ConfirmScannedView.swift */,
+				42BD94F8276B4F35006F6E96 /* MIDS.m */,
+				42BD94F9276B4F35006F6E96 /* MIDS.swift */,
 				07B5B59225386BD80062AC4E /* ReactNativeVCX.h */,
 				07B5B59025386BD80062AC4E /* ReactNativeVCX.m */,
-				07B5B59125386BD80062AC4E /* RNUtils.h */,
-				07B5B58F25386BD80062AC4E /* RNUtils.m */,
+				42BD94F6276B4F34006F6E96 /* ReactNativeMobileSDK-Bridging-Header.h */,
 			);
 			path = ReactNativeMobileSDK;
-			sourceTree = "<group>";
-		};
-		19C6B19F5FD39725888376C7 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				9DD590E93EF00459971B85C0 /* Pods_ReactNativeMobileSDK.framework */,
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		F13509C223E14B373B1D58CD /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				01D3544BC1B1DE3E56E84280 /* Pods-ReactNativeMobileSDK.debug.xcconfig */,
-				45E1C5759FA9B22E25963AEC /* Pods-ReactNativeMobileSDK.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -100,7 +90,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 07B5B58225386A750062AC4E /* Build configuration list for PBXNativeTarget "ReactNativeMobileSDK" */;
 			buildPhases = (
-				C2A1E4BD56F108ADD1059374 /* [CP] Check Pods Manifest.lock */,
 				07B5B57525386A750062AC4E /* Sources */,
 				07B5B57625386A750062AC4E /* Frameworks */,
 				07B5B57725386A750062AC4E /* CopyFiles */,
@@ -124,6 +113,7 @@
 				TargetAttributes = {
 					07B5B57825386A750062AC4E = {
 						CreatedOnToolsVersion = 12.0;
+						LastSwiftMigration = 1250;
 					};
 				};
 			};
@@ -145,37 +135,14 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		C2A1E4BD56F108ADD1059374 /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-ReactNativeMobileSDK-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
 		07B5B57525386A750062AC4E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				07B5B59325386BD80062AC4E /* RNUtils.m in Sources */,
+				42BD94FB276B4F35006F6E96 /* ConfirmScannedView.swift in Sources */,
+				42BD94FC276B4F35006F6E96 /* MIDS.m in Sources */,
+				42BD94FD276B4F35006F6E96 /* MIDS.swift in Sources */,
 				07B5B59425386BD80062AC4E /* ReactNativeVCX.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -297,28 +264,43 @@
 		};
 		07B5B58325386A750062AC4E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 01D3544BC1B1DE3E56E84280 /* Pods-ReactNativeMobileSDK.debug.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = ES8QU3D2A4;
 				ENABLE_BITCODE = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "ReactNativeMobileSDK/ReactNativeMobileSDK-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
 		07B5B58425386A750062AC4E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 45E1C5759FA9B22E25963AEC /* Pods-ReactNativeMobileSDK.release.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = ES8QU3D2A4;
 				ENABLE_BITCODE = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "ReactNativeMobileSDK/ReactNativeMobileSDK-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;

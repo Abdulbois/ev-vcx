@@ -5,10 +5,11 @@ use crate::credential;
 use std::ptr;
 use crate::utils::threadpool::spawn;
 use crate::error::prelude::*;
-use indy_sys::CommandHandle;
+use vdrtools_sys::CommandHandle;
 
 use crate::connection::Connections;
 use crate::credential::Credentials;
+use crate::aries::messages::issuance::credential_offer::CredentialOffer;
 use crate::utils::object_cache::Handle;
 
 /*
@@ -127,6 +128,56 @@ pub extern fn vcx_credential_get_payment_info(command_handle: CommandHandle,
                 warn!("vcx_credential_get_payment_info(command_handle: {}, rc: {}, msg: {})",
                       command_handle, e, "{}");
                 cb(command_handle, e.into(), ptr::null_mut());
+            }
+        };
+
+        Ok(())
+    });
+
+    error::SUCCESS.code_num
+}
+
+/// Parse an Aries Credential Offer message
+///
+/// #Params
+/// command_handle: command handle to map callback to user context.
+///
+/// offer: received credential offer message
+///
+/// # Example
+/// offer -> {"@type":"did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/offer-credential", "@id":"<uuid-of-offer-message>", "comment":"somecomment", "credential_preview":<json-ldobject>, "offers~attach":[{"@id":"libindy-cred-offer-0", "mime-type":"application/json", "data":{"base64":"<bytesforbase64>"}}]}
+///
+/// cb: Callback that provides credential offer info or error status
+///
+/// #Returns
+/// Error code as a u32
+#[no_mangle]
+#[allow(unused_variables, unused_mut)]
+pub extern fn vcx_credential_parse_offer(command_handle: CommandHandle,
+                                         offer: *const c_char,
+                                         cb: Option<extern fn(xcommand_handle: CommandHandle,
+                                                              err: u32,
+                                                              info: *const c_char)>) -> u32 {
+    info!("vcx_credential_parse_offer >>>");
+
+    check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
+    check_useful_c_str!(offer, VcxErrorKind::InvalidOption);
+
+    trace!("vcx_credential_parse_offer(command_handle: {}, offer: {})",
+           command_handle, secret!(&offer));
+
+    spawn(move || {
+        match CredentialOffer::parse(&offer) {
+            Ok(info) => {
+                trace!("vcx_credential_parse_offer_cb(command_handle: {}, rc: {}, handle: {})",
+                       command_handle, error::SUCCESS.as_str(), info);
+                let info = CStringUtils::string_to_cstring(info);
+                cb(command_handle, error::SUCCESS.code_num, info.as_ptr())
+            }
+            Err(x) => {
+                warn!("vcx_credential_parse_offer_cb(command_handle: {}, rc: {}, handle: {})",
+                      command_handle, x, 0);
+                cb(command_handle, x.into(), ptr::null_mut());
             }
         };
 
@@ -1080,8 +1131,8 @@ pub extern fn vcx_credential_get_problem_report(command_handle: CommandHandle,
 #[allow(unused_variables, unused_mut)]
 #[no_mangle]
 pub extern fn vcx_credential_get_info(command_handle: CommandHandle,
-                                  credential_handle: Handle<Credentials>,
-                                  cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, *const c_char)>) -> u32 {
+                                      credential_handle: Handle<Credentials>,
+                                      cb: Option<extern fn(xcommand_handle: CommandHandle, err: u32, *const c_char)>) -> u32 {
     info!("vcx_credential_get_info >>>");
 
     check_useful_c_callback!(cb, VcxErrorKind::InvalidOption);
