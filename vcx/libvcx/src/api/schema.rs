@@ -8,7 +8,7 @@ use crate::schema;
 use crate::settings;
 use crate::utils::threadpool::spawn;
 use crate::error::prelude::*;
-use indy_sys::CommandHandle;
+use vdrtools_sys::CommandHandle;
 
 /// Create a new Schema object and publish corresponding record on the ledger
 ///

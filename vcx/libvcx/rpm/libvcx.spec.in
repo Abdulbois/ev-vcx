@@ -9,8 +9,8 @@ Release: @release@
 License: Apache License 2.0
 Group: System Environment/Libraries
 Source: https://github.com/hyperledger/indy-sdk/
-Requires: libindy
-BuildRequires: libindy
+Requires: libvdrtools
+BuildRequires: libvdrtools
 
 %description
 This is a library on top of Libindy which fully implements the credentials exchange.

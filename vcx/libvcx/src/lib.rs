@@ -3,7 +3,7 @@
 //this is needed for some large json macro invocations
 #![recursion_limit = "128"]
 extern crate serde;
-extern crate indyrs as indy;
+extern crate vdrtoolsrs as indy;
 
 // keep these as `extern` for global macros
 #[macro_use]

@@ -1,4 +1,4 @@
-extern crate indyrs as indy;
+extern crate vdrtoolsrs as indy;
 #[macro_use]
 extern crate log;
 

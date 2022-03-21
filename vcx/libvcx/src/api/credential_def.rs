@@ -8,7 +8,7 @@ use crate::credential_def;
 use crate::settings;
 use crate::utils::threadpool::spawn;
 use crate::error::prelude::*;
-use indy_sys::CommandHandle;
+use vdrtools_sys::CommandHandle;
 
 /// Create a new CredentialDef object and publish correspondent record on the ledger
 ///

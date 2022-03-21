@@ -50,7 +50,7 @@ docker run -v $(pwd):/demo -i -t vcx_demo
 2.  Install or build `libvcx`:
     * Prepared binaries are available for Ubuntu only:
         * bionic:      https://repo.corp.evernym.com/portal/dev/
-        * xenial:      https://repo.corp.evernym.com/portal/dev/
+        * focal:      https://repo.corp.evernym.com/portal/dev/
     * Manual building:    
        ```
        // from the top of repository

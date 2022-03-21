@@ -22,9 +22,9 @@ variables:
   vdrtoolsBranch: 'rc' # RPM stream
 #  indySimpleVersion: '1.16.0' # RPM package name
 #  indyFullRpmVersion: '1.16.0-170' # RPM directory
-  vdrtoolsFullDebVersion: '0.8.2' # DEB package name
-  msdkVersion: '2.1.1' # CHANGE_ME for every VCX stable release (0.13.1 VCX)
-  vcxVersion: '0.13.1'
+  vdrtoolsFullDebVersion: '0.8.4' # DEB package name
+  msdkVersion: '2.1.2' # CHANGE_ME for every VCX stable release (0.14.0 VCX)
+  vcxVersion: '0.14.0'
 
 ## - Anchors - ##
 .tags_micro:
@@ -112,16 +112,16 @@ license-data-check:
       - cheqddebug
       - /^docker-.*/
 
-dockerbuild-vcx-libindy-ubuntu16:
+dockerbuild-vcx-libindy-ubuntu20:
   stage: dockerbuild-pre
   extends: .dockerbuild-vcx-libindy
   variables:
-    DOCKERFILE_PATH: ci/libindy-ubuntu16.dockerfile
-    DOCKER_IMAGE_NAME: vcx-libindy-ubuntu16
+    DOCKERFILE_PATH: ci/libindy-ubuntu20.dockerfile
+    DOCKER_IMAGE_NAME: vcx-libindy-ubuntu20
   only:
     changes:
       - .gitlab-ci.yml
-      - ci/libindy-ubuntu16.dockerfile
+      - ci/libindy-ubuntu20.dockerfile
 
 dockerbuild-vcx-libindy-ubuntu18:
   stage: dockerbuild-pre
@@ -157,7 +157,7 @@ dockerbuild-vcx-android:
   stage: dockerbuild
   extends: .kaniko_large
   dependencies:
-    - dockerbuild-vcx-libindy-ubuntu16
+    - dockerbuild-vcx-libindy-ubuntu18
   variables:
     DOCKERFILE_PATH: vcx/wrappers/java/ci/android.dockerfile
     DOCKER_IMAGE_NAME: vcx-android
@@ -170,10 +170,10 @@ dockerbuild-vcx-android:
       - /^docker-.*/
     changes:
       - .gitlab-ci.yml
-      - ci/libindy-ubuntu16.dockerfile
+      - ci/libindy-ubuntu18.dockerfile
       - vcx/wrappers/java/ci/android.dockerfile
   before_script:
-    - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/android.dockerfile
+    - sed -i "s|^FROM.*|FROM ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu18:${CI_COMMIT_REF_SLUG}|g" vcx/wrappers/java/ci/android.dockerfile
     - grep '^FROM' vcx/wrappers/java/ci/android.dockerfile
 
 .dockerbuild-vcx-python:
@@ -243,7 +243,7 @@ build-ios:
       - IOSBuilds/libvcxarm64/*.zip
       - IOSBuilds/libvcxarm64/*.gz
   variables:
-    vdrtoolsFullVersion: '0.8.2' # FIXME: drop IT!!!!
+    vdrtoolsFullVersion: '0.8.4' # FIXME: drop IT!!!!
   script:
     - curl -s https://repo.corp.evernym.com/filely/ios/vcx-build-static-libs_${staticLibVersion}.tar.gz | tar -C ~/ -xvzf -
     - which rustup-init || brew install rustup-init
@@ -433,24 +433,24 @@ build-libvcx-ubuntu18-from-latest:
     refs:
       - /^docker-.*/
 
-build-libvcx-ubuntu16-from-branch:
+build-libvcx-ubuntu20-from-branch:
   extends: .build-libvcx
   stage: build
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:${CI_COMMIT_REF_SLUG}
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu20:${CI_COMMIT_REF_SLUG}
   variables:
     RUSTTESTFLAG: 'basic-tests'
-    PACKAGE_TYPE: 'xenial'
+    PACKAGE_TYPE: 'focal'
   only:
     refs:
       - /^docker-.*/
 
-build-libvcx-ubuntu16-from-latest:
+build-libvcx-ubuntu20-from-latest:
   extends: .build-libvcx
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:latest
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu20:latest
   stage: build
   variables:
     RUSTTESTFLAG: 'basic-tests'
-    PACKAGE_TYPE: 'xenial'
+    PACKAGE_TYPE: 'focal'
   except:
     refs:
       - /^docker-.*/
@@ -759,7 +759,7 @@ publish-android:
 
 publish-ios:
   stage: publish
-  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu16:latest
+  image: ${CI_REGISTRY_IMAGE}/vcx-libindy-ubuntu20:latest
   extends: .tags_micro
   only:
     refs:
@@ -808,8 +808,8 @@ publish-packages:
     - rename \s/~/-/ ${CI_PROJECT_DIR}/output/*.deb
     #https://gitlab.com/gitlab-org/gitlab-ce/issues/27436
     - export KRAKEN_CREDENTIALS=${KRK_USERNAME}:${KRK_PASSWORD}
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*xenial*.deb https://kraken.corp.evernym.com/repo/portal_dev/upload
-    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*xenial*.deb https://kraken.corp.evernym.com/repo/agency_dev/upload
+    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*focal*.deb https://kraken.corp.evernym.com/repo/portal_dev/upload
+    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*focal*.deb https://kraken.corp.evernym.com/repo/agency_dev/upload
     - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*bionic*.deb https://kraken.corp.evernym.com/repo/portal_dev/upload
     - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*bionic*.deb https://kraken.corp.evernym.com/repo/agency_dev/upload
 #    - vcx/ci/scripts/publish.sh "${KRAKEN_CREDENTIALS}" libvcx*.rpm https://kraken.corp.evernym.com/repo/portal_dev/upload
@@ -853,7 +853,7 @@ publish-vcx-packages-to-gitlab:
       curl --header "DEPLOY-TOKEN: ${VCX_DEPLOY_TOKEN}" --upload-file {}
       "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fev-vcx/packages/generic/vcx/${vcxPackageVer}/" \;
     - >
-      find ./output/ -name "libvcx*xenial*.deb" -exec
+      find ./output/ -name "libvcx*focal*.deb" -exec
       curl --header "DEPLOY-TOKEN: ${VCX_DEPLOY_TOKEN}" --upload-file {}
       "https://gitlab.com/api/v4/projects/evernym%2Fmobile%2Fev-vcx/packages/generic/vcx/${vcxPackageVer}/" \;
 

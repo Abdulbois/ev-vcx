@@ -31,7 +31,7 @@ if [ "$#" -gt 0 ]; then
     fi
 
     if [ "$CLEAN_BUILD" = "cleanbuild" ]; then
-        echo "libindy cleanbuild"
+        echo "libvdrtools cleanbuild"
 
         git checkout .
         git clean -f
@@ -39,10 +39,9 @@ if [ "$#" -gt 0 ]; then
 #        git pull
         git checkout `cat $SHA_HASH_DIR/libindy.commit.sha1.hash.txt`
     else
-        echo "libindy NOT cleanbuild"
+        echo "libvdrtools NOT cleanbuild"
 
-        git checkout -- libindy/Cargo.toml
-        git checkout -- libnullpay/Cargo.toml
+        git checkout -- libvdrtools/Cargo.toml
     fi
 
     # Fetch submodules
@@ -63,9 +62,9 @@ if [ "$#" -gt 0 ]; then
     fi
 
     #########################################################################################################################
-    # Now build libindy
+    # Now build libvdrtools
     #########################################################################################################################
-    cd $WORK_DIR/vcx-indy-sdk/libindy
+    cd $WORK_DIR/vcx-indy-sdk/libvdrtools
 
     #if [ "$DEBUG_SYMBOLS" = "debuginfo" ]; then
         cat $START_DIR/cargo.toml.add.debug.txt >> Cargo.toml
@@ -102,19 +101,19 @@ if [ "$#" -gt 0 ]; then
     export OPENSSL_DIR=${WORK_DIR}/OpenSSL-for-iPhone/bin
 
     cargo lipo --release --targets "${IOS_TARGETS}"
-    mkdir -p ${BUILD_CACHE}/libindy/${LIBINDY_VERSION}
-    cp ${WORK_DIR}/vcx-indy-sdk/libindy/target/universal/release/libindy.a ${BUILD_CACHE}/libindy/${LIBINDY_VERSION}/libindy.a
-    for hfile in $(find ${WORK_DIR}/vcx-indy-sdk/libindy -name "*.h")
+    mkdir -p ${BUILD_CACHE}/libvdrtools/${LIBINDY_VERSION}
+    cp ${WORK_DIR}/vcx-indy-sdk/libvdrtools/target/universal/release/libvdrtools.a ${BUILD_CACHE}/libvdrtools/${LIBINDY_VERSION}/libvdrtools.a
+    for hfile in $(find ${WORK_DIR}/vcx-indy-sdk/libvdrtools -name "*.h")
     do
-        cp ${hfile} ${BUILD_CACHE}/libindy/${LIBINDY_VERSION}
+        cp ${hfile} ${BUILD_CACHE}/libvdrtools/${LIBINDY_VERSION}
     done
 else
 
-    if [ -e ${BUILD_CACHE}/libindy/${LIBINDY_VERSION}/libindy.a ]; then
-        echo "libindy build for ios already exist"
+    if [ -e ${BUILD_CACHE}/libvdrtools/${LIBINDY_VERSION}/libvdrtools.a ]; then
+        echo "libvdrtools build for ios already exist"
     else
-        mkdir -p ${BUILD_CACHE}/libindy/${LIBINDY_VERSION}
-        cd ${BUILD_CACHE}/libindy/${LIBINDY_VERSION}
+        mkdir -p ${BUILD_CACHE}/libvdrtools/${LIBINDY_VERSION}
+        cd ${BUILD_CACHE}/libvdrtools/${LIBINDY_VERSION}
         curl -o ${LIBINDY_VERSION}-${LIBINDY_FILE} $LIBINDY_IOS_BUILD_URL
         tar -xvzf ${LIBINDY_VERSION}-${LIBINDY_FILE}
 
