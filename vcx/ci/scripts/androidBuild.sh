@@ -65,24 +65,8 @@ get_libvdrtools() {
     if [ -z ${LIBINDY_DIR} ]; then
 
         if [ ! -d "libvdrtools_${ARCH}" ]; then
-
-            if [ $1 == "arm" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/27311880/download
-            elif [ $1 == "arm64" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/27311897/download
-            elif [ $1 == "armv7" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/27311875/download
-            elif [ $1 == "x86" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/27311890/download
-            elif [ $1 == "x86_64" ]; then
-                wget https://gitlab.com/evernym/verity/vdr-tools/-/package_files/27311868/download
-            else
-                echo "please provide the arch e.g arm, arm64, armv7, x86, or x86_64"
-                exit 1
-            fi
-
-            unzip download
-
+            wget "https://gitlab.com/api/v4/projects/evernym%2Fverity%2Fvdr-tools/packages/generic/vdr-tools-android/0.8.5/libvdrtools_android_${ARCH}.zip"
+            unzip "libvdrtools_android_${ARCH}.zip"
         fi
 
         export LIBINDY_DIR="${PWD}/libvdrtools_${ARCH}"

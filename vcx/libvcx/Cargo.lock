@@ -2326,8 +2326,8 @@ checksum = "025ce40a007e1907e58d5bc1a594def78e5573bb0b1160bc389634e8f12e4faa"
 
 [[package]]
 name = "vdrtools"
-version = "0.8.4"
-source = "git+https://gitlab.com/evernym/verity/vdr-tools?branch=main#8e71e48ff71a59f88256c40e45129090ec5c090a"
+version = "0.8.5"
+source = "git+https://gitlab.com/evernym/verity/vdr-tools?branch=main#15ca467e3576ce16dcebaf74884005469763e816"
 dependencies = [
  "async-std",
  "async-trait",
@@ -2346,8 +2346,8 @@ dependencies = [
 
 [[package]]
 name = "vdrtools-sys"
-version = "0.8.4"
-source = "git+https://gitlab.com/evernym/verity/vdr-tools?branch=main#8e71e48ff71a59f88256c40e45129090ec5c090a"
+version = "0.8.5"
+source = "git+https://gitlab.com/evernym/verity/vdr-tools?branch=main#15ca467e3576ce16dcebaf74884005469763e816"
 dependencies = [
  "libc",
  "pkg-config",
