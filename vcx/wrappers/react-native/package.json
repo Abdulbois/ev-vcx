@@ -1,7 +1,7 @@
 {
   "name": "@evernym/react-native-sdk",
   "description": "React Native SDK for VCX",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "license": "SEE LICENSE IN LICENSE.txt",
   "author": {
     "name": "Evernym, Inc.",
@@ -30,12 +30,13 @@
   },
   "devDependencies": {
     "@types/react-native": "0.61.4",
+    "@types/react": "16.9.56",
     "@types/uuid": "^8.3.0",
     "@typescript-eslint/eslint-plugin": "^4.22.1",
     "@typescript-eslint/parser": "^4.22.0",
     "eslint": "^7.25.0",
     "prettier": "^2.2.1",
-    "ts-node": "^9.1.1",
-    "typescript": "^4.2.4"
+    "ts-node": "9.1.1",
+    "typescript": "4.2.4"
   }
 }

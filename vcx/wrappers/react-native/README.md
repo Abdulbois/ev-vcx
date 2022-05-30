@@ -94,11 +94,11 @@ Added `@evernym/react-native-sdk` package as dependency into your `package.json`
 1. Add VCX dependency into your Podfile inside target <ProjectName>:
     * release build for devices only (`arm64`):
         ```ruby
-        pod 'vcx', 0.0.225
+        pod 'vcx', 0.0.233
         ```
-    * debug build dor devices and simulators (`arm64` and `x86_64`)
+    * debug build for simulators only (`x86_64`)
         ```ruby
-        pod 'vcx', 0.0.226
+        pod 'vcx', 0.0.234
         ```
 
 1. Run `pod install`
