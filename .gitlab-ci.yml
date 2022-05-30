@@ -23,8 +23,8 @@ variables:
 #  indySimpleVersion: '1.16.0' # RPM package name
 #  indyFullRpmVersion: '1.16.0-170' # RPM directory
   vdrtoolsFullDebVersion: '0.8.5' # DEB package name
-  msdkVersion: '2.1.2' # CHANGE_ME for every VCX stable release (0.14.0 VCX)
-  vcxVersion: '0.14.0'
+  msdkVersion: '2.1.3' # CHANGE_ME for every VCX stable release (0.14.1 VCX)
+  vcxVersion: '0.14.1'
 
 ## - Anchors - ##
 .tags_micro:

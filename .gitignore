@@ -24,3 +24,5 @@ __pycache__/
 .pybuild
 
 .macosbuild
+
+!vcx/wrappers/react-native/package-lock.json
