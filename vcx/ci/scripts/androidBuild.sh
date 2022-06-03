@@ -65,7 +65,7 @@ get_libvdrtools() {
     if [ -z ${LIBINDY_DIR} ]; then
 
         if [ ! -d "libvdrtools_${ARCH}" ]; then
-            wget "https://gitlab.com/api/v4/projects/evernym%2Fverity%2Fvdr-tools/packages/generic/vdr-tools-android/0.8.5/libvdrtools_android_${ARCH}.zip"
+            wget "https://gitlab.com/api/v4/projects/evernym%2Fverity%2Fvdr-tools/packages/generic/vdr-tools-android/0.8.6/libvdrtools_android_${ARCH}.zip"
             unzip "libvdrtools_android_${ARCH}.zip"
         fi
 
