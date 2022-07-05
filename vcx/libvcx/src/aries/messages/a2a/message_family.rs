@@ -88,7 +88,7 @@ impl From<String> for MessageTypeFamilies {
     fn from(family: String) -> Self {
         match family.as_str() {
             "routing" => MessageTypeFamilies::Routing,
-            "connections" => MessageTypeFamilies::Connections,
+            "didexchange" => MessageTypeFamilies::Connections,
             "signature" => MessageTypeFamilies::Signature,
             "notification" => MessageTypeFamilies::Notification,
             "issue-credential" => MessageTypeFamilies::CredentialIssuance,
@@ -110,7 +110,7 @@ impl ToString for MessageTypeFamilies {
     fn to_string(&self) -> String {
         match self {
             MessageTypeFamilies::Routing => "routing".to_string(),
-            MessageTypeFamilies::Connections => "connections".to_string(),
+            MessageTypeFamilies::Connections => "didexchange".to_string(),
             MessageTypeFamilies::Notification => "notification".to_string(),
             MessageTypeFamilies::Signature => "signature".to_string(),
             MessageTypeFamilies::CredentialIssuance => "issue-credential".to_string(),

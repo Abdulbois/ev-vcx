@@ -909,6 +909,7 @@ impl DidExchangeSM {
 
                                 let request = Request::create()
                                     .set_label(label)
+                                    .set_pthid(&state.invitation.id())
                                     .set_did(agent_info.pw_did.to_string())
                                     .set_service_endpoint(agent_info.agency_endpoint()?)
                                     .set_keys(agent_info.recipient_keys(), agent_info.routing_keys()?);

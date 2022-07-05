@@ -28,15 +28,17 @@ RUN apt-get update && apt-get install -y \
     autoconf \
     automake \
     uuid-dev \
-    wget \
-    libindy
+    wget
+
+RUN curl https://gitlab.com/evernym/verity/vdr-tools/-/package_files/41403643/download --output libvdrtools.deb
+RUN dpkg --force-all -i libvdrtools.deb
 
 # install libvcx
-RUN curl https://repo.corp.evernym.com/portal/dev/libvcx_${LIBVCX_VERSION}-bionic_amd64.deb --output libvcx.deb
+RUN curl https://gitlab.com/evernym/mobile/ev-vcx/-/package_files/40564831/download --output libvcx.deb
 RUN dpkg --force-all -i libvcx.deb
 
 # install vcx python wrapper
-RUN curl https://repo.corp.evernym.com/portal/dev/python3-vcx-wrapper_${LIBVCX_VERSION}.tar.gz --output vcx-wrapper.tar.gz
+RUN curl https://gitlab.com/evernym/mobile/ev-vcx/-/package_files/40564782/download --output vcx-wrapper.tar.gz
 RUN pip3 install vcx-wrapper.tar.gz
 
 WORKDIR /demo

@@ -6,6 +6,7 @@ use crate::aries::messages::a2a::message_type::{
     MessageTypeVersion,
 };
 use crate::aries::messages::a2a::message_family::MessageTypeFamilies;
+use crate::aries::messages::thread::Thread;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct Request {
@@ -13,6 +14,8 @@ pub struct Request {
     pub id: MessageId,
     #[serde(rename = "@type")]
     pub type_: MessageType,
+    #[serde(rename = "~thread")]
+    pub thread: Thread,
     pub label: String,
     pub connection: ConnectionData
 }
@@ -62,11 +65,14 @@ impl Default for Request {
                 version: MessageTypeVersion::V10,
                 type_: A2AMessage::CONNECTION_REQUEST.to_string()
             },
+            thread: Default::default(),
             label: Default::default(),
             connection: Default::default()
         }
     }
 }
+
+threadlike!(Request);
 
 #[cfg(test)]
 pub mod tests {

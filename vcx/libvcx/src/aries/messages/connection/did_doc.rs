@@ -22,6 +22,7 @@ pub struct DidDoc {
     pub id: String,
     #[serde(default)]
     #[serde(rename = "publicKey")]
+    #[serde(alias = "verificationMethod")]
     pub public_key: Vec<Ed25519PublicKey>, // TODO: A DID document MAY include a publicKey property??? (https://w3c.github.io/did-core/#public-keys)
     #[serde(default)]
     pub authentication: Vec<Authentication>,

@@ -73,7 +73,7 @@ fn send_http_message(body_content: &[u8], url: &str, request_type: RequestType) 
     let mut response = match request_type {
         RequestType::POST => client.post(url)
             .body(body_content.to_owned())
-            .header(CONTENT_TYPE, "application/ssi-agent-wire"),
+            .header(CONTENT_TYPE, "application/didcomm-envelope-enc"),
         RequestType::GET => client.get(url)
     }.send()
      .map_err(|err| {
